@@ -36,7 +36,7 @@
       "title": "Software Engineer Intern",
       "subtitle": "Microsoft • Cambridge, MA",
       "meta": "June 2019 – Aug. 2019",
-      "details": "Developed and launched cross-platform applications across iOS, Android, Windows, and mixed-reality devices\nDeployed machine learning models on Azure ML and served them to a user facing application to demonstrate differences in recommendation and perosnalization models\nDesigned and implemented Python microservices supporting model serving and AI workflows, with automated CI/CD pipelines enabling reliable deployment and rapid iteration."
+      "details": "Developed and launched cross-platform applications across iOS, Android, Windows, and mixed-reality devices\nDeployed machine learning models on Azure ML and served them to a user facing application to demonstrate differences in recommendation and personalization models\nDesigned and implemented Python microservices supporting model serving and AI workflows, with automated CI/CD pipelines enabling reliable deployment and rapid iteration."
     }
   ],
   "education": [
