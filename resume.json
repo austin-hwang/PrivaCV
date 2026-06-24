@@ -1,0 +1,58 @@
+{
+  "name": "Austin Hwang",
+  "title": "",
+  "email": "austin.y.hwang@gmail.com",
+  "phone": "714-420-1750",
+  "location": "SF Bay Area",
+  "website": "linkedin.com/in/austinhwang",
+  "summary": "Software engineer specializing in applied AI, scaling backend microservices, and optimizing system performance to support high-throughput, production-grade applications.",
+  "skills": "Languages: Python, JavaScript, C++, Java, Dart\nFrameworks: Node.js, React, Typescript, Flutter, Django, Flask, FastAPI\nDatabases: PostgreSQL, MongoDB, Firebase\nTools: Git, Docker, Kubernetes, Terraform, GCP, AWS, Azure",
+  "experience": [
+    {
+      "title": "Member of Technical Staff",
+      "subtitle": "Eve (Series B) • San Mateo, CA",
+      "meta": "Feb. 2026 to Present",
+      "details": "Leading development of agentic legal research and drafting systems to synthesize information across case law, statutes, regulations, and external web sources, improving answer quality and reducing manual research effort for plaintiff law\nDesigned and developed a citation-grounding framework to enforce claim-level attribution across generated responses, increasing transparency and trust, while decreasing hallucination rates\nDeveloped automated quote and source-verification infrastructure to detect unsupported claims, improve factual accuracy, and establish measurable evaluation benchmarks for LLM trustworthiness."
+    },
+    {
+      "title": "Senior Software Engineer",
+      "subtitle": "Commure (Series E) • Mountain View, CA",
+      "meta": "June 2024 – Feb. 2026",
+      "details": "Led a 15-engineer team responsible for ASR, audio intelligence, and LLM-powered clinical documentation systems supporting 250K+ weekly appointments and $50M ARR.\nDesigned and implemented a model orchestration harness with intelligent routing, fallback, and failover across multiple ASR and LLM providers, improving reliability while reducing inference costs and provider-specific outages.\nDeveloped an end-to-end AI experimentation platform enabling replay of production conversations against new models, prompts, and configurations, accelerating regression testing, offline evaluation, and model rollouts.\nBuilt and deployed dedicated GCP infrastructure with in-country data residency and AI compute, region-specific pipelines, and production monitoring to support first international expansion."
+    },
+    {
+      "title": "Software Engineer II",
+      "subtitle": "SAP Ariba • Palo Alto, CA",
+      "meta": "Sept. 2021 – June 2024",
+      "details": "Led development of a multi-tenant AI insights platform, building Node.js services that generated contextual recommendations and surfaced actionable intelligence for sourcing applications.\nArchitected and implemented distributed Python and Java microservices powering cloud provisioning, large-scale data ingestion, durable workflow orchestration with Temporal, and ETL data pipelines supporting AI-driven products.\nImplemented containerized deployment pipelines with Docker, Kubernetes, and Jenkins to enable rapid deployment, safe rollouts, and scalable production operations."
+    },
+    {
+      "title": "Co-founder & Lead Software Engineer",
+      "subtitle": "Congregate.live • Los Angeles, CA",
+      "meta": "Apr. 2020 – Aug. 2021",
+      "details": "Developed a scalable video conferencing platform with over 30,000 users and hosted 2000+ events for 30+ educational institutions and organizations.\nSuccessfully incubated at Harvard Innovation Labs, secured funding from the Harvard Undergraduate Capital Partners's Innovation Fund, and acquired by Harvard College\nLed engineering team in developing a React/Redux frontend and Rails backend."
+    },
+    {
+      "title": "Software Engineer Intern",
+      "subtitle": "Microsoft • Cambridge, MA",
+      "meta": "June 2019 – Aug. 2019",
+      "details": "Developed and launched cross-platform applications across iOS, Android, Windows, and mixed-reality devices\nDeployed machine learning models on Azure ML and served them to a user facing application to demonstrate differences in recommendation and perosnalization models\nDesigned and implemented Python microservices supporting model serving and AI workflows, with automated CI/CD pipelines enabling reliable deployment and rapid iteration."
+    }
+  ],
+  "education": [
+    {
+      "title": "BA in Computer Science",
+      "subtitle": "Harvard College • Cambridge, MA",
+      "meta": "2017 – 2021",
+      "details": "Cum Laude in Field, John Harvard Scholar."
+    }
+  ],
+  "projects": [],
+  "sectionOrder": [
+    "education",
+    "experience",
+    "projects",
+    "skills"
+  ],
+  "textScale": 0.84
+}
