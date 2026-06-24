@@ -1,0 +1,389 @@
+/* ============================================================
+   Resume Editor — clean, professional, text-only theme
+   ============================================================ */
+
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --border: #d9dce1;
+  --text: #1c1d1f;
+  --text-soft: #5a5e66;
+  --accent: #2f3640;
+  --field-bg: #ffffff;
+  --field-border: #c7ccd3;
+  --field-focus: #2f3640;
+
+  /* Resume document */
+  --doc-text: #000000;
+  --doc-soft: #333333;
+  --doc-rule: #000000;
+  --doc-font: "Merriweather", Georgia, "Times New Roman", serif;
+  /* Page margins (used on screen + in the printed PDF) */
+  --doc-margin-v: 0.4in;
+  --doc-margin-h: 0.5in;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ---------------- App bar ---------------- */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-bar__title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.app-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-soft);
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
+}
+.text-size input[type="range"] { width: 96px; }
+.text-size output {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- Buttons ---------------- */
+.btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  border: 1px solid var(--field-border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.btn:hover { background: #f0f1f3; }
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn--primary:hover { background: #44505e; }
+.btn--ghost { color: var(--text-soft); }
+.btn--small { padding: 4px 10px; font-size: 12px; }
+
+/* ---------------- Layout ---------------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(420px, 1fr);
+  gap: 0;
+  height: calc(100vh - 53px);
+}
+
+.editor {
+  overflow-y: auto;
+  padding: 20px 24px 80px;
+  border-right: 1px solid var(--border);
+}
+
+.preview-pane {
+  overflow-y: auto;
+  padding: 28px;
+  background: #e9ebee;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Stack of page sheets (one .resume per Letter page). */
+.pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* ---------------- Editor fields ---------------- */
+.field-group {
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.field-group:last-child { border-bottom: none; }
+
+.field-group__heading {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-soft);
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.field-group__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.field-group__bar .field-group__heading { margin: 0; }
+
+.field-group__tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.reorder { display: inline-flex; gap: 2px; }
+.reorder button {
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--field-border);
+  background: #fff;
+  color: var(--text-soft);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.reorder button:hover:not(:disabled) { background: #f0f1f3; color: var(--text); }
+.reorder button:disabled { opacity: 0.35; cursor: default; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.field > span {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+input[type="text"],
+textarea {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
+  border-radius: 6px;
+  color: var(--text);
+  width: 100%;
+  resize: vertical;
+}
+input[type="text"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--field-focus);
+  box-shadow: 0 0 0 2px rgba(47, 54, 64, 0.12);
+}
+
+/* ---------------- Repeatable entries ---------------- */
+.entry-list { display: flex; flex-direction: column; gap: 14px; }
+
+.entry {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfbfc;
+}
+.entry__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.entry__remove {
+  border: none;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.entry__remove:hover { background: #eceef1; color: #b3261e; }
+
+/* ============================================================
+   RESUME DOCUMENT — the printed output
+   ============================================================ */
+.resume {
+  background: #ffffff;
+  color: var(--doc-text);
+  width: 8.5in;
+  min-height: 11in;
+  font-family: var(--doc-font);
+  padding: var(--doc-margin-v) var(--doc-margin-h);
+  /* Base size scales with the Text size slider; all other resume
+     sizes are em-relative to this, so one value scales everything. */
+  font-size: calc(10pt * var(--text-scale, 1));
+  line-height: 1.35;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* ---- Header (left-aligned, compact) ---- */
+.resume__name {
+  font-size: 1.9em;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin: 0 0 3px;
+  text-align: left;
+  line-height: 1.1;
+}
+.resume__title {
+  text-align: left;
+  font-size: 1.05em;
+  color: var(--doc-soft);
+  margin: 0 0 3px;
+  font-style: italic;
+}
+.resume__contact {
+  text-align: left;
+  font-size: 0.9em;
+  color: var(--doc-soft);
+  margin-bottom: 8px;
+}
+.resume__contact span:not(:last-child)::after {
+  content: "  •  ";
+  color: #999;
+}
+
+/* Summary appears as a lead paragraph directly under the header. */
+.resume__lead {
+  margin: 0 0 10px;
+  font-size: 0.95em;
+}
+
+.resume__section { margin-bottom: 9px; }
+.resume__section-title {
+  font-size: 1.05em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 0.7pt solid var(--doc-rule);
+  padding-bottom: 2px;
+  margin: 0 0 6px;
+}
+
+.resume__entry { margin-bottom: 8px; }
+.resume__entry:last-child { margin-bottom: 0; }
+.resume__entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.resume__entry-role { font-weight: 700; }
+.resume__entry-sub {
+  font-style: italic;
+  margin-top: 1px;
+}
+.resume__entry-meta {
+  color: var(--doc-soft);
+  font-size: 0.9em;
+  white-space: nowrap;
+  text-align: right;
+}
+.resume__bullets {
+  margin: 3px 0 0;
+  padding-left: 16px;
+}
+.resume__bullets li { margin-bottom: 1px; }
+
+.resume__skills { margin: 0; }
+.resume__skill-line { margin-bottom: 2px; }
+.resume__skill-cat { font-weight: 700; }
+
+.resume__empty {
+  color: #bbb;
+  text-align: center;
+  font-style: italic;
+  margin-top: 120px;
+}
+
+/* ============================================================
+   PRINT — produce a clean text-only PDF
+   ============================================================ */
+/* margin: 0 removes the page-margin box where browsers print the
+   title / date / URL header & footer. The document's own margins
+   are provided by the .resume padding below. */
+@page {
+  size: letter;
+  margin: 0;
+}
+
+@media print {
+  /* Hide the editing chrome; print only the resume document. */
+  .app-bar,
+  .editor { display: none !important; }
+
+  body { background: #fff; }
+
+  .layout {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  .preview-pane {
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+    overflow: visible;
+  }
+
+  .pages { display: block; gap: 0; }
+
+  .resume {
+    box-shadow: none;
+    width: auto;
+    /* padding (document margins) + font-size inherit from the base rule */
+    break-after: page; /* one sheet per printed page */
+  }
+  .resume:last-child { break-after: auto; }
+
+  /* Avoid awkward breaks inside an entry or right after a heading. */
+  .resume__entry { break-inside: avoid; }
+  .resume__section-title { break-after: avoid; }
+}

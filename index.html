@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resume Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar__title">Resume Editor</div>
+    <div class="app-bar__actions">
+      <label class="text-size" title="Adjust the overall text size of the resume">
+        <span>Text size</span>
+        <input id="textScale" type="range" min="0.8" max="1.3" step="0.02" value="1" />
+        <output id="textScaleOut">100%</output>
+      </label>
+      <button id="btnExport" class="btn btn--primary" type="button">Export PDF</button>
+      <button id="btnImport" class="btn" type="button">Import PDF</button>
+      <button id="btnSave" class="btn" type="button" title="Download your resume as a .json file">Save JSON</button>
+      <button id="btnLoad" class="btn" type="button" title="Open a .json file you saved earlier">Open JSON</button>
+      <button id="btnSample" class="btn" type="button">Sample</button>
+      <button id="btnClear" class="btn btn--ghost" type="button">Clear</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ EDITOR ============ -->
+    <section class="editor" aria-label="Editor">
+      <div class="field-group">
+        <h2 class="field-group__heading">Header</h2>
+        <label class="field">
+          <span>Full Name</span>
+          <input type="text" data-bind="name" placeholder="Jane Doe" />
+        </label>
+        <label class="field">
+          <span>Title / Role</span>
+          <input type="text" data-bind="title" placeholder="Senior Software Engineer" />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>Email</span>
+            <input type="text" data-bind="email" placeholder="jane@example.com" />
+          </label>
+          <label class="field">
+            <span>Phone</span>
+            <input type="text" data-bind="phone" placeholder="(555) 123-4567" />
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>Location</span>
+            <input type="text" data-bind="location" placeholder="San Francisco, CA" />
+          </label>
+          <label class="field">
+            <span>Website / LinkedIn</span>
+            <input type="text" data-bind="website" placeholder="linkedin.com/in/janedoe" />
+          </label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <h2 class="field-group__heading">Summary</h2>
+        <label class="field">
+          <span>Professional Summary</span>
+          <textarea data-bind="summary" rows="4" placeholder="Brief overview of your experience and strengths."></textarea>
+        </label>
+      </div>
+
+      <div class="field-group" data-section="experience">
+        <div class="field-group__bar">
+          <h2 class="field-group__heading">Experience</h2>
+          <button class="btn btn--small" type="button" data-add="experience">+ Add</button>
+        </div>
+        <div id="experienceList" class="entry-list"></div>
+      </div>
+
+      <div class="field-group" data-section="education">
+        <div class="field-group__bar">
+          <h2 class="field-group__heading">Education</h2>
+          <button class="btn btn--small" type="button" data-add="education">+ Add</button>
+        </div>
+        <div id="educationList" class="entry-list"></div>
+      </div>
+
+      <div class="field-group" data-section="projects">
+        <div class="field-group__bar">
+          <h2 class="field-group__heading">Projects</h2>
+          <button class="btn btn--small" type="button" data-add="projects">+ Add</button>
+        </div>
+        <div id="projectsList" class="entry-list"></div>
+      </div>
+
+      <div class="field-group" data-section="skills">
+        <div class="field-group__bar">
+          <h2 class="field-group__heading">Skills</h2>
+        </div>
+        <label class="field">
+          <span>Skills (one group per line, e.g. "Languages: Python, Go")</span>
+          <textarea data-bind="skills" rows="4" placeholder="Languages: Python, JavaScript, Go&#10;Tools: Docker, Kubernetes, AWS"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <!-- ============ PREVIEW ============ -->
+    <section class="preview-pane" aria-label="Preview">
+      <div id="pages" class="pages"></div>
+    </section>
+  </main>
+
+  <input id="pdfInput" type="file" accept="application/pdf,.pdf" hidden />
+  <input id="jsonInput" type="file" accept="application/json,.json" hidden />
+
+  <script src="app.js"></script>
+  <script type="module" src="pdf-import.js"></script>
+</body>
+</html>
