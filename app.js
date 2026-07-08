@@ -258,6 +258,12 @@ function hasAnyContent() {
   );
 }
 
+function updateStartPanel() {
+  const panel = $("#startPanel");
+  if (!panel) return;
+  panel.hidden = hasAnyContent();
+}
+
 function entryHtml(entry) {
   const bullets = bulletsFrom(entry.details);
   const head = `
@@ -317,11 +323,33 @@ const PAGE_LIMIT_PX = 11 * 96 - 16;
 function renderPreview() {
   const pagesEl = $("#pages");
   pagesEl.style.setProperty("--text-scale", String(state.textScale));
+  updateStartPanel();
 
   if (!hasAnyContent()) {
     pagesEl.innerHTML = "";
-    const sheet = el("div", { class: "resume" });
-    sheet.innerHTML = `<p class="resume__empty">Start typing on the left — your resume appears here.</p>`;
+    const sheet = el("div", { class: "resume resume--empty" });
+    sheet.innerHTML = `
+      <div class="resume__empty-guide" aria-label="Empty resume preview">
+        <p class="resume__empty-kicker">Clean one-page structure</p>
+        <h1 class="resume__name">Your Name</h1>
+        <div class="resume__contact">
+          <span>email@example.com</span><span>(555) 123-4567</span><span>City, ST</span><span>linkedin.com/in/you</span>
+        </div>
+        <div class="resume__empty-line resume__empty-line--wide"></div>
+        <div class="resume__empty-line"></div>
+        <div class="resume__section">
+          <h2 class="resume__section-title">Experience</h2>
+          <div class="resume__empty-role"></div>
+          <ul class="resume__bullets">
+            <li>Lead with measurable impact, scope, and outcomes.</li>
+            <li>Keep each bullet concise enough to scan quickly.</li>
+          </ul>
+        </div>
+        <div class="resume__section">
+          <h2 class="resume__section-title">Skills</h2>
+          <div class="resume__empty-line resume__empty-line--short"></div>
+        </div>
+      </div>`;
     pagesEl.appendChild(sheet);
     return;
   }
@@ -677,6 +705,17 @@ function init() {
   $("#btnSave").addEventListener("click", saveJsonFile);
   const jsonInput = $("#jsonInput");
   $("#btnLoad").addEventListener("click", () => jsonInput.click());
+  const startLoad = $("#btnStartLoad");
+  if (startLoad) startLoad.addEventListener("click", () => jsonInput.click());
+  const startImport = $("#btnStartImport");
+  if (startImport) startImport.addEventListener("click", () => $("#pdfInput").click());
+  const startSample = $("#btnStartSample");
+  if (startSample) startSample.addEventListener("click", () => {
+    state = sampleState();
+    rebuildAll();
+    persistSoft();
+    flash("Sample loaded");
+  });
   jsonInput.addEventListener("change", () => {
     openJsonFile(jsonInput.files[0]);
     jsonInput.value = ""; // allow re-opening the same file

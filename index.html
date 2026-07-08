@@ -30,6 +30,24 @@
   <main class="layout">
     <!-- ============ EDITOR ============ -->
     <section class="editor" aria-label="Editor">
+      <section id="startPanel" class="start-panel" aria-labelledby="startPanelTitle">
+        <div class="start-panel__copy">
+          <p class="start-panel__eyebrow">Private resume workspace</p>
+          <h1 id="startPanelTitle">Start from the resume you already have.</h1>
+          <p>Import a PDF, open a saved JSON file, or load a polished sample to see the final structure instantly.</p>
+        </div>
+        <div class="start-panel__actions">
+          <button id="btnStartImport" class="btn btn--primary" type="button">Import PDF</button>
+          <button id="btnStartSample" class="btn" type="button">Use Sample</button>
+          <button id="btnStartLoad" class="btn" type="button">Open JSON</button>
+        </div>
+        <div class="start-panel__trust" aria-label="Trust notes">
+          <span>No account</span>
+          <span>Local autosave</span>
+          <span>Free PDF export</span>
+        </div>
+      </section>
+
       <div class="field-group">
         <h2 class="field-group__heading">Header</h2>
         <label class="field">
