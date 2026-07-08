@@ -26,4 +26,15 @@ describe("resume helpers", () => {
     expect(checks).toHaveLength(4);
     expect(checks.every((check) => check.ok)).toBe(true);
   });
+
+  it("targets the first missing contact field", () => {
+    const checks = buildResumeChecks({ ...sampleState(), phone: "" }, 1);
+    const contact = checks.find((check) => check.id === "contact");
+
+    expect(contact).toMatchObject({
+      ok: false,
+      actionLabel: "Fix contact",
+      targetId: "field-phone",
+    });
+  });
 });
