@@ -1,5 +1,27 @@
 # Agent Log
 
+## 2026-07-08 13:37 PDT
+
+- User problem addressed: the project needed to move from a handcrafted static
+  app to the required modern consumer web stack without losing the existing
+  resume editing workflow.
+- Implementation: migrated the app to Next.js App Router, TypeScript, React,
+  Tailwind CSS, pnpm, zod normalization, lucide icons, Radix-backed dialog
+  primitives, and local shadcn/ui-style components; ported autosave, JSON
+  import/export, PDF import, resume checks, text review, and print export into
+  typed React code; removed obsolete static entry files.
+- UI components or patterns used: shadcn/ui-style Button, Input, Textarea, Card,
+  Badge, Alert, and Dialog primitives with Tailwind utility styling.
+- Why it matters: the product now has a maintainable, type-safe foundation that
+  can grow into a polished consumer app while staying local-first and inexpensive
+  to run.
+- Verification: ran `pnpm install`, `pnpm typecheck`, `pnpm lint`, `pnpm test`,
+  `pnpm test:e2e`, `pnpm build`, started
+  `pnpm dev --hostname 127.0.0.1 --port 3000`, and confirmed the local app
+  returns HTTP 200.
+- Future opportunities: expand Playwright coverage and improve Resume Check
+  warnings with field-specific jump targets.
+
 ## 2026-07-08 10:29 PDT
 
 - User problem addressed: first-time users need immediate confidence that the editor is private, free to export from, and useful before entering lots of data.
