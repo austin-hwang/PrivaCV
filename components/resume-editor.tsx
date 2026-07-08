@@ -8,6 +8,7 @@ import {
   Check,
   ClipboardCopy,
   Download,
+  Eye,
   FileJson,
   FileText,
   Printer,
@@ -80,12 +81,105 @@ type ToastState = {
   message: string;
 };
 
+type ImportReviewItem = {
+  id: string;
+  label: string;
+  targetId: string;
+  detail: string;
+};
+
+type ImportReviewState = {
+  fileName: string;
+  sections: string[];
+  items: ImportReviewItem[];
+};
+
+function compactDetail(value: string) {
+  const cleaned = value.replace(/\s+/g, " ").trim();
+  if (!cleaned) return "No text detected";
+  return cleaned.length > 92 ? `${cleaned.slice(0, 89)}...` : cleaned;
+}
+
+function entryHasContent(entry: ResumeEntry) {
+  return Boolean(entry.title || entry.subtitle || entry.meta || entry.details);
+}
+
+function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], entry: ResumeEntry, index: number) {
+  const field = entry.title ? "title" : entry.subtitle ? "subtitle" : entry.meta ? "meta" : "details";
+  return `field-${section}-${index}-${field}`;
+}
+
+function buildImportReview(state: ResumeState, fileName: string): ImportReviewState {
+  const items: ImportReviewItem[] = [];
+  const sections = new Set<string>();
+  const addItem = (item: ImportReviewItem, section: string) => {
+    items.push(item);
+    sections.add(section);
+  };
+
+  addItem(
+    {
+      id: "contact",
+      label: "Contact details",
+      targetId: state.name ? "field-name" : "field-email",
+      detail: compactDetail([state.name, state.email, state.phone, state.location, state.website].filter(Boolean).join(" | ")),
+    },
+    "Header",
+  );
+
+  if (state.summary) {
+    addItem(
+      {
+        id: "summary",
+        label: "Summary",
+        targetId: "field-summary",
+        detail: compactDetail(state.summary),
+      },
+      "Summary",
+    );
+  }
+
+  (["experience", "education", "projects"] as const).forEach((section) => {
+    const index = state[section].findIndex(entryHasContent);
+    if (index < 0) return;
+    const entry = state[section][index];
+    addItem(
+      {
+        id: section,
+        label: `First ${SECTION_LABELS[section].toLowerCase()} entry`,
+        targetId: entryTargetId(section, entry, index),
+        detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
+      },
+      SECTION_LABELS[section],
+    );
+  });
+
+  if (state.skills) {
+    addItem(
+      {
+        id: "skills",
+        label: "Skills",
+        targetId: "field-skills",
+        detail: compactDetail(state.skills.split("\n")[0] ?? state.skills),
+      },
+      "Skills",
+    );
+  }
+
+  return {
+    fileName,
+    sections: [...sections],
+    items,
+  };
+}
+
 export function ResumeEditor() {
   const [state, setState] = useState<ResumeState>(() => emptyState());
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +189,10 @@ export function ResumeEditor() {
   const checks = useMemo(() => buildResumeChecks(state, pageCount), [state, pageCount]);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
+  const importReviewTargets = useMemo(
+    () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
+    [importReview],
+  );
 
   const flash = useCallback((message: string) => {
     setToast({ id: Date.now(), message });
@@ -213,6 +311,7 @@ export function ResumeEditor() {
     try {
       const text = await file.text();
       setState(normalizeResume(JSON.parse(text)));
+      setImportReview(null);
       flash("Loaded JSON");
     } catch {
       flash("That file is not valid resume JSON");
@@ -223,7 +322,9 @@ export function ResumeEditor() {
     if (!file) return;
     setIsImporting(true);
     try {
-      setState(await importResumePdf(file));
+      const imported = await importResumePdf(file);
+      setState(imported);
+      setImportReview(buildImportReview(imported, file.name));
       flash("Imported PDF - please review");
     } catch (error) {
       flash(error instanceof Error ? error.message : "Could not import this PDF");
@@ -296,6 +397,7 @@ export function ResumeEditor() {
               variant="ghost"
               onClick={() => {
                 setState(sampleState());
+                setImportReview(null);
                 flash("Sample loaded");
               }}
             >
@@ -307,6 +409,7 @@ export function ResumeEditor() {
               onClick={() => {
                 if (window.confirm("Clear all fields? This cannot be undone.")) {
                   setState(emptyState());
+                  setImportReview(null);
                   flash("Cleared");
                 }
               }}
@@ -338,6 +441,7 @@ export function ResumeEditor() {
                     variant="outline"
                     onClick={() => {
                       setState(sampleState());
+                      setImportReview(null);
                       flash("Sample loaded");
                     }}
                   >
@@ -354,6 +458,52 @@ export function ResumeEditor() {
                     </Badge>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {importReview ? (
+            <Card className="mb-6 border-amber-300 bg-amber-50/70">
+              <CardHeader className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <CardDescription className="font-semibold uppercase tracking-[0.16em] text-amber-900">
+                      PDF import review
+                    </CardDescription>
+                    <CardTitle className="text-base">Check the fields PDF parsing usually guesses.</CardTitle>
+                    <CardDescription>
+                      Imported from {importReview.fileName}. Formatting in PDFs is approximate, so confirm these fields
+                      before exporting.
+                    </CardDescription>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setImportReview(null)}>
+                    <Check /> Done
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {importReview.sections.map((section) => (
+                    <Badge key={section} variant="secondary">
+                      {section}
+                    </Badge>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-2 sm:grid-cols-2">
+                {importReview.items.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="group flex min-h-16 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => focusCheckTarget(item.targetId)}
+                  >
+                    <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-foreground">{item.label}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{item.detail}</span>
+                    </span>
+                    <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                ))}
               </CardContent>
             </Card>
           ) : null}
@@ -406,25 +556,55 @@ export function ResumeEditor() {
 
           <div className="space-y-6">
             <FieldGroup title="Header">
-              <TextField id="field-name" label="Full Name" value={state.name} placeholder="Jane Doe" onChange={(value) => updateField("name", value)} />
+              <TextField
+                id="field-name"
+                label="Full Name"
+                value={state.name}
+                placeholder="Jane Doe"
+                reviewTarget={importReviewTargets.has("field-name")}
+                onChange={(value) => updateField("name", value)}
+              />
               <TextField
                 id="field-title"
                 label="Title / Role"
                 value={state.title}
                 placeholder="Senior Software Engineer"
+                reviewTarget={importReviewTargets.has("field-title")}
                 onChange={(value) => updateField("title", value)}
               />
               <div className="grid gap-3 sm:grid-cols-2">
-                <TextField id="field-email" label="Email" value={state.email} placeholder="jane@example.com" onChange={(value) => updateField("email", value)} />
-                <TextField id="field-phone" label="Phone" value={state.phone} placeholder="(555) 123-4567" onChange={(value) => updateField("phone", value)} />
+                <TextField
+                  id="field-email"
+                  label="Email"
+                  value={state.email}
+                  placeholder="jane@example.com"
+                  reviewTarget={importReviewTargets.has("field-email")}
+                  onChange={(value) => updateField("email", value)}
+                />
+                <TextField
+                  id="field-phone"
+                  label="Phone"
+                  value={state.phone}
+                  placeholder="(555) 123-4567"
+                  reviewTarget={importReviewTargets.has("field-phone")}
+                  onChange={(value) => updateField("phone", value)}
+                />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <TextField id="field-location" label="Location" value={state.location} placeholder="San Francisco, CA" onChange={(value) => updateField("location", value)} />
+                <TextField
+                  id="field-location"
+                  label="Location"
+                  value={state.location}
+                  placeholder="San Francisco, CA"
+                  reviewTarget={importReviewTargets.has("field-location")}
+                  onChange={(value) => updateField("location", value)}
+                />
                 <TextField
                   id="field-website"
                   label="Website / LinkedIn"
                   value={state.website}
                   placeholder="linkedin.com/in/janedoe"
+                  reviewTarget={importReviewTargets.has("field-website")}
                   onChange={(value) => updateField("website", value)}
                 />
               </div>
@@ -436,6 +616,7 @@ export function ResumeEditor() {
                 label="Professional Summary"
                 value={state.summary}
                 placeholder="Brief overview of your experience and strengths."
+                reviewTarget={importReviewTargets.has("field-summary")}
                 onChange={(value) => updateField("summary", value)}
               />
             </FieldGroup>
@@ -480,12 +661,14 @@ export function ResumeEditor() {
                     label={'Skills (one group per line, e.g. "Languages: Python, Go")'}
                     value={state.skills}
                     placeholder={"Languages: Python, JavaScript, Go\nTools: Docker, Kubernetes, AWS"}
+                    reviewTarget={importReviewTargets.has("field-skills")}
                     onChange={(value) => updateField("skills", value)}
                   />
                 ) : (
                   <EntryList
                     section={section}
                     entries={state[section]}
+                    reviewTargets={importReviewTargets}
                     onUpdate={updateEntry}
                     onMove={moveEntry}
                     onRemove={removeEntry}
@@ -586,18 +769,26 @@ function TextField({
   label,
   value,
   placeholder,
+  reviewTarget,
   onChange,
 }: {
   id?: string;
   label: string;
   value: string;
   placeholder?: string;
+  reviewTarget?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
       <span>{label}</span>
-      <Input id={id} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <Input
+        id={id}
+        value={value}
+        placeholder={placeholder}
+        className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }
@@ -607,18 +798,26 @@ function TextAreaField({
   label,
   value,
   placeholder,
+  reviewTarget,
   onChange,
 }: {
   id?: string;
   label: string;
   value: string;
   placeholder?: string;
+  reviewTarget?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
       <span>{label}</span>
-      <Textarea id={id} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <Textarea
+        id={id}
+        value={value}
+        placeholder={placeholder}
+        className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }
@@ -626,12 +825,14 @@ function TextAreaField({
 function EntryList({
   section,
   entries,
+  reviewTargets,
   onUpdate,
   onMove,
   onRemove,
 }: {
   section: (typeof REPEATABLE_SECTIONS)[number];
   entries: ResumeEntry[];
+  reviewTargets: Set<string>;
   onUpdate: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, key: keyof ResumeEntry, value: string) => void;
   onMove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, direction: -1 | 1) => void;
   onRemove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => void;
@@ -678,10 +879,34 @@ function EntryList({
                 <Trash2 /> Remove
               </Button>
             </div>
-            <TextField id={`field-${section}-${index}-title`} label={schema.title} value={entry.title} onChange={(value) => onUpdate(section, index, "title", value)} />
-            <TextField id={`field-${section}-${index}-subtitle`} label={schema.subtitle} value={entry.subtitle} onChange={(value) => onUpdate(section, index, "subtitle", value)} />
-            <TextField id={`field-${section}-${index}-meta`} label={schema.meta} value={entry.meta} onChange={(value) => onUpdate(section, index, "meta", value)} />
-            <TextAreaField id={`field-${section}-${index}-details`} label={schema.details} value={entry.details} onChange={(value) => onUpdate(section, index, "details", value)} />
+            <TextField
+              id={`field-${section}-${index}-title`}
+              label={schema.title}
+              value={entry.title}
+              reviewTarget={reviewTargets.has(`field-${section}-${index}-title`)}
+              onChange={(value) => onUpdate(section, index, "title", value)}
+            />
+            <TextField
+              id={`field-${section}-${index}-subtitle`}
+              label={schema.subtitle}
+              value={entry.subtitle}
+              reviewTarget={reviewTargets.has(`field-${section}-${index}-subtitle`)}
+              onChange={(value) => onUpdate(section, index, "subtitle", value)}
+            />
+            <TextField
+              id={`field-${section}-${index}-meta`}
+              label={schema.meta}
+              value={entry.meta}
+              reviewTarget={reviewTargets.has(`field-${section}-${index}-meta`)}
+              onChange={(value) => onUpdate(section, index, "meta", value)}
+            />
+            <TextAreaField
+              id={`field-${section}-${index}-details`}
+              label={schema.details}
+              value={entry.details}
+              reviewTarget={reviewTargets.has(`field-${section}-${index}-details`)}
+              onChange={(value) => onUpdate(section, index, "details", value)}
+            />
           </CardContent>
         </Card>
       ))}

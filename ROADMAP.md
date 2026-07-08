@@ -28,7 +28,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   crowded sections and low-evidence resumes.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
-- Safer PDF import review that highlights uncertain parsed fields.
+- Keep improving PDF import review with clearer confidence signals and a better
+  before/after correction flow.
 
 ## UI System
 
