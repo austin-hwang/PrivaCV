@@ -382,6 +382,100 @@ textarea:focus {
 }
 .entry__remove:hover { background: #eceef1; color: #b3261e; }
 
+/* ---------------- Plain-text review dialog ---------------- */
+.text-review {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 18px 55px rgba(28, 29, 31, 0.24);
+}
+.text-review::backdrop {
+  background: rgba(28, 29, 31, 0.42);
+}
+.text-review__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  padding: 18px;
+}
+.text-review__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.text-review__eyebrow {
+  margin: 0 0 3px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.text-review h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.text-review__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+}
+.text-review__close:hover {
+  background: #f0f1f3;
+  color: var(--text);
+}
+.text-review__intro {
+  margin: 0 0 12px;
+  color: var(--text-soft);
+  max-width: 62ch;
+}
+.text-review__output {
+  min-height: 360px;
+  max-height: 52vh;
+  margin: 0;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+}
+.text-review__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+}
+.text-review__stats {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.text-review__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ============================================================
    RESUME DOCUMENT — the printed output
    ============================================================ */
@@ -588,6 +682,15 @@ textarea:focus {
   .start-panel h1 { font-size: 21px; }
   .start-panel__actions .btn { flex: 1 1 140px; }
   .resume-check__list { grid-template-columns: 1fr; }
+  .text-review { width: calc(100vw - 20px); }
+  .text-review__panel { padding: 14px; }
+  .text-review__output { min-height: 300px; max-height: 48vh; }
+  .text-review__footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .text-review__actions .btn { flex: 1 1 120px; }
   .preview-pane { padding: 14px; }
   .resume {
     width: min(8.5in, calc(100vw - 28px));
