@@ -384,15 +384,18 @@ export function ResumeEditor() {
                       <p className="text-xs font-semibold">{check.label}</p>
                       <p className="text-xs leading-snug text-muted-foreground">{check.detail}</p>
                       {!check.ok ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="mt-2 h-7 px-2"
-                          onClick={() => focusCheckTarget(check.targetId)}
-                        >
-                          <ArrowRight /> {check.actionLabel}
-                        </Button>
+                        <>
+                          <p className="mt-1 text-xs leading-snug text-muted-foreground">{check.guidance}</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 h-7 px-2"
+                            onClick={() => focusCheckTarget(check.targetId)}
+                          >
+                            <ArrowRight /> {check.actionLabel}
+                          </Button>
+                        </>
                       ) : null}
                     </div>
                   </div>
