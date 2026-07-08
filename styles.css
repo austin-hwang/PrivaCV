@@ -126,6 +126,57 @@ body {
   align-items: flex-start;
 }
 
+/* ---------------- First-run start panel ---------------- */
+.start-panel {
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid #c9ced6;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.start-panel[hidden] { display: none; }
+.start-panel__copy { max-width: 640px; }
+.start-panel__eyebrow {
+  margin: 0 0 4px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.start-panel h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+.start-panel p {
+  margin: 0;
+  color: var(--text-soft);
+  max-width: 56ch;
+}
+.start-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.start-panel__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.start-panel__trust span {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #f7f8fa;
+}
+
 /* Stack of page sheets (one .resume per Letter page). */
 .pages {
   display: flex;
@@ -334,11 +385,30 @@ textarea:focus {
 .resume__skill-line { margin-bottom: 2px; }
 .resume__skill-cat { font-weight: 700; }
 
-.resume__empty {
-  color: #bbb;
-  text-align: center;
-  font-style: italic;
-  margin-top: 120px;
+.resume--empty { color: #4f545c; }
+.resume__empty-guide { opacity: 0.88; }
+.resume__empty-kicker {
+  margin: 0 0 8px;
+  color: #666;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.resume__empty-line {
+  width: 72%;
+  height: 0.75em;
+  margin: 5px 0;
+  background: #e6e6e6;
+}
+.resume__empty-line--wide { width: 92%; }
+.resume__empty-line--short { width: 55%; }
+.resume__empty-role {
+  width: 46%;
+  height: 0.9em;
+  margin: 2px 0 5px;
+  background: #d9d9d9;
 }
 
 /* ============================================================
@@ -386,4 +456,54 @@ textarea:focus {
   /* Avoid awkward breaks inside an entry or right after a heading. */
   .resume__entry { break-inside: avoid; }
   .resume__section-title { break-after: avoid; }
+}
+
+@media (max-width: 980px) {
+  .app-bar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .app-bar__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .editor {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-pane {
+    min-height: 70vh;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-bar { padding: 12px 14px; }
+  .editor { padding: 16px 14px 48px; }
+  .field-row { grid-template-columns: 1fr; }
+  .text-size {
+    width: 100%;
+    border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+  }
+  .text-size input[type="range"] { flex: 1; }
+  .start-panel { padding: 16px; }
+  .start-panel h1 { font-size: 21px; }
+  .start-panel__actions .btn { flex: 1 1 140px; }
+  .preview-pane { padding: 14px; }
+  .resume {
+    width: min(8.5in, calc(100vw - 28px));
+    min-height: auto;
+    aspect-ratio: 8.5 / 11;
+  }
 }

@@ -7,6 +7,8 @@ can export to PDF.
 ## Features
 
 - Live two-pane editor: fill in fields on the left, see the resume update on the right.
+- First-run start panel with three fast paths: import a PDF, open saved JSON, or
+  load a polished sample resume.
 - Sections: Header, Summary, Experience, Education, Projects, Skills.
 - Add/remove as many Experience, Education, and Project entries as you like.
 - Reorder sections with the ↑/↓ buttons on each section (Education leads by default).
@@ -21,6 +23,8 @@ can export to PDF.
 - **Save JSON / Open JSON** — download your resume as a `.json` file on disk and
   reopen it later (or on another machine).
 - A "Sample" button fills in example content so you can see the format.
+- Responsive editor layout for narrow screens while preserving Letter-sized PDF
+  output.
 
 ## Importing a PDF
 
@@ -77,3 +81,5 @@ left stranded at the foot of a page.
 | `app.js`       | State, live preview, save/load, export   |
 | `pdf-import.js`| PDF text extraction + heuristic parsing  |
 | `server.py`    | Optional local static server             |
+| `ROADMAP.md`   | Product vision and prioritized roadmap   |
+| `AGENT_LOG.md` | Progress notes from autonomous builder runs |
