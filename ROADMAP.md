@@ -17,11 +17,15 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make first use obvious: import, open saved work, or start from a strong sample.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
+- Show lightweight readiness feedback before export so users can fix obvious
+  resume issues without leaving the page.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
 
-- Resume fit guidance: page count, bullet length, missing contact info, and dense-section warnings.
+- Resume fit guidance: add dense-section warnings and stronger recommendations
+  now that page count, bullet length, missing contact info, and summary length
+  checks exist.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Safer PDF import review that highlights uncertain parsed fields.
