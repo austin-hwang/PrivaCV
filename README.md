@@ -19,6 +19,8 @@ can export to PDF.
   the preview and the exported PDF.
 - Bullet points: type one per line in the details box.
 - **Export to PDF** — opens the browser print dialog; choose "Save as PDF".
+- **Copy Text** — copies an ATS-friendly plain-text version for application
+  forms, recruiter portals, and quick parsing checks.
 - **Import PDF** — load an existing resume PDF and have its text parsed into the
   fields, so you can edit/reformat it. (See note below.)
 - Auto-saves to your browser (localStorage) so a refresh restores your work.
@@ -65,6 +67,12 @@ The export produces a clean document at its real size:
   (page title, date, URL), so the page contains the resume only.
 - Content prints at full size and flows across multiple pages if it's long —
   the preview already shows exactly how those pages will break.
+
+## Copying plain text
+
+Click **Copy Text** to put a clean text version on your clipboard. It uses the
+same section order as the preview, keeps standard headings, and formats bullets
+with simple hyphens so the content is easy to paste into job applications.
 
 ## Multi-page preview
 

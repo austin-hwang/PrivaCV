@@ -17,3 +17,11 @@
 - Why it matters: job seekers get immediate, local feedback about obvious issues before exporting, reducing second-guessing and rework.
 - Verification: ran `node --check app.js`, `node --check pdf-import.js`, `python3 -m py_compile server.py`, and a local Chrome/Playwright flow covering the empty state, sample resume `4/4` score, long-summary warning, and 390px mobile layout.
 - Future opportunities: add dense-section warnings, field-specific jump targets from each check, and a review mode for uncertain PDF-imported fields.
+
+## 2026-07-08 12:58 PDT
+
+- User problem addressed: job seekers often need a plain-text version of the same resume for ATS sanity checks, recruiter portals, and application forms after polishing the PDF.
+- Implementation: added a top-bar Copy Text action and a deterministic plain-text renderer that follows the current section order, includes standard headings, preserves contact details, and converts bullets to simple hyphen lines.
+- Why it matters: users can reuse their resume content without retyping or trusting hidden parser behavior, reinforcing the product's privacy-first, no-paywall export promise.
+- Verification: ran `node --check app.js`, `node --check pdf-import.js`, `python3 -m py_compile server.py`, and a bundled Playwright flow covering empty start state, sample loading, `4/4` resume check, Copy Text clipboard contents, section order, and 390px mobile app-bar fit.
+- Future opportunities: add a plain-text review drawer so users can inspect the exact copied text before sending it.

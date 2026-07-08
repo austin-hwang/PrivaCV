@@ -406,6 +406,100 @@ function skillsHtml() {
     </div>`;
 }
 
+/* ---------------- Plain-text export ---------------- */
+function cleanTextLine(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function pushBlock(lines, block) {
+  const clean = block.filter(Boolean);
+  if (!clean.length) return;
+  if (lines.length && lines[lines.length - 1] !== "") lines.push("");
+  lines.push(...clean);
+}
+
+function entryPlainText(entry) {
+  const lines = [];
+  const title = cleanTextLine(entry.title);
+  const subtitle = cleanTextLine(entry.subtitle);
+  const meta = cleanTextLine(entry.meta);
+  const bullets = bulletsFrom(entry.details);
+
+  if (title) lines.push(title);
+  if (subtitle || meta) lines.push([subtitle, meta].filter(Boolean).join(" | "));
+  bullets.forEach((bullet) => lines.push(`- ${cleanTextLine(bullet)}`));
+  return lines;
+}
+
+function sectionPlainText(label, section) {
+  const entries = state[section].filter(
+    (e) => e.title || e.subtitle || e.meta || e.details
+  );
+  if (!entries.length) return [];
+  const lines = [label];
+  entries.forEach((entry, index) => {
+    if (index > 0) lines.push("");
+    lines.push(...entryPlainText(entry));
+  });
+  return lines;
+}
+
+function skillsPlainText() {
+  const lines = String(state.skills || "")
+    .split("\n")
+    .map(cleanTextLine)
+    .filter(Boolean);
+  return lines.length ? ["Skills", ...lines] : [];
+}
+
+function renderSectionPlainText(key) {
+  if (key === "skills") return skillsPlainText();
+  return sectionPlainText(SECTION_LABELS[key], key);
+}
+
+function resumePlainText() {
+  if (!hasAnyContent()) return "";
+
+  const lines = [];
+  pushBlock(lines, [
+    cleanTextLine(state.name),
+    cleanTextLine(state.title),
+    [state.email, state.phone, state.location, state.website]
+      .map(cleanTextLine)
+      .filter(Boolean)
+      .join(" | "),
+  ]);
+  pushBlock(lines, state.summary ? ["Summary", cleanTextLine(state.summary)] : []);
+  state.sectionOrder.forEach((key) => pushBlock(lines, renderSectionPlainText(key)));
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function copyPlainText() {
+  const text = resumePlainText();
+  if (!text) {
+    flash("Add resume details first");
+    return;
+  }
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = el("textarea", { readonly: "" });
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    flash("Copied plain text");
+  } catch (e) {
+    flash("Could not copy text");
+  }
+}
+
 // Letter page height in CSS px (1in = 96px) minus a safety margin so
 // browser sub-pixel rounding can't spill a sheet onto a second page.
 const PAGE_LIMIT_PX = 11 * 96 - 16;
@@ -795,6 +889,7 @@ function init() {
   });
 
   $("#btnExport").addEventListener("click", exportPdf);
+  $("#btnCopyText").addEventListener("click", copyPlainText);
   $("#btnSave").addEventListener("click", saveJsonFile);
   const jsonInput = $("#jsonInput");
   $("#btnLoad").addEventListener("click", () => jsonInput.click());
