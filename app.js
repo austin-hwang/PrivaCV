@@ -250,6 +250,16 @@ function bulletsFrom(details) {
     .filter(Boolean);
 }
 
+function wordCount(text) {
+  return String(text || "").trim().split(/\s+/).filter(Boolean).length;
+}
+
+function allBullets() {
+  return ["experience", "education", "projects"].flatMap((section) =>
+    state[section].flatMap((entry) => bulletsFrom(entry.details))
+  );
+}
+
 function hasAnyContent() {
   if (state.name || state.title || state.summary || state.skills) return true;
   if (state.email || state.phone || state.location || state.website) return true;
@@ -262,6 +272,86 @@ function updateStartPanel() {
   const panel = $("#startPanel");
   if (!panel) return;
   panel.hidden = hasAnyContent();
+}
+
+function buildResumeChecks(pageCount) {
+  const missingContact = [
+    ["name", "name"],
+    ["email", "email"],
+    ["phone", "phone"],
+    ["location", "location"],
+  ]
+    .filter(([key]) => !String(state[key] || "").trim())
+    .map(([, label]) => label);
+
+  const bullets = allBullets();
+  const longBullets = bullets.filter((bullet) => wordCount(bullet) > 28);
+  const summaryWords = wordCount(state.summary);
+
+  return [
+    {
+      label: "Length",
+      ok: pageCount <= 1,
+      detail: pageCount <= 1 ? "One-page PDF" : `${pageCount} pages in preview`,
+    },
+    {
+      label: "Contact",
+      ok: missingContact.length === 0,
+      detail: missingContact.length
+        ? `Missing ${missingContact.join(", ")}`
+        : "Core details present",
+    },
+    {
+      label: "Bullets",
+      ok: bullets.length > 0 && longBullets.length === 0,
+      detail: longBullets.length
+        ? `${longBullets.length} over 28 words`
+        : bullets.length
+          ? "Concise bullet length"
+          : "Add achievement bullets",
+    },
+    {
+      label: "Summary",
+      ok: summaryWords > 0 && summaryWords <= 65,
+      detail: summaryWords === 0
+        ? "Missing summary"
+        : summaryWords > 65
+          ? `${summaryWords} words`
+          : "Focused opening",
+    },
+  ];
+}
+
+function renderResumeCheck(pageCount = 1) {
+  const panel = $("#resumeCheck");
+  const title = $("#resumeCheckTitle");
+  const score = $("#resumeCheckScore");
+  const list = $("#resumeCheckList");
+  if (!panel || !title || !score || !list) return;
+
+  if (!hasAnyContent()) {
+    panel.hidden = true;
+    return;
+  }
+
+  const checks = buildResumeChecks(pageCount);
+  const passed = checks.filter((check) => check.ok).length;
+  panel.hidden = false;
+  title.textContent = passed === checks.length ? "Ready to export" : "Needs attention";
+  score.textContent = `${passed}/${checks.length}`;
+  list.innerHTML = "";
+
+  checks.forEach((check) => {
+    const item = el("div", {
+      class: `resume-check__item ${check.ok ? "is-ok" : "is-warn"}`,
+    });
+    item.appendChild(el("span", { class: "resume-check__mark", text: check.ok ? "✓" : "!" }));
+    const copy = el("div", { class: "resume-check__copy" });
+    copy.appendChild(el("strong", { text: check.label }));
+    copy.appendChild(el("span", { text: check.detail }));
+    item.appendChild(copy);
+    list.appendChild(item);
+  });
 }
 
 function entryHtml(entry) {
@@ -351,6 +441,7 @@ function renderPreview() {
         </div>
       </div>`;
     pagesEl.appendChild(sheet);
+    renderResumeCheck(1);
     return;
   }
 
@@ -373,7 +464,8 @@ function renderPreview() {
     ${state.sectionOrder.map(renderSectionByKey).join("")}
   `;
 
-  paginate(flowUnits(source), pagesEl);
+  const pageCount = paginate(flowUnits(source), pagesEl);
+  renderResumeCheck(pageCount);
 }
 
 function renderSectionByKey(key) {
@@ -467,6 +559,7 @@ function paginate(units, pagesEl) {
 
   // Restore full-page look (min-height back to the stylesheet's 11in).
   Array.from(pagesEl.children).forEach((p) => (p.style.minHeight = ""));
+  return pagesEl.children.length;
 }
 
 /* ---------------- Persistence ---------------- */

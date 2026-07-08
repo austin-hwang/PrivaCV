@@ -13,6 +13,8 @@ can export to PDF.
 - Add/remove as many Experience, Education, and Project entries as you like.
 - Reorder sections with the ↑/↓ buttons on each section (Education leads by default).
 - Reorder individual entries within a section with their ↑/↓ buttons.
+- **Resume Check** panel flags page count, missing core contact fields, long
+  bullets, and summary length before export.
 - **Text size** slider (80%–130%) scales the whole resume proportionally, in both
   the preview and the exported PDF.
 - Bullet points: type one per line in the details box.
