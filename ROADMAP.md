@@ -27,7 +27,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Resume fit guidance: add dense-section warnings and stronger recommendations
   now that page count, bullet length, missing contact info, and summary length
   checks exist.
-- Resume check actionability: add field-specific jump targets from each warning.
+- Resume check follow-through: add inline guidance for why a warning matters
+  after field-specific jump targets.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Safer PDF import review that highlights uncertain parsed fields.

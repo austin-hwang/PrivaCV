@@ -39,9 +39,12 @@ export const resumeSchema = z.object({
 export type ResumeState = z.infer<typeof resumeSchema>;
 
 export type ResumeCheck = {
+  id: "length" | "contact" | "bullets" | "summary";
   label: string;
   ok: boolean;
   detail: string;
+  actionLabel: string;
+  targetId: string;
 };
 
 export const MIN_TEXT_SCALE = 0.8;
@@ -137,19 +140,31 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
   const bullets = allBullets(state);
   const longBullets = bullets.filter((bullet) => wordCount(bullet) > 28);
   const summaryWords = wordCount(state.summary);
+  const firstBulletTarget =
+    state.sectionOrder
+      .filter((section): section is "experience" | "education" | "projects" => section !== "skills")
+      .map((section) => [section, state[section].findIndex((entry) => entry.title || entry.subtitle || entry.meta || entry.details)] as const)
+      .find(([, index]) => index >= 0) ?? ["experience", state.experience.length ? 0 : -1];
 
   return [
     {
+      id: "length",
       label: "Length",
       ok: pageCount <= 1,
       detail: pageCount <= 1 ? "One-page PDF" : `${pageCount} pages in preview`,
+      actionLabel: "Adjust size",
+      targetId: "resume-text-scale",
     },
     {
+      id: "contact",
       label: "Contact",
       ok: missingContact.length === 0,
       detail: missingContact.length ? `Missing ${missingContact.join(", ")}` : "Core details present",
+      actionLabel: "Fix contact",
+      targetId: `field-${missingContact[0] ?? "name"}`,
     },
     {
+      id: "bullets",
       label: "Bullets",
       ok: bullets.length > 0 && longBullets.length === 0,
       detail: longBullets.length
@@ -157,8 +172,14 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
         : bullets.length
           ? "Concise bullet length"
           : "Add achievement bullets",
+      actionLabel: bullets.length ? "Tighten bullets" : "Add bullets",
+      targetId:
+        firstBulletTarget[1] >= 0
+          ? `field-${firstBulletTarget[0]}-${firstBulletTarget[1]}-details`
+          : "add-experience-entry",
     },
     {
+      id: "summary",
       label: "Summary",
       ok: summaryWords > 0 && summaryWords <= 65,
       detail:
@@ -167,6 +188,8 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
           : summaryWords > 65
             ? `${summaryWords} words`
             : "Focused opening",
+      actionLabel: summaryWords === 0 ? "Add summary" : "Shorten summary",
+      targetId: "field-summary",
     },
   ];
 }

@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-08 14:29 PDT
+
+- User problem addressed: resume warnings told users what was wrong but left
+  them to hunt through the editor for the field that fixes each issue.
+- Implementation: added target metadata to each Resume Check, wired failed
+  checks to compact action buttons, assigned stable IDs to editor controls, and
+  focused the relevant field or control from each warning.
+- UI components or patterns used: shadcn/ui-style Button actions inside the
+  existing Resume Check card, lucide ArrowRight icons, and accessible focus on
+  native inputs and textareas.
+- Why it matters: export-readiness feedback now turns into an immediate next
+  step, reducing friction for job seekers polishing a resume under time
+  pressure.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  An initial concurrent build/e2e run failed because both commands touched
+  `.next`; the isolated production build passed.
+- Future opportunities: add short inline guidance explaining why each warning
+  matters and expand checks for dense sections.
+
 ## 2026-07-08 13:37 PDT
 
 - User problem addressed: the project needed to move from a handcrafted static

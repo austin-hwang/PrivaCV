@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   Check,
   ClipboardCopy,
@@ -244,6 +245,13 @@ export function ResumeEditor() {
     }
   };
 
+  const focusCheckTarget = (targetId: string) => {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    window.setTimeout(() => target.focus({ preventScroll: true }), 220);
+  };
+
   return (
     <>
       <header className="app-chrome sticky top-0 z-40 border-b bg-card">
@@ -256,6 +264,7 @@ export function ResumeEditor() {
             <label className="flex min-w-64 flex-1 items-center gap-2 rounded-md border bg-background px-3 py-2 text-xs text-muted-foreground lg:flex-none">
               <span className="whitespace-nowrap">Text size</span>
               <input
+                id="resume-text-scale"
                 className="min-w-24 flex-1 accent-foreground"
                 type="range"
                 min={MIN_TEXT_SCALE}
@@ -362,7 +371,7 @@ export function ResumeEditor() {
               </CardHeader>
               <CardContent className="grid gap-2 sm:grid-cols-2">
                 {checks.map((check) => (
-                  <div key={check.label} className="flex min-h-14 gap-2 rounded-md border bg-muted/30 p-2.5">
+                  <div key={check.id} className="flex min-h-14 gap-2 rounded-md border bg-muted/30 p-2.5">
                     <span
                       className={cn(
                         "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
@@ -374,6 +383,17 @@ export function ResumeEditor() {
                     <div className="min-w-0">
                       <p className="text-xs font-semibold">{check.label}</p>
                       <p className="text-xs leading-snug text-muted-foreground">{check.detail}</p>
+                      {!check.ok ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 h-7 px-2"
+                          onClick={() => focusCheckTarget(check.targetId)}
+                        >
+                          <ArrowRight /> {check.actionLabel}
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -383,20 +403,22 @@ export function ResumeEditor() {
 
           <div className="space-y-6">
             <FieldGroup title="Header">
-              <TextField label="Full Name" value={state.name} placeholder="Jane Doe" onChange={(value) => updateField("name", value)} />
+              <TextField id="field-name" label="Full Name" value={state.name} placeholder="Jane Doe" onChange={(value) => updateField("name", value)} />
               <TextField
+                id="field-title"
                 label="Title / Role"
                 value={state.title}
                 placeholder="Senior Software Engineer"
                 onChange={(value) => updateField("title", value)}
               />
               <div className="grid gap-3 sm:grid-cols-2">
-                <TextField label="Email" value={state.email} placeholder="jane@example.com" onChange={(value) => updateField("email", value)} />
-                <TextField label="Phone" value={state.phone} placeholder="(555) 123-4567" onChange={(value) => updateField("phone", value)} />
+                <TextField id="field-email" label="Email" value={state.email} placeholder="jane@example.com" onChange={(value) => updateField("email", value)} />
+                <TextField id="field-phone" label="Phone" value={state.phone} placeholder="(555) 123-4567" onChange={(value) => updateField("phone", value)} />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <TextField label="Location" value={state.location} placeholder="San Francisco, CA" onChange={(value) => updateField("location", value)} />
+                <TextField id="field-location" label="Location" value={state.location} placeholder="San Francisco, CA" onChange={(value) => updateField("location", value)} />
                 <TextField
+                  id="field-website"
                   label="Website / LinkedIn"
                   value={state.website}
                   placeholder="linkedin.com/in/janedoe"
@@ -407,6 +429,7 @@ export function ResumeEditor() {
 
             <FieldGroup title="Summary">
               <TextAreaField
+                id="field-summary"
                 label="Professional Summary"
                 value={state.summary}
                 placeholder="Brief overview of your experience and strengths."
@@ -441,7 +464,7 @@ export function ResumeEditor() {
                       <ArrowDown />
                     </Button>
                     {section !== "skills" ? (
-                      <Button type="button" variant="outline" size="sm" onClick={() => addEntry(section)}>
+                      <Button id={`add-${section}-entry`} type="button" variant="outline" size="sm" onClick={() => addEntry(section)}>
                         Add
                       </Button>
                     ) : null}
@@ -450,6 +473,7 @@ export function ResumeEditor() {
               >
                 {section === "skills" ? (
                   <TextAreaField
+                    id="field-skills"
                     label={'Skills (one group per line, e.g. "Languages: Python, Go")'}
                     value={state.skills}
                     placeholder={"Languages: Python, JavaScript, Go\nTools: Docker, Kubernetes, AWS"}
@@ -555,11 +579,13 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
 }
 
 function TextField({
+  id,
   label,
   value,
   placeholder,
   onChange,
 }: {
+  id?: string;
   label: string;
   value: string;
   placeholder?: string;
@@ -568,17 +594,19 @@ function TextField({
   return (
     <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
       <span>{label}</span>
-      <Input value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <Input id={id} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
 
 function TextAreaField({
+  id,
   label,
   value,
   placeholder,
   onChange,
 }: {
+  id?: string;
   label: string;
   value: string;
   placeholder?: string;
@@ -587,7 +615,7 @@ function TextAreaField({
   return (
     <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
       <span>{label}</span>
-      <Textarea value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <Textarea id={id} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
@@ -647,10 +675,10 @@ function EntryList({
                 <Trash2 /> Remove
               </Button>
             </div>
-            <TextField label={schema.title} value={entry.title} onChange={(value) => onUpdate(section, index, "title", value)} />
-            <TextField label={schema.subtitle} value={entry.subtitle} onChange={(value) => onUpdate(section, index, "subtitle", value)} />
-            <TextField label={schema.meta} value={entry.meta} onChange={(value) => onUpdate(section, index, "meta", value)} />
-            <TextAreaField label={schema.details} value={entry.details} onChange={(value) => onUpdate(section, index, "details", value)} />
+            <TextField id={`field-${section}-${index}-title`} label={schema.title} value={entry.title} onChange={(value) => onUpdate(section, index, "title", value)} />
+            <TextField id={`field-${section}-${index}-subtitle`} label={schema.subtitle} value={entry.subtitle} onChange={(value) => onUpdate(section, index, "subtitle", value)} />
+            <TextField id={`field-${section}-${index}-meta`} label={schema.meta} value={entry.meta} onChange={(value) => onUpdate(section, index, "meta", value)} />
+            <TextAreaField id={`field-${section}-${index}-details`} label={schema.details} value={entry.details} onChange={(value) => onUpdate(section, index, "details", value)} />
           </CardContent>
         </Card>
       ))}
