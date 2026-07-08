@@ -500,6 +500,53 @@ async function copyPlainText() {
   }
 }
 
+function plainTextStats(text) {
+  const words = wordCount(text);
+  const lines = text.split("\n").filter((line) => line.trim()).length;
+  return `${words} words • ${lines} lines`;
+}
+
+function updatePlainTextReview() {
+  const output = $("#textReviewOutput");
+  const stats = $("#textReviewStats");
+  if (!output || !stats) return "";
+
+  const text = resumePlainText();
+  output.value = text;
+  stats.textContent = text ? plainTextStats(text) : "0 words";
+  return text;
+}
+
+function openPlainTextReview() {
+  const dialog = $("#textReviewDialog");
+  if (!dialog) return;
+
+  const text = updatePlainTextReview();
+  if (!text) {
+    flash("Add resume details first");
+    return;
+  }
+
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  } else {
+    dialog.setAttribute("open", "");
+  }
+
+  const output = $("#textReviewOutput");
+  if (output) {
+    output.focus();
+    output.setSelectionRange(0, 0);
+  }
+}
+
+function closePlainTextReview() {
+  const dialog = $("#textReviewDialog");
+  if (!dialog) return;
+  if (typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+}
+
 // Letter page height in CSS px (1in = 96px) minus a safety margin so
 // browser sub-pixel rounding can't spill a sheet onto a second page.
 const PAGE_LIMIT_PX = 11 * 96 - 16;
@@ -508,6 +555,8 @@ function renderPreview() {
   const pagesEl = $("#pages");
   pagesEl.style.setProperty("--text-scale", String(state.textScale));
   updateStartPanel();
+  const reviewDialog = $("#textReviewDialog");
+  if (reviewDialog && reviewDialog.open) updatePlainTextReview();
 
   if (!hasAnyContent()) {
     pagesEl.innerHTML = "";
@@ -889,7 +938,14 @@ function init() {
   });
 
   $("#btnExport").addEventListener("click", exportPdf);
-  $("#btnCopyText").addEventListener("click", copyPlainText);
+  $("#btnCopyText").addEventListener("click", openPlainTextReview);
+  $("#btnCopyReviewedText").addEventListener("click", copyPlainText);
+  $("#btnCloseTextReview").addEventListener("click", closePlainTextReview);
+  $("#btnCancelTextReview").addEventListener("click", closePlainTextReview);
+  const textReviewDialog = $("#textReviewDialog");
+  textReviewDialog.addEventListener("click", (e) => {
+    if (e.target === textReviewDialog) closePlainTextReview();
+  });
   $("#btnSave").addEventListener("click", saveJsonFile);
   const jsonInput = $("#jsonInput");
   $("#btnLoad").addEventListener("click", () => jsonInput.click());

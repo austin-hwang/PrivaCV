@@ -9,7 +9,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - Local, static editor that runs without a backend.
 - Live Letter-size preview with reliable PDF export.
-- One-click plain-text copy for ATS checks and application forms.
+- Reviewable plain-text copy for ATS checks and application forms.
 - Import from text-based PDFs and editable JSON backups.
 - Repeatable sections for education, experience, projects, and skills.
 
@@ -27,8 +27,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Resume fit guidance: add dense-section warnings and stronger recommendations
   now that page count, bullet length, missing contact info, and summary length
   checks exist.
-- Plain-text export polish: add a small review surface so users can inspect the
-  exact text before copying.
+- Resume check actionability: add field-specific jump targets from each warning.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Safer PDF import review that highlights uncertain parsed fields.

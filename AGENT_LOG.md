@@ -25,3 +25,11 @@
 - Why it matters: users can reuse their resume content without retyping or trusting hidden parser behavior, reinforcing the product's privacy-first, no-paywall export promise.
 - Verification: ran `node --check app.js`, `node --check pdf-import.js`, `python3 -m py_compile server.py`, and a bundled Playwright flow covering empty start state, sample loading, `4/4` resume check, Copy Text clipboard contents, section order, and 390px mobile app-bar fit.
 - Future opportunities: add a plain-text review drawer so users can inspect the exact copied text before sending it.
+
+## 2026-07-08 13:24 PDT
+
+- User problem addressed: job seekers should not have to trust an invisible clipboard action before pasting resume text into applicant tracking systems or recruiter portals.
+- Implementation: replaced the top-bar blind copy action with a reviewable plain-text dialog that shows the exact export text, word/line counts, and a focused copy action while reusing the existing plain-text renderer.
+- Why it matters: users can spot formatting issues before sending applications, making the privacy-first export workflow feel more transparent and trustworthy.
+- Verification: ran `node --check app.js`, `node --check pdf-import.js`, `python3 -m py_compile server.py`, and a temporary Playwright/Chrome flow covering sample loading, the Review Text dialog, copy parity with the reviewed text, dialog closing, and 390px mobile dialog bounds.
+- Future opportunities: add field-specific jump targets from Resume Check warnings and a review mode for uncertain PDF-imported fields.

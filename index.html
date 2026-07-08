@@ -19,7 +19,7 @@
         <output id="textScaleOut">100%</output>
       </label>
       <button id="btnExport" class="btn btn--primary" type="button">Export PDF</button>
-      <button id="btnCopyText" class="btn" type="button" title="Copy an ATS-friendly plain-text version">Copy Text</button>
+      <button id="btnCopyText" class="btn" type="button" title="Review an ATS-friendly plain-text version">Review Text</button>
       <button id="btnImport" class="btn" type="button">Import PDF</button>
       <button id="btnSave" class="btn" type="button" title="Download your resume as a .json file">Save JSON</button>
       <button id="btnLoad" class="btn" type="button" title="Open a .json file you saved earlier">Open JSON</button>
@@ -143,6 +143,29 @@
 
   <input id="pdfInput" type="file" accept="application/pdf,.pdf" hidden />
   <input id="jsonInput" type="file" accept="application/json,.json" hidden />
+
+  <dialog id="textReviewDialog" class="text-review" aria-labelledby="textReviewTitle">
+    <div class="text-review__panel">
+      <div class="text-review__head">
+        <div>
+          <p class="text-review__eyebrow">Plain-text export</p>
+          <h2 id="textReviewTitle">Review before copying</h2>
+        </div>
+        <button id="btnCloseTextReview" class="text-review__close" type="button" aria-label="Close text review">×</button>
+      </div>
+      <p class="text-review__intro">
+        This is the exact ATS-friendly text that will be copied for job applications and recruiter portals.
+      </p>
+      <textarea id="textReviewOutput" class="text-review__output" readonly rows="16"></textarea>
+      <div class="text-review__footer">
+        <span id="textReviewStats" class="text-review__stats">0 words</span>
+        <div class="text-review__actions">
+          <button id="btnCopyReviewedText" class="btn btn--primary" type="button">Copy Text</button>
+          <button id="btnCancelTextReview" class="btn" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
 
   <script src="app.js"></script>
   <script type="module" src="pdf-import.js"></script>
