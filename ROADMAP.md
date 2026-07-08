@@ -7,7 +7,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## MVP
 
-- Local, static editor that runs without a backend.
+- Local-first Next.js editor that runs without a backend.
 - Live Letter-size preview with reliable PDF export.
 - Reviewable plain-text copy for ATS checks and application forms.
 - Import from text-based PDFs and editable JSON backups.
@@ -31,6 +31,26 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Safer PDF import review that highlights uncertain parsed fields.
+
+## UI System
+
+- Preserve the local shadcn/ui-style component foundation in `components/ui`.
+- Add new UI primitives through the shadcn/ui model before building custom
+  controls from scratch.
+- Keep Radix-backed accessible primitives for dialogs and future overlays.
+- Use lucide-react icons for toolbar and command buttons.
+
+## Technical Foundation
+
+- Keep the app local-first with browser storage and JSON files until accounts,
+  syncing, or collaboration become clearly valuable.
+- Continue using zod normalization for imported and saved resume data.
+- Introduce react-hook-form when validation becomes field-level and user-facing,
+  rather than for simple controlled inputs.
+- Expand Playwright coverage beyond the sample and text-review smoke flow to
+  include PDF export, JSON import/export, and mobile layout checks.
+- Avoid database, auth, and server-side persistence until the product needs
+  durable cross-device workflows.
 
 ## Growth
 
