@@ -21,6 +21,7 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
   await page.getByRole("button", { name: /^sample$/i }).click();
 
   await page.getByLabel("Phone").fill("");
+  await expect(page.getByText("Missing contact details can make a strong resume impossible to follow up on.")).toBeVisible();
   await page.getByRole("button", { name: /fix contact/i }).click();
 
   await expect(page.locator("#field-phone")).toBeFocused();

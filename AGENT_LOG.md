@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-08 15:28 PDT
+
+- User problem addressed: resume warnings could jump users to a field, but they
+  still did not explain why a fix mattered or whether the resume had enough
+  substance.
+- Implementation: added guidance text to every Resume Check, introduced a local
+  density check for sparse or crowded resumes, and rendered failed checks as
+  compact coaching cards before the existing jump action.
+- UI components or patterns used: shadcn/ui-style Button actions and the
+  existing Resume Check card grid, with concise inline guidance and lucide
+  ArrowRight actions.
+- Why it matters: job seekers get a clearer next step and a short rationale
+  without leaving the editor or sending private resume data anywhere.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  The first build was run concurrently with Playwright and hit the known
+  `.next` collision; the isolated production build passed.
+- Future opportunities: add visual highlighting for the exact imported fields
+  that need review after PDF parsing.
+
 ## 2026-07-08 14:29 PDT
 
 - User problem addressed: resume warnings told users what was wrong but left

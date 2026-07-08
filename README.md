@@ -15,8 +15,9 @@ subscriptions, watermarks, or backend storage.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
 - Add, remove, and reorder repeatable entries.
 - Reorder resume sections while keeping the preview and plain-text export in sync.
-- Resume Check panel for page count, missing contact fields, long bullets, and
-  summary length, with actions that jump to the field that needs attention.
+- Resume Check panel for page count, missing contact fields, long bullets,
+  summary length, and overall density, with guidance and actions that jump to
+  the field that needs attention.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.

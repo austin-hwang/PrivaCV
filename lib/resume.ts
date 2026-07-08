@@ -39,10 +39,11 @@ export const resumeSchema = z.object({
 export type ResumeState = z.infer<typeof resumeSchema>;
 
 export type ResumeCheck = {
-  id: "length" | "contact" | "bullets" | "summary";
+  id: "length" | "contact" | "bullets" | "summary" | "density";
   label: string;
   ok: boolean;
   detail: string;
+  guidance: string;
   actionLabel: string;
   targetId: string;
 };
@@ -140,11 +141,16 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
   const bullets = allBullets(state);
   const longBullets = bullets.filter((bullet) => wordCount(bullet) > 28);
   const summaryWords = wordCount(state.summary);
+  const totalWords = wordCount(resumePlainText(state));
   const firstBulletTarget =
     state.sectionOrder
       .filter((section): section is "experience" | "education" | "projects" => section !== "skills")
       .map((section) => [section, state[section].findIndex((entry) => entry.title || entry.subtitle || entry.meta || entry.details)] as const)
       .find(([, index]) => index >= 0) ?? ["experience", state.experience.length ? 0 : -1];
+  const firstBulletTargetId =
+    firstBulletTarget[1] >= 0
+      ? `field-${firstBulletTarget[0]}-${firstBulletTarget[1]}-details`
+      : "add-experience-entry";
 
   return [
     {
@@ -152,6 +158,7 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
       label: "Length",
       ok: pageCount <= 1,
       detail: pageCount <= 1 ? "One-page PDF" : `${pageCount} pages in preview`,
+      guidance: "Recruiters scan quickly, so a one-page resume keeps the strongest evidence in view.",
       actionLabel: "Adjust size",
       targetId: "resume-text-scale",
     },
@@ -160,6 +167,7 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
       label: "Contact",
       ok: missingContact.length === 0,
       detail: missingContact.length ? `Missing ${missingContact.join(", ")}` : "Core details present",
+      guidance: "Missing contact details can make a strong resume impossible to follow up on.",
       actionLabel: "Fix contact",
       targetId: `field-${missingContact[0] ?? "name"}`,
     },
@@ -172,11 +180,9 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
         : bullets.length
           ? "Concise bullet length"
           : "Add achievement bullets",
+      guidance: "Short bullets are easier to skim and make measurable results stand out.",
       actionLabel: bullets.length ? "Tighten bullets" : "Add bullets",
-      targetId:
-        firstBulletTarget[1] >= 0
-          ? `field-${firstBulletTarget[0]}-${firstBulletTarget[1]}-details`
-          : "add-experience-entry",
+      targetId: firstBulletTargetId,
     },
     {
       id: "summary",
@@ -188,8 +194,28 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
           : summaryWords > 65
             ? `${summaryWords} words`
             : "Focused opening",
+      guidance: "A tight summary frames your fit before the reader reaches the details.",
       actionLabel: summaryWords === 0 ? "Add summary" : "Shorten summary",
       targetId: "field-summary",
+    },
+    {
+      id: "density",
+      label: "Density",
+      ok: totalWords >= 90 && totalWords <= 650,
+      detail:
+        totalWords < 90
+          ? `${totalWords} words feels sparse`
+          : totalWords > 650
+            ? `${totalWords} words may feel crowded`
+            : `${totalWords} words balanced`,
+      guidance:
+        totalWords < 90
+          ? "A little more proof helps the resume feel credible instead of like a placeholder."
+          : totalWords > 650
+            ? "Trim lower-impact details so the page does not look crowded before anyone reads it."
+            : "Balanced substance gives the reader enough proof without crowding the page.",
+      actionLabel: totalWords < 90 ? "Add proof" : "Trim details",
+      targetId: firstBulletTargetId,
     },
   ];
 }
