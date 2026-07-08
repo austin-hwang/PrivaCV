@@ -21,6 +21,8 @@ subscriptions, watermarks, or backend storage.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.
+- Post-import review panel that highlights parsed fields most likely to need a
+  human check before export.
 - Local autosave in browser storage plus Save JSON / Open JSON backup files.
 - Clean print stylesheet for browser Save as PDF.
 

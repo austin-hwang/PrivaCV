@@ -1,5 +1,23 @@
 # Agent Log
 
+## 2026-07-08 16:30 PDT
+
+- User problem addressed: PDF import still felt risky because the app replaced
+  the resume immediately and only used a toast to ask users to review the
+  parsed result.
+- Implementation: added a dismissible PDF Import Review panel after successful
+  imports, summarized the detected sections, provided jump buttons for fields
+  that PDF parsing commonly guesses, and visually highlighted those editor
+  fields until the review is marked done or another source is loaded.
+- UI components or patterns used: shadcn/ui-style Card, Button, Badge, Input,
+  and Textarea primitives with lucide Eye, ArrowRight, and Check icons.
+- Why it matters: job seekers can keep the fast PDF-start workflow while getting
+  a clearer, field-level safety pass before exporting or copying content.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: add parser confidence levels and a side-by-side raw text
+  review for imported PDFs.
+
 ## 2026-07-08 15:28 PDT
 
 - User problem addressed: resume warnings could jump users to a field, but they
