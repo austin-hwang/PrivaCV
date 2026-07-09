@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-08 20:30 PDT
+
+- User problem addressed: after opening the print dialog, users had no local
+  signal showing whether later edits still matched the PDF they last exported.
+- Implementation: added a deterministic resume export fingerprint, stored a
+  local last-export checkpoint when printing starts, and rendered a compact
+  status card that shows whether the current resume matches or has changed
+  since that export attempt.
+- UI components or patterns used: shadcn/ui-style Card, Button, and
+  CardDescription patterns with lucide FileCheck2, History, and Printer icons.
+- Why it matters: job seekers can return to the editor, make targeted tweaks,
+  and immediately know whether they need to export an updated PDF before
+  applying.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  An initial parallel build/e2e attempt hit the known `.next` collision; the
+  isolated production build and isolated Playwright run passed.
+- Future opportunities: show a concise field-level diff for what changed since
+  the last export, starting with summary, contact, text size, and section order.
+
 ## 2026-07-08 18:27 PDT
 
 - User problem addressed: users could open the print dialog while resume checks

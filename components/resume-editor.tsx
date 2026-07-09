@@ -9,8 +9,10 @@ import {
   ClipboardCopy,
   Download,
   Eye,
+  FileCheck2,
   FileJson,
   FileText,
+  History,
   Printer,
   RotateCcw,
   Trash2,
@@ -44,6 +46,7 @@ import {
   MIN_TEXT_SCALE,
   normalizeResume,
   plainTextStats,
+  resumeExportFingerprint,
   resumePlainText,
   sampleState,
   SECTION_LABELS,
@@ -54,6 +57,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "resume-editor-data-v2";
+const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 const REPEATABLE_SECTIONS = ["experience", "education", "projects"] as const;
 
 const ENTRY_SCHEMA: Record<(typeof REPEATABLE_SECTIONS)[number], { title: string; subtitle: string; meta: string; details: string }> = {
@@ -101,10 +105,46 @@ type RecoveryPoint = {
   importReview: ImportReviewState | null;
 };
 
+type ExportCheckpoint = {
+  fingerprint: string;
+  exportedAt: string;
+  pageCount: number;
+  issueCount: number;
+};
+
 function compactDetail(value: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
   if (!cleaned) return "No text detected";
   return cleaned.length > 92 ? `${cleaned.slice(0, 89)}...` : cleaned;
+}
+
+function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<ExportCheckpoint>;
+    if (
+      typeof parsed.fingerprint === "string" &&
+      typeof parsed.exportedAt === "string" &&
+      typeof parsed.pageCount === "number" &&
+      typeof parsed.issueCount === "number"
+    ) {
+      return parsed as ExportCheckpoint;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function formatCheckpointTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "recently";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function entryHasContent(entry: ResumeEntry) {
@@ -189,6 +229,7 @@ export function ResumeEditor() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
+  const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +240,8 @@ export function ResumeEditor() {
   const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
+  const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
+  const exportIsCurrent = Boolean(exportCheckpoint && exportCheckpoint.fingerprint === exportFingerprint);
   const importReviewTargets = useMemo(
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
     [importReview],
@@ -236,6 +279,7 @@ export function ResumeEditor() {
       const legacy = localStorage.getItem("resume-editor-data-v1");
       const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
       if (saved) setState(normalizeResume(JSON.parse(saved)));
+      setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
     } catch {
       // localStorage may be unavailable.
     } finally {
@@ -391,17 +435,33 @@ export function ResumeEditor() {
     window.setTimeout(() => target.focus({ preventScroll: true }), 220);
   };
 
+  const startPrintExport = () => {
+    const checkpoint: ExportCheckpoint = {
+      fingerprint: exportFingerprint,
+      exportedAt: new Date().toISOString(),
+      pageCount,
+      issueCount: failedChecks.length + (importReview ? 1 : 0),
+    };
+    setExportCheckpoint(checkpoint);
+    try {
+      localStorage.setItem(EXPORT_CHECKPOINT_KEY, JSON.stringify(checkpoint));
+    } catch {
+      // The status card is still useful for this session.
+    }
+    window.print();
+  };
+
   const requestExport = () => {
     if (failedChecks.length || importReview) {
       setExportCheckOpen(true);
       return;
     }
-    window.print();
+    startPrintExport();
   };
 
   const exportAnyway = () => {
     setExportCheckOpen(false);
-    window.setTimeout(() => window.print(), 120);
+    window.setTimeout(startPrintExport, 120);
   };
 
   const focusFromExportCheck = (targetId: string) => {
@@ -634,6 +694,49 @@ export function ResumeEditor() {
                   </div>
                 ))}
               </CardContent>
+            </Card>
+          ) : null}
+
+          {hasContent && exportCheckpoint ? (
+            <Card className={cn("mb-6", exportIsCurrent ? "border-emerald-300 bg-emerald-50/70" : "border-indigo-300 bg-indigo-50/70")}>
+              <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex gap-3">
+                  <span
+                    className={cn(
+                      "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-background",
+                      exportIsCurrent ? "border-emerald-300 text-emerald-800" : "border-indigo-300 text-indigo-800",
+                    )}
+                  >
+                    {exportIsCurrent ? <FileCheck2 className="size-4" /> : <History className="size-4" />}
+                  </span>
+                  <div>
+                    <CardDescription
+                      className={cn(
+                        "font-semibold uppercase tracking-[0.16em]",
+                        exportIsCurrent ? "text-emerald-900" : "text-indigo-900",
+                      )}
+                    >
+                      Last export
+                    </CardDescription>
+                    <CardTitle className="text-base">
+                      {exportIsCurrent ? "Current resume matches your last PDF export." : "This resume changed since your last PDF export."}
+                    </CardTitle>
+                    <CardDescription>
+                      Last opened print on {formatCheckpointTime(exportCheckpoint.exportedAt)} with {exportCheckpoint.pageCount}{" "}
+                      {exportCheckpoint.pageCount === 1 ? "page" : "pages"} and{" "}
+                      {exportCheckpoint.issueCount === 0
+                        ? "no unresolved checks"
+                        : `${exportCheckpoint.issueCount} unresolved ${exportCheckpoint.issueCount === 1 ? "item" : "items"}`}
+                      .
+                    </CardDescription>
+                  </div>
+                </div>
+                {!exportIsCurrent ? (
+                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={requestExport}>
+                    <Printer /> Export updated PDF
+                  </Button>
+                ) : null}
+              </CardHeader>
             </Card>
           ) : null}
 
