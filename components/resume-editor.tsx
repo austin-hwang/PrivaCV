@@ -287,6 +287,7 @@ export function ResumeEditor() {
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
   const [versionDraftLabel, setVersionDraftLabel] = useState("");
   const [versionDraftNote, setVersionDraftNote] = useState("");
+  const [versionCompareId, setVersionCompareId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
@@ -310,6 +311,14 @@ export function ResumeEditor() {
         ? exportChangeSummary(exportCheckpoint.snapshot, state)
         : [],
     [exportCheckpoint, exportIsCurrent, state],
+  );
+  const comparedVersion = useMemo(
+    () => versionHistory.find((item) => item.id === versionCompareId) ?? null,
+    [versionCompareId, versionHistory],
+  );
+  const versionChanges = useMemo(
+    () => (comparedVersion ? exportChangeSummary(comparedVersion.state, state) : []),
+    [comparedVersion, state],
   );
   const importReviewTargets = useMemo(
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
@@ -384,7 +393,13 @@ export function ResumeEditor() {
 
   const deleteVersion = (id: string) => {
     setVersionHistory((current) => current.filter((item) => item.id !== id));
+    if (versionCompareId === id) setVersionCompareId(null);
     flash("Deleted saved version");
+  };
+
+  const focusFromVersionCompare = (targetId: string) => {
+    setVersionCompareId(null);
+    window.setTimeout(() => focusCheckTarget(targetId), 120);
   };
 
   useEffect(() => {
@@ -778,7 +793,9 @@ export function ResumeEditor() {
           <VersionHistoryCard
             hasContent={hasContent}
             versions={versionHistory}
+            currentFingerprint={exportFingerprint}
             onSave={openVersionSave}
+            onCompare={(item) => setVersionCompareId(item.id)}
             onRestore={restoreVersion}
             onDelete={deleteVersion}
           />
@@ -1119,6 +1136,84 @@ export function ResumeEditor() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={Boolean(comparedVersion)} onOpenChange={(open) => !open && setVersionCompareId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Version history</DialogDescription>
+            <DialogTitle>Compare saved checkpoint</DialogTitle>
+            <DialogDescription>
+              {comparedVersion
+                ? `${comparedVersion.label} saved ${formatCheckpointTime(comparedVersion.savedAt)} compared with the current resume.`
+                : "Compare a saved checkpoint with the current resume."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {comparedVersion ? (
+            versionChanges.length ? (
+              <div className="grid max-h-[56vh] gap-2 overflow-y-auto pr-1">
+                {versionChanges.map((change) => (
+                  <button
+                    key={change.id}
+                    type="button"
+                    className="group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => focusFromVersionCompare(change.targetId)}
+                  >
+                    <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-foreground">{change.label}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
+                      {change.before || change.after ? (
+                        <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
+                          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+                            <span className="font-medium text-foreground">Saved</span>
+                            <span className="truncate">{change.before ?? "Empty"}</span>
+                          </span>
+                          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+                            <span className="font-medium text-foreground">Current</span>
+                            <span className="truncate">{change.after ?? "Empty"}</span>
+                          </span>
+                        </span>
+                      ) : null}
+                    </span>
+                    <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Alert>
+                <Check className="h-4 w-4" />
+                <AlertTitle>No differences found</AlertTitle>
+                <AlertDescription>The current resume matches this saved checkpoint.</AlertDescription>
+              </Alert>
+            )
+          ) : null}
+
+          <DialogFooter className="items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">
+              {versionChanges.length
+                ? `${versionChanges.length} changed ${versionChanges.length === 1 ? "area" : "areas"}`
+                : "Saved only in this browser"}
+            </span>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setVersionCompareId(null)}>
+                Close
+              </Button>
+              {comparedVersion ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    restoreVersion(comparedVersion);
+                    setVersionCompareId(null);
+                  }}
+                >
+                  <Undo2 /> Restore Saved
+                </Button>
+              ) : null}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={exportCheckOpen} onOpenChange={setExportCheckOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1258,13 +1353,17 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
 function VersionHistoryCard({
   hasContent,
   versions,
+  currentFingerprint,
   onSave,
+  onCompare,
   onRestore,
   onDelete,
 }: {
   hasContent: boolean;
   versions: VersionHistoryItem[];
+  currentFingerprint: string;
   onSave: () => void;
+  onCompare: (item: VersionHistoryItem) => void;
   onRestore: (item: VersionHistoryItem) => void;
   onDelete: (id: string) => void;
 }) {
@@ -1288,6 +1387,7 @@ function VersionHistoryCard({
         {versions.length ? (
           versions.map((item) => {
             const text = resumePlainText(item.state);
+            const isCurrent = item.fingerprint === currentFingerprint;
             return (
               <div key={item.id} className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 gap-3">
@@ -1295,15 +1395,25 @@ function VersionHistoryCard({
                     <History className="size-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Saved {formatCheckpointTime(item.savedAt)}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Saved {formatCheckpointTime(item.savedAt)}
+                      </p>
+                      {isCurrent ? (
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                          Current
+                        </Badge>
+                      ) : null}
+                    </div>
                     <p className="truncate text-sm font-semibold">{item.label}</p>
                     {item.note ? <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
                     <p className="text-xs text-muted-foreground">{text ? plainTextStats(text) : "Empty resume"}</p>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => onCompare(item)}>
+                    <Eye /> Compare
+                  </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>
                     <Undo2 /> Restore
                   </Button>

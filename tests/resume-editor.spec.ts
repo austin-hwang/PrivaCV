@@ -126,6 +126,19 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.getByLabel("Full Name").fill("Grace Hopper");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
 
+  await page.getByRole("button", { name: /compare/i }).click();
+  const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
+  await expect(compareDialog).toBeVisible();
+  await expect(compareDialog.getByText("Header changed")).toBeVisible();
+  await expect(compareDialog.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(compareDialog.getByText("Current", { exact: true })).toBeVisible();
+  await expect(compareDialog.getByText("Jane Doe")).toBeVisible();
+  await expect(compareDialog.getByText("Grace Hopper")).toBeVisible();
+
+  await compareDialog.getByRole("button", { name: /header changed/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+  await expect(compareDialog).toBeHidden();
+
   await page.getByRole("button", { name: /^restore$/i }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
   await expect(page.getByText("Restore point saved")).toBeVisible();
