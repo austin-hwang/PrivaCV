@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-09 10:31 PDT
+
+- User problem addressed: the five-checkpoint local version history silently
+  replaced the oldest unique draft when saving a sixth checkpoint, which could
+  surprise users tailoring resumes across several applications.
+- Implementation: added a reusable replacement-candidate helper, surfaced
+  version-history capacity in the saved checkpoint card, warned in the save
+  dialog before a full history replaces the oldest draft, clarified matching
+  checkpoint refreshes, and changed the save toast to name replaced drafts.
+- UI components or patterns used: shadcn/ui-style Card, Alert, Badge, and Button
+  patterns with lucide Save, History, and AlertCircle icons.
+- Why it matters: job seekers can keep experimenting locally without mistaking
+  a fixed browser-only history limit for unlimited storage.
+- Verification: ran `node_modules/.bin/tsc --noEmit`,
+  `node_modules/.bin/next lint`, `node_modules/.bin/vitest run`,
+  `CI=true node_modules/.bin/playwright test`, and
+  `node_modules/.bin/next build`. Plain `pnpm` script execution was blocked by
+  the current minimum-release-age policy for existing lockfile entries, so the
+  project binaries were used after a frozen local install with that policy
+  disabled for installation only.
+- Future opportunities: add a one-click JSON bundle export for all saved local
+  checkpoints before users clean up a full version history.
+
 ## 2026-07-09 09:29 PDT
 
 - User problem addressed: deleting a browser-only saved checkpoint was a

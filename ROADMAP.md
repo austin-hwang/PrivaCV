@@ -56,14 +56,17 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   before/after correction flow.
 - Improve local version history with clearer checkpoint labels, lineage cues,
   and lightweight guidance for choosing which saved draft to restore.
-- Keep local checkpoint cleanup low-risk with undo paths and clearer capacity
-  cues as the five-version limit becomes more visible.
+- Keep local checkpoint cleanup low-risk with undo paths, visible capacity
+  limits, and clear replacement warnings before the five-version cap rotates an
+  older draft out.
 - Make saved checkpoints glanceable enough to choose quickly before opening a
   comparison or restoring an older draft.
 - Recommend the closest saved checkpoint to review first when the current
   tailored draft differs from multiple local versions.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for
   large edits.
+- Explore optional JSON bundle export for all local checkpoints so users can
+  archive several tailored drafts outside browser storage.
 
 ## UI System
 

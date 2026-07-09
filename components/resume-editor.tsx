@@ -250,6 +250,12 @@ function versionContentBadges(state: ResumeState) {
   return badges.length ? badges : ["Empty draft"];
 }
 
+function versionReplacementCandidate(versions: VersionHistoryItem[], fingerprint: string) {
+  if (versions.some((item) => item.fingerprint === fingerprint)) return null;
+  if (versions.length < MAX_VERSION_HISTORY) return null;
+  return versions[versions.length - 1] ?? null;
+}
+
 function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], entry: ResumeEntry, index: number) {
   const field = entry.title ? "title" : entry.subtitle ? "subtitle" : entry.meta ? "meta" : "details";
   return `field-${section}-${index}-${field}`;
@@ -371,6 +377,14 @@ export function ResumeEditor() {
   );
   const comparedTargetState = versionCompareTarget?.targetId === "current" ? state : comparedTargetVersion?.state;
   const versionCompareUsesCurrent = versionCompareTarget?.targetId === "current";
+  const versionToReplaceOnSave = useMemo(
+    () => versionReplacementCandidate(versionHistory, exportFingerprint),
+    [exportFingerprint, versionHistory],
+  );
+  const existingVersionForSave = useMemo(
+    () => versionHistory.find((item) => item.fingerprint === exportFingerprint) ?? null,
+    [exportFingerprint, versionHistory],
+  );
   const versionChanges = useMemo(
     () =>
       comparedBaseVersion && comparedTargetState
@@ -442,6 +456,7 @@ export function ResumeEditor() {
     const fingerprint = resumeExportFingerprint(state);
     const label = versionDraftLabel.trim() || versionLabel(state);
     const note = versionDraftNote.trim();
+    const replacement = versionReplacementCandidate(versionHistory, fingerprint);
     const derivedFrom =
       versionHistory.find((item) => item.id === draftSourceVersionId && item.fingerprint !== fingerprint) ??
       versionHistory.find((item) => item.fingerprint !== fingerprint) ??
@@ -460,7 +475,7 @@ export function ResumeEditor() {
     setVersionHistory((current) => [entry, ...current.filter((item) => item.fingerprint !== fingerprint)].slice(0, MAX_VERSION_HISTORY));
     setDraftSourceVersionId(entry.id);
     setVersionSaveOpen(false);
-    flash("Version saved locally");
+    flash(replacement ? `Saved locally and replaced ${replacement.label}` : "Version saved locally");
   };
 
   const restoreVersion = (item: VersionHistoryItem) => {
@@ -1225,6 +1240,33 @@ export function ResumeEditor() {
                 onChange={(event) => setVersionDraftNote(event.target.value)}
               />
             </label>
+            {versionToReplaceOnSave ? (
+              <Alert className="border-amber-300 bg-amber-50/70">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>History is full</AlertTitle>
+                <AlertDescription>
+                  Saving a new checkpoint will replace {versionToReplaceOnSave.label}, saved{" "}
+                  {formatCheckpointTime(versionToReplaceOnSave.savedAt)}. Export JSON first if you want a backup outside
+                  this browser.
+                </AlertDescription>
+              </Alert>
+            ) : existingVersionForSave ? (
+              <Alert>
+                <History className="h-4 w-4" />
+                <AlertTitle>Matching checkpoint found</AlertTitle>
+                <AlertDescription>
+                  Saving will refresh {existingVersionForSave.label} instead of using another local history slot.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <History className="h-4 w-4" />
+                <AlertTitle>{MAX_VERSION_HISTORY - versionHistory.length} local slots available</AlertTitle>
+                <AlertDescription>
+                  Resume Editor keeps the newest {MAX_VERSION_HISTORY} checkpoints in this browser.
+                </AlertDescription>
+              </Alert>
+            )}
             <DialogFooter className="items-center sm:justify-between">
               <span className="text-xs text-muted-foreground">Saved only in this browser.</span>
               <div className="flex justify-end gap-2">
@@ -1672,6 +1714,8 @@ function VersionHistoryCard({
     versions.find((item) => item.id === savedCompareTargetId && item.id !== baseVersion?.id) ??
     versions.find((item) => item.id !== baseVersion?.id) ??
     null;
+  const oldestVersion = versions[versions.length - 1] ?? null;
+  const remainingSlots = Math.max(0, MAX_VERSION_HISTORY - versions.length);
 
   if (!hasContent && !versions.length && !deletedVersion) return null;
 
@@ -1690,6 +1734,40 @@ function VersionHistoryCard({
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
+        {versions.length ? (
+          <div
+            className={cn(
+              "flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between",
+              remainingSlots === 0 ? "border-amber-300 bg-amber-50/70" : "bg-background",
+            )}
+          >
+            <div className="min-w-0">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <Badge variant={remainingSlots === 0 ? "secondary" : "outline"} className="h-5 px-1.5 text-[10px]">
+                  {versions.length}/{MAX_VERSION_HISTORY} saved
+                </Badge>
+                {remainingSlots === 0 ? (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                    Full
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="text-sm font-semibold">
+                {remainingSlots === 0 ? "New checkpoints replace the oldest saved draft." : "Local checkpoint space available."}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {remainingSlots === 0 && oldestVersion
+                  ? `${oldestVersion.label} is the oldest checkpoint and will be replaced first by a new unique save.`
+                  : `${remainingSlots} ${remainingSlots === 1 ? "slot" : "slots"} left before Resume Editor starts replacing the oldest checkpoint.`}
+              </p>
+            </div>
+            {remainingSlots === 0 ? (
+              <Button type="button" variant="outline" size="sm" className="shrink-0 bg-background" onClick={onSave} disabled={!hasContent}>
+                <Save /> Save with review
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {deletedVersion ? (
           <div className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
