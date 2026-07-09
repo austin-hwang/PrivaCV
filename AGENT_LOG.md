@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-09 02:30 PDT
+
+- User problem addressed: checkpoint comparison showed changed resume areas, but
+  users still had to infer which exact fields changed inside dense sections.
+- Implementation: added field-level labels to export and version comparison
+  summaries, including contact fields and repeatable experience, education, and
+  project entry fields; rendered the labels as compact shadcn/ui-style badges
+  in the last-export and saved-checkpoint comparison cards.
+- UI components or patterns used: shadcn/ui-style Badge chips inside existing
+  Card/Dialog comparison rows, with lucide History and ArrowRight actions
+  preserved.
+- Why it matters: job seekers tailoring a resume for a role can audit precise
+  edits faster before exporting or restoring a saved draft.
+- Verification: ran `pnpm typecheck`, `pnpm lint`, `pnpm test`,
+  `pnpm test:e2e`, and `pnpm build`. Initial test runs exposed a target
+  selection bug and ambiguous Playwright locators; both were fixed and the full
+  suite passed.
+- Future opportunities: compare two saved checkpoints directly without using
+  the current resume as one side.
+
 ## 2026-07-09 01:28 PDT
 
 - User problem addressed: saved resume checkpoints could be restored, but users

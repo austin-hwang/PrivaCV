@@ -896,9 +896,10 @@ export function ResumeEditor() {
                       onClick={() => focusCheckTarget(change.targetId)}
                     >
                       <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
-                      <span className="min-w-0">
+                      <div className="min-w-0">
                         <span className="block font-semibold text-foreground">{change.label}</span>
                         <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
+                        <ChangeFieldLabels labels={change.fieldLabels} />
                         {change.before || change.after ? (
                           <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
                             <span className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2">
@@ -911,7 +912,7 @@ export function ResumeEditor() {
                             </span>
                           </span>
                         ) : null}
-                      </span>
+                      </div>
                       <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                     </button>
                   ))}
@@ -1159,9 +1160,10 @@ export function ResumeEditor() {
                     onClick={() => focusFromVersionCompare(change.targetId)}
                   >
                     <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
-                    <span className="min-w-0">
+                    <div className="min-w-0">
                       <span className="block font-semibold text-foreground">{change.label}</span>
                       <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
+                      <ChangeFieldLabels labels={change.fieldLabels} />
                       {change.before || change.after ? (
                         <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
                           <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
@@ -1174,7 +1176,7 @@ export function ResumeEditor() {
                           </span>
                         </span>
                       ) : null}
-                    </span>
+                    </div>
                     <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </button>
                 ))}
@@ -1335,6 +1337,27 @@ export function ResumeEditor() {
         </div>
       ) : null}
     </>
+  );
+}
+
+function ChangeFieldLabels({ labels }: { labels?: string[] }) {
+  if (!labels?.length) return null;
+  const visibleLabels = labels.slice(0, 4);
+  const hiddenCount = labels.length - visibleLabels.length;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1">
+      {visibleLabels.map((label) => (
+        <Badge key={label} variant="secondary" className="h-5 max-w-full truncate px-1.5 text-[10px] font-medium normal-case tracking-normal">
+          {label}
+        </Badge>
+      ))}
+      {hiddenCount > 0 ? (
+        <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-medium normal-case tracking-normal">
+          +{hiddenCount} more
+        </Badge>
+      ) : null}
+    </div>
   );
 }
 

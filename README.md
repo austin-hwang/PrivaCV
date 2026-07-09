@@ -28,7 +28,7 @@ subscriptions, watermarks, or backend storage.
 - Local version history for naming, annotating, saving, and restoring
   browser-only checkpoints while tailoring a resume for different applications.
 - Saved-version comparison that shows changed areas with saved/current snippets
-  before restoring or continuing a tailored draft.
+  and exact edited field labels before restoring or continuing a tailored draft.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.
