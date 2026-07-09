@@ -66,7 +66,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for
   large edits.
 - Continue refining checkpoint backup import guidance with clear duplicate
-  handling when a backup overlaps existing browser-only drafts.
+  handling when a backup overlaps existing browser-only drafts, including
+  explicit capacity review for backups larger than local history.
 
 ## UI System
 
