@@ -41,6 +41,7 @@ import {
   bulletsFrom,
   clampTextScale,
   emptyState,
+  exportChangeSummary,
   hasAnyContent,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
@@ -110,6 +111,7 @@ type ExportCheckpoint = {
   exportedAt: string;
   pageCount: number;
   issueCount: number;
+  snapshot?: ResumeState;
 };
 
 function compactDetail(value: string) {
@@ -128,7 +130,13 @@ function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
       typeof parsed.pageCount === "number" &&
       typeof parsed.issueCount === "number"
     ) {
-      return parsed as ExportCheckpoint;
+      return {
+        fingerprint: parsed.fingerprint,
+        exportedAt: parsed.exportedAt,
+        pageCount: parsed.pageCount,
+        issueCount: parsed.issueCount,
+        snapshot: parsed.snapshot ? normalizeResume(parsed.snapshot) : undefined,
+      };
     }
   } catch {
     return null;
@@ -242,6 +250,13 @@ export function ResumeEditor() {
   const plainText = useMemo(() => resumePlainText(state), [state]);
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
   const exportIsCurrent = Boolean(exportCheckpoint && exportCheckpoint.fingerprint === exportFingerprint);
+  const exportChanges = useMemo(
+    () =>
+      exportCheckpoint?.snapshot && !exportIsCurrent
+        ? exportChangeSummary(exportCheckpoint.snapshot, state)
+        : [],
+    [exportCheckpoint, exportIsCurrent, state],
+  );
   const importReviewTargets = useMemo(
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
     [importReview],
@@ -441,6 +456,7 @@ export function ResumeEditor() {
       exportedAt: new Date().toISOString(),
       pageCount,
       issueCount: failedChecks.length + (importReview ? 1 : 0),
+      snapshot: normalizeResume(state),
     };
     setExportCheckpoint(checkpoint);
     try {
@@ -737,6 +753,25 @@ export function ResumeEditor() {
                   </Button>
                 ) : null}
               </CardHeader>
+              {!exportIsCurrent && exportChanges.length ? (
+                <CardContent className="grid gap-2 pt-0 sm:grid-cols-2">
+                  {exportChanges.slice(0, 4).map((change) => (
+                    <button
+                      key={change.id}
+                      type="button"
+                      className="group flex min-h-14 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => focusCheckTarget(change.targetId)}
+                    >
+                      <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-foreground">{change.label}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
+                      </span>
+                      <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  ))}
+                </CardContent>
+              ) : null}
             </Card>
           ) : null}
 
@@ -812,7 +847,11 @@ export function ResumeEditor() {
                 key={section}
                 title={SECTION_LABELS[section]}
                 actions={
-                  <div className="flex items-center gap-1">
+                  <div
+                    id={sectionIndex === 0 ? "section-order-controls" : undefined}
+                    className="flex items-center gap-1 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                    tabIndex={sectionIndex === 0 ? -1 : undefined}
+                  >
                     <Button
                       type="button"
                       variant="outline"

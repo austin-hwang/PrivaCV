@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildResumeChecks,
   emptyState,
+  exportChangeSummary,
   normalizeResume,
   resumeExportFingerprint,
   resumePlainText,
@@ -65,5 +66,23 @@ describe("resume helpers", () => {
     expect(resumeExportFingerprint(exported)).toBe(resumeExportFingerprint(normalizeResume(exported)));
     expect(resumeExportFingerprint(edited)).not.toBe(resumeExportFingerprint(exported));
     expect(resumeExportFingerprint(resized)).not.toBe(resumeExportFingerprint(exported));
+  });
+
+  it("summarizes changes since the last export snapshot", () => {
+    const exported = sampleState();
+    const edited = {
+      ...exported,
+      phone: "",
+      summary: "Focused product engineer with strong launch experience.",
+      textScale: 0.92,
+    };
+
+    expect(exportChangeSummary(exported, edited)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "contact", label: "Header changed", targetId: "field-phone" }),
+        expect.objectContaining({ id: "summary", label: "Summary changed", targetId: "field-summary" }),
+        expect.objectContaining({ id: "text-size", label: "Text size changed", targetId: "resume-text-scale" }),
+      ]),
+    );
   });
 });

@@ -48,6 +48,13 @@ export type ResumeCheck = {
   targetId: string;
 };
 
+export type ExportChange = {
+  id: string;
+  label: string;
+  detail: string;
+  targetId: string;
+};
+
 export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
@@ -284,6 +291,79 @@ export function resumePlainText(state: ResumeState) {
 
 export function resumeExportFingerprint(state: ResumeState) {
   return JSON.stringify(normalizeResume(state));
+}
+
+function changedFields(previous: ResumeState, current: ResumeState, fields: Array<keyof ResumeState>) {
+  return fields.filter((field) => String(previous[field] ?? "") !== String(current[field] ?? ""));
+}
+
+function sectionTargetId(section: "experience" | "education" | "projects") {
+  return `field-${section}-0-title`;
+}
+
+export function exportChangeSummary(previousState: ResumeState, currentState: ResumeState): ExportChange[] {
+  const previous = normalizeResume(previousState);
+  const current = normalizeResume(currentState);
+  const changes: ExportChange[] = [];
+  const contactFields = changedFields(previous, current, ["name", "title", "email", "phone", "location", "website"]);
+
+  if (contactFields.length) {
+    const firstField = contactFields[0];
+    changes.push({
+      id: "contact",
+      label: "Header changed",
+      detail: `${contactFields.length} ${contactFields.length === 1 ? "field" : "fields"} edited`,
+      targetId: `field-${firstField}`,
+    });
+  }
+
+  if (previous.summary !== current.summary) {
+    changes.push({
+      id: "summary",
+      label: "Summary changed",
+      detail: `${wordCount(current.summary)} words now`,
+      targetId: "field-summary",
+    });
+  }
+
+  (["experience", "education", "projects"] as const).forEach((section) => {
+    if (JSON.stringify(previous[section]) === JSON.stringify(current[section])) return;
+    changes.push({
+      id: section,
+      label: `${SECTION_LABELS[section]} changed`,
+      detail: `${current[section].filter((entry) => entry.title || entry.subtitle || entry.meta || entry.details).length} entries now`,
+      targetId: current[section].length ? sectionTargetId(section) : `add-${section}-entry`,
+    });
+  });
+
+  if (previous.skills !== current.skills) {
+    changes.push({
+      id: "skills",
+      label: "Skills changed",
+      detail: `${current.skills.split("\n").filter((line) => line.trim()).length} lines now`,
+      targetId: "field-skills",
+    });
+  }
+
+  if (JSON.stringify(previous.sectionOrder) !== JSON.stringify(current.sectionOrder)) {
+    changes.push({
+      id: "section-order",
+      label: "Section order changed",
+      detail: current.sectionOrder.map((section) => SECTION_LABELS[section]).join(", "),
+      targetId: "section-order-controls",
+    });
+  }
+
+  if (previous.textScale !== current.textScale) {
+    changes.push({
+      id: "text-size",
+      label: "Text size changed",
+      detail: `${Math.round(previous.textScale * 100)}% to ${Math.round(current.textScale * 100)}%`,
+      targetId: "resume-text-scale",
+    });
+  }
+
+  return changes;
 }
 
 export function plainTextStats(text: string) {
