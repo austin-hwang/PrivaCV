@@ -32,6 +32,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   tailoring sessions.
 - Let users keep named, annotated browser-only version history so job-specific
   tailoring feels reversible without accounts or cloud storage.
+- Make saved checkpoint management forgiving, including recovery from accidental
+  deletes while the page is still open.
 - Let users compare a saved checkpoint with the current resume before restoring
   or exporting a tailored draft.
 - Make checkpoint comparisons name the exact edited fields so users can audit
@@ -54,6 +56,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   before/after correction flow.
 - Improve local version history with clearer checkpoint labels, lineage cues,
   and lightweight guidance for choosing which saved draft to restore.
+- Keep local checkpoint cleanup low-risk with undo paths and clearer capacity
+  cues as the five-version limit becomes more visible.
 - Make saved checkpoints glanceable enough to choose quickly before opening a
   comparison or restoring an older draft.
 - Recommend the closest saved checkpoint to review first when the current

@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-09 09:29 PDT
+
+- User problem addressed: deleting a browser-only saved checkpoint was a
+  permanent one-click action, which is risky when a tailored resume draft may
+  not exist anywhere else.
+- Implementation: added a transient deleted-checkpoint notice inside version
+  history, preserved the removed version in memory, and wired Undo delete plus
+  Dismiss actions without changing the localStorage schema.
+- UI components or patterns used: shadcn/ui-style Card, Badge, and Button
+  patterns with the existing lucide Undo2 icon in the version history surface.
+- Why it matters: job seekers can clean up local tailoring drafts without fear
+  of losing the wrong checkpoint during a high-pressure application session.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm build`, and `CI=true pnpm test:e2e`.
+- Future opportunities: add clearer capacity cues before saving a sixth
+  checkpoint replaces the oldest local version.
+
 ## 2026-07-09 08:28 PDT
 
 - User problem addressed: version history could show lineage and changed-area

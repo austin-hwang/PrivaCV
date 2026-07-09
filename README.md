@@ -27,6 +27,8 @@ subscriptions, watermarks, or backend storage.
   snippets and an expandable full audit trail for edited resume areas.
 - Local version history for naming, annotating, saving, and restoring
   browser-only checkpoints while tailoring a resume for different applications.
+- Reversible checkpoint deletion so an accidental cleanup does not permanently
+  remove a local draft before the user can recover it.
 - Glanceable checkpoint summaries that show saved draft contents, current-match
   status, and changed-area counts before comparing or restoring.
 - Checkpoint lineage cues that show which saved draft a tailored version was
