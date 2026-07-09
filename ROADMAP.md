@@ -56,6 +56,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   and lightweight guidance for choosing which saved draft to restore.
 - Make saved checkpoints glanceable enough to choose quickly before opening a
   comparison or restoring an older draft.
+- Recommend the closest saved checkpoint to review first when the current
+  tailored draft differs from multiple local versions.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for
   large edits.
 
