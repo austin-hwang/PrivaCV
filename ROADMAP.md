@@ -65,8 +65,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   tailored draft differs from multiple local versions.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for
   large edits.
-- Continue refining checkpoint backup import guidance, especially when a merge
-  would leave older browser-only drafts outside the five-checkpoint limit.
+- Continue refining checkpoint backup import guidance, including clearer
+  duplicate handling when a backup overlaps existing browser-only drafts.
 
 ## UI System
 
