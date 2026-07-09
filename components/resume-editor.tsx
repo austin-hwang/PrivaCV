@@ -193,7 +193,7 @@ function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
   return null;
 }
 
-function parseVersionHistory(value: string | null): VersionHistoryItem[] {
+function parseVersionHistory(value: string | null, limit = MAX_VERSION_HISTORY): VersionHistoryItem[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
@@ -222,7 +222,7 @@ function parseVersionHistory(value: string | null): VersionHistoryItem[] {
         };
       })
       .filter((item): item is VersionHistoryItem => Boolean(item))
-      .slice(0, MAX_VERSION_HISTORY);
+      .slice(0, limit);
   } catch {
     return [];
   }
@@ -239,7 +239,10 @@ function parseVersionHistoryBackup(value: unknown): VersionHistoryItem[] | null 
     return null;
   }
 
-  return parseVersionHistory(JSON.stringify(backup.checkpoints));
+  // Backups can legitimately contain more drafts than this browser keeps. Keep
+  // every valid entry until mergeVersionHistory can sort them, deduplicate them,
+  // and explicitly tell the user which older drafts remain in the backup.
+  return parseVersionHistory(JSON.stringify(backup.checkpoints), Number.POSITIVE_INFINITY);
 }
 
 function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]): VersionHistoryMerge {
@@ -1444,7 +1447,7 @@ export function ResumeEditor() {
                   Resume Editor keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.checkpoints.length} will remain in this browser.
                 </AlertDescription>
               </Alert>
-              <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-3">
+              <div className="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md border bg-muted/30 p-3">
                 {mergedHistoryBackup.incomingUnique.map((checkpoint) => (
                   <Badge key={checkpoint.id} variant="outline" className="max-w-full truncate">
                     {checkpoint.label}

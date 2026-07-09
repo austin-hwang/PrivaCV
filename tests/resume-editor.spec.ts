@@ -405,3 +405,47 @@ test("names checkpoints that remain only in a large imported backup", async ({ p
   await expect(page.getByText("Archived checkpoint 1", { exact: true })).toBeVisible();
   await expect(page.getByText("Archived checkpoint 5", { exact: true })).toBeHidden();
 });
+
+test("reviews every checkpoint in backups larger than local history", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Template checkpoint");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  const checkpoint = await page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    return history[0];
+  });
+  const checkpoints = Array.from({ length: 7 }, (_, index) => ({
+    ...checkpoint,
+    id: `expanded-backup-${index + 1}`,
+    label: `Expanded checkpoint ${index + 1}`,
+    fingerprint: `expanded-backup-fingerprint-${index + 1}`,
+    savedAt: new Date(Date.UTC(2026, 0, 7 - index)).toISOString(),
+  }));
+  const backup = JSON.stringify({
+    format: "resume-editor-version-history-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    checkpoints,
+  });
+
+  await page.locator("#history-backup-input").setInputFiles({
+    name: "expanded-resume-checkpoints.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
+
+  const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
+  await expect(backupDialog.getByText("7 unique checkpoints ready to add")).toBeVisible();
+  await expect(backupDialog.getByText("3 older checkpoints will stay only in this backup")).toBeVisible();
+  await expect(backupDialog.getByText(/Expanded checkpoint 7 ·/)).toBeVisible();
+
+  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
+  await expect(page.getByText("Added 4 checkpoints")).toBeVisible();
+  await expect(page.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("Expanded checkpoint 7", { exact: true })).toBeHidden();
+});

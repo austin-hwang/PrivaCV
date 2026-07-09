@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-09 14:29 PDT
+
+- User problem addressed: a checkpoint backup larger than the browser&apos;s
+  five-version history was silently truncated before the import review could
+  show which tailored drafts would remain only in the backup.
+- Implementation: preserved every valid backup checkpoint through parsing,
+  then let the existing merge sort, deduplicate, retain the newest local
+  drafts, and name all overflow drafts; constrained the incoming-draft list so
+  a large backup remains scannable. Added an explicit App Router not-found
+  page after production verification exposed the missing fallback route.
+- UI components or patterns used: existing shadcn/ui-style Dialog, Alert,
+  Badge, and Button patterns with History and AlertCircle icons; a simple
+  responsive fallback surface for invalid links.
+- Why it matters: job seekers can move or recover a larger archive without
+  falsely believing older role-specific drafts disappeared; they can also
+  return safely to their locally saved work from an invalid URL.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, `CI=true pnpm build`, and
+  `git diff --check`. Added Playwright coverage for a seven-checkpoint backup
+  merged with an existing local draft.
+- Future opportunities: let people selectively choose which overflow drafts to
+  keep locally when importing a large archive.
+
 ## 2026-07-09 13:29 PDT
 
 - User problem addressed: importing a backup containing a draft already saved
