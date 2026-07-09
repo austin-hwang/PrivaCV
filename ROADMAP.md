@@ -29,8 +29,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   users can recheck edits quickly.
 - Make post-export changes easier to audit with concise before/after context
   before the next PDF export.
-- Let users keep a small browser-only version history so job-specific tailoring
-  feels reversible without accounts or cloud storage.
+- Let users keep named, annotated browser-only version history so job-specific
+  tailoring feels reversible without accounts or cloud storage.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
@@ -43,8 +43,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
-- Improve local version history with clearer saved-draft labels and lightweight
-  comparisons between saved checkpoints.
+- Improve local version history with lightweight comparisons between saved
+  checkpoints.
 
 ## UI System
 
@@ -76,7 +76,6 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - DOCX export.
 - Keyboard shortcuts for adding entries and moving sections.
-- Named local-only version history with optional notes.
 - Theme controls limited to typography and spacing, not decorative templates.
 
 ## Future Ideas

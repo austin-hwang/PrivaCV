@@ -108,14 +108,20 @@ test("restores the previous resume after clearing", async ({ page }) => {
   await expect(page.getByText("Restore point saved")).toBeHidden();
 });
 
-test("saves and restores a local version history checkpoint", async ({ page }) => {
+test("saves and restores a named local version history checkpoint", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /^sample$/i }).click();
 
   await page.getByRole("button", { name: /save version/i }).click();
+  await expect(page.getByRole("dialog", { name: /name this checkpoint/i })).toBeVisible();
+  await page.getByLabel("Checkpoint name").fill("Original software resume");
+  await page.getByLabel("Note (optional)").fill("Before tailoring for the platform role.");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect(page.getByText("Version saved locally")).toBeVisible();
+  await expect(page.getByText("Original software resume")).toBeVisible();
+  await expect(page.getByText("Before tailoring for the platform role.")).toBeVisible();
 
   await page.getByLabel("Full Name").fill("Grace Hopper");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");

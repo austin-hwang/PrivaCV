@@ -25,8 +25,8 @@ subscriptions, watermarks, or backend storage.
 - Field-level change summary after edits so users can recheck exactly what
   changed since their last PDF export attempt, including compact before/after
   snippets for edited resume areas.
-- Local version history for saving and restoring browser-only checkpoints while
-  tailoring a resume for different applications.
+- Local version history for naming, annotating, saving, and restoring
+  browser-only checkpoints while tailoring a resume for different applications.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.
