@@ -10,6 +10,12 @@ export type RoleFocus = {
   totalCount: number;
 };
 
+export type RolePhraseReview = {
+  phrase: string;
+  termCount: number;
+  matched: boolean;
+};
+
 const STOP_WORDS = new Set([
   "about",
   "across",
@@ -104,5 +110,25 @@ export function buildRoleFocus(resumeText: string, jobDescription: string): Role
     terms,
     matchedCount: terms.filter((term) => term.matched).length,
     totalCount: terms.length,
+  };
+}
+
+/**
+ * Checks whether a user-selected multi-word phrase appears in the resume in
+ * the same word order. Punctuation and whitespace do not affect the result,
+ * which keeps the review useful for resume bullets and skill lists while
+ * remaining explicit about what is (and is not) being compared.
+ */
+export function reviewRolePhrase(resumeText: string, phrase: string): RolePhraseReview {
+  const phraseTerms = words(phrase);
+  const resumeTerms = words(resumeText);
+  const matched = phraseTerms.length >= 2 && resumeTerms.some((_, index) =>
+    phraseTerms.every((term, phraseIndex) => resumeTerms[index + phraseIndex] === term),
+  );
+
+  return {
+    phrase: phrase.trim(),
+    termCount: phraseTerms.length,
+    matched,
   };
 }
