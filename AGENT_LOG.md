@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-08 18:27 PDT
+
+- User problem addressed: users could open the print dialog while resume checks
+  or PDF-import review items were still unresolved, making the final export feel
+  too easy to do accidentally.
+- Implementation: added an export checkpoint dialog that appears before printing
+  when checks fail or a PDF import still needs review, lists the exact issues,
+  jumps back to the relevant field, allows marking PDF import review complete,
+  and preserves an explicit Export Anyway path.
+- UI components or patterns used: shadcn/ui-style Dialog, Button, Badge, and
+  Alert primitives with lucide Printer, Eye, Check, and ArrowRight icons.
+- Why it matters: job seekers get one last local confidence pass before
+  creating a PDF, without blocking people who already reviewed their resume.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`. An
+  initial e2e run failed because the test locator matched both the editor and
+  dialog guidance; the assertion was scoped to the dialog and the suite passed.
+- Future opportunities: add a compact post-export state marker so future runs
+  can show what changed since the last successful PDF export.
+
 ## 2026-07-08 17:28 PDT
 
 - User problem addressed: high-risk actions such as importing a PDF, opening

@@ -21,12 +21,16 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make risky actions reversible so users can experiment without fear.
 - Show lightweight readiness feedback before export so users can fix obvious
   resume issues without leaving the page.
+- Keep the final export moment calm by surfacing unresolved checks without
+  trapping confident users.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
 
 - Keep refining Resume Check guidance with more specific recommendations for
   crowded sections and low-evidence resumes.
+- Improve the export checkpoint with role-aware recommendations and a compact
+  "what changed since last export" summary.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
