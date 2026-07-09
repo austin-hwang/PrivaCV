@@ -1,5 +1,23 @@
 # Agent Log
 
+## 2026-07-09 00:27 PDT
+
+- User problem addressed: saved resume versions were useful, but generic labels
+  made it hard to remember which checkpoint belonged to a job or tailoring
+  moment.
+- Implementation: changed Save version into a naming dialog with an editable
+  checkpoint name and optional note, persisted notes in localStorage while
+  preserving older saved versions, and rendered notes inside the version
+  history list.
+- UI components or patterns used: shadcn/ui-style Dialog, Input, Textarea,
+  Button, and Card patterns with lucide Save, History, Undo2, and Trash2 icons.
+- Why it matters: job seekers can keep several local drafts and restore the
+  right one later without guessing from timestamps alone.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: add a compact compare view between saved checkpoints and
+  the current resume.
+
 ## 2026-07-08 23:28 PDT
 
 - User problem addressed: job seekers tailoring a resume for different roles

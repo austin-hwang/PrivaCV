@@ -113,6 +113,7 @@ type VersionHistoryItem = {
   id: string;
   savedAt: string;
   label: string;
+  note?: string;
   fingerprint: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
@@ -176,6 +177,7 @@ function parseVersionHistory(value: string | null): VersionHistoryItem[] {
           id: item.id,
           savedAt: item.savedAt,
           label: item.label,
+          note: typeof item.note === "string" ? item.note : undefined,
           fingerprint: item.fingerprint,
           state: normalizeResume(item.state),
           importReview: item.importReview ?? null,
@@ -282,6 +284,9 @@ export function ResumeEditor() {
   const [pageCount, setPageCount] = useState(1);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
+  const [versionSaveOpen, setVersionSaveOpen] = useState(false);
+  const [versionDraftLabel, setVersionDraftLabel] = useState("");
+  const [versionDraftNote, setVersionDraftNote] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
@@ -338,25 +343,35 @@ export function ResumeEditor() {
     flash("Restored previous resume");
   };
 
+  const openVersionSave = () => {
+    if (!hasAnyContent(state)) {
+      flash("Add resume details first");
+      return;
+    }
+    setVersionDraftLabel(versionLabel(state));
+    setVersionDraftNote("");
+    setVersionSaveOpen(true);
+  };
+
   const saveVersion = () => {
     if (!hasAnyContent(state)) {
       flash("Add resume details first");
       return;
     }
     const fingerprint = resumeExportFingerprint(state);
-    if (versionHistory[0]?.fingerprint === fingerprint) {
-      flash("Current version is already saved");
-      return;
-    }
+    const label = versionDraftLabel.trim() || versionLabel(state);
+    const note = versionDraftNote.trim();
     const entry: VersionHistoryItem = {
       id: `${Date.now()}`,
       savedAt: new Date().toISOString(),
-      label: versionLabel(state),
+      label,
+      note: note || undefined,
       fingerprint,
       state: normalizeResume(state),
       importReview,
     };
     setVersionHistory((current) => [entry, ...current.filter((item) => item.fingerprint !== fingerprint)].slice(0, MAX_VERSION_HISTORY));
+    setVersionSaveOpen(false);
     flash("Version saved locally");
   };
 
@@ -763,7 +778,7 @@ export function ResumeEditor() {
           <VersionHistoryCard
             hasContent={hasContent}
             versions={versionHistory}
-            onSave={saveVersion}
+            onSave={openVersionSave}
             onRestore={restoreVersion}
             onDelete={deleteVersion}
           />
@@ -1056,6 +1071,54 @@ export function ResumeEditor() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={versionSaveOpen} onOpenChange={setVersionSaveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Version history</DialogDescription>
+            <DialogTitle>Name this checkpoint</DialogTitle>
+            <DialogDescription>
+              Add context before tailoring this resume so the right draft is easy to restore later.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveVersion();
+            }}
+          >
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>Checkpoint name</span>
+              <Input
+                value={versionDraftLabel}
+                placeholder="Frontend manager draft"
+                onChange={(event) => setVersionDraftLabel(event.target.value)}
+              />
+            </label>
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>Note (optional)</span>
+              <Textarea
+                value={versionDraftNote}
+                placeholder="Before tailoring bullets for the Stripe application."
+                className="min-h-24"
+                onChange={(event) => setVersionDraftNote(event.target.value)}
+              />
+            </label>
+            <DialogFooter className="items-center sm:justify-between">
+              <span className="text-xs text-muted-foreground">Saved only in this browser.</span>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setVersionSaveOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <Save /> Save Checkpoint
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={exportCheckOpen} onOpenChange={setExportCheckOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1236,6 +1299,7 @@ function VersionHistoryCard({
                       Saved {formatCheckpointTime(item.savedAt)}
                     </p>
                     <p className="truncate text-sm font-semibold">{item.label}</p>
+                    {item.note ? <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
                     <p className="text-xs text-muted-foreground">{text ? plainTextStats(text) : "Empty resume"}</p>
                   </div>
                 </div>
