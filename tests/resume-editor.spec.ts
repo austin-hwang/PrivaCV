@@ -146,6 +146,12 @@ test("saves and restores a named local version history checkpoint", async ({ pag
 
   await page.getByRole("button", { name: /^restore$/i }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByText("Checkpoint restored")).toBeVisible();
+  const restoredChange = page.getByRole("button", { name: /header changed/i }).first();
+  await expect(restoredChange.getByText("Before", { exact: true })).toBeVisible();
+  await expect(restoredChange.getByText("Restored", { exact: true })).toBeVisible();
+  await restoredChange.click();
+  await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Restore point saved")).toBeVisible();
 });
 

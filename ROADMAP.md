@@ -37,6 +37,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   job-specific tailoring without rereading every section.
 - Let users compare two saved checkpoints directly when deciding which tailored
   draft to revive.
+- Show what changed immediately after restoring a checkpoint so reverting a
+  tailored draft still feels reviewable.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
@@ -51,6 +53,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   before/after correction flow.
 - Improve local version history with clearer branching, checkpoint labels, and
   lightweight guidance for choosing which saved draft to restore.
+- Make restored checkpoint summaries more complete for large edits, including a
+  full expanded diff when more than four areas changed.
 
 ## UI System
 
