@@ -52,6 +52,7 @@ import {
   resumePlainText,
   sampleState,
   SECTION_LABELS,
+  type ExportChange,
   type ResumeEntry,
   type ResumeState,
   type SectionKey,
@@ -117,6 +118,11 @@ type VersionHistoryItem = {
   fingerprint: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
+};
+
+type VersionCompareTarget = {
+  baseId: string;
+  targetId: "current" | string;
 };
 
 type ExportCheckpoint = {
@@ -287,7 +293,7 @@ export function ResumeEditor() {
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
   const [versionDraftLabel, setVersionDraftLabel] = useState("");
   const [versionDraftNote, setVersionDraftNote] = useState("");
-  const [versionCompareId, setVersionCompareId] = useState<string | null>(null);
+  const [versionCompareTarget, setVersionCompareTarget] = useState<VersionCompareTarget | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
@@ -312,13 +318,37 @@ export function ResumeEditor() {
         : [],
     [exportCheckpoint, exportIsCurrent, state],
   );
-  const comparedVersion = useMemo(
-    () => versionHistory.find((item) => item.id === versionCompareId) ?? null,
-    [versionCompareId, versionHistory],
+  const comparedBaseVersion = useMemo(
+    () => versionHistory.find((item) => item.id === versionCompareTarget?.baseId) ?? null,
+    [versionCompareTarget?.baseId, versionHistory],
   );
+  const comparedTargetVersion = useMemo(
+    () =>
+      versionCompareTarget?.targetId && versionCompareTarget.targetId !== "current"
+        ? versionHistory.find((item) => item.id === versionCompareTarget.targetId) ?? null
+        : null,
+    [versionCompareTarget?.targetId, versionHistory],
+  );
+  const comparedTargetState = versionCompareTarget?.targetId === "current" ? state : comparedTargetVersion?.state;
+  const versionCompareUsesCurrent = versionCompareTarget?.targetId === "current";
   const versionChanges = useMemo(
-    () => (comparedVersion ? exportChangeSummary(comparedVersion.state, state) : []),
-    [comparedVersion, state],
+    () =>
+      comparedBaseVersion && comparedTargetState
+        ? exportChangeSummary(comparedBaseVersion.state, comparedTargetState)
+        : [],
+    [comparedBaseVersion, comparedTargetState],
+  );
+  const versionCompareDescription = useMemo(() => {
+    if (!comparedBaseVersion) return "Compare a saved checkpoint with the current resume or another saved checkpoint.";
+    const base = `${comparedBaseVersion.label} saved ${formatCheckpointTime(comparedBaseVersion.savedAt)}`;
+    if (versionCompareUsesCurrent) return `${base} compared with the current resume.`;
+    if (!comparedTargetVersion) return base;
+    return `${base} compared with ${comparedTargetVersion.label} saved ${formatCheckpointTime(comparedTargetVersion.savedAt)}.`;
+  }, [comparedBaseVersion, comparedTargetVersion, versionCompareUsesCurrent]);
+  const versionCompareBeforeLabel = versionCompareUsesCurrent ? "Saved" : "Base";
+  const versionCompareAfterLabel = versionCompareUsesCurrent ? "Current" : "Compared";
+  const versionCompareOpen = Boolean(
+    comparedBaseVersion && (versionCompareUsesCurrent || comparedTargetVersion),
   );
   const importReviewTargets = useMemo(
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
@@ -393,12 +423,12 @@ export function ResumeEditor() {
 
   const deleteVersion = (id: string) => {
     setVersionHistory((current) => current.filter((item) => item.id !== id));
-    if (versionCompareId === id) setVersionCompareId(null);
+    if (versionCompareTarget?.baseId === id || versionCompareTarget?.targetId === id) setVersionCompareTarget(null);
     flash("Deleted saved version");
   };
 
   const focusFromVersionCompare = (targetId: string) => {
-    setVersionCompareId(null);
+    setVersionCompareTarget(null);
     window.setTimeout(() => focusCheckTarget(targetId), 120);
   };
 
@@ -795,7 +825,8 @@ export function ResumeEditor() {
             versions={versionHistory}
             currentFingerprint={exportFingerprint}
             onSave={openVersionSave}
-            onCompare={(item) => setVersionCompareId(item.id)}
+            onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
+            onCompareSaved={(base, target) => setVersionCompareTarget({ baseId: base.id, targetId: target.id })}
             onRestore={restoreVersion}
             onDelete={deleteVersion}
           />
@@ -1137,55 +1168,36 @@ export function ResumeEditor() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(comparedVersion)} onOpenChange={(open) => !open && setVersionCompareId(null)}>
+      <Dialog open={versionCompareOpen} onOpenChange={(open) => !open && setVersionCompareTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Version history</DialogDescription>
-            <DialogTitle>Compare saved checkpoint</DialogTitle>
-            <DialogDescription>
-              {comparedVersion
-                ? `${comparedVersion.label} saved ${formatCheckpointTime(comparedVersion.savedAt)} compared with the current resume.`
-                : "Compare a saved checkpoint with the current resume."}
-            </DialogDescription>
+            <DialogTitle>{versionCompareUsesCurrent ? "Compare saved checkpoint" : "Compare saved versions"}</DialogTitle>
+            <DialogDescription>{versionCompareDescription}</DialogDescription>
           </DialogHeader>
 
-          {comparedVersion ? (
+          {comparedBaseVersion && comparedTargetState ? (
             versionChanges.length ? (
               <div className="grid max-h-[56vh] gap-2 overflow-y-auto pr-1">
                 {versionChanges.map((change) => (
-                  <button
+                  <VersionChangeRow
                     key={change.id}
-                    type="button"
-                    className="group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => focusFromVersionCompare(change.targetId)}
-                  >
-                    <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
-                    <div className="min-w-0">
-                      <span className="block font-semibold text-foreground">{change.label}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
-                      <ChangeFieldLabels labels={change.fieldLabels} />
-                      {change.before || change.after ? (
-                        <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
-                          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
-                            <span className="font-medium text-foreground">Saved</span>
-                            <span className="truncate">{change.before ?? "Empty"}</span>
-                          </span>
-                          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
-                            <span className="font-medium text-foreground">Current</span>
-                            <span className="truncate">{change.after ?? "Empty"}</span>
-                          </span>
-                        </span>
-                      ) : null}
-                    </div>
-                    <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                  </button>
+                    change={change}
+                    beforeLabel={versionCompareBeforeLabel}
+                    afterLabel={versionCompareAfterLabel}
+                    onSelect={versionCompareUsesCurrent ? () => focusFromVersionCompare(change.targetId) : undefined}
+                  />
                 ))}
               </div>
             ) : (
               <Alert>
                 <Check className="h-4 w-4" />
                 <AlertTitle>No differences found</AlertTitle>
-                <AlertDescription>The current resume matches this saved checkpoint.</AlertDescription>
+                <AlertDescription>
+                  {versionCompareUsesCurrent
+                    ? "The current resume matches this saved checkpoint."
+                    : "These saved checkpoints contain the same resume content."}
+                </AlertDescription>
               </Alert>
             )
           ) : null}
@@ -1197,18 +1209,30 @@ export function ResumeEditor() {
                 : "Saved only in this browser"}
             </span>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setVersionCompareId(null)}>
+              <Button type="button" variant="outline" onClick={() => setVersionCompareTarget(null)}>
                 Close
               </Button>
-              {comparedVersion ? (
+              {comparedTargetVersion ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    restoreVersion(comparedTargetVersion);
+                    setVersionCompareTarget(null);
+                  }}
+                >
+                  <Undo2 /> Restore Compared
+                </Button>
+              ) : null}
+              {comparedBaseVersion ? (
                 <Button
                   type="button"
                   onClick={() => {
-                    restoreVersion(comparedVersion);
-                    setVersionCompareId(null);
+                    restoreVersion(comparedBaseVersion);
+                    setVersionCompareTarget(null);
                   }}
                 >
-                  <Undo2 /> Restore Saved
+                  <Undo2 /> {versionCompareUsesCurrent ? "Restore Saved" : "Restore Base"}
                 </Button>
               ) : null}
             </div>
@@ -1340,6 +1364,57 @@ export function ResumeEditor() {
   );
 }
 
+function VersionChangeRow({
+  change,
+  beforeLabel,
+  afterLabel,
+  onSelect,
+}: {
+  change: ExportChange;
+  beforeLabel: string;
+  afterLabel: string;
+  onSelect?: () => void;
+}) {
+  const content = (
+    <>
+      <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
+      <div className="min-w-0">
+        <span className="block font-semibold text-foreground">{change.label}</span>
+        <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
+        <ChangeFieldLabels labels={change.fieldLabels} />
+        {change.before || change.after ? (
+          <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
+            <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+              <span className="font-medium text-foreground">{beforeLabel}</span>
+              <span className="truncate">{change.before ?? "Empty"}</span>
+            </span>
+            <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+              <span className="font-medium text-foreground">{afterLabel}</span>
+              <span className="truncate">{change.after ?? "Empty"}</span>
+            </span>
+          </span>
+        ) : null}
+      </div>
+      {onSelect ? (
+        <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      ) : null}
+    </>
+  );
+
+  const className =
+    "group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  if (onSelect) {
+    return (
+      <button type="button" className={cn(className, "hover:border-indigo-500")} onClick={onSelect}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
 function ChangeFieldLabels({ labels }: { labels?: string[] }) {
   if (!labels?.length) return null;
   const visibleLabels = labels.slice(0, 4);
@@ -1378,7 +1453,8 @@ function VersionHistoryCard({
   versions,
   currentFingerprint,
   onSave,
-  onCompare,
+  onCompareCurrent,
+  onCompareSaved,
   onRestore,
   onDelete,
 }: {
@@ -1386,10 +1462,19 @@ function VersionHistoryCard({
   versions: VersionHistoryItem[];
   currentFingerprint: string;
   onSave: () => void;
-  onCompare: (item: VersionHistoryItem) => void;
+  onCompareCurrent: (item: VersionHistoryItem) => void;
+  onCompareSaved: (base: VersionHistoryItem, target: VersionHistoryItem) => void;
   onRestore: (item: VersionHistoryItem) => void;
   onDelete: (id: string) => void;
 }) {
+  const [savedCompareBaseId, setSavedCompareBaseId] = useState("");
+  const [savedCompareTargetId, setSavedCompareTargetId] = useState("");
+  const baseVersion = versions.find((item) => item.id === savedCompareBaseId) ?? versions[0] ?? null;
+  const targetVersion =
+    versions.find((item) => item.id === savedCompareTargetId && item.id !== baseVersion?.id) ??
+    versions.find((item) => item.id !== baseVersion?.id) ??
+    null;
+
   if (!hasContent && !versions.length) return null;
 
   return (
@@ -1407,6 +1492,51 @@ function VersionHistoryCard({
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
+        {versions.length >= 2 && baseVersion && targetVersion ? (
+          <div className="grid gap-3 rounded-md border bg-background p-3">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">Compare two saved checkpoints</p>
+                <p className="text-xs text-muted-foreground">Audit tailoring changes without changing the current resume.</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => onCompareSaved(baseVersion, targetVersion)}>
+                <Eye /> Compare saved versions
+              </Button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+                <span>Base checkpoint</span>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={baseVersion.id}
+                  onChange={(event) => setSavedCompareBaseId(event.target.value)}
+                >
+                  {versions.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label} - {formatCheckpointTime(item.savedAt)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+                <span>Compared checkpoint</span>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={targetVersion.id}
+                  onChange={(event) => setSavedCompareTargetId(event.target.value)}
+                >
+                  {versions
+                    .filter((item) => item.id !== baseVersion.id)
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label} - {formatCheckpointTime(item.savedAt)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+          </div>
+        ) : null}
         {versions.length ? (
           versions.map((item) => {
             const text = resumePlainText(item.state);
@@ -1434,7 +1564,7 @@ function VersionHistoryCard({
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => onCompare(item)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => onCompareCurrent(item)}>
                     <Eye /> Compare
                   </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>

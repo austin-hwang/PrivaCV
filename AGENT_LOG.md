@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-09 03:30 PDT
+
+- User problem addressed: users could compare a saved checkpoint with the
+  current draft, but not inspect how two saved job-specific drafts differed
+  before deciding which one to restore.
+- Implementation: added a compact saved-checkpoint comparison picker to the
+  version history card, introduced saved-vs-saved dialog copy and labels, and
+  preserved field-jump behavior only for saved-vs-current comparisons where the
+  current editor can be focused.
+- UI components or patterns used: shadcn/ui-style Card, Button, Dialog, Badge,
+  and native select controls styled with the local input treatment, plus lucide
+  History, Eye, Undo2, and ArrowRight icons.
+- Why it matters: job seekers can keep several local tailoring drafts and audit
+  their differences without changing the live resume or guessing from notes.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: make version history feel more like lightweight
+  branching by surfacing recommended restore choices and clearer draft lineage.
+
 ## 2026-07-09 02:30 PDT
 
 - User problem addressed: checkpoint comparison showed changed resume areas, but

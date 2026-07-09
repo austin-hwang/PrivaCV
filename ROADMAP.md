@@ -35,6 +35,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   or exporting a tailored draft.
 - Make checkpoint comparisons name the exact edited fields so users can audit
   job-specific tailoring without rereading every section.
+- Let users compare two saved checkpoints directly when deciding which tailored
+  draft to revive.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
@@ -47,8 +49,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
-- Improve local version history with richer comparisons between saved
-  checkpoints, including comparisons between two saved checkpoints.
+- Improve local version history with clearer branching, checkpoint labels, and
+  lightweight guidance for choosing which saved draft to restore.
 
 ## UI System
 
