@@ -27,6 +27,8 @@ subscriptions, watermarks, or backend storage.
   snippets and an expandable full audit trail for edited resume areas.
 - Local version history for naming, annotating, saving, and restoring
   browser-only checkpoints while tailoring a resume for different applications.
+- Glanceable checkpoint summaries that show saved draft contents, current-match
+  status, and changed-area counts before comparing or restoring.
 - Saved-version comparison that shows changed areas with saved/current snippets
   and exact edited field labels before restoring or continuing a tailored draft.
 - Saved-to-saved comparison for auditing how two local checkpoints differ

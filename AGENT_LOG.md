@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-09 06:29 PDT
+
+- User problem addressed: saved checkpoints could be named and compared, but
+  the history list still made users open actions before they could understand
+  what each draft contained or whether it differed from the current resume.
+- Implementation: added checkpoint headline text, content-count badges for
+  roles, education, projects, and skill lines, plus a current/different-area
+  status badge computed from the existing export change summary.
+- UI components or patterns used: shadcn/ui-style Card, Badge, and Button
+  patterns with the existing lucide History, Eye, Undo2, and Trash2 actions.
+- Why it matters: job seekers can scan local tailoring drafts faster and choose
+  the right checkpoint to compare or restore without rereading every note.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  The first Playwright run exposed an ambiguous test locator, and the first
+  parallel build collided with the dev server's generated `.next` output; both
+  checks passed after fixing the locator and rerunning the build in isolation.
+- Future opportunities: add lightweight branch/lineage cues so users can see
+  which checkpoint was derived from which tailored draft.
+
 ## 2026-07-09 05:27 PDT
 
 - User problem addressed: dense tailoring sessions could produce more than four
