@@ -23,7 +23,8 @@ subscriptions, watermarks, or backend storage.
 - Local last-export status that shows whether the current resume still matches
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what
-  changed since their last PDF export attempt.
+  changed since their last PDF export attempt, including compact before/after
+  snippets for edited resume areas.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.

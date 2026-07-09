@@ -759,13 +759,25 @@ export function ResumeEditor() {
                     <button
                       key={change.id}
                       type="button"
-                      className="group flex min-h-14 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onClick={() => focusCheckTarget(change.targetId)}
                     >
                       <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
                       <span className="min-w-0">
                         <span className="block font-semibold text-foreground">{change.label}</span>
                         <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
+                        {change.before || change.after ? (
+                          <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
+                            <span className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2">
+                              <span className="font-medium text-foreground">Before</span>
+                              <span className="truncate">{change.before ?? "Empty"}</span>
+                            </span>
+                            <span className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2">
+                              <span className="font-medium text-foreground">Now</span>
+                              <span className="truncate">{change.after ?? "Empty"}</span>
+                            </span>
+                          </span>
+                        ) : null}
                       </span>
                       <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                     </button>

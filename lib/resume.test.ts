@@ -85,4 +85,23 @@ describe("resume helpers", () => {
       ]),
     );
   });
+
+  it("includes before and after snippets for edited export areas", () => {
+    const exported = sampleState();
+    const edited = {
+      ...exported,
+      summary: "Focused product engineer with strong launch experience.",
+      skills: "Languages: TypeScript, Go\nTools: Docker, AWS",
+    };
+    const changes = exportChangeSummary(exported, edited);
+
+    expect(changes.find((change) => change.id === "summary")).toMatchObject({
+      before: expect.stringContaining("Software engineer specializing"),
+      after: "Focused product engineer with strong launch experience.",
+    });
+    expect(changes.find((change) => change.id === "skills")).toMatchObject({
+      before: expect.stringContaining("Languages: JavaScript"),
+      after: "Languages: TypeScript, Go / Tools: Docker, AWS",
+    });
+  });
 });

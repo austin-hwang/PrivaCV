@@ -53,6 +53,8 @@ export type ExportChange = {
   label: string;
   detail: string;
   targetId: string;
+  before?: string;
+  after?: string;
 };
 
 export const MIN_TEXT_SCALE = 0.8;
@@ -301,6 +303,40 @@ function sectionTargetId(section: "experience" | "education" | "projects") {
   return `field-${section}-0-title`;
 }
 
+function snippet(value: string) {
+  const cleaned = cleanTextLine(value);
+  if (!cleaned) return "Empty";
+  return cleaned.length > 86 ? `${cleaned.slice(0, 83)}...` : cleaned;
+}
+
+function contactSnapshot(state: ResumeState) {
+  return [state.name, state.title, state.email, state.phone, state.location, state.website]
+    .map(cleanTextLine)
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function sectionSnapshot(state: ResumeState, section: "experience" | "education" | "projects") {
+  const entries = state[section].filter(
+    (entry) => entry.title || entry.subtitle || entry.meta || entry.details,
+  );
+  if (!entries.length) return "";
+  return entries
+    .map((entry) => {
+      const firstBullet = bulletsFrom(entry.details)[0] ?? "";
+      return [entry.title, entry.subtitle, entry.meta, firstBullet].map(cleanTextLine).filter(Boolean).join(" | ");
+    })
+    .join(" / ");
+}
+
+function skillsSnapshot(state: ResumeState) {
+  return state.skills
+    .split("\n")
+    .map(cleanTextLine)
+    .filter(Boolean)
+    .join(" / ");
+}
+
 export function exportChangeSummary(previousState: ResumeState, currentState: ResumeState): ExportChange[] {
   const previous = normalizeResume(previousState);
   const current = normalizeResume(currentState);
@@ -314,6 +350,8 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       label: "Header changed",
       detail: `${contactFields.length} ${contactFields.length === 1 ? "field" : "fields"} edited`,
       targetId: `field-${firstField}`,
+      before: snippet(contactSnapshot(previous)),
+      after: snippet(contactSnapshot(current)),
     });
   }
 
@@ -323,6 +361,8 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       label: "Summary changed",
       detail: `${wordCount(current.summary)} words now`,
       targetId: "field-summary",
+      before: snippet(previous.summary),
+      after: snippet(current.summary),
     });
   }
 
@@ -333,6 +373,8 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       label: `${SECTION_LABELS[section]} changed`,
       detail: `${current[section].filter((entry) => entry.title || entry.subtitle || entry.meta || entry.details).length} entries now`,
       targetId: current[section].length ? sectionTargetId(section) : `add-${section}-entry`,
+      before: snippet(sectionSnapshot(previous, section)),
+      after: snippet(sectionSnapshot(current, section)),
     });
   });
 
@@ -342,6 +384,8 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       label: "Skills changed",
       detail: `${current.skills.split("\n").filter((line) => line.trim()).length} lines now`,
       targetId: "field-skills",
+      before: snippet(skillsSnapshot(previous)),
+      after: snippet(skillsSnapshot(current)),
     });
   }
 
