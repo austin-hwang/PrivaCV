@@ -40,7 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { importResumePdf } from "@/lib/pdf-import";
-import { buildRoleFocus } from "@/lib/job-match";
+import { buildRoleFocus, reviewRolePhrase } from "@/lib/job-match";
 import {
   blankEntry,
   buildResumeChecks,
@@ -1103,6 +1103,7 @@ export function ResumeEditor() {
             <RoleFocusCard
               jobDescription={jobDescription}
               roleFocus={roleFocus}
+              resumeText={plainText}
               onChange={setJobDescription}
               onClear={() => setJobDescription("")}
             />
@@ -1929,17 +1930,26 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
 function RoleFocusCard({
   jobDescription,
   roleFocus,
+  resumeText,
   onChange,
   onClear,
 }: {
   jobDescription: string;
   roleFocus: ReturnType<typeof buildRoleFocus>;
+  resumeText: string;
   onChange: (value: string) => void;
   onClear: () => void;
 }) {
+  const [phrase, setPhrase] = useState("");
   const hasDescription = Boolean(jobDescription.trim());
   const matchedTerms = roleFocus.terms.filter((term) => term.matched);
   const missingTerms = roleFocus.terms.filter((term) => !term.matched);
+  const phraseReview = useMemo(() => reviewRolePhrase(resumeText, phrase), [phrase, resumeText]);
+
+  const clearDescription = () => {
+    setPhrase("");
+    onClear();
+  };
 
   return (
     <Card className="mb-6 border-sky-300 bg-sky-50/70">
@@ -1957,7 +1967,7 @@ function RoleFocusCard({
           </div>
         </div>
         {hasDescription ? (
-          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onClear}>
+          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={clearDescription}>
             Clear description
           </Button>
         ) : null}
@@ -2016,6 +2026,36 @@ function RoleFocusCard({
               Try pasting the responsibilities and requirements so Resume Editor can surface useful terms to review.
             </AlertDescription>
           </Alert>
+        ) : null}
+        {hasDescription ? (
+          <div className="rounded-md border bg-background p-3">
+            <label className="grid gap-1.5 text-sm font-medium">
+              <span>Check an exact phrase from this role</span>
+              <Input
+                value={phrase}
+                onChange={(event) => setPhrase(event.target.value)}
+                placeholder="e.g. TypeScript services"
+                aria-describedby="role-phrase-help"
+              />
+            </label>
+            <p id="role-phrase-help" className="mt-1.5 text-xs leading-snug text-muted-foreground">
+              Compare a specific two-or-more-word concept after deciding it accurately reflects your work.
+            </p>
+            {phraseReview.phrase ? (
+              <div aria-live="polite" className="mt-3 rounded-md border bg-muted/30 p-2.5 text-sm">
+                {phraseReview.termCount < 2 ? (
+                  <p className="text-muted-foreground">Add at least two words to check a phrase.</p>
+                ) : phraseReview.matched ? (
+                  <p className="font-medium text-emerald-900">Phrase already appears in your resume.</p>
+                ) : (
+                  <p className="font-medium text-amber-950">Phrase not found verbatim in your resume.</p>
+                )}
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                  This checks the same word sequence while ignoring punctuation and spacing; it does not judge your fit.
+                </p>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </CardContent>
     </Card>

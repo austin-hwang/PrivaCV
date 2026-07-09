@@ -1,5 +1,27 @@
 # Agent Log
 
+## 2026-07-09 16:29 PDT
+
+- User problem addressed: a list of individual role terms could miss an
+  important multi-word concept, leaving people to guess whether their precise
+  wording already appears in the resume.
+- Implementation: added an opt-in Role Focus phrase check that compares a
+  user-selected two-or-more-word phrase against the current resume in word
+  order while ignoring punctuation and spacing. The UI explicitly reports
+  either an existing phrase or a verbatim miss, preserves the local-only
+  privacy model, and resets the phrase when the role description is cleared.
+- UI components or patterns used: existing shadcn/ui-style Card, Input, Badge,
+  and Alert patterns with a polite live-result region.
+- Why it matters: job seekers can verify an important role concept without
+  relying on opaque scoring or adding a phrase that does not accurately reflect
+  their experience.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, `CI=true pnpm build`, and
+  `git diff --check`. Added deterministic unit and browser coverage for phrase
+  matching and missing phrases.
+- Future opportunities: offer a small, explainable set of suggested phrases
+  derived from repeated role terminology without weakening the opt-in review.
+
 ## 2026-07-09 15:30 PDT
 
 - User problem addressed: tailoring a resume to a real job description required

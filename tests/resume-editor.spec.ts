@@ -467,6 +467,13 @@ test("reviews role language locally without presenting an ATS score", async ({ p
   await expect(page.getByText("This is a wording review, not an ATS score.")).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-role-focus-v1"))).toContain("TypeScript");
 
+  const phrase = page.getByLabel("Check an exact phrase from this role");
+  await phrase.fill("JavaScript TypeScript");
+  await expect(page.getByText("Phrase already appears in your resume.")).toBeVisible();
+  await phrase.fill("platform teams");
+  await expect(page.getByText("Phrase not found verbatim in your resume.")).toBeVisible();
+
   await page.getByRole("button", { name: /clear description/i }).click();
   await expect(description).toHaveValue("");
+  await expect(phrase).toBeHidden();
 });

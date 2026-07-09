@@ -8,7 +8,7 @@ import {
   resumePlainText,
   sampleState,
 } from "@/lib/resume";
-import { buildRoleFocus } from "@/lib/job-match";
+import { buildRoleFocus, reviewRolePhrase } from "@/lib/job-match";
 
 describe("resume helpers", () => {
   it("normalizes legacy JSON into a complete resume state", () => {
@@ -150,5 +150,26 @@ describe("resume helpers", () => {
     );
     expect(focus.matchedCount).toBeGreaterThan(0);
     expect(focus.totalCount).toBeLessThanOrEqual(14);
+  });
+
+  it("checks an opted-in role phrase in word order while ignoring punctuation", () => {
+    const resume = "Built TypeScript services, improving release reliability.";
+
+    expect(reviewRolePhrase(resume, "TypeScript services")).toMatchObject({
+      termCount: 2,
+      matched: true,
+    });
+    expect(reviewRolePhrase(resume, "services TypeScript")).toMatchObject({
+      termCount: 2,
+      matched: false,
+    });
+    expect(reviewRolePhrase(resume, "TypeScript")).toMatchObject({
+      termCount: 1,
+      matched: false,
+    });
+    expect(reviewRolePhrase("Chart leadership", "art lead")).toMatchObject({
+      termCount: 2,
+      matched: false,
+    });
   });
 });
