@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-08 23:28 PDT
+
+- User problem addressed: job seekers tailoring a resume for different roles
+  needed more than a one-step undo when experimenting with edits.
+- Implementation: added a browser-only version history that saves up to five
+  resume checkpoints, persists them in localStorage, restores a selected
+  checkpoint, and lets users delete old checkpoints.
+- UI components or patterns used: shadcn/ui-style Card and Button primitives
+  with lucide Save, History, Undo2, and Trash2 icons in a compact action list.
+- Why it matters: users can adapt a strong draft for a specific application and
+  still return to the original without accounts, cloud sync, or manual JSON
+  files.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: add user-editable checkpoint names, notes, and a compact
+  compare view between saved versions.
+
 ## 2026-07-08 22:27 PDT
 
 - User problem addressed: after seeing that a resume changed since the last PDF
