@@ -18,6 +18,8 @@ subscriptions, watermarks, or backend storage.
 - Resume Check panel for page count, missing contact fields, long bullets,
   summary length, and overall density, with guidance and actions that jump to
   the field that needs attention.
+- Export checkpoint that catches unresolved resume checks or PDF-import review
+  items before opening the browser print dialog.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.

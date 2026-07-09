@@ -185,6 +185,7 @@ export function ResumeEditor() {
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
+  const [exportCheckOpen, setExportCheckOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
@@ -195,6 +196,7 @@ export function ResumeEditor() {
 
   const hasContent = hasAnyContent(state);
   const checks = useMemo(() => buildResumeChecks(state, pageCount), [state, pageCount]);
+  const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
   const importReviewTargets = useMemo(
@@ -389,6 +391,24 @@ export function ResumeEditor() {
     window.setTimeout(() => target.focus({ preventScroll: true }), 220);
   };
 
+  const requestExport = () => {
+    if (failedChecks.length || importReview) {
+      setExportCheckOpen(true);
+      return;
+    }
+    window.print();
+  };
+
+  const exportAnyway = () => {
+    setExportCheckOpen(false);
+    window.setTimeout(() => window.print(), 120);
+  };
+
+  const focusFromExportCheck = (targetId: string) => {
+    setExportCheckOpen(false);
+    window.setTimeout(() => focusCheckTarget(targetId), 120);
+  };
+
   return (
     <>
       <header className="app-chrome sticky top-0 z-40 border-b bg-card">
@@ -413,7 +433,7 @@ export function ResumeEditor() {
               />
               <output className="w-10 text-right tabular-nums">{Math.round(state.textScale * 100)}%</output>
             </label>
-            <Button type="button" onClick={() => window.print()}>
+            <Button type="button" onClick={requestExport}>
               <Printer /> Export PDF
             </Button>
             <Button type="button" variant="outline" onClick={() => setTextReviewOpen(true)}>
@@ -775,6 +795,96 @@ export function ResumeEditor() {
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={copyPlainText} disabled={!plainText}>
                 <ClipboardCopy /> Copy Text
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={exportCheckOpen} onOpenChange={setExportCheckOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">PDF export check</DialogDescription>
+            <DialogTitle>Review before exporting</DialogTitle>
+            <DialogDescription>
+              Fix the highest-impact items now, or continue if you have already reviewed the resume yourself.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            {importReview ? (
+              <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">PDF import still needs review</p>
+                    <p className="text-xs leading-snug text-muted-foreground">
+                      Confirm the parser guessed fields correctly before exporting {importReview.fileName}.
+                    </p>
+                  </div>
+                  <Badge variant="secondary">{importReview.items.length} fields</Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {importReview.items.slice(0, 3).map((item) => (
+                    <Button
+                      key={item.id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => focusFromExportCheck(item.targetId)}
+                    >
+                      <Eye /> {item.label}
+                    </Button>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setImportReview(null)}>
+                    <Check /> Mark reviewed
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {failedChecks.length ? (
+              <div className="grid gap-2">
+                {failedChecks.map((check) => (
+                  <div key={check.id} className="flex gap-2 rounded-md border bg-muted/30 p-3">
+                    <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-700 text-xs font-bold text-white">
+                      !
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold">{check.label}</p>
+                      <p className="text-xs leading-snug text-muted-foreground">{check.detail}</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">{check.guidance}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => focusFromExportCheck(check.targetId)}
+                    >
+                      <ArrowRight /> {check.actionLabel}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Alert>
+                <Check className="h-4 w-4" />
+                <AlertTitle>Resume checks passed</AlertTitle>
+                <AlertDescription>The remaining checkpoint is the imported PDF review.</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter className="items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">
+              {failedChecks.length ? `${failedChecks.length} resume ${failedChecks.length === 1 ? "issue" : "issues"}` : "Checks clear"}
+            </span>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setExportCheckOpen(false)}>
+                Keep Editing
+              </Button>
+              <Button type="button" onClick={exportAnyway}>
+                <Printer /> Export Anyway
               </Button>
             </div>
           </DialogFooter>

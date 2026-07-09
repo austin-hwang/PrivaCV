@@ -27,6 +27,37 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
+test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.reload();
+  await page.evaluate(() => {
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.getByRole("button", { name: /^sample$/i }).click();
+  await page.getByLabel("Phone").fill("");
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
+  await expect(exportDialog).toBeVisible();
+  await expect(exportDialog.getByText("Missing contact details can make a strong resume impossible to follow up on.")).toBeVisible();
+
+  await exportDialog.getByRole("button", { name: /fix contact/i }).click();
+  await expect(page.locator("#field-phone")).toBeFocused();
+  await expect(page.getByRole("dialog", { name: /review before exporting/i })).toBeHidden();
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await page.getByRole("button", { name: /export anyway/i }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
+});
+
 test("restores the previous resume after clearing", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
