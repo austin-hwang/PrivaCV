@@ -1,5 +1,23 @@
 # Agent Log
 
+## 2026-07-08 21:28 PDT
+
+- User problem addressed: after editing a resume post-export, users could see
+  that the resume changed but not which areas needed a final recheck.
+- Implementation: stored a normalized export snapshot with each print attempt,
+  added a resume helper that summarizes changed header, summary, section,
+  skills, section-order, and text-size areas, and rendered jumpable change cards
+  in the last-export status panel.
+- UI components or patterns used: shadcn/ui-style Card, Button-like bordered
+  action rows, focusable section-order controls, and lucide History and
+  ArrowRight icons.
+- Why it matters: job seekers can make targeted edits for a role and quickly
+  verify the exact areas that changed before exporting the next PDF.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: expand the diff into exact field names and before/after
+  snippets for dense edit sessions.
+
 ## 2026-07-08 20:30 PDT
 
 - User problem addressed: after opening the print dialog, users had no local
