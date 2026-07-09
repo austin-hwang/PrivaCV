@@ -225,6 +225,7 @@ test("compares two saved version history checkpoints", async ({ page }) => {
   await page.getByLabel("Checkpoint name").fill("Platform tailoring draft");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
 
+  await expect(page.getByText("Derived from Original software resume")).toBeVisible();
   await expect(page.getByText("Compare two saved checkpoints")).toBeVisible();
   await page.getByRole("button", { name: /compare saved versions/i }).click();
 

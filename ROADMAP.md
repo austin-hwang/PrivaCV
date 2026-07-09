@@ -52,8 +52,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
-- Improve local version history with clearer branching, checkpoint labels, and
-  lightweight guidance for choosing which saved draft to restore.
+- Improve local version history with clearer checkpoint labels, lineage cues,
+  and lightweight guidance for choosing which saved draft to restore.
 - Make saved checkpoints glanceable enough to choose quickly before opening a
   comparison or restoring an older draft.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for

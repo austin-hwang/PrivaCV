@@ -29,6 +29,8 @@ subscriptions, watermarks, or backend storage.
   browser-only checkpoints while tailoring a resume for different applications.
 - Glanceable checkpoint summaries that show saved draft contents, current-match
   status, and changed-area counts before comparing or restoring.
+- Checkpoint lineage cues that show which saved draft a tailored version was
+  derived from.
 - Saved-version comparison that shows changed areas with saved/current snippets
   and exact edited field labels before restoring or continuing a tailored draft.
 - Saved-to-saved comparison for auditing how two local checkpoints differ
