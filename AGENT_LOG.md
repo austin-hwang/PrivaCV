@@ -1,5 +1,26 @@
 # Agent Log
 
+## 2026-07-09 08:28 PDT
+
+- User problem addressed: version history could show lineage and changed-area
+  counts, but users with several tailored drafts still had to decide manually
+  which saved checkpoint to compare first.
+- Implementation: added a suggested checkpoint panel that identifies the
+  closest saved draft with nonzero differences from the current resume, reuses
+  existing export-change summaries, and opens the saved-vs-current comparison
+  from a prominent Review differences action.
+- UI components or patterns used: shadcn/ui-style Card, Badge, and Button
+  patterns with the existing lucide Eye icon inside the version history surface.
+- Why it matters: job seekers can get to the most relevant local draft faster
+  when auditing job-specific tailoring, without reading every checkpoint card.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  The first Playwright run caught an ambiguous changed-area locator after the
+  suggested badge duplicated the existing count; the assertion was scoped and
+  the suite passed.
+- Future opportunities: use checkpoint lineage as an additional ranking signal
+  when the closest changed-area count ties across several saved drafts.
+
 ## 2026-07-09 07:28 PDT
 
 - User problem addressed: saved checkpoints showed contents and differences, but

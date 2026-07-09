@@ -1625,6 +1625,25 @@ function VersionHistoryCard({
 }) {
   const [savedCompareBaseId, setSavedCompareBaseId] = useState("");
   const [savedCompareTargetId, setSavedCompareTargetId] = useState("");
+  const versionInsights = useMemo(
+    () =>
+      versions.map((item) => {
+        const text = resumePlainText(item.state);
+        const isCurrent = item.fingerprint === currentFingerprint;
+        const changesFromCurrent = isCurrent ? [] : exportChangeSummary(item.state, currentState);
+        return { item, text, isCurrent, changesFromCurrent };
+      }),
+    [currentFingerprint, currentState, versions],
+  );
+  const suggestedComparison = useMemo(
+    () =>
+      versionInsights.reduce<(typeof versionInsights)[number] | null>((best, insight) => {
+        if (insight.isCurrent || insight.changesFromCurrent.length === 0) return best;
+        if (!best || insight.changesFromCurrent.length < best.changesFromCurrent.length) return insight;
+        return best;
+      }, null),
+    [versionInsights],
+  );
   const baseVersion = versions.find((item) => item.id === savedCompareBaseId) ?? versions[0] ?? null;
   const targetVersion =
     versions.find((item) => item.id === savedCompareTargetId && item.id !== baseVersion?.id) ??
@@ -1648,6 +1667,34 @@ function VersionHistoryCard({
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
+        {suggestedComparison ? (
+          <div className="flex flex-col gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                  Suggested checkpoint
+                </Badge>
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                  {suggestedComparison.changesFromCurrent.length} changed{" "}
+                  {suggestedComparison.changesFromCurrent.length === 1 ? "area" : "areas"}
+                </Badge>
+              </div>
+              <p className="truncate text-sm font-semibold">{suggestedComparison.item.label}</p>
+              <p className="text-xs text-muted-foreground">
+                Closest saved draft to the current resume. Review it first before restoring older checkpoints.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 bg-background"
+              onClick={() => onCompareCurrent(suggestedComparison.item)}
+            >
+              <Eye /> Review differences
+            </Button>
+          </div>
+        ) : null}
         {versions.length >= 2 && baseVersion && targetVersion ? (
           <div className="grid gap-3 rounded-md border bg-background p-3">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -1694,10 +1741,7 @@ function VersionHistoryCard({
           </div>
         ) : null}
         {versions.length ? (
-          versions.map((item) => {
-            const text = resumePlainText(item.state);
-            const isCurrent = item.fingerprint === currentFingerprint;
-            const changesFromCurrent = isCurrent ? [] : exportChangeSummary(item.state, currentState);
+          versionInsights.map(({ item, text, isCurrent, changesFromCurrent }) => {
             return (
               <div key={item.id} className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 gap-3">

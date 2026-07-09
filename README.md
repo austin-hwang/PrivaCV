@@ -31,6 +31,8 @@ subscriptions, watermarks, or backend storage.
   status, and changed-area counts before comparing or restoring.
 - Checkpoint lineage cues that show which saved draft a tailored version was
   derived from.
+- Suggested checkpoint comparison that highlights the closest saved draft to
+  review first when several tailored versions exist.
 - Saved-version comparison that shows changed areas with saved/current snippets
   and exact edited field labels before restoring or continuing a tailored draft.
 - Saved-to-saved comparison for auditing how two local checkpoints differ

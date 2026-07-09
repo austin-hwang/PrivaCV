@@ -178,7 +178,9 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.getByLabel("Full Name").fill("Grace Hopper");
   await page.getByLabel("Job Title").first().fill("Principal Software Engineer");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
-  await expect(page.getByText("2 changed areas")).toBeVisible();
+  await expect(page.getByText("Suggested checkpoint")).toBeVisible();
+  await expect(page.getByRole("button", { name: /review differences/i })).toBeVisible();
+  await expect(page.getByText("2 changed areas").first()).toBeVisible();
 
   await page.getByRole("button", { name: /compare/i }).click();
   const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
