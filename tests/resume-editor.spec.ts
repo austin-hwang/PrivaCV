@@ -107,3 +107,20 @@ test("restores the previous resume after clearing", async ({ page }) => {
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByText("Restore point saved")).toBeHidden();
 });
+
+test("saves and restores a local version history checkpoint", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /save version/i }).click();
+  await expect(page.getByText("Version saved locally")).toBeVisible();
+
+  await page.getByLabel("Full Name").fill("Grace Hopper");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
+
+  await page.getByRole("button", { name: /^restore$/i }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByText("Restore point saved")).toBeVisible();
+});

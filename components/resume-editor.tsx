@@ -15,6 +15,7 @@ import {
   History,
   Printer,
   RotateCcw,
+  Save,
   Trash2,
   Undo2,
   Upload,
@@ -59,6 +60,8 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "resume-editor-data-v2";
 const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
+const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
+const MAX_VERSION_HISTORY = 5;
 const REPEATABLE_SECTIONS = ["experience", "education", "projects"] as const;
 
 const ENTRY_SCHEMA: Record<(typeof REPEATABLE_SECTIONS)[number], { title: string; subtitle: string; meta: string; details: string }> = {
@@ -106,6 +109,15 @@ type RecoveryPoint = {
   importReview: ImportReviewState | null;
 };
 
+type VersionHistoryItem = {
+  id: string;
+  savedAt: string;
+  label: string;
+  fingerprint: string;
+  state: ResumeState;
+  importReview: ImportReviewState | null;
+};
+
 type ExportCheckpoint = {
   fingerprint: string;
   exportedAt: string;
@@ -144,6 +156,38 @@ function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
   return null;
 }
 
+function parseVersionHistory(value: string | null): VersionHistoryItem[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item): VersionHistoryItem | null => {
+        if (
+          !item ||
+          typeof item.id !== "string" ||
+          typeof item.savedAt !== "string" ||
+          typeof item.label !== "string" ||
+          typeof item.fingerprint !== "string"
+        ) {
+          return null;
+        }
+        return {
+          id: item.id,
+          savedAt: item.savedAt,
+          label: item.label,
+          fingerprint: item.fingerprint,
+          state: normalizeResume(item.state),
+          importReview: item.importReview ?? null,
+        };
+      })
+      .filter((item): item is VersionHistoryItem => Boolean(item))
+      .slice(0, MAX_VERSION_HISTORY);
+  } catch {
+    return [];
+  }
+}
+
 function formatCheckpointTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "recently";
@@ -153,6 +197,10 @@ function formatCheckpointTime(value: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+}
+
+function versionLabel(state: ResumeState) {
+  return state.name.trim() || state.title.trim() || "Untitled resume";
 }
 
 function entryHasContent(entry: ResumeEntry) {
@@ -238,6 +286,7 @@ export function ResumeEditor() {
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
   const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
+  const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -289,12 +338,47 @@ export function ResumeEditor() {
     flash("Restored previous resume");
   };
 
+  const saveVersion = () => {
+    if (!hasAnyContent(state)) {
+      flash("Add resume details first");
+      return;
+    }
+    const fingerprint = resumeExportFingerprint(state);
+    if (versionHistory[0]?.fingerprint === fingerprint) {
+      flash("Current version is already saved");
+      return;
+    }
+    const entry: VersionHistoryItem = {
+      id: `${Date.now()}`,
+      savedAt: new Date().toISOString(),
+      label: versionLabel(state),
+      fingerprint,
+      state: normalizeResume(state),
+      importReview,
+    };
+    setVersionHistory((current) => [entry, ...current.filter((item) => item.fingerprint !== fingerprint)].slice(0, MAX_VERSION_HISTORY));
+    flash("Version saved locally");
+  };
+
+  const restoreVersion = (item: VersionHistoryItem) => {
+    saveRecoveryPoint(`Before restoring ${item.label}`);
+    setState(item.state);
+    setImportReview(item.importReview);
+    flash("Restored saved version");
+  };
+
+  const deleteVersion = (id: string) => {
+    setVersionHistory((current) => current.filter((item) => item.id !== id));
+    flash("Deleted saved version");
+  };
+
   useEffect(() => {
     try {
       const legacy = localStorage.getItem("resume-editor-data-v1");
       const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
       if (saved) setState(normalizeResume(JSON.parse(saved)));
       setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
+      setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
     } catch {
       // localStorage may be unavailable.
     } finally {
@@ -313,6 +397,15 @@ export function ResumeEditor() {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [loaded, state]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(versionHistory));
+    } catch {
+      // Manual JSON export still works if history storage is unavailable.
+    }
+  }, [loaded, versionHistory]);
 
   useEffect(() => {
     if (!toast) return;
@@ -666,6 +759,14 @@ export function ResumeEditor() {
               </CardContent>
             </Card>
           ) : null}
+
+          <VersionHistoryCard
+            hasContent={hasContent}
+            versions={versionHistory}
+            onSave={saveVersion}
+            onRestore={restoreVersion}
+            onDelete={deleteVersion}
+          />
 
           {hasContent ? (
             <Card className="mb-6">
@@ -1088,6 +1189,74 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
       </div>
       <div className="space-y-3">{children}</div>
     </section>
+  );
+}
+
+function VersionHistoryCard({
+  hasContent,
+  versions,
+  onSave,
+  onRestore,
+  onDelete,
+}: {
+  hasContent: boolean;
+  versions: VersionHistoryItem[];
+  onSave: () => void;
+  onRestore: (item: VersionHistoryItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (!hasContent && !versions.length) return null;
+
+  return (
+    <Card className="mb-6">
+      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <CardDescription className="font-semibold uppercase tracking-[0.16em]">Version history</CardDescription>
+          <CardTitle className="text-base">Save a local checkpoint before tailoring.</CardTitle>
+          <CardDescription>
+            Keep up to {MAX_VERSION_HISTORY} browser-only versions so you can experiment without losing a strong draft.
+          </CardDescription>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={onSave} disabled={!hasContent}>
+          <Save /> Save version
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {versions.length ? (
+          versions.map((item) => {
+            const text = resumePlainText(item.state);
+            return (
+              <div key={item.id} className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 gap-3">
+                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+                    <History className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Saved {formatCheckpointTime(item.savedAt)}
+                    </p>
+                    <p className="truncate text-sm font-semibold">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{text ? plainTextStats(text) : "Empty resume"}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>
+                    <Undo2 /> Restore
+                  </Button>
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Delete saved version ${item.label}`} onClick={() => onDelete(item.id)}>
+                    <Trash2 />
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+            No saved versions yet. Save one before adapting this resume for a specific job.
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
