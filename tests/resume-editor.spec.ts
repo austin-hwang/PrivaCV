@@ -169,10 +169,16 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByText("Version saved locally")).toBeVisible();
   await expect(page.getByText("Original software resume")).toBeVisible();
   await expect(page.getByText("Before tailoring for the platform role.")).toBeVisible();
+  await expect(page.getByText("Current", { exact: true })).toBeVisible();
+  await expect(page.getByText("Jane Doe").first()).toBeVisible();
+  await expect(page.getByText("2 roles")).toBeVisible();
+  await expect(page.getByText("1 project")).toBeVisible();
+  await expect(page.getByText("4 skill lines")).toBeVisible();
 
   await page.getByLabel("Full Name").fill("Grace Hopper");
   await page.getByLabel("Job Title").first().fill("Principal Software Engineer");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
+  await expect(page.getByText("2 changed areas")).toBeVisible();
 
   await page.getByRole("button", { name: /compare/i }).click();
   const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });

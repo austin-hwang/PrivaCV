@@ -222,8 +222,27 @@ function versionLabel(state: ResumeState) {
   return state.name.trim() || state.title.trim() || "Untitled resume";
 }
 
+function versionHeadline(state: ResumeState) {
+  return [state.name.trim() || "Unnamed resume", state.title.trim()].filter(Boolean).join(" - ");
+}
+
 function entryHasContent(entry: ResumeEntry) {
   return Boolean(entry.title || entry.subtitle || entry.meta || entry.details);
+}
+
+function versionContentBadges(state: ResumeState) {
+  const experienceCount = state.experience.filter(entryHasContent).length;
+  const educationCount = state.education.filter(entryHasContent).length;
+  const projectCount = state.projects.filter(entryHasContent).length;
+  const skillCount = state.skills.split("\n").filter((line) => line.trim()).length;
+  const badges: string[] = [];
+
+  if (experienceCount) badges.push(`${experienceCount} ${experienceCount === 1 ? "role" : "roles"}`);
+  if (educationCount) badges.push(`${educationCount} education`);
+  if (projectCount) badges.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
+  if (skillCount) badges.push(`${skillCount} ${skillCount === 1 ? "skill line" : "skill lines"}`);
+
+  return badges.length ? badges : ["Empty draft"];
 }
 
 function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], entry: ResumeEntry, index: number) {
@@ -851,6 +870,7 @@ export function ResumeEditor() {
           <VersionHistoryCard
             hasContent={hasContent}
             versions={versionHistory}
+            currentState={state}
             currentFingerprint={exportFingerprint}
             onSave={openVersionSave}
             onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
@@ -1564,6 +1584,7 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
 function VersionHistoryCard({
   hasContent,
   versions,
+  currentState,
   currentFingerprint,
   onSave,
   onCompareCurrent,
@@ -1573,6 +1594,7 @@ function VersionHistoryCard({
 }: {
   hasContent: boolean;
   versions: VersionHistoryItem[];
+  currentState: ResumeState;
   currentFingerprint: string;
   onSave: () => void;
   onCompareCurrent: (item: VersionHistoryItem) => void;
@@ -1654,8 +1676,9 @@ function VersionHistoryCard({
           versions.map((item) => {
             const text = resumePlainText(item.state);
             const isCurrent = item.fingerprint === currentFingerprint;
+            const changesFromCurrent = isCurrent ? [] : exportChangeSummary(item.state, currentState);
             return (
-              <div key={item.id} className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div key={item.id} className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 gap-3">
                   <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
                     <History className="size-4" />
@@ -1669,11 +1692,31 @@ function VersionHistoryCard({
                         <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                           Current
                         </Badge>
-                      ) : null}
+                      ) : changesFromCurrent.length ? (
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                          {changesFromCurrent.length} changed {changesFromCurrent.length === 1 ? "area" : "areas"}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                          No visible differences
+                        </Badge>
+                      )}
                     </div>
                     <p className="truncate text-sm font-semibold">{item.label}</p>
+                    <p className="truncate text-xs text-muted-foreground">{versionHeadline(item.state)}</p>
                     {item.note ? <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
-                    <p className="text-xs text-muted-foreground">{text ? plainTextStats(text) : "Empty resume"}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {versionContentBadges(item.state).map((label) => (
+                        <Badge
+                          key={label}
+                          variant="outline"
+                          className="h-5 max-w-full truncate px-1.5 text-[10px] font-medium normal-case tracking-normal"
+                        >
+                          {label}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{text ? plainTextStats(text) : "Empty resume"}</p>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">

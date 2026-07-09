@@ -54,6 +54,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   before/after correction flow.
 - Improve local version history with clearer branching, checkpoint labels, and
   lightweight guidance for choosing which saved draft to restore.
+- Make saved checkpoints glanceable enough to choose quickly before opening a
+  comparison or restoring an older draft.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for
   large edits.
 
