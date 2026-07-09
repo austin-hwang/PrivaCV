@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-08 22:27 PDT
+
+- User problem addressed: after seeing that a resume changed since the last PDF
+  export, users still had to hunt through edited sections to remember what
+  actually changed.
+- Implementation: expanded export change summaries with compact before/after
+  snippets for header, summary, repeatable sections, and skills, then rendered
+  those snippets in the last-export status cards.
+- UI components or patterns used: shadcn/ui-style Card and bordered action rows
+  with lucide History and ArrowRight icons, keeping the jump-to-field behavior.
+- Why it matters: job seekers can quickly audit targeted edits before exporting
+  the next PDF, which makes last-minute application tailoring feel safer.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  Two initial Playwright runs exposed ambiguous assertions in the new browser
+  coverage; the locators were scoped to the summary change card and the suite
+  passed.
+- Future opportunities: surface exact changed field names inside edited
+  repeatable sections and add a compact full diff dialog for larger revisions.
+
 ## 2026-07-08 21:28 PDT
 
 - User problem addressed: after editing a resume post-export, users could see

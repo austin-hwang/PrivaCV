@@ -83,7 +83,11 @@ test("shows when the resume changed after the last PDF export", async ({ page })
   await page.getByLabel("Professional Summary").fill("Edited summary for the next application.");
 
   await expect(page.getByText("This resume changed since your last PDF export.")).toBeVisible();
-  await expect(page.getByText("Summary changed")).toBeVisible();
+  const summaryChange = page.getByRole("button", { name: /summary changed/i });
+  await expect(summaryChange).toBeVisible();
+  await expect(summaryChange.getByText("Before", { exact: true })).toBeVisible();
+  await expect(summaryChange.getByText("Now", { exact: true })).toBeVisible();
+  await expect(summaryChange.getByText("Edited summary for the next application.")).toBeVisible();
   await expect(page.getByRole("button", { name: /export updated pdf/i })).toBeVisible();
 });
 
