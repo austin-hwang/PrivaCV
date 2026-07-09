@@ -1,5 +1,26 @@
 # Agent Log
 
+## 2026-07-09 05:27 PDT
+
+- User problem addressed: dense tailoring sessions could produce more than four
+  changed resume areas, but the last-export and restored-checkpoint panels only
+  showed the first four.
+- Implementation: added a reusable expandable change-summary grid that keeps
+  the compact four-item preview, shows how many changes are hidden, and expands
+  to the full audit trail for export and restore summaries.
+- UI components or patterns used: shadcn/ui-style Card, Button, Alert, and
+  Badge patterns with lucide History, ArrowRight, ChevronDown, and ChevronUp
+  icons.
+- Why it matters: job seekers can make broader role-specific edits and still
+  verify every changed section before exporting or after restoring a saved
+  checkpoint.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  The first Playwright run caught an incorrect expected diff count in the new
+  regression test; the assertion was corrected and the suite passed.
+- Future opportunities: improve scan hierarchy for large diffs with grouped
+  section headings or severity cues.
+
 ## 2026-07-09 04:28 PDT
 
 - User problem addressed: restoring a saved resume checkpoint changed the live

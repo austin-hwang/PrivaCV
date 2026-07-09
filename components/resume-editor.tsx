@@ -6,6 +6,8 @@ import {
   ArrowRight,
   ArrowUp,
   Check,
+  ChevronDown,
+  ChevronUp,
   ClipboardCopy,
   Download,
   Eye,
@@ -63,6 +65,7 @@ const STORAGE_KEY = "resume-editor-data-v2";
 const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
 const MAX_VERSION_HISTORY = 5;
+const CHANGE_PREVIEW_LIMIT = 4;
 const REPEATABLE_SECTIONS = ["experience", "education", "projects"] as const;
 
 const ENTRY_SCHEMA: Record<(typeof REPEATABLE_SECTIONS)[number], { title: string; subtitle: string; meta: string; details: string }> = {
@@ -951,35 +954,13 @@ export function ResumeEditor() {
                 ) : null}
               </CardHeader>
               {!exportIsCurrent && exportChanges.length ? (
-                <CardContent className="grid gap-2 pt-0 sm:grid-cols-2">
-                  {exportChanges.slice(0, 4).map((change) => (
-                    <button
-                      key={change.id}
-                      type="button"
-                      className="group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      onClick={() => focusCheckTarget(change.targetId)}
-                    >
-                      <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
-                      <div className="min-w-0">
-                        <span className="block font-semibold text-foreground">{change.label}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
-                        <ChangeFieldLabels labels={change.fieldLabels} />
-                        {change.before || change.after ? (
-                          <span className="mt-2 grid gap-1 text-xs leading-snug text-muted-foreground">
-                            <span className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2">
-                              <span className="font-medium text-foreground">Before</span>
-                              <span className="truncate">{change.before ?? "Empty"}</span>
-                            </span>
-                            <span className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2">
-                              <span className="font-medium text-foreground">Now</span>
-                              <span className="truncate">{change.after ?? "Empty"}</span>
-                            </span>
-                          </span>
-                        ) : null}
-                      </div>
-                      <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                    </button>
-                  ))}
+                <CardContent className="pt-0">
+                  <ChangeSummaryGrid
+                    changes={exportChanges}
+                    beforeLabel="Before"
+                    afterLabel="Now"
+                    onSelect={(change) => focusCheckTarget(change.targetId)}
+                  />
                 </CardContent>
               ) : null}
             </Card>
@@ -1448,6 +1429,54 @@ function VersionChangeRow({
   return <div className={className}>{content}</div>;
 }
 
+function ChangeSummaryGrid({
+  changes,
+  beforeLabel,
+  afterLabel,
+  onSelect,
+}: {
+  changes: ExportChange[];
+  beforeLabel: string;
+  afterLabel: string;
+  onSelect?: (change: ExportChange) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleChanges = showAll ? changes : changes.slice(0, CHANGE_PREVIEW_LIMIT);
+  const hiddenCount = changes.length - visibleChanges.length;
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {visibleChanges.map((change) => (
+        <VersionChangeRow
+          key={change.id}
+          change={change}
+          beforeLabel={beforeLabel}
+          afterLabel={afterLabel}
+          onSelect={onSelect ? () => onSelect(change) : undefined}
+        />
+      ))}
+      {changes.length > CHANGE_PREVIEW_LIMIT ? (
+        <div className="flex flex-col gap-3 rounded-md border border-dashed bg-background p-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold">
+              {showAll
+                ? `Showing all ${changes.length} changed areas`
+                : `${hiddenCount} more changed ${hiddenCount === 1 ? "area" : "areas"}`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {showAll ? "Collapse the audit trail when you are done reviewing." : "Expand the full audit trail before exporting or restoring."}
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setShowAll((current) => !current)}>
+            {showAll ? <ChevronUp /> : <ChevronDown />}
+            {showAll ? "Show fewer changes" : "Show all changes"}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function RestoredVersionCard({
   summary,
   onDismiss,
@@ -1479,19 +1508,16 @@ function RestoredVersionCard({
           Dismiss
         </Button>
       </CardHeader>
-      <CardContent className="grid gap-2 pt-0 sm:grid-cols-2">
+      <CardContent className="pt-0">
         {summary.changes.length ? (
-          summary.changes.slice(0, 4).map((change) => (
-            <VersionChangeRow
-              key={change.id}
-              change={change}
-              beforeLabel="Before"
-              afterLabel="Restored"
-              onSelect={() => onFocus(change.targetId)}
-            />
-          ))
+          <ChangeSummaryGrid
+            changes={summary.changes}
+            beforeLabel="Before"
+            afterLabel="Restored"
+            onSelect={(change) => onFocus(change.targetId)}
+          />
         ) : (
-          <Alert className="sm:col-span-2">
+          <Alert>
             <Check className="h-4 w-4" />
             <AlertTitle>No differences found</AlertTitle>
             <AlertDescription>This checkpoint already matched the resume you were editing.</AlertDescription>
