@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-09 01:28 PDT
+
+- User problem addressed: saved resume checkpoints could be restored, but users
+  still had to guess what would change before going back to an older draft.
+- Implementation: added a Compare action to local version history, opened a
+  saved-vs-current comparison dialog with changed areas and saved/current
+  snippets, wired changed rows to jump back to the relevant editor field, and
+  preserved a direct restore path from the dialog.
+- UI components or patterns used: shadcn/ui-style Dialog, Card, Alert, and
+  Button primitives with lucide History, Eye, ArrowRight, and Undo2 icons.
+- Why it matters: job seekers can tailor a resume for a role, inspect exactly
+  how it diverges from a saved baseline, and restore with confidence if the
+  current draft is worse.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: add exact changed field names inside repeatable entries
+  and compare two saved checkpoints without using the current resume as one
+  side.
+
 ## 2026-07-09 00:27 PDT
 
 - User problem addressed: saved resume versions were useful, but generic labels

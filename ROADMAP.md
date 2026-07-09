@@ -31,6 +31,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   before the next PDF export.
 - Let users keep named, annotated browser-only version history so job-specific
   tailoring feels reversible without accounts or cloud storage.
+- Let users compare a saved checkpoint with the current resume before restoring
+  or exporting a tailored draft.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
@@ -43,8 +45,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
-- Improve local version history with lightweight comparisons between saved
-  checkpoints.
+- Improve local version history with richer comparisons between saved
+  checkpoints, including exact changed fields inside repeatable entries.
 
 ## UI System
 

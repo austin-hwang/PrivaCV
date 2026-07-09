@@ -104,4 +104,10 @@ describe("resume helpers", () => {
       after: "Languages: TypeScript, Go / Tools: Docker, AWS",
     });
   });
+
+  it("returns no export changes when normalized resume states match", () => {
+    const saved = sampleState();
+
+    expect(exportChangeSummary(saved, normalizeResume(saved))).toEqual([]);
+  });
 });
