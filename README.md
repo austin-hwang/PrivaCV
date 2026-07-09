@@ -23,6 +23,8 @@ subscriptions, watermarks, or backend storage.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.
 - Post-import review panel that highlights parsed fields most likely to need a
   human check before export.
+- One-click restore point after high-risk actions like PDF import, JSON open,
+  sample load, and clearing the resume.
 - Local autosave in browser storage plus Save JSON / Open JSON backup files.
 - Clean print stylesheet for browser Save as PDF.
 

@@ -18,6 +18,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make first use obvious: import, open saved work, or start from a strong sample.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
+- Make risky actions reversible so users can experiment without fear.
 - Show lightweight readiness feedback before export so users can fix obvious
   resume issues without leaving the page.
 - Improve mobile and narrow-window editing without compromising the print layout.
@@ -30,6 +31,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
+- Expand the current one-step restore point into local-only version history if
+  users need deeper recovery.
 
 ## UI System
 
@@ -61,7 +64,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - DOCX export.
 - Keyboard shortcuts for adding entries and moving sections.
-- Local-only version history.
+- Named local-only version history.
 - Theme controls limited to typography and spacing, not decorative templates.
 
 ## Future Ideas

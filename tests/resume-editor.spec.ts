@@ -26,3 +26,20 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
 
   await expect(page.locator("#field-phone")).toBeFocused();
 });
+
+test("restores the previous resume after clearing", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+  await page.getByLabel("Full Name").fill("Ada Lovelace");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: /^clear$/i }).click();
+
+  await expect(page.getByText("Restore point saved")).toBeVisible();
+  await page.getByRole("button", { name: /restore previous/i }).click();
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+  await expect(page.getByText("Restore point saved")).toBeHidden();
+});
