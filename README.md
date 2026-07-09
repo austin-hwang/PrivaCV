@@ -29,6 +29,8 @@ subscriptions, watermarks, or backend storage.
   browser-only checkpoints while tailoring a resume for different applications.
 - Reversible checkpoint deletion so an accidental cleanup does not permanently
   remove a local draft before the user can recover it.
+- Version-history capacity guidance that shows the five-checkpoint limit, names
+  the oldest saved draft, and warns before a new unique checkpoint replaces it.
 - Glanceable checkpoint summaries that show saved draft contents, current-match
   status, and changed-area counts before comparing or restoring.
 - Checkpoint lineage cues that show which saved draft a tailored version was

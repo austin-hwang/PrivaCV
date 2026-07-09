@@ -251,3 +251,43 @@ test("compares two saved version history checkpoints", async ({ page }) => {
   await expect(compareDialog.getByRole("button", { name: /restore compared/i })).toBeVisible();
   await expect(compareDialog.getByRole("button", { name: /restore base/i })).toBeVisible();
 });
+
+test("warns before replacing the oldest local version history checkpoint", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  for (let index = 1; index <= 5; index += 1) {
+    await page
+      .getByLabel("Professional Summary")
+      .fill(`Tailored summary ${index} with enough specific context for this saved checkpoint.`);
+    await page.getByRole("button", { name: /save version/i }).click();
+    await page.getByLabel("Checkpoint name").fill(`Checkpoint ${index}`);
+    await page.getByRole("button", { name: /save checkpoint/i }).click();
+  }
+
+  await expect(page.getByText("5/5 saved")).toBeVisible();
+  await expect(page.getByText("New checkpoints replace the oldest saved draft.")).toBeVisible();
+  await expect(
+    page.getByText("Checkpoint 1 is the oldest checkpoint and will be replaced first by a new unique save."),
+  ).toBeVisible();
+
+  await page
+    .getByLabel("Professional Summary")
+    .fill("Tailored summary 6 with a new role-specific angle that should replace the oldest checkpoint.");
+  await page.getByRole("button", { name: /save with review/i }).click();
+
+  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
+  await expect(saveDialog).toBeVisible();
+  await expect(saveDialog.getByText("History is full")).toBeVisible();
+  await expect(saveDialog.getByText("Saving a new checkpoint will replace Checkpoint 1")).toBeVisible();
+
+  await page.getByLabel("Checkpoint name").fill("Checkpoint 6");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await expect(page.getByText("Saved locally and replaced Checkpoint 1")).toBeVisible();
+  await expect(page.getByText("Checkpoint 6", { exact: true })).toBeVisible();
+  await expect(page.getByText("Checkpoint 1", { exact: true })).toBeHidden();
+  await expect(page.getByText("5/5 saved")).toBeVisible();
+});
