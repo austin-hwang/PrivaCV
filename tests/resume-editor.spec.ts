@@ -58,6 +58,34 @@ test("shows an export checkpoint before printing an unresolved resume", async ({
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 });
 
+test("shows when the resume changed after the last PDF export", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.reload();
+  await page.evaluate(() => {
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await page.getByRole("button", { name: /export anyway/i }).click();
+
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
+  await expect(page.getByText("Current resume matches your last PDF export.")).toBeVisible();
+
+  await page.getByLabel("Professional Summary").fill("Edited summary for the next application.");
+
+  await expect(page.getByText("This resume changed since your last PDF export.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /export updated pdf/i })).toBeVisible();
+});
+
 test("restores the previous resume after clearing", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

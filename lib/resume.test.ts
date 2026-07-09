@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildResumeChecks, emptyState, normalizeResume, resumePlainText, sampleState } from "@/lib/resume";
+import {
+  buildResumeChecks,
+  emptyState,
+  normalizeResume,
+  resumeExportFingerprint,
+  resumePlainText,
+  sampleState,
+} from "@/lib/resume";
 
 describe("resume helpers", () => {
   it("normalizes legacy JSON into a complete resume state", () => {
@@ -48,5 +55,15 @@ describe("resume helpers", () => {
       targetId: "field-experience-0-details",
     });
     expect(density?.guidance).toContain("proof");
+  });
+
+  it("fingerprints export-relevant resume changes", () => {
+    const exported = sampleState();
+    const edited = { ...exported, summary: `${exported.summary} Edited.` };
+    const resized = { ...exported, textScale: 0.9 };
+
+    expect(resumeExportFingerprint(exported)).toBe(resumeExportFingerprint(normalizeResume(exported)));
+    expect(resumeExportFingerprint(edited)).not.toBe(resumeExportFingerprint(exported));
+    expect(resumeExportFingerprint(resized)).not.toBe(resumeExportFingerprint(exported));
   });
 });

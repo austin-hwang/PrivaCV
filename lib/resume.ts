@@ -282,6 +282,10 @@ export function resumePlainText(state: ResumeState) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+export function resumeExportFingerprint(state: ResumeState) {
+  return JSON.stringify(normalizeResume(state));
+}
+
 export function plainTextStats(text: string) {
   const words = wordCount(text);
   const lines = text.split("\n").filter((line) => line.trim()).length;
