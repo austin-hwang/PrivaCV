@@ -65,8 +65,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   tailored draft differs from multiple local versions.
 - Keep improving restored checkpoint summaries with clearer scan hierarchy for
   large edits.
-- Explore optional JSON bundle export for all local checkpoints so users can
-  archive several tailored drafts outside browser storage.
+- Continue refining checkpoint backup import guidance, especially when a merge
+  would leave older browser-only drafts outside the five-checkpoint limit.
 
 ## UI System
 

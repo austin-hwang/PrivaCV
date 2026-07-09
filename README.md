@@ -31,6 +31,8 @@ subscriptions, watermarks, or backend storage.
   remove a local draft before the user can recover it.
 - Version-history capacity guidance that shows the five-checkpoint limit, names
   the oldest saved draft, and warns before a new unique checkpoint replaces it.
+- Portable checkpoint-history backups that let users archive or move their
+  browser-only tailored drafts without uploading resume data anywhere.
 - Glanceable checkpoint summaries that show saved draft contents, current-match
   status, and changed-area counts before comparing or restoring.
 - Checkpoint lineage cues that show which saved draft a tailored version was
@@ -52,6 +54,8 @@ subscriptions, watermarks, or backend storage.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
 - Local autosave in browser storage plus Save JSON / Open JSON backup files.
+- Save or open a checkpoint-history JSON backup to preserve up to five named
+  tailored drafts outside a single browser.
 - Clean print stylesheet for browser Save as PDF.
 
 ## Stack

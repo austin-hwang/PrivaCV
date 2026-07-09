@@ -1,5 +1,26 @@
 # Agent Log
 
+## 2026-07-09 11:29 PDT
+
+- User problem addressed: tailored checkpoint history lived only in one browser,
+  so clearing browser data or moving devices could erase multiple role-specific
+  drafts even when the current resume had been saved as JSON.
+- Implementation: added portable checkpoint-history JSON backups, a safe import
+  review that merges unique checkpoints while keeping the current resume open,
+  first-run access to restore a backup, and corrected full-history guidance to
+  point users to the new backup action.
+- UI components or patterns used: shadcn/ui-style Card, Alert, Badge, Dialog,
+  and Button patterns with existing lucide Download, Upload, and History icons.
+- Why it matters: job seekers can archive or move named local tailoring drafts
+  without creating an account or uploading resume data, while still seeing the
+  five-checkpoint browser limit before importing.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  Added browser coverage for importing a checkpoint backup into a clean local
+  workspace without replacing the current resume.
+- Future opportunities: explain exactly which older checkpoints fall outside
+  the five-slot browser limit when a large backup is merged.
+
 ## 2026-07-09 10:31 PDT
 
 - User problem addressed: the five-checkpoint local version history silently
