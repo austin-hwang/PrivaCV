@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-09 13:29 PDT
+
+- User problem addressed: importing a backup containing a draft already saved
+  in the browser looked like it would add a new checkpoint, making a safe merge
+  needlessly ambiguous.
+- Implementation: made the merge helper identify incoming fingerprints already
+  saved locally, preserved those local versions, added a dedicated overlap
+  review with draft names, and made both the readiness count and completion
+  toast report only genuinely new checkpoints.
+- UI components or patterns used: existing shadcn/ui-style Dialog, Alert,
+  Badge, and Button patterns with the existing History and Check icons.
+- Why it matters: job seekers can import a backup confidently, knowing exactly
+  which tailored drafts are already protected without consuming another one of
+  the five local slots.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, `CI=true pnpm build`, and
+  `git diff --check`. Added Playwright coverage for an all-matching backup.
+- Future opportunities: distinguish imported overflow from an existing local
+  draft pushed outside the five-checkpoint capacity during a large merge.
+
 ## 2026-07-09 12:29 PDT
 
 - User problem addressed: importing a checkpoint backup into a browser that
