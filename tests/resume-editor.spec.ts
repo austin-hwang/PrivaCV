@@ -148,3 +148,36 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
   await expect(page.getByText("Restore point saved")).toBeVisible();
 });
+
+test("compares two saved version history checkpoints", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Original software resume");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await page
+    .getByLabel("Professional Summary")
+    .fill("Platform engineer focused on infrastructure launches, reliability, and internal developer tools.");
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Platform tailoring draft");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await expect(page.getByText("Compare two saved checkpoints")).toBeVisible();
+  await page.getByRole("button", { name: /compare saved versions/i }).click();
+
+  const compareDialog = page.getByRole("dialog", { name: /compare saved versions/i });
+  await expect(compareDialog).toBeVisible();
+  await expect(compareDialog.getByText("Platform tailoring draft")).toBeVisible();
+  await expect(compareDialog.getByText("Original software resume")).toBeVisible();
+  await expect(compareDialog.getByText("Summary changed")).toBeVisible();
+  await expect(compareDialog.getByText("Base", { exact: true })).toBeVisible();
+  await expect(compareDialog.getByText("Compared", { exact: true })).toBeVisible();
+  await expect(compareDialog.getByText("Platform engineer focused on infrastructure launches")).toBeVisible();
+  await expect(compareDialog.getByText("Software engineer specializing")).toBeVisible();
+  await expect(compareDialog.getByRole("button", { name: /restore compared/i })).toBeVisible();
+  await expect(compareDialog.getByRole("button", { name: /restore base/i })).toBeVisible();
+});
