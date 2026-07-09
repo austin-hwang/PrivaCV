@@ -138,6 +138,8 @@ type VersionHistoryBackup = {
 type VersionHistoryMerge = {
   checkpoints: VersionHistoryItem[];
   overflow: VersionHistoryItem[];
+  incomingUnique: VersionHistoryItem[];
+  matchingCheckpoints: VersionHistoryItem[];
 };
 
 type VersionCompareTarget = {
@@ -241,10 +243,18 @@ function parseVersionHistoryBackup(value: unknown): VersionHistoryItem[] | null 
 }
 
 function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]): VersionHistoryMerge {
+  const existingFingerprints = new Set(existing.map((item) => item.fingerprint));
+  const seenIncomingFingerprints = new Set<string>();
+  const matchingCheckpoints = incoming.filter((item) => existingFingerprints.has(item.fingerprint));
+  const incomingUnique = incoming.filter((item) => {
+    if (existingFingerprints.has(item.fingerprint) || seenIncomingFingerprints.has(item.fingerprint)) return false;
+    seenIncomingFingerprints.add(item.fingerprint);
+    return true;
+  });
   const seenFingerprints = new Set<string>();
   const usedIds = new Set<string>();
 
-  const uniqueHistory = [...incoming, ...existing]
+  const uniqueHistory = [...existing, ...incomingUnique]
     .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
     .filter((item) => {
       if (seenFingerprints.has(item.fingerprint)) return false;
@@ -265,6 +275,8 @@ function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHi
   return {
     checkpoints: uniqueHistory.slice(0, MAX_VERSION_HISTORY),
     overflow: uniqueHistory.slice(MAX_VERSION_HISTORY),
+    incomingUnique,
+    matchingCheckpoints,
   };
 }
 
@@ -447,7 +459,7 @@ export function ResumeEditor() {
     () =>
       historyBackupToImport
         ? mergeVersionHistory(versionHistory, historyBackupToImport)
-        : { checkpoints: [], overflow: [] },
+        : { checkpoints: [], overflow: [], incomingUnique: [], matchingCheckpoints: [] },
     [historyBackupToImport, versionHistory],
   );
   const versionChanges = useMemo(
@@ -743,13 +755,22 @@ export function ResumeEditor() {
 
   const importVersionHistoryBackup = () => {
     if (!historyBackupToImport) return;
-    const importedCount = historyBackupToImport.length;
+    const importedCount = mergedHistoryBackup.checkpoints.filter((checkpoint) =>
+      mergedHistoryBackup.incomingUnique.some((incoming) => incoming.fingerprint === checkpoint.fingerprint),
+    ).length;
+    const matchingCount = mergedHistoryBackup.matchingCheckpoints.length;
     setVersionHistory(mergedHistoryBackup.checkpoints);
     setHistoryBackupToImport(null);
     setDeletedVersion(null);
     setVersionCompareTarget(null);
     setDraftSourceVersionId(null);
-    flash(`Added ${importedCount} ${importedCount === 1 ? "checkpoint" : "checkpoints"} from backup`);
+    flash(
+      importedCount
+        ? `Added ${importedCount} ${importedCount === 1 ? "checkpoint" : "checkpoints"}${
+            matchingCount ? ` · ${matchingCount} already saved` : ""
+          }`
+        : "All backup checkpoints are already saved",
+    );
   };
 
   const openJson = async (file: File | undefined) => {
@@ -1415,19 +1436,42 @@ export function ResumeEditor() {
               <Alert>
                 <History className="h-4 w-4" />
                 <AlertTitle>
-                  {historyBackupToImport.length} {historyBackupToImport.length === 1 ? "checkpoint" : "checkpoints"} ready to add
+                  {mergedHistoryBackup.incomingUnique.length
+                    ? `${mergedHistoryBackup.incomingUnique.length} unique ${mergedHistoryBackup.incomingUnique.length === 1 ? "checkpoint" : "checkpoints"} ready to add`
+                    : "No new checkpoints to add"}
                 </AlertTitle>
                 <AlertDescription>
                   Resume Editor keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.checkpoints.length} will remain in this browser.
                 </AlertDescription>
               </Alert>
               <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-3">
-                {historyBackupToImport.map((checkpoint) => (
+                {mergedHistoryBackup.incomingUnique.map((checkpoint) => (
                   <Badge key={checkpoint.id} variant="outline" className="max-w-full truncate">
                     {checkpoint.label}
                   </Badge>
                 ))}
+                {!mergedHistoryBackup.incomingUnique.length ? (
+                  <span className="text-sm text-muted-foreground">Every checkpoint in this backup already has a local match.</span>
+                ) : null}
               </div>
+              {mergedHistoryBackup.matchingCheckpoints.length ? (
+                <Alert className="border-sky-300 bg-sky-50/70">
+                  <Check className="h-4 w-4" />
+                  <AlertTitle>
+                    {mergedHistoryBackup.matchingCheckpoints.length} {mergedHistoryBackup.matchingCheckpoints.length === 1 ? "checkpoint already matches" : "checkpoints already match"} this browser
+                  </AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <span>Matching drafts will not use another local history slot.</span>
+                    <span className="flex flex-wrap gap-2">
+                      {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
+                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-sky-300 bg-background text-foreground">
+                          {checkpoint.label}
+                        </Badge>
+                      ))}
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
               {mergedHistoryBackup.overflow.length ? (
                 <Alert className="border-amber-300 bg-amber-50/70">
                   <AlertCircle className="h-4 w-4" />

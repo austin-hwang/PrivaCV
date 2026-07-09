@@ -35,6 +35,8 @@ subscriptions, watermarks, or backend storage.
   browser-only tailored drafts without uploading resume data anywhere.
 - Clear backup-import capacity review that names older checkpoints which will
   remain only in the backup when the browser&apos;s five-draft limit is reached.
+- Explicit backup-overlap review that identifies drafts already saved in the
+  browser before a merge, so matching checkpoints do not look like new work.
 - Glanceable checkpoint summaries that show saved draft contents, current-match
   status, and changed-area counts before comparing or restoring.
 - Checkpoint lineage cues that show which saved draft a tailored version was

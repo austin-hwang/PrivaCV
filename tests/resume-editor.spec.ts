@@ -327,6 +327,41 @@ test("imports a checkpoint history backup without replacing the current resume",
   await expect(page.getByText("Start from the resume you already have.")).toBeVisible();
 });
 
+test("makes matching checkpoint backups explicit before merging", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Platform baseline");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  const backup = await page.evaluate(() => {
+    const checkpoints = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    return JSON.stringify({
+      format: "resume-editor-version-history-backup",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      checkpoints,
+    });
+  });
+
+  await page.locator("#history-backup-input").setInputFiles({
+    name: "matching-resume-checkpoints.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
+
+  const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
+  await expect(backupDialog.getByText("No new checkpoints to add")).toBeVisible();
+  await expect(backupDialog.getByText("1 checkpoint already matches this browser")).toBeVisible();
+  await expect(backupDialog.getByText("Matching drafts will not use another local history slot.")).toBeVisible();
+  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
+
+  await expect(page.getByText("All backup checkpoints are already saved")).toBeVisible();
+  await expect(page.getByText("Platform baseline", { exact: true })).toHaveCount(1);
+});
+
 test("names checkpoints that remain only in a large imported backup", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
