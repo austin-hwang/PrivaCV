@@ -8,6 +8,7 @@ import {
   resumePlainText,
   sampleState,
 } from "@/lib/resume";
+import { buildRoleFocus } from "@/lib/job-match";
 
 describe("resume helpers", () => {
   it("normalizes legacy JSON into a complete resume state", () => {
@@ -131,5 +132,23 @@ describe("resume helpers", () => {
     const saved = sampleState();
 
     expect(exportChangeSummary(saved, normalizeResume(saved))).toEqual([]);
+  });
+
+  it("surfaces substantive role terms without presenting an ATS score", () => {
+    const focus = buildRoleFocus(
+      "Product engineer building TypeScript services and React interfaces.",
+      "The product engineer will build TypeScript services, partner with product teams, and improve TypeScript systems.",
+    );
+
+    expect(focus.terms).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ term: "typescript", count: 2, matched: true }),
+        expect.objectContaining({ term: "product", matched: true }),
+        expect.objectContaining({ term: "services", matched: true }),
+        expect.objectContaining({ term: "partner", matched: false }),
+      ]),
+    );
+    expect(focus.matchedCount).toBeGreaterThan(0);
+    expect(focus.totalCount).toBeLessThanOrEqual(14);
   });
 });

@@ -1,5 +1,26 @@
 # Agent Log
 
+## 2026-07-09 15:30 PDT
+
+- User problem addressed: tailoring a resume to a real job description required
+  manually scanning two documents, while opaque ATS scores often make the
+  result feel untrustworthy.
+- Implementation: added a browser-only Role Focus card that stores a pasted job
+  description locally, extracts its most repeated substantive terms, and shows
+  which are already present or not found verbatim in the current resume. Added
+  a clear control, an explicit accuracy reminder, and deterministic unit and
+  browser coverage. Also updated two stale backup-copy expectations exposed by
+  the browser suite.
+- UI components or patterns used: existing shadcn/ui-style Card, Textarea,
+  Badge, Alert, and Button patterns with the lucide Target icon.
+- Why it matters: job seekers can make deliberate, truthful wording adjustments
+  for a role without uploading their resume or trusting a black-box score.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, `CI=true pnpm build`, and
+  `git diff --check`.
+- Future opportunities: add an opt-in phrase-level review for multi-word role
+  concepts while keeping the guidance transparent and local-first.
+
 ## 2026-07-09 14:29 PDT
 
 - User problem addressed: a checkpoint backup larger than the browser&apos;s

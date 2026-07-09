@@ -18,6 +18,9 @@ subscriptions, watermarks, or backend storage.
 - Resume Check panel for page count, missing contact fields, long bullets,
   summary length, and overall density, with guidance and actions that jump to
   the field that needs attention.
+- Local-only Role Focus review that compares a pasted job description with the
+  current resume's wording, clearly separates terms already present from terms
+  to consider, and avoids opaque ATS scoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog.
 - Local last-export status that shows whether the current resume still matches
