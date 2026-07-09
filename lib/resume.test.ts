@@ -105,6 +105,28 @@ describe("resume helpers", () => {
     });
   });
 
+  it("names exact fields changed inside repeatable sections", () => {
+    const exported = sampleState();
+    const edited = {
+      ...exported,
+      experience: exported.experience.map((entry, index) =>
+        index === 0
+          ? {
+              ...entry,
+              title: "Staff Software Engineer",
+              details: `${entry.details}\nLaunched a hiring dashboard used by every recruiting coordinator.`,
+            }
+          : entry,
+      ),
+    };
+
+    expect(exportChangeSummary(exported, edited).find((change) => change.id === "experience")).toMatchObject({
+      detail: "2 fields edited",
+      targetId: "field-experience-0-title",
+      fieldLabels: ["Entry 1 Job title", "Entry 1 Achievements"],
+    });
+  });
+
   it("returns no export changes when normalized resume states match", () => {
     const saved = sampleState();
 

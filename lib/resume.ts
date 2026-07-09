@@ -55,6 +55,7 @@ export type ExportChange = {
   targetId: string;
   before?: string;
   after?: string;
+  fieldLabels?: string[];
 };
 
 export const MIN_TEXT_SCALE = 0.8;
@@ -295,9 +296,42 @@ export function resumeExportFingerprint(state: ResumeState) {
   return JSON.stringify(normalizeResume(state));
 }
 
-function changedFields(previous: ResumeState, current: ResumeState, fields: Array<keyof ResumeState>) {
+function changedFields<K extends keyof ResumeState>(previous: ResumeState, current: ResumeState, fields: K[]) {
   return fields.filter((field) => String(previous[field] ?? "") !== String(current[field] ?? ""));
 }
+
+const CONTACT_FIELD_LABELS: Record<"name" | "title" | "email" | "phone" | "location" | "website", string> = {
+  name: "Full name",
+  title: "Title / role",
+  email: "Email",
+  phone: "Phone",
+  location: "Location",
+  website: "Website",
+};
+
+const ENTRY_FIELD_LABELS: Record<
+  "experience" | "education" | "projects",
+  Record<keyof ResumeEntry, string>
+> = {
+  experience: {
+    title: "Job title",
+    subtitle: "Company",
+    meta: "Dates",
+    details: "Achievements",
+  },
+  education: {
+    title: "Degree",
+    subtitle: "School",
+    meta: "Dates / location",
+    details: "Details",
+  },
+  projects: {
+    title: "Project name",
+    subtitle: "Technologies / role",
+    meta: "Dates / link",
+    details: "Description",
+  },
+};
 
 function sectionTargetId(section: "experience" | "education" | "projects") {
   return `field-${section}-0-title`;
@@ -337,6 +371,53 @@ function skillsSnapshot(state: ResumeState) {
     .join(" / ");
 }
 
+function entryIsEmpty(entry: ResumeEntry) {
+  return !entry.title && !entry.subtitle && !entry.meta && !entry.details;
+}
+
+function repeatableSectionChangeDetails(
+  previous: ResumeState,
+  current: ResumeState,
+  section: "experience" | "education" | "projects",
+) {
+  const fieldLabels: string[] = [];
+  let targetId = current[section].length ? sectionTargetId(section) : `add-${section}-entry`;
+  let foundTarget = false;
+  const maxEntries = Math.max(previous[section].length, current[section].length);
+
+  for (let index = 0; index < maxEntries; index += 1) {
+    const before = previous[section][index] ?? blankEntry();
+    const after = current[section][index] ?? blankEntry();
+
+    if (JSON.stringify(before) === JSON.stringify(after)) continue;
+
+    if (entryIsEmpty(before) && !entryIsEmpty(after)) {
+      fieldLabels.push(`Entry ${index + 1} added`);
+      if (!foundTarget) {
+        targetId = `field-${section}-${index}-title`;
+        foundTarget = true;
+      }
+      continue;
+    }
+
+    if (!entryIsEmpty(before) && entryIsEmpty(after)) {
+      fieldLabels.push(`Entry ${index + 1} removed`);
+      continue;
+    }
+
+    (["title", "subtitle", "meta", "details"] as const).forEach((field) => {
+      if (before[field] === after[field]) return;
+      fieldLabels.push(`Entry ${index + 1} ${ENTRY_FIELD_LABELS[section][field]}`);
+      if (!foundTarget) {
+        targetId = `field-${section}-${index}-${field}`;
+        foundTarget = true;
+      }
+    });
+  }
+
+  return { fieldLabels, targetId };
+}
+
 export function exportChangeSummary(previousState: ResumeState, currentState: ResumeState): ExportChange[] {
   const previous = normalizeResume(previousState);
   const current = normalizeResume(currentState);
@@ -352,6 +433,7 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       targetId: `field-${firstField}`,
       before: snippet(contactSnapshot(previous)),
       after: snippet(contactSnapshot(current)),
+      fieldLabels: contactFields.map((field) => CONTACT_FIELD_LABELS[field]),
     });
   }
 
@@ -368,13 +450,19 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
 
   (["experience", "education", "projects"] as const).forEach((section) => {
     if (JSON.stringify(previous[section]) === JSON.stringify(current[section])) return;
+    const sectionDetails = repeatableSectionChangeDetails(previous, current, section);
+    const entryCount = current[section].filter((entry) => entry.title || entry.subtitle || entry.meta || entry.details).length;
     changes.push({
       id: section,
       label: `${SECTION_LABELS[section]} changed`,
-      detail: `${current[section].filter((entry) => entry.title || entry.subtitle || entry.meta || entry.details).length} entries now`,
-      targetId: current[section].length ? sectionTargetId(section) : `add-${section}-entry`,
+      detail:
+        sectionDetails.fieldLabels.length
+          ? `${sectionDetails.fieldLabels.length} ${sectionDetails.fieldLabels.length === 1 ? "field" : "fields"} edited`
+          : `${entryCount} entries now`,
+      targetId: sectionDetails.targetId,
       before: snippet(sectionSnapshot(previous, section)),
       after: snippet(sectionSnapshot(current, section)),
+      fieldLabels: sectionDetails.fieldLabels,
     });
   });
 
