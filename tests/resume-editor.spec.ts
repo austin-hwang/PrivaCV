@@ -323,7 +323,7 @@ test("imports a checkpoint history backup without replacing the current resume",
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
   await expect(page.getByText("Platform baseline").first()).toBeVisible();
-  await expect(page.getByText("Added 1 checkpoint from backup")).toBeVisible();
+  await expect(page.getByText("Added 1 checkpoint")).toBeVisible();
   await expect(page.getByText("Start from the resume you already have.")).toBeVisible();
 });
 
@@ -397,7 +397,7 @@ test("names checkpoints that remain only in a large imported backup", async ({ p
 
   const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
   await expect(backupDialog).toBeVisible();
-  await expect(backupDialog.getByText("5 checkpoints ready to add")).toBeVisible();
+  await expect(backupDialog.getByText("5 unique checkpoints ready to add")).toBeVisible();
   await expect(backupDialog.getByText("1 older checkpoint will stay only in this backup")).toBeVisible();
   await expect(backupDialog.getByText(/Archived checkpoint 5 ·/)).toBeVisible();
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
@@ -448,4 +448,25 @@ test("reviews every checkpoint in backups larger than local history", async ({ p
   await expect(page.getByText("Added 4 checkpoints")).toBeVisible();
   await expect(page.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
   await expect(page.getByText("Expanded checkpoint 7", { exact: true })).toBeHidden();
+});
+
+test("reviews role language locally without presenting an ATS score", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  const description = page.getByLabel("Job description");
+  await description.fill(
+    "Build TypeScript services for product teams. Partner with platform teams to improve TypeScript reliability.",
+  );
+
+  await expect(page.getByText(/selected terms already used/i)).toBeVisible();
+  await expect(page.getByText("typescript", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("partner", { exact: true })).toBeVisible();
+  await expect(page.getByText("This is a wording review, not an ATS score.")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-role-focus-v1"))).toContain("TypeScript");
+
+  await page.getByRole("button", { name: /clear description/i }).click();
+  await expect(description).toHaveValue("");
 });

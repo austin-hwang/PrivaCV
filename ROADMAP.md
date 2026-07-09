@@ -50,6 +50,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   crowded sections and low-evidence resumes.
 - Improve the export checkpoint with role-aware recommendations and more
   granular changed-field detail for dense edit sessions.
+- Keep refining the local Role Focus review so its transparent wording cues
+  stay useful without pretending to predict ATS or hiring outcomes.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
@@ -103,6 +105,6 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## Future Ideas
 
-- Job-description comparison that runs locally where possible.
+- Phrase-level job-description comparison that runs locally where possible.
 - Guided bullet rewrites that keep user data private.
 - Recruiter-readability checks based on structure rather than opaque scores.

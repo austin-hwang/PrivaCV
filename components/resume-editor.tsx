@@ -19,6 +19,7 @@ import {
   Printer,
   RotateCcw,
   Save,
+  Target,
   Trash2,
   Undo2,
   Upload,
@@ -39,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { importResumePdf } from "@/lib/pdf-import";
+import { buildRoleFocus } from "@/lib/job-match";
 import {
   blankEntry,
   buildResumeChecks,
@@ -65,6 +67,7 @@ import { cn } from "@/lib/utils";
 const STORAGE_KEY = "resume-editor-data-v2";
 const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
+const ROLE_FOCUS_KEY = "resume-editor-role-focus-v1";
 const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
 const VERSION_HISTORY_BACKUP_VERSION = 1;
 const MAX_VERSION_HISTORY = 5;
@@ -415,6 +418,7 @@ export function ResumeEditor() {
   const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
   const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
+  const [jobDescription, setJobDescription] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -426,6 +430,7 @@ export function ResumeEditor() {
   const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
+  const roleFocus = useMemo(() => buildRoleFocus(plainText, jobDescription), [jobDescription, plainText]);
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
   const visibleRestoredVersionSummary =
     restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;
@@ -606,6 +611,7 @@ export function ResumeEditor() {
       if (saved) setState(normalizeResume(JSON.parse(saved)));
       setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
       setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
+      setJobDescription(localStorage.getItem(ROLE_FOCUS_KEY) ?? "");
     } catch {
       // localStorage may be unavailable.
     } finally {
@@ -633,6 +639,16 @@ export function ResumeEditor() {
       // Manual JSON export still works if history storage is unavailable.
     }
   }, [loaded, versionHistory]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      if (jobDescription.trim()) localStorage.setItem(ROLE_FOCUS_KEY, jobDescription);
+      else localStorage.removeItem(ROLE_FOCUS_KEY);
+    } catch {
+      // The role description remains available for this session if storage fails.
+    }
+  }, [jobDescription, loaded]);
 
   useEffect(() => {
     if (!toast) return;
@@ -1080,6 +1096,15 @@ export function ResumeEditor() {
               summary={visibleRestoredVersionSummary}
               onDismiss={() => setRestoredVersionSummary(null)}
               onFocus={focusCheckTarget}
+            />
+          ) : null}
+
+          {hasContent ? (
+            <RoleFocusCard
+              jobDescription={jobDescription}
+              roleFocus={roleFocus}
+              onChange={setJobDescription}
+              onClear={() => setJobDescription("")}
             />
           ) : null}
 
@@ -1898,6 +1923,102 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
       </div>
       <div className="space-y-3">{children}</div>
     </section>
+  );
+}
+
+function RoleFocusCard({
+  jobDescription,
+  roleFocus,
+  onChange,
+  onClear,
+}: {
+  jobDescription: string;
+  roleFocus: ReturnType<typeof buildRoleFocus>;
+  onChange: (value: string) => void;
+  onClear: () => void;
+}) {
+  const hasDescription = Boolean(jobDescription.trim());
+  const matchedTerms = roleFocus.terms.filter((term) => term.matched);
+  const missingTerms = roleFocus.terms.filter((term) => !term.matched);
+
+  return (
+    <Card className="mb-6 border-sky-300 bg-sky-50/70">
+      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-sky-300 bg-background text-sky-800">
+            <Target className="size-4" />
+          </span>
+          <div>
+            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-sky-900">Role focus</CardDescription>
+            <CardTitle className="text-base">Check the language you already use.</CardTitle>
+            <CardDescription>
+              Paste a job description to find its most repeated terms in your resume. Everything stays in this browser.
+            </CardDescription>
+          </div>
+        </div>
+        {hasDescription ? (
+          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onClear}>
+            Clear description
+          </Button>
+        ) : null}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <label className="grid gap-1.5 text-sm font-medium">
+          <span>Job description</span>
+          <Textarea
+            value={jobDescription}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Paste the role description here to compare wording locally."
+            className="min-h-24 resize-y bg-background"
+          />
+        </label>
+        {hasDescription && roleFocus.totalCount ? (
+          <div className="rounded-md border bg-background p-3">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                {roleFocus.matchedCount} of {roleFocus.totalCount} selected terms already used
+              </Badge>
+              <span className="text-xs text-muted-foreground">Repeated terms are listed first.</span>
+            </div>
+            {matchedTerms.length ? (
+              <div className="mb-3">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Already present</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {matchedTerms.map((term) => (
+                    <Badge key={term.term} variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-900">
+                      {term.term}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {missingTerms.length ? (
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Not found verbatim</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {missingTerms.map((term) => (
+                    <Badge key={term.term} variant="outline" className="border-amber-300 bg-amber-50 text-amber-950">
+                      {term.term}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <p className="mt-3 text-xs leading-snug text-muted-foreground">
+              Use missing terms only when they accurately describe your experience. This is a wording review, not an ATS score.
+            </p>
+          </div>
+        ) : hasDescription ? (
+          <Alert>
+            <AlertCircle />
+            <AlertTitle>Add a little more role detail</AlertTitle>
+            <AlertDescription>
+              Try pasting the responsibilities and requirements so Resume Editor can surface useful terms to review.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
