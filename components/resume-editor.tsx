@@ -65,6 +65,8 @@ import { cn } from "@/lib/utils";
 const STORAGE_KEY = "resume-editor-data-v2";
 const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
+const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
+const VERSION_HISTORY_BACKUP_VERSION = 1;
 const MAX_VERSION_HISTORY = 5;
 const CHANGE_PREVIEW_LIMIT = 4;
 const REPEATABLE_SECTIONS = ["experience", "education", "projects"] as const;
@@ -124,6 +126,13 @@ type VersionHistoryItem = {
   fingerprint: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
+};
+
+type VersionHistoryBackup = {
+  format: typeof VERSION_HISTORY_BACKUP_FORMAT;
+  version: typeof VERSION_HISTORY_BACKUP_VERSION;
+  exportedAt: string;
+  checkpoints: VersionHistoryItem[];
 };
 
 type VersionCompareTarget = {
@@ -210,6 +219,44 @@ function parseVersionHistory(value: string | null): VersionHistoryItem[] {
   } catch {
     return [];
   }
+}
+
+function parseVersionHistoryBackup(value: unknown): VersionHistoryItem[] | null {
+  if (!value || typeof value !== "object") return null;
+  const backup = value as Partial<VersionHistoryBackup>;
+  if (
+    backup.format !== VERSION_HISTORY_BACKUP_FORMAT ||
+    backup.version !== VERSION_HISTORY_BACKUP_VERSION ||
+    !Array.isArray(backup.checkpoints)
+  ) {
+    return null;
+  }
+
+  return parseVersionHistory(JSON.stringify(backup.checkpoints));
+}
+
+function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]) {
+  const seenFingerprints = new Set<string>();
+  const usedIds = new Set<string>();
+
+  return [...incoming, ...existing]
+    .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
+    .filter((item) => {
+      if (seenFingerprints.has(item.fingerprint)) return false;
+      seenFingerprints.add(item.fingerprint);
+      return true;
+    })
+    .map((item) => {
+      let id = item.id;
+      let suffix = 2;
+      while (usedIds.has(id)) {
+        id = `${item.id}-${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(id);
+      return id === item.id ? item : { ...item, id };
+    })
+    .slice(0, MAX_VERSION_HISTORY);
 }
 
 function formatCheckpointTime(value: string) {
@@ -341,11 +388,13 @@ export function ResumeEditor() {
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
   const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
   const [deletedVersion, setDeletedVersion] = useState<VersionHistoryItem | null>(null);
+  const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
   const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+  const historyBackupInputRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLDivElement>(null);
 
   const hasContent = hasAnyContent(state);
@@ -384,6 +433,10 @@ export function ResumeEditor() {
   const existingVersionForSave = useMemo(
     () => versionHistory.find((item) => item.fingerprint === exportFingerprint) ?? null,
     [exportFingerprint, versionHistory],
+  );
+  const mergedHistoryBackup = useMemo(
+    () => (historyBackupToImport ? mergeVersionHistory(versionHistory, historyBackupToImport) : []),
+    [historyBackupToImport, versionHistory],
   );
   const versionChanges = useMemo(
     () =>
@@ -638,6 +691,55 @@ export function ResumeEditor() {
     flash("Saved JSON to downloads");
   };
 
+  const saveVersionHistoryBackup = () => {
+    if (!versionHistory.length) {
+      flash("Save a checkpoint first");
+      return;
+    }
+    const backup: VersionHistoryBackup = {
+      format: VERSION_HISTORY_BACKUP_FORMAT,
+      version: VERSION_HISTORY_BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      checkpoints: versionHistory,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const safeName = (state.name || "resume").trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeName || "resume"}-checkpoints.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    flash("Saved checkpoint backup to downloads");
+  };
+
+  const openVersionHistoryBackup = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const checkpoints = parseVersionHistoryBackup(JSON.parse(await file.text()));
+      if (!checkpoints?.length) {
+        flash("That backup has no saved checkpoints");
+        return;
+      }
+      setHistoryBackupToImport(checkpoints);
+    } catch {
+      flash("That file is not a checkpoint backup");
+    }
+  };
+
+  const importVersionHistoryBackup = () => {
+    if (!historyBackupToImport) return;
+    const importedCount = historyBackupToImport.length;
+    setVersionHistory(mergedHistoryBackup);
+    setHistoryBackupToImport(null);
+    setDeletedVersion(null);
+    setVersionCompareTarget(null);
+    setDraftSourceVersionId(null);
+    flash(`Added ${importedCount} ${importedCount === 1 ? "checkpoint" : "checkpoints"} from backup`);
+  };
+
   const openJson = async (file: File | undefined) => {
     if (!file) return;
     try {
@@ -835,6 +937,9 @@ export function ResumeEditor() {
                   <Button type="button" variant="outline" onClick={() => jsonInputRef.current?.click()}>
                     <FileJson /> Open JSON
                   </Button>
+                  <Button type="button" variant="outline" onClick={() => historyBackupInputRef.current?.click()}>
+                    <History /> Open checkpoint backup
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {["No account", "Local autosave", "Free PDF export"].map((label) => (
@@ -924,6 +1029,8 @@ export function ResumeEditor() {
             currentFingerprint={exportFingerprint}
             deletedVersion={deletedVersion}
             onSave={openVersionSave}
+            onSaveBackup={saveVersionHistoryBackup}
+            onOpenBackup={() => historyBackupInputRef.current?.click()}
             onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
             onCompareSaved={(base, target) => setVersionCompareTarget({ baseId: base.id, targetId: target.id })}
             onRestore={restoreVersion}
@@ -1246,8 +1353,8 @@ export function ResumeEditor() {
                 <AlertTitle>History is full</AlertTitle>
                 <AlertDescription>
                   Saving a new checkpoint will replace {versionToReplaceOnSave.label}, saved{" "}
-                  {formatCheckpointTime(versionToReplaceOnSave.savedAt)}. Export JSON first if you want a backup outside
-                  this browser.
+                  {formatCheckpointTime(versionToReplaceOnSave.savedAt)}. Back up checkpoints first if you want a copy
+                  outside this browser.
                 </AlertDescription>
               </Alert>
             ) : existingVersionForSave ? (
@@ -1279,6 +1386,49 @@ export function ResumeEditor() {
               </div>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(historyBackupToImport)} onOpenChange={(open) => !open && setHistoryBackupToImport(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Checkpoint backup</DialogDescription>
+            <DialogTitle>Add saved checkpoints from backup</DialogTitle>
+            <DialogDescription>
+              Your current resume stays open. Imported checkpoints are merged with this browser&apos;s local history.
+            </DialogDescription>
+          </DialogHeader>
+          {historyBackupToImport ? (
+            <div className="grid gap-3">
+              <Alert>
+                <History className="h-4 w-4" />
+                <AlertTitle>
+                  {historyBackupToImport.length} {historyBackupToImport.length === 1 ? "checkpoint" : "checkpoints"} ready to add
+                </AlertTitle>
+                <AlertDescription>
+                  Resume Editor keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.length} will remain in this browser.
+                </AlertDescription>
+              </Alert>
+              <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-3">
+                {historyBackupToImport.map((checkpoint) => (
+                  <Badge key={checkpoint.id} variant="outline" className="max-w-full truncate">
+                    {checkpoint.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter className="items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">Nothing is uploaded or sent anywhere.</span>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setHistoryBackupToImport(null)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={importVersionHistoryBackup}>
+                <History /> Add checkpoints
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1461,6 +1611,17 @@ export function ResumeEditor() {
         hidden
         onChange={(event) => {
           void openJson(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <input
+        id="history-backup-input"
+        ref={historyBackupInputRef}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={(event) => {
+          void openVersionHistoryBackup(event.target.files?.[0]);
           event.target.value = "";
         }}
       />
@@ -1668,6 +1829,8 @@ function VersionHistoryCard({
   currentFingerprint,
   deletedVersion,
   onSave,
+  onSaveBackup,
+  onOpenBackup,
   onCompareCurrent,
   onCompareSaved,
   onRestore,
@@ -1681,6 +1844,8 @@ function VersionHistoryCard({
   currentFingerprint: string;
   deletedVersion: VersionHistoryItem | null;
   onSave: () => void;
+  onSaveBackup: () => void;
+  onOpenBackup: () => void;
   onCompareCurrent: (item: VersionHistoryItem) => void;
   onCompareSaved: (base: VersionHistoryItem, target: VersionHistoryItem) => void;
   onRestore: (item: VersionHistoryItem) => void;
@@ -1729,9 +1894,17 @@ function VersionHistoryCard({
             Keep up to {MAX_VERSION_HISTORY} browser-only versions so you can experiment without losing a strong draft.
           </CardDescription>
         </div>
-        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={onSave} disabled={!hasContent}>
-          <Save /> Save version
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onOpenBackup}>
+            <Upload /> Open backup
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onSaveBackup} disabled={!versions.length}>
+            <Download /> Back up checkpoints
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onSave} disabled={!hasContent}>
+            <Save /> Save version
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {versions.length ? (

@@ -291,3 +291,38 @@ test("warns before replacing the oldest local version history checkpoint", async
   await expect(page.getByText("Checkpoint 1", { exact: true })).toBeHidden();
   await expect(page.getByText("5/5 saved")).toBeVisible();
 });
+
+test("imports a checkpoint history backup without replacing the current resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Platform baseline");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  const checkpoints = await page.evaluate(() => localStorage.getItem("resume-editor-version-history-v1"));
+  const backup = JSON.stringify({
+    format: "resume-editor-version-history-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    checkpoints: JSON.parse(checkpoints ?? "[]"),
+  });
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator("#history-backup-input").setInputFiles({
+    name: "resume-checkpoints.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
+
+  const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
+  await expect(backupDialog).toBeVisible();
+  await expect(backupDialog.getByText("Platform baseline")).toBeVisible();
+  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
+
+  await expect(page.getByText("Platform baseline").first()).toBeVisible();
+  await expect(page.getByText("Added 1 checkpoint from backup")).toBeVisible();
+  await expect(page.getByText("Start from the resume you already have.")).toBeVisible();
+});
