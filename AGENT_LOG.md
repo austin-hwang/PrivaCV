@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-09 04:28 PDT
+
+- User problem addressed: restoring a saved resume checkpoint changed the live
+  draft immediately, but users did not get a visible summary of what changed
+  after the restore.
+- Implementation: added a transient restored-checkpoint audit panel that appears
+  after restoring a saved version, reuses the existing export comparison rows,
+  labels snippets as Before/Restored, jumps back to affected fields, and clears
+  itself when another high-risk load replaces the resume.
+- UI components or patterns used: shadcn/ui-style Card, Button, Alert, Badge
+  through reused comparison rows, plus lucide Undo2, History, ArrowRight, and
+  Check icons.
+- Why it matters: job seekers can revive an older tailored draft and immediately
+  verify the practical differences without reopening the compare dialog or
+  manually rereading the whole resume.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: expand the restored-checkpoint panel into a full
+  scrollable diff when more than four areas changed.
+
 ## 2026-07-09 03:30 PDT
 
 - User problem addressed: users could compare a saved checkpoint with the

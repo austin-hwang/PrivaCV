@@ -125,6 +125,14 @@ type VersionCompareTarget = {
   targetId: "current" | string;
 };
 
+type RestoredVersionSummary = {
+  id: string;
+  label: string;
+  savedAt: string;
+  fingerprint: string;
+  changes: ExportChange[];
+};
+
 type ExportCheckpoint = {
   fingerprint: string;
   exportedAt: string;
@@ -297,6 +305,7 @@ export function ResumeEditor() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
+  const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
   const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -310,6 +319,8 @@ export function ResumeEditor() {
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
+  const visibleRestoredVersionSummary =
+    restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;
   const exportIsCurrent = Boolean(exportCheckpoint && exportCheckpoint.fingerprint === exportFingerprint);
   const exportChanges = useMemo(
     () =>
@@ -379,6 +390,7 @@ export function ResumeEditor() {
     setState(recoveryPoint.state);
     setImportReview(recoveryPoint.importReview);
     setRecoveryPoint(null);
+    setRestoredVersionSummary(null);
     flash("Restored previous resume");
   };
 
@@ -416,6 +428,13 @@ export function ResumeEditor() {
 
   const restoreVersion = (item: VersionHistoryItem) => {
     saveRecoveryPoint(`Before restoring ${item.label}`);
+    setRestoredVersionSummary({
+      id: item.id,
+      label: item.label,
+      savedAt: item.savedAt,
+      fingerprint: item.fingerprint,
+      changes: exportChangeSummary(state, item.state),
+    });
     setState(item.state);
     setImportReview(item.importReview);
     flash("Restored saved version");
@@ -424,6 +443,7 @@ export function ResumeEditor() {
   const deleteVersion = (id: string) => {
     setVersionHistory((current) => current.filter((item) => item.id !== id));
     if (versionCompareTarget?.baseId === id || versionCompareTarget?.targetId === id) setVersionCompareTarget(null);
+    if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
     flash("Deleted saved version");
   };
 
@@ -559,6 +579,7 @@ export function ResumeEditor() {
       saveRecoveryPoint(`Before opening ${file.name}`);
       setState(nextState);
       setImportReview(null);
+      setRestoredVersionSummary(null);
       flash("Loaded JSON");
     } catch {
       flash("That file is not valid resume JSON");
@@ -575,6 +596,7 @@ export function ResumeEditor() {
       saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
       setState(imported);
       setImportReview(buildImportReview(imported, file.name));
+      setRestoredVersionSummary(null);
       flash("Imported PDF - please review");
     } catch (error) {
       flash(error instanceof Error ? error.message : "Could not import this PDF");
@@ -684,6 +706,7 @@ export function ResumeEditor() {
                 saveRecoveryPoint("Before loading the sample");
                 setState(sampleState());
                 setImportReview(null);
+                setRestoredVersionSummary(null);
                 flash("Sample loaded");
               }}
             >
@@ -697,6 +720,7 @@ export function ResumeEditor() {
                   saveRecoveryPoint("Before clearing the resume");
                   setState(emptyState());
                   setImportReview(null);
+                  setRestoredVersionSummary(null);
                   flash("Cleared");
                 }
               }}
@@ -730,6 +754,7 @@ export function ResumeEditor() {
                       saveRecoveryPoint("Before loading the sample");
                       setState(sampleState());
                       setImportReview(null);
+                      setRestoredVersionSummary(null);
                       flash("Sample loaded");
                     }}
                   >
@@ -830,6 +855,14 @@ export function ResumeEditor() {
             onRestore={restoreVersion}
             onDelete={deleteVersion}
           />
+
+          {visibleRestoredVersionSummary ? (
+            <RestoredVersionCard
+              summary={visibleRestoredVersionSummary}
+              onDismiss={() => setRestoredVersionSummary(null)}
+              onFocus={focusCheckTarget}
+            />
+          ) : null}
 
           {hasContent ? (
             <Card className="mb-6">
@@ -1413,6 +1446,60 @@ function VersionChangeRow({
   }
 
   return <div className={className}>{content}</div>;
+}
+
+function RestoredVersionCard({
+  summary,
+  onDismiss,
+  onFocus,
+}: {
+  summary: RestoredVersionSummary;
+  onDismiss: () => void;
+  onFocus: (targetId: string) => void;
+}) {
+  return (
+    <Card className="mb-6 border-violet-300 bg-violet-50/70">
+      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-violet-300 bg-background text-violet-800">
+            <Undo2 className="size-4" />
+          </span>
+          <div>
+            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-violet-900">
+              Checkpoint restored
+            </CardDescription>
+            <CardTitle className="text-base">{summary.label}</CardTitle>
+            <CardDescription>
+              Restored from the version saved {formatCheckpointTime(summary.savedAt)}. Review what changed from the draft
+              you were editing.
+            </CardDescription>
+          </div>
+        </div>
+        <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </CardHeader>
+      <CardContent className="grid gap-2 pt-0 sm:grid-cols-2">
+        {summary.changes.length ? (
+          summary.changes.slice(0, 4).map((change) => (
+            <VersionChangeRow
+              key={change.id}
+              change={change}
+              beforeLabel="Before"
+              afterLabel="Restored"
+              onSelect={() => onFocus(change.targetId)}
+            />
+          ))
+        ) : (
+          <Alert className="sm:col-span-2">
+            <Check className="h-4 w-4" />
+            <AlertTitle>No differences found</AlertTitle>
+            <AlertDescription>This checkpoint already matched the resume you were editing.</AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function ChangeFieldLabels({ labels }: { labels?: string[] }) {
