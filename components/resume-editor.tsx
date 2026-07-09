@@ -334,6 +334,7 @@ export function ResumeEditor() {
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
   const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
+  const [deletedVersion, setDeletedVersion] = useState<VersionHistoryItem | null>(null);
   const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -478,11 +479,24 @@ export function ResumeEditor() {
   };
 
   const deleteVersion = (id: string) => {
+    const deleted = versionHistory.find((item) => item.id === id) ?? null;
     setVersionHistory((current) => current.filter((item) => item.id !== id));
+    setDeletedVersion(deleted);
     if (versionCompareTarget?.baseId === id || versionCompareTarget?.targetId === id) setVersionCompareTarget(null);
     if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
     flash("Deleted saved version");
+  };
+
+  const undoDeleteVersion = () => {
+    if (!deletedVersion) return;
+    setVersionHistory((current) =>
+      [deletedVersion, ...current.filter((item) => item.id !== deletedVersion.id)]
+        .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
+        .slice(0, MAX_VERSION_HISTORY),
+    );
+    setDeletedVersion(null);
+    flash("Restored deleted checkpoint");
   };
 
   const focusFromVersionCompare = (targetId: string) => {
@@ -893,11 +907,14 @@ export function ResumeEditor() {
             versions={versionHistory}
             currentState={state}
             currentFingerprint={exportFingerprint}
+            deletedVersion={deletedVersion}
             onSave={openVersionSave}
             onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
             onCompareSaved={(base, target) => setVersionCompareTarget({ baseId: base.id, targetId: target.id })}
             onRestore={restoreVersion}
             onDelete={deleteVersion}
+            onUndoDelete={undoDeleteVersion}
+            onDismissDeleted={() => setDeletedVersion(null)}
           />
 
           {visibleRestoredVersionSummary ? (
@@ -1607,21 +1624,27 @@ function VersionHistoryCard({
   versions,
   currentState,
   currentFingerprint,
+  deletedVersion,
   onSave,
   onCompareCurrent,
   onCompareSaved,
   onRestore,
   onDelete,
+  onUndoDelete,
+  onDismissDeleted,
 }: {
   hasContent: boolean;
   versions: VersionHistoryItem[];
   currentState: ResumeState;
   currentFingerprint: string;
+  deletedVersion: VersionHistoryItem | null;
   onSave: () => void;
   onCompareCurrent: (item: VersionHistoryItem) => void;
   onCompareSaved: (base: VersionHistoryItem, target: VersionHistoryItem) => void;
   onRestore: (item: VersionHistoryItem) => void;
   onDelete: (id: string) => void;
+  onUndoDelete: () => void;
+  onDismissDeleted: () => void;
 }) {
   const [savedCompareBaseId, setSavedCompareBaseId] = useState("");
   const [savedCompareTargetId, setSavedCompareTargetId] = useState("");
@@ -1650,7 +1673,7 @@ function VersionHistoryCard({
     versions.find((item) => item.id !== baseVersion?.id) ??
     null;
 
-  if (!hasContent && !versions.length) return null;
+  if (!hasContent && !versions.length && !deletedVersion) return null;
 
   return (
     <Card className="mb-6">
@@ -1667,6 +1690,28 @@ function VersionHistoryCard({
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
+        {deletedVersion ? (
+          <div className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                  Deleted checkpoint
+                </Badge>
+                <span className="text-xs text-muted-foreground">Saved {formatCheckpointTime(deletedVersion.savedAt)}</span>
+              </div>
+              <p className="truncate text-sm font-semibold">{deletedVersion.label}</p>
+              <p className="text-xs text-muted-foreground">Restore it to version history before closing this page.</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button type="button" variant="outline" size="sm" className="bg-background" onClick={onUndoDelete}>
+                <Undo2 /> Undo delete
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onDismissDeleted}>
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {suggestedComparison ? (
           <div className="flex flex-col gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">

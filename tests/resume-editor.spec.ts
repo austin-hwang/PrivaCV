@@ -208,6 +208,14 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await restoredChange.click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Restore point saved")).toBeVisible();
+
+  await page.getByLabel("Delete saved version Original software resume").click();
+  await expect(page.getByText("Deleted checkpoint")).toBeVisible();
+  await expect(page.getByText("Restore it to version history before closing this page.")).toBeVisible();
+
+  await page.getByRole("button", { name: /undo delete/i }).click();
+  await expect(page.getByText("Restored deleted checkpoint")).toBeVisible();
+  await expect(page.getByLabel("Delete saved version Original software resume")).toBeVisible();
 });
 
 test("compares two saved version history checkpoints", async ({ page }) => {
