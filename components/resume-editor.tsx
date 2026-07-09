@@ -14,6 +14,7 @@ import {
   Printer,
   RotateCcw,
   Trash2,
+  Undo2,
   Upload,
 } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -92,6 +93,12 @@ type ImportReviewState = {
   fileName: string;
   sections: string[];
   items: ImportReviewItem[];
+};
+
+type RecoveryPoint = {
+  label: string;
+  state: ResumeState;
+  importReview: ImportReviewState | null;
 };
 
 function compactDetail(value: string) {
@@ -180,6 +187,7 @@ export function ResumeEditor() {
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
+  const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +205,29 @@ export function ResumeEditor() {
   const flash = useCallback((message: string) => {
     setToast({ id: Date.now(), message });
   }, []);
+
+  const saveRecoveryPoint = useCallback(
+    (label: string, previousState = state, previousImportReview = importReview) => {
+      if (!hasAnyContent(previousState) && !previousImportReview) {
+        setRecoveryPoint(null);
+        return;
+      }
+      setRecoveryPoint({
+        label,
+        state: previousState,
+        importReview: previousImportReview,
+      });
+    },
+    [importReview, state],
+  );
+
+  const restoreRecoveryPoint = () => {
+    if (!recoveryPoint) return;
+    setState(recoveryPoint.state);
+    setImportReview(recoveryPoint.importReview);
+    setRecoveryPoint(null);
+    flash("Restored previous resume");
+  };
 
   useEffect(() => {
     try {
@@ -310,7 +341,9 @@ export function ResumeEditor() {
     if (!file) return;
     try {
       const text = await file.text();
-      setState(normalizeResume(JSON.parse(text)));
+      const nextState = normalizeResume(JSON.parse(text));
+      saveRecoveryPoint(`Before opening ${file.name}`);
+      setState(nextState);
       setImportReview(null);
       flash("Loaded JSON");
     } catch {
@@ -320,9 +353,12 @@ export function ResumeEditor() {
 
   const openPdf = async (file: File | undefined) => {
     if (!file) return;
+    const previousState = state;
+    const previousImportReview = importReview;
     setIsImporting(true);
     try {
       const imported = await importResumePdf(file);
+      saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
       setState(imported);
       setImportReview(buildImportReview(imported, file.name));
       flash("Imported PDF - please review");
@@ -396,6 +432,7 @@ export function ResumeEditor() {
               type="button"
               variant="ghost"
               onClick={() => {
+                saveRecoveryPoint("Before loading the sample");
                 setState(sampleState());
                 setImportReview(null);
                 flash("Sample loaded");
@@ -407,7 +444,8 @@ export function ResumeEditor() {
               type="button"
               variant="ghost"
               onClick={() => {
-                if (window.confirm("Clear all fields? This cannot be undone.")) {
+                if (window.confirm("Clear all fields? You can restore this version from the recovery card.")) {
+                  saveRecoveryPoint("Before clearing the resume");
                   setState(emptyState());
                   setImportReview(null);
                   flash("Cleared");
@@ -440,6 +478,7 @@ export function ResumeEditor() {
                     type="button"
                     variant="outline"
                     onClick={() => {
+                      saveRecoveryPoint("Before loading the sample");
                       setState(sampleState());
                       setImportReview(null);
                       flash("Sample loaded");
@@ -459,6 +498,30 @@ export function ResumeEditor() {
                   ))}
                 </div>
               </CardContent>
+            </Card>
+          ) : null}
+
+          {recoveryPoint ? (
+            <Card className="mb-6 border-sky-300 bg-sky-50/70">
+              <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardDescription className="font-semibold uppercase tracking-[0.16em] text-sky-900">
+                    Restore point saved
+                  </CardDescription>
+                  <CardTitle className="text-base">You can go back to the previous resume.</CardTitle>
+                  <CardDescription>
+                    {recoveryPoint.label}. This recovery point stays in this browser tab until you dismiss or restore it.
+                  </CardDescription>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={restoreRecoveryPoint}>
+                    <Undo2 /> Restore previous
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setRecoveryPoint(null)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </CardHeader>
             </Card>
           ) : null}
 

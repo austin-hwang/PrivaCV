@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-08 17:28 PDT
+
+- User problem addressed: high-risk actions such as importing a PDF, opening
+  JSON, loading the sample, or clearing the editor could replace a resume with
+  no in-app recovery path.
+- Implementation: added a session-local restore point that captures the
+  previous resume and import-review state before those actions, shows a compact
+  recovery card, and restores the prior version in one click.
+- UI components or patterns used: shadcn/ui-style Card and Button primitives
+  with a lucide Undo2 icon and concise recovery copy.
+- Why it matters: job seekers can experiment with imports and reset flows
+  without worrying that a mistake will wipe work they were actively editing.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: turn the one-step recovery point into named local-only
+  version history once users need deeper save states.
+
 ## 2026-07-08 16:30 PDT
 
 - User problem addressed: PDF import still felt risky because the app replaced
