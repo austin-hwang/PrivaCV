@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-09 07:28 PDT
+
+- User problem addressed: saved checkpoints showed contents and differences, but
+  tailored drafts still lacked a clear cue for which baseline or prior draft they
+  came from.
+- Implementation: added optional derived-from metadata to local version history,
+  tracked the active saved checkpoint while users tailor or restore drafts, and
+  rendered a compact lineage row in saved checkpoint cards.
+- UI components or patterns used: shadcn/ui-style Card, Badge, and Button
+  patterns with the lucide GitBranch icon inside the existing version history
+  surface.
+- Why it matters: job seekers can keep several role-specific drafts and quickly
+  understand which ones branch from a strong baseline without opening every
+  comparison dialog.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: suggest the most relevant saved checkpoint to compare
+  against when several tailored drafts are present.
+
 ## 2026-07-09 06:29 PDT
 
 - User problem addressed: saved checkpoints could be named and compared, but
@@ -17,8 +36,8 @@
   The first Playwright run exposed an ambiguous test locator, and the first
   parallel build collided with the dev server's generated `.next` output; both
   checks passed after fixing the locator and rerunning the build in isolation.
-- Future opportunities: add lightweight branch/lineage cues so users can see
-  which checkpoint was derived from which tailored draft.
+- Future opportunities: suggest the most relevant saved checkpoint to compare
+  against when several tailored drafts are present.
 
 ## 2026-07-09 05:27 PDT
 

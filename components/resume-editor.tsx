@@ -14,6 +14,7 @@ import {
   FileCheck2,
   FileJson,
   FileText,
+  GitBranch,
   History,
   Printer,
   RotateCcw,
@@ -118,6 +119,8 @@ type VersionHistoryItem = {
   savedAt: string;
   label: string;
   note?: string;
+  derivedFromId?: string;
+  derivedFromLabel?: string;
   fingerprint: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
@@ -195,6 +198,8 @@ function parseVersionHistory(value: string | null): VersionHistoryItem[] {
           savedAt: item.savedAt,
           label: item.label,
           note: typeof item.note === "string" ? item.note : undefined,
+          derivedFromId: typeof item.derivedFromId === "string" ? item.derivedFromId : undefined,
+          derivedFromLabel: typeof item.derivedFromLabel === "string" ? item.derivedFromLabel : undefined,
           fingerprint: item.fingerprint,
           state: normalizeResume(item.state),
           importReview: item.importReview ?? null,
@@ -324,6 +329,7 @@ export function ResumeEditor() {
   const [versionDraftLabel, setVersionDraftLabel] = useState("");
   const [versionDraftNote, setVersionDraftNote] = useState("");
   const [versionCompareTarget, setVersionCompareTarget] = useState<VersionCompareTarget | null>(null);
+  const [draftSourceVersionId, setDraftSourceVersionId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
@@ -413,6 +419,7 @@ export function ResumeEditor() {
     setImportReview(recoveryPoint.importReview);
     setRecoveryPoint(null);
     setRestoredVersionSummary(null);
+    setDraftSourceVersionId(null);
     flash("Restored previous resume");
   };
 
@@ -434,16 +441,23 @@ export function ResumeEditor() {
     const fingerprint = resumeExportFingerprint(state);
     const label = versionDraftLabel.trim() || versionLabel(state);
     const note = versionDraftNote.trim();
+    const derivedFrom =
+      versionHistory.find((item) => item.id === draftSourceVersionId && item.fingerprint !== fingerprint) ??
+      versionHistory.find((item) => item.fingerprint !== fingerprint) ??
+      null;
     const entry: VersionHistoryItem = {
       id: `${Date.now()}`,
       savedAt: new Date().toISOString(),
       label,
       note: note || undefined,
+      derivedFromId: derivedFrom?.id,
+      derivedFromLabel: derivedFrom?.label,
       fingerprint,
       state: normalizeResume(state),
       importReview,
     };
     setVersionHistory((current) => [entry, ...current.filter((item) => item.fingerprint !== fingerprint)].slice(0, MAX_VERSION_HISTORY));
+    setDraftSourceVersionId(entry.id);
     setVersionSaveOpen(false);
     flash("Version saved locally");
   };
@@ -459,6 +473,7 @@ export function ResumeEditor() {
     });
     setState(item.state);
     setImportReview(item.importReview);
+    setDraftSourceVersionId(item.id);
     flash("Restored saved version");
   };
 
@@ -466,6 +481,7 @@ export function ResumeEditor() {
     setVersionHistory((current) => current.filter((item) => item.id !== id));
     if (versionCompareTarget?.baseId === id || versionCompareTarget?.targetId === id) setVersionCompareTarget(null);
     if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
+    if (draftSourceVersionId === id) setDraftSourceVersionId(null);
     flash("Deleted saved version");
   };
 
@@ -602,6 +618,7 @@ export function ResumeEditor() {
       setState(nextState);
       setImportReview(null);
       setRestoredVersionSummary(null);
+      setDraftSourceVersionId(null);
       flash("Loaded JSON");
     } catch {
       flash("That file is not valid resume JSON");
@@ -619,6 +636,7 @@ export function ResumeEditor() {
       setState(imported);
       setImportReview(buildImportReview(imported, file.name));
       setRestoredVersionSummary(null);
+      setDraftSourceVersionId(null);
       flash("Imported PDF - please review");
     } catch (error) {
       flash(error instanceof Error ? error.message : "Could not import this PDF");
@@ -729,6 +747,7 @@ export function ResumeEditor() {
                 setState(sampleState());
                 setImportReview(null);
                 setRestoredVersionSummary(null);
+                setDraftSourceVersionId(null);
                 flash("Sample loaded");
               }}
             >
@@ -743,6 +762,7 @@ export function ResumeEditor() {
                   setState(emptyState());
                   setImportReview(null);
                   setRestoredVersionSummary(null);
+                  setDraftSourceVersionId(null);
                   flash("Cleared");
                 }
               }}
@@ -777,6 +797,7 @@ export function ResumeEditor() {
                       setState(sampleState());
                       setImportReview(null);
                       setRestoredVersionSummary(null);
+                      setDraftSourceVersionId(null);
                       flash("Sample loaded");
                     }}
                   >
@@ -1704,6 +1725,12 @@ function VersionHistoryCard({
                     </div>
                     <p className="truncate text-sm font-semibold">{item.label}</p>
                     <p className="truncate text-xs text-muted-foreground">{versionHeadline(item.state)}</p>
+                    {item.derivedFromLabel ? (
+                      <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                        <GitBranch className="size-3 shrink-0" />
+                        <span className="truncate">Derived from {item.derivedFromLabel}</span>
+                      </p>
+                    ) : null}
                     {item.note ? <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
                     <div className="mt-2 flex flex-wrap gap-1">
                       {versionContentBadges(item.state).map((label) => (
