@@ -24,7 +24,7 @@ subscriptions, watermarks, or backend storage.
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what
   changed since their last PDF export attempt, including compact before/after
-  snippets for edited resume areas.
+  snippets and an expandable full audit trail for edited resume areas.
 - Local version history for naming, annotating, saving, and restoring
   browser-only checkpoints while tailoring a resume for different applications.
 - Saved-version comparison that shows changed areas with saved/current snippets
@@ -32,7 +32,8 @@ subscriptions, watermarks, or backend storage.
 - Saved-to-saved comparison for auditing how two local checkpoints differ
   without replacing the current resume.
 - Post-restore audit panel that shows what changed when a saved checkpoint is
-  restored, with jump actions back to the affected fields.
+  restored, with expandable change details and jump actions back to the
+  affected fields.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.

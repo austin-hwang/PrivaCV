@@ -91,6 +91,53 @@ test("shows when the resume changed after the last PDF export", async ({ page })
   await expect(page.getByRole("button", { name: /export updated pdf/i })).toBeVisible();
 });
 
+test("expands dense change audits after export and restore", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.reload();
+  await page.evaluate(() => {
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Clean baseline");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await page.getByRole("button", { name: /export anyway/i }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
+
+  await page.getByLabel("Full Name").fill("Ada Lovelace");
+  await page.getByLabel("Professional Summary").fill("Research engineer focused on developer tools and reliable launches.");
+  await page.getByLabel("Job Title").first().fill("Staff Software Engineer");
+  await page.getByLabel("Degree").fill("M.S. Computer Science");
+  await page.getByLabel("Project Name").fill("Launch Review Hub");
+  await page.getByLabel('Skills (one group per line, e.g. "Languages: Python, Go")').fill("Languages: TypeScript, Python\nTools: Playwright, AWS");
+
+  await expect(page.getByText("2 more changed areas")).toBeVisible();
+  await expect(page.getByText("Projects changed")).toBeHidden();
+  await page.getByRole("button", { name: /show all changes/i }).click();
+  await expect(page.getByText("Showing all 6 changed areas")).toBeVisible();
+  await expect(page.getByText("Projects changed")).toBeVisible();
+  await expect(page.getByText("Skills changed")).toBeVisible();
+
+  await page.getByRole("button", { name: /^restore$/i }).click();
+  await expect(page.getByText("Checkpoint restored")).toBeVisible();
+  await expect(page.getByText("2 more changed areas")).toBeVisible();
+  await page.getByRole("button", { name: /show all changes/i }).click();
+  await expect(page.getByText("Showing all 6 changed areas")).toBeVisible();
+  await expect(page.getByText("Projects changed")).toBeVisible();
+  await expect(page.getByText("Skills changed")).toBeVisible();
+});
+
 test("restores the previous resume after clearing", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
