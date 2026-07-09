@@ -135,6 +135,11 @@ type VersionHistoryBackup = {
   checkpoints: VersionHistoryItem[];
 };
 
+type VersionHistoryMerge = {
+  checkpoints: VersionHistoryItem[];
+  overflow: VersionHistoryItem[];
+};
+
 type VersionCompareTarget = {
   baseId: string;
   targetId: "current" | string;
@@ -235,11 +240,11 @@ function parseVersionHistoryBackup(value: unknown): VersionHistoryItem[] | null 
   return parseVersionHistory(JSON.stringify(backup.checkpoints));
 }
 
-function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]) {
+function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]): VersionHistoryMerge {
   const seenFingerprints = new Set<string>();
   const usedIds = new Set<string>();
 
-  return [...incoming, ...existing]
+  const uniqueHistory = [...incoming, ...existing]
     .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
     .filter((item) => {
       if (seenFingerprints.has(item.fingerprint)) return false;
@@ -255,8 +260,12 @@ function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHi
       }
       usedIds.add(id);
       return id === item.id ? item : { ...item, id };
-    })
-    .slice(0, MAX_VERSION_HISTORY);
+    });
+
+  return {
+    checkpoints: uniqueHistory.slice(0, MAX_VERSION_HISTORY),
+    overflow: uniqueHistory.slice(MAX_VERSION_HISTORY),
+  };
 }
 
 function formatCheckpointTime(value: string) {
@@ -435,7 +444,10 @@ export function ResumeEditor() {
     [exportFingerprint, versionHistory],
   );
   const mergedHistoryBackup = useMemo(
-    () => (historyBackupToImport ? mergeVersionHistory(versionHistory, historyBackupToImport) : []),
+    () =>
+      historyBackupToImport
+        ? mergeVersionHistory(versionHistory, historyBackupToImport)
+        : { checkpoints: [], overflow: [] },
     [historyBackupToImport, versionHistory],
   );
   const versionChanges = useMemo(
@@ -732,7 +744,7 @@ export function ResumeEditor() {
   const importVersionHistoryBackup = () => {
     if (!historyBackupToImport) return;
     const importedCount = historyBackupToImport.length;
-    setVersionHistory(mergedHistoryBackup);
+    setVersionHistory(mergedHistoryBackup.checkpoints);
     setHistoryBackupToImport(null);
     setDeletedVersion(null);
     setVersionCompareTarget(null);
@@ -1406,7 +1418,7 @@ export function ResumeEditor() {
                   {historyBackupToImport.length} {historyBackupToImport.length === 1 ? "checkpoint" : "checkpoints"} ready to add
                 </AlertTitle>
                 <AlertDescription>
-                  Resume Editor keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.length} will remain in this browser.
+                  Resume Editor keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.checkpoints.length} will remain in this browser.
                 </AlertDescription>
               </Alert>
               <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-3">
@@ -1416,6 +1428,26 @@ export function ResumeEditor() {
                   </Badge>
                 ))}
               </div>
+              {mergedHistoryBackup.overflow.length ? (
+                <Alert className="border-amber-300 bg-amber-50/70">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    {mergedHistoryBackup.overflow.length} older {mergedHistoryBackup.overflow.length === 1 ? "checkpoint will" : "checkpoints will"} stay only in this backup
+                  </AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <span>
+                      These drafts fall outside this browser&apos;s {MAX_VERSION_HISTORY}-checkpoint limit. Keep the backup file to retain them.
+                    </span>
+                    <span className="flex flex-wrap gap-2">
+                      {mergedHistoryBackup.overflow.map((checkpoint) => (
+                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-amber-300 bg-background text-foreground">
+                          {checkpoint.label} · {formatCheckpointTime(checkpoint.savedAt)}
+                        </Badge>
+                      ))}
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
             </div>
           ) : null}
           <DialogFooter className="items-center sm:justify-between">

@@ -33,6 +33,8 @@ subscriptions, watermarks, or backend storage.
   the oldest saved draft, and warns before a new unique checkpoint replaces it.
 - Portable checkpoint-history backups that let users archive or move their
   browser-only tailored drafts without uploading resume data anywhere.
+- Clear backup-import capacity review that names older checkpoints which will
+  remain only in the backup when the browser&apos;s five-draft limit is reached.
 - Glanceable checkpoint summaries that show saved draft contents, current-match
   status, and changed-area counts before comparing or restoring.
 - Checkpoint lineage cues that show which saved draft a tailored version was

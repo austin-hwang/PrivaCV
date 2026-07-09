@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-09 12:29 PDT
+
+- User problem addressed: importing a checkpoint backup into a browser that
+  already held local drafts reported only the final count, leaving people unsure
+  which older tailored versions would not fit in the five-checkpoint history.
+- Implementation: changed backup-merge results to retain both browser-kept and
+  overflow checkpoints, then added an amber import-review callout that names
+  every older draft which remains only in the backup file.
+- UI components or patterns used: existing shadcn/ui-style Dialog, Alert,
+  Badge, and Button patterns with the existing History and AlertCircle icons.
+- Why it matters: job seekers can confirm a merge without accidentally
+  assuming every tailored draft has moved into the new browser, while keeping
+  the current resume untouched.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+  Added Playwright coverage for the explicit overflow-draft list.
+- Future opportunities: make overlapping checkpoint backups easier to audit by
+  calling out deduplicated drafts before a merge.
+
 ## 2026-07-09 11:29 PDT
 
 - User problem addressed: tailored checkpoint history lived only in one browser,
