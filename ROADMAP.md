@@ -60,7 +60,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   before/after correction flow.
 - Improve local version history with clearer checkpoint labels, lineage cues,
   lightweight guidance for choosing which saved draft to restore, and reliable
-  role-focus context when returning to a tailored draft.
+  role-focus context when returning to a tailored draft without carrying an
+  unrelated role into a general version.
 - Keep local checkpoint cleanup low-risk with undo paths, visible capacity
   limits, and clear replacement warnings before the five-version cap rotates an
   older draft out.

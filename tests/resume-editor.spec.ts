@@ -260,6 +260,26 @@ test("restores the local role focus saved with a tailored checkpoint", async ({ 
   await expect(description).toHaveValue("Lead design systems for a consumer product team.");
 });
 
+test("clears an unrelated role focus when restoring a checkpoint without one", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("General resume");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  const description = page.getByLabel("Job description");
+  await description.fill("Lead design systems for a consumer product team.");
+  await page.getByRole("button", { name: /^restore$/i }).click();
+
+  await expect(description).toHaveValue("");
+  await expect(page.getByRole("button", { name: /clear description/i })).toBeHidden();
+  await page.getByRole("button", { name: /restore previous/i }).click();
+  await expect(description).toHaveValue("Lead design systems for a consumer product team.");
+});
+
 test("compares two saved version history checkpoints", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

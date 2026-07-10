@@ -580,7 +580,10 @@ export function ResumeEditor() {
     });
     setState(item.state);
     setImportReview(item.importReview);
-    if (typeof item.jobDescription === "string") setJobDescription(item.jobDescription);
+    // Older checkpoints predate role context. Treat their missing description
+    // as intentionally empty so an unrelated, previously pasted role cannot
+    // stay visible after the resume itself has changed.
+    setJobDescription(item.jobDescription ?? "");
     setDraftSourceVersionId(item.id);
     flash("Restored saved version");
   };
