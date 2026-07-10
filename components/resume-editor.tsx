@@ -26,6 +26,7 @@ import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/re
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { RoleFocusCard } from "@/components/resume-editor/role-focus-card";
+import { StartPanel } from "@/components/resume-editor/start-panel";
 import {
   ChangeSummaryGrid,
   RestoredVersionCard,
@@ -218,49 +219,14 @@ export function ResumeEditor() {
           )}
         >
           {!hasContent ? (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardDescription className="font-semibold uppercase tracking-[0.16em]">Private resume workspace</CardDescription>
-                <CardTitle className="text-2xl">Start from the resume you already have.</CardTitle>
-                <CardDescription>
-                  Import a PDF, paste copied resume text, open saved work, or load a polished sample to see the final structure instantly.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" onClick={() => pdfInputRef.current?.click()} disabled={isImporting}>
-                    <Upload /> Import PDF
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setTextImportOpen(true)}
-                  >
-                    <ClipboardPaste /> Paste resume text
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={loadSample}
-                  >
-                    <FileText /> Use Sample
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => jsonInputRef.current?.click()}>
-                    <FileJson /> Open JSON
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => historyBackupInputRef.current?.click()}>
-                    <History /> Open checkpoint backup
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {["No account", "Local autosave", "Free PDF export"].map((label) => (
-                    <Badge key={label} variant="secondary">
-                      {label}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <StartPanel
+              isImporting={isImporting}
+              onImportPdf={() => pdfInputRef.current?.click()}
+              onImportText={() => setTextImportOpen(true)}
+              onLoadSample={loadSample}
+              onOpenJson={() => jsonInputRef.current?.click()}
+              onOpenCheckpointBackup={() => historyBackupInputRef.current?.click()}
+            />
           ) : null}
 
           {recoveryPoint ? (

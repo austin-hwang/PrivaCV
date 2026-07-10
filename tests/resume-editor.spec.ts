@@ -1,5 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+test("helps first-time users choose the right private import route", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await expect(page.getByText("Choose the route that best matches your source.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /paste resume text/i })).toContainText("OCR'd scanned PDFs");
+  await expect(page.getByRole("button", { name: /import a pdf/i })).toContainText("selectable text");
+  await expect(page.getByText("Already saved work?")).toBeVisible();
+  await expect(page.getByText("You will review every imported field before you export.")).toBeVisible();
+});
+
 test("loads the sample resume and reviews plain text", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
