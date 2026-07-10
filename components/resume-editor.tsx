@@ -62,6 +62,7 @@ export function ResumeEditor() {
     hasContent,
     historyBackupInputRef,
     importReview,
+    importReviewStatus,
     importReviewTargets,
     isImporting,
     jobDescription,
@@ -95,6 +96,8 @@ export function ResumeEditor() {
     undoDeleteVersion,
     updateEntry,
     updateField,
+    toggleImportReviewItem,
+    completeImportReview,
     versionHistory,
     visibleRestoredVersionSummary,
   } = editor;
@@ -288,14 +291,14 @@ export function ResumeEditor() {
                     <CardDescription className="font-semibold uppercase tracking-[0.16em] text-amber-900">
                       Import review
                     </CardDescription>
-                    <CardTitle className="text-base">Check the fields the importer usually guesses.</CardTitle>
+                    <CardTitle className="text-base">Confirm the fields the importer can misread.</CardTitle>
                     <CardDescription>
-                      Imported from {importReview.fileName}. Confirm these suggested fields before exporting.
+                      Imported from {importReview.fileName}. Review each suggested field, then explicitly confirm it before exporting.
                     </CardDescription>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setImportReview(null)}>
-                    <Check /> Done
-                  </Button>
+                  <Badge variant="outline" className="w-fit border-amber-400 bg-background tabular-nums text-amber-950">
+                    {importReviewStatus?.reviewedCount ?? 0} of {importReview.items.length} confirmed
+                  </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {importReview.sections.map((section) => (
@@ -305,22 +308,48 @@ export function ResumeEditor() {
                   ))}
                 </div>
               </CardHeader>
-              <CardContent className="grid gap-2 sm:grid-cols-2">
-                {importReview.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="group flex min-h-16 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => focusEditorTarget(item.targetId)}
-                  >
-                    <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />
-                    <span className="min-w-0">
-                      <span className="block font-semibold text-foreground">{item.label}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{item.detail}</span>
-                    </span>
-                    <ArrowRight className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                ))}
+              <CardContent className="space-y-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {importReview.items.map((item) => {
+                    const confirmed = Boolean(importReview.reviewedItemIds?.includes(item.id));
+                    return (
+                      <div key={item.id} className={cn("min-h-24 rounded-md border bg-background p-3", confirmed && "border-emerald-300 bg-emerald-50/50")}>
+                        <div className="flex gap-2">
+                          {confirmed ? <Check className="mt-0.5 size-4 shrink-0 text-emerald-800" /> : <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />}
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-foreground">{item.label}</span>
+                            <span className="block truncate text-xs text-muted-foreground">{item.detail}</span>
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button type="button" variant="outline" size="sm" className="h-7 px-2" onClick={() => focusEditorTarget(item.targetId)}>
+                            <ArrowRight /> Review field
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={confirmed ? "secondary" : "outline"}
+                            size="sm"
+                            className="h-7 px-2"
+                            aria-pressed={confirmed}
+                            onClick={() => toggleImportReviewItem(item.id)}
+                          >
+                            <Check /> {confirmed ? "Confirmed" : "Mark reviewed"}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    {importReviewStatus?.isComplete
+                      ? "All suggested fields are confirmed. Finish this review to clear the export reminder."
+                      : `${importReviewStatus?.remainingCount ?? importReview.items.length} suggested ${importReviewStatus?.remainingCount === 1 ? "field still needs" : "fields still need"} your confirmation.`}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" onClick={completeImportReview} disabled={!importReviewStatus?.isComplete}>
+                    <Check /> Finish review
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : null}

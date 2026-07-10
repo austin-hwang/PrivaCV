@@ -16,6 +16,7 @@ import {
   VERSION_HISTORY_BACKUP_FORMAT,
   VERSION_HISTORY_BACKUP_VERSION,
   buildImportReview,
+  importReviewProgress,
   mergeVersionHistory,
   parseExportCheckpoint,
   parseVersionHistoryBackup,
@@ -42,6 +43,21 @@ describe("resume helpers", () => {
 
   it("rejects an empty pasted resume", () => {
     expect(() => importResumeText(" \n\t ")).toThrow("Paste some resume text to import.");
+  });
+
+  it("tracks explicit confirmation for each imported field", () => {
+    const review = buildImportReview(sampleState(), "pasted resume text");
+
+    expect(importReviewProgress(review)).toMatchObject({
+      reviewedCount: 0,
+      remainingCount: review.items.length,
+      isComplete: false,
+    });
+    expect(importReviewProgress({ ...review, reviewedItemIds: review.items.map((item) => item.id) })).toMatchObject({
+      reviewedCount: review.items.length,
+      remainingCount: 0,
+      isComplete: true,
+    });
   });
 
   it("normalizes legacy JSON into a complete resume state", () => {

@@ -1,5 +1,30 @@
 # Agent Log
 
+## 2026-07-10 04:31 PDT
+
+- Market reassessment: current Teal and Jobscan positioning continues to make
+  job-description matching table stakes, and recent job-seeker discussion
+  describes tailoring as time-consuming. But the stronger immediate signal is
+  first-use trust: Teal recommends importing a comprehensive foundation before
+  tailoring, while current user feedback warns that users still need to review
+  AI/imported output rather than accept it blindly. The product already has a
+  transparent role review with requirement ranking, phrase checks, and evidence
+  locations, so another matching heuristic or template was lower value.
+- Decision: prioritized import-review completion. Imported PDF and pasted-text
+  resumes now present each suggested field with separate review and explicit
+  confirmation actions, a visible completion count, and a Finish review action
+  that clears the export reminder only after every suggested field is confirmed.
+  This remains an acknowledgement, not a claim that parsing is correct.
+- Why it matters: people can confidently correct the fields that deterministic
+  parsing is most likely to misread before role tailoring or PDF export, without
+  losing the local-only workflow or being forced into a black-box score.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`, `CI=true
+  pnpm test` (25 tests), `CI=true pnpm test:e2e` (25 tests), `CI=true pnpm
+  build`, and `git diff --check`.
+- Provisional next opportunity: reassess whether the first-run action hierarchy
+  or a clearer before/after import correction flow now creates more value than
+  adding templates, DOCX export, or more role-matching heuristics.
+
 ## 2026-07-10 03:32 PDT
 
 - Market reassessment: Jobscan, Teal, and Resume Worded continue to make

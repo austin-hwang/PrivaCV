@@ -57,6 +57,7 @@ export type ImportReviewState = {
   fileName: string;
   sections: string[];
   items: ImportReviewItem[];
+  reviewedItemIds?: string[];
 };
 
 export type RecoveryPoint = {
@@ -359,5 +360,22 @@ export function buildImportReview(state: ResumeState, fileName: string): ImportR
     fileName,
     sections: [...sections],
     items,
+    reviewedItemIds: [],
+  };
+}
+
+/**
+ * Returns the user's explicit confirmation progress for an imported resume.
+ * Unknown ids are ignored so old local checkpoints and changed review rules
+ * remain safe to restore.
+ */
+export function importReviewProgress(importReview: ImportReviewState) {
+  const reviewedIds = new Set(importReview.reviewedItemIds ?? []);
+  const reviewedCount = importReview.items.filter((item) => reviewedIds.has(item.id)).length;
+
+  return {
+    reviewedCount,
+    remainingCount: importReview.items.length - reviewedCount,
+    isComplete: reviewedCount === importReview.items.length,
   };
 }

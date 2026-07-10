@@ -49,7 +49,8 @@ subscriptions, watermarks, or backend storage.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand,
   plus a local pasted-text path for documents, LinkedIn, and scanned PDFs.
 - Post-import review panel that highlights suggested fields most likely to need
-  a human check before export.
+  a human check, tracks explicit confirmation for each one, and keeps the
+  export reminder visible until the review is finished.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
 - Local autosave in browser storage plus user-managed JSON files for manual
