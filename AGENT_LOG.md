@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-09 19:27 PDT
+
+- User problem addressed: restoring a general resume checkpoint after tailoring
+  for a role could leave the previous job description active, making Role Focus
+  review the wrong role against the restored resume.
+- Implementation: checkpoint restore now treats a missing saved role
+  description (including checkpoints made before role context existed) as an
+  intentional blank value; recovery points still restore the prior role
+  description exactly. Added browser coverage for that switch-and-undo flow.
+- UI components or patterns used: the existing local Role Focus card and
+  checkpoint restore/recovery actions; no new visual complexity.
+- Why it matters: job seekers can safely switch between a general resume and
+  tailored drafts without accidentally reviewing language from a different job.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test` (13 tests), `CI=true pnpm test:e2e` (17 tests),
+  `CI=true pnpm build`, and `git diff --check`.
+- Future opportunities: make Role Focus easier to audit across saved versions
+  by showing whether two compared checkpoints use different role descriptions.
+
 ## 2026-07-09 18:30 PDT
 
 - User problem addressed: returning to a saved, job-specific resume draft did
