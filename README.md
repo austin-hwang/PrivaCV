@@ -106,11 +106,12 @@ Notes:
 | File or folder | Purpose |
 | --- | --- |
 | `app/` | Next.js App Router routes, layout, and global styles |
-| `components/resume-editor.tsx` | Main client-side resume editor experience |
+| `components/resume-editor.tsx` | Page-level editor composition |
+| `components/resume-editor/` | Focused form, preview, role-focus, history, comparison, and dialog components |
 | `components/ui/` | Local shadcn/ui-style primitives |
 | `hooks/use-resume-editor.ts` | Client-side editor orchestration and persistence |
 | `lib/resume.ts` | Typed resume state, validation, checks, plain-text export |
-| `lib/resume-workspace.ts` | Local workspace, checkpoint, and import-review business rules |
+| `lib/resume-workspace.ts` | Workspace, versioning, and import-review business rules |
 | `lib/pdf-import.ts` | PDF text extraction and parsing |
 | `lib/resume.test.ts` | Vitest coverage for resume helpers |
 | `ROADMAP.md` | Product vision and priorities |
