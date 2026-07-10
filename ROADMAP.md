@@ -40,6 +40,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   job-specific tailoring without rereading every section.
 - Let users compare two saved checkpoints directly when deciding which tailored
   draft to revive.
+- Keep checkpoint comparisons explicit about role-focus context so identical
+  resume content never hides a different saved job description.
 - Show what changed immediately after restoring a checkpoint so reverting a
   tailored draft still feels reviewable, even when many areas changed.
 - Improve mobile and narrow-window editing without compromising the print layout.
