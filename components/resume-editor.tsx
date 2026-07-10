@@ -28,6 +28,7 @@ import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-o
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { RoleFocusCard } from "@/components/resume-editor/role-focus-card";
 import { StartPanel } from "@/components/resume-editor/start-panel";
+import { MobileReviewTools, type MobileReviewTool } from "@/components/resume-editor/mobile-review-tools";
 import {
   ChangeSummaryGrid,
   RestoredVersionCard,
@@ -46,6 +47,7 @@ import { cn } from "@/lib/utils";
 export function ResumeEditor() {
   const editor = useResumeEditor();
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
+  const [mobileReviewTool, setMobileReviewTool] = useState<MobileReviewTool | null>(null);
   const {
     addEntry,
     checks,
@@ -106,14 +108,17 @@ export function ResumeEditor() {
   } = editor;
   const focusEditorTarget = (targetId: string) => {
     setMobileWorkspaceView("editor");
+    setMobileReviewTool(null);
     window.setTimeout(() => focusCheckTarget(targetId), 120);
   };
   const focusEditorFromExportCheck = (targetId: string) => {
     setMobileWorkspaceView("editor");
+    setMobileReviewTool(null);
     focusFromExportCheck(targetId);
   };
   const focusEditorFromVersionCompare = (targetId: string) => {
     setMobileWorkspaceView("editor");
+    setMobileReviewTool(null);
     focusFromVersionCompare(targetId);
   };
   const nextImportReviewItem = importReview?.items.find(
@@ -349,24 +354,37 @@ export function ResumeEditor() {
             </Card>
           ) : null}
 
-          <VersionHistoryCard
-            hasContent={hasContent}
-            versions={versionHistory}
-            currentState={state}
-            currentFingerprint={exportFingerprint}
-            currentRoleFocus={jobDescription}
-            currentRoleLabel={roleLabel}
-            deletedVersion={deletedVersion}
-            onSave={openVersionSave}
-            onSaveBackup={saveVersionHistoryBackup}
-            onOpenBackup={() => historyBackupInputRef.current?.click()}
-            onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
-            onCompareSaved={(base, target) => setVersionCompareTarget({ baseId: base.id, targetId: target.id })}
-            onRestore={restoreVersion}
-            onDelete={deleteVersion}
-            onUndoDelete={undoDeleteVersion}
-            onDismissDeleted={() => setDeletedVersion(null)}
-          />
+          {hasContent ? (
+            <MobileReviewTools
+              activeTool={mobileReviewTool}
+              passedChecks={passedChecks}
+              totalChecks={checks.length}
+              hasRoleFocus={Boolean(jobDescription.trim())}
+              versionCount={versionHistory.length}
+              onChange={setMobileReviewTool}
+            />
+          ) : null}
+
+          <div id="version-history-panel" className={cn(hasContent && mobileReviewTool !== "versions" && "hidden", "lg:block")}>
+            <VersionHistoryCard
+              hasContent={hasContent}
+              versions={versionHistory}
+              currentState={state}
+              currentFingerprint={exportFingerprint}
+              currentRoleFocus={jobDescription}
+              currentRoleLabel={roleLabel}
+              deletedVersion={deletedVersion}
+              onSave={openVersionSave}
+              onSaveBackup={saveVersionHistoryBackup}
+              onOpenBackup={() => historyBackupInputRef.current?.click()}
+              onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
+              onCompareSaved={(base, target) => setVersionCompareTarget({ baseId: base.id, targetId: target.id })}
+              onRestore={restoreVersion}
+              onDelete={deleteVersion}
+              onUndoDelete={undoDeleteVersion}
+              onDismissDeleted={() => setDeletedVersion(null)}
+            />
+          </div>
 
           {visibleRestoredVersionSummary ? (
             <RestoredVersionCard
@@ -377,19 +395,22 @@ export function ResumeEditor() {
           ) : null}
 
           {hasContent ? (
-            <RoleFocusCard
-              jobDescription={jobDescription}
-              roleLabel={roleLabel}
-              roleFocus={roleFocus}
-              resumeText={plainText}
-              onChange={setJobDescription}
-              onRoleLabelChange={setRoleLabel}
-              onClear={() => setJobDescription("")}
-              onFocus={focusEditorTarget}
-            />
+            <div id="role-focus-panel" className={cn(mobileReviewTool !== "role-focus" && "hidden", "lg:block")}>
+              <RoleFocusCard
+                jobDescription={jobDescription}
+                roleLabel={roleLabel}
+                roleFocus={roleFocus}
+                resumeText={plainText}
+                onChange={setJobDescription}
+                onRoleLabelChange={setRoleLabel}
+                onClear={() => setJobDescription("")}
+                onFocus={focusEditorTarget}
+              />
+            </div>
           ) : null}
 
           {hasContent ? (
+            <div id="resume-check-panel" className={cn(mobileReviewTool !== "checks" && "hidden", "lg:block")}>
             <Card className="mb-6">
               <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
                 <div>
@@ -433,6 +454,7 @@ export function ResumeEditor() {
                 ))}
               </CardContent>
             </Card>
+            </div>
           ) : null}
 
           {hasContent && exportCheckpoint ? (
