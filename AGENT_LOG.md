@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-10 12:31 PDT
+
+- Market research and reprioritization: current alternatives make
+  job-description matching, scoring, templates, and application tracking
+  expected. Fresh reviews and job-seeker discussion still warn that keyword
+  optimization can be overwhelming, generic rewrites can be untrustworthy, and
+  import verification remains a real first-use burden. The product already
+  offers transparent local role review, coverage reporting, and full source
+  text, so another score, template, or automatic rewrite was lower value.
+- Decision: shipped field-level source context instead of a new matcher, DOCX
+  export, or parser rewrite. Users could see all extracted text but had to
+  manually find the evidence for each suggested value; that split attention
+  made factual import review slower than it needed to be.
+- Implementation: each imported review item now stores a short line-preserving
+  excerpt from matching local source text. The excerpt appears beside the
+  editable field and its explicit confirmation control, while the complete
+  source text remains available in the import checklist. Selection favors a
+  distinctive matching value and gracefully omits context when none is found;
+  it does not claim the parser is correct.
+- Why it matters: people can fact-check a suggested name, summary, experience,
+  education, project, or skills value where they correct it, with less scrolling
+  and no upload of their resume data.
+- Verification: `CI=true pnpm typecheck`, `CI=true pnpm lint`, and `CI=true
+  pnpm test` (29 tests) passed. `node_modules/.bin/playwright test` passed all
+  29 browser flows against the existing local server; `CI=true
+  node_modules/.bin/next build` and `git diff --check` passed. The `pnpm
+  test:e2e` wrapper could not run because its policy check requested a build
+  permission for the already locked `workerd` dependency, so the installed
+  Playwright binary was used instead.
+- Provisional next direction only: reassess parser accuracy for common layouts
+  against ATS-safe DOCX export and focused role-tailoring improvements.
+
 ## 2026-07-10 11:35 PDT
 
 - Market research and reprioritization: current alternatives make job-specific

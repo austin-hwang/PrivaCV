@@ -51,6 +51,7 @@ export type ImportReviewItem = {
   label: string;
   targetId: string;
   detail: string;
+  sourceExcerpt?: string;
 };
 
 export type ImportCoverageItem = {
@@ -131,6 +132,41 @@ export function compactDetail(value: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
   if (!cleaned) return "No text detected";
   return cleaned.length > 92 ? `${cleaned.slice(0, 89)}...` : cleaned;
+}
+
+/**
+ * Finds a short, line-preserving piece of the extracted source that supports
+ * an imported value. This is a review aid, not a claim that the parser mapped
+ * the source perfectly: users still decide whether the field is correct.
+ */
+export function importSourceExcerpt(sourceText: string | undefined, values: string[]) {
+  if (!sourceText?.trim()) return undefined;
+
+  const lines = sourceText.split("\n").map((line) => line.trim());
+  const candidates = values
+    .flatMap((value) => value.split("\n"))
+    .map((value) => value.replace(/^[•*-]\s*/, "").replace(/\s+/g, " ").trim())
+    .filter((value) => value.length >= 4);
+  const matches = candidates
+    .map((candidate) => {
+      const normalizedCandidate = candidate.toLocaleLowerCase();
+      const indexes = lines.flatMap((line, index) => {
+        const normalizedLine = line.toLocaleLowerCase();
+        return normalizedLine && (normalizedLine.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedLine))
+          ? [index]
+          : [];
+      });
+      return { candidate, indexes };
+    })
+    .filter((match) => match.indexes.length)
+    .sort((first, second) => first.indexes.length - second.indexes.length || second.candidate.length - first.candidate.length);
+  const matchingLineIndex = matches[0]?.indexes[0];
+  if (matchingLineIndex === undefined) return undefined;
+  const excerpt = lines
+    .slice(Math.max(0, matchingLineIndex - 1), Math.min(lines.length, matchingLineIndex + 3))
+    .filter(Boolean)
+    .join("\n");
+  return excerpt || undefined;
 }
 
 export function roleFocusFingerprint(value: string | undefined) {
@@ -393,6 +429,9 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
       label: "Contact details",
       targetId: state.name ? "field-name" : "field-email",
       detail: compactDetail([state.name, state.email, state.phone, state.location, state.website].filter(Boolean).join(" | ")),
+      sourceExcerpt:
+        importSourceExcerpt(sourceText, state.name ? [state.name] : [state.email, state.phone, state.location, state.website]) ??
+        importSourceExcerpt(sourceText, [state.name, state.email, state.phone, state.location, state.website]),
     },
     "Header",
   );
@@ -404,6 +443,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
         label: "Summary",
         targetId: "field-summary",
         detail: compactDetail(state.summary),
+        sourceExcerpt: importSourceExcerpt(sourceText, [state.summary]),
       },
       "Summary",
     );
@@ -418,6 +458,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
           label: `${SECTION_LABELS[section]} entry ${index + 1}`,
           targetId: entryTargetId(section, entry, index),
           detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
+          sourceExcerpt: importSourceExcerpt(sourceText, [entry.title, entry.subtitle, entry.meta, entry.details]),
         },
         SECTION_LABELS[section],
       );
@@ -431,6 +472,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
         label: "Skills",
         targetId: "field-skills",
         detail: compactDetail(state.skills.split("\n")[0] ?? state.skills),
+        sourceExcerpt: importSourceExcerpt(sourceText, [state.skills]),
       },
       "Skills",
     );

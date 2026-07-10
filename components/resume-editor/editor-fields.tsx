@@ -109,6 +109,11 @@ function ImportReviewFieldPrompt({
           {item.confirmed ? "Confirmed for this import review." : "Edit if needed, then confirm it here."}
         </p>
       </div>
+      {item.sourceExcerpt ? (
+        <p className="w-full whitespace-pre-line rounded border border-current/15 bg-background/70 px-2 py-1 font-mono text-[11px] leading-relaxed text-foreground">
+          <span className="font-sans font-semibold">Matching source context: </span>{item.sourceExcerpt}
+        </p>
+      ) : null}
       <Button
         type="button"
         variant={item.confirmed ? "secondary" : "outline"}
