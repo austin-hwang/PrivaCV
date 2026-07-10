@@ -1,5 +1,26 @@
 # Agent Log
 
+## 2026-07-10 01:34 PDT
+
+- Market reassessment: attempted fresh research across Teal, Jobscan, review
+  sites, and job-seeker discussion. The available web search did not return and
+  the competitor/review pages were blocked by their bot protections, so no
+  source claims from those pages were used as evidence. The market category is
+  still crowded with keyword-match tooling, while the current product already
+  offers a local, transparent wording review. That made more matching or a
+  decorative template lower value than making the existing resume-quality
+  guidance immediately usable during editing.
+- Decision: shipped in-context evidence guidance for experience and project
+  entries. Each entry now counts bullets with measurable scope or results and
+  identifies the precise bullets to reconsider, while explicitly preserving the
+  reminder that not every bullet needs a number.
+- Why it matters: a top-level readiness warning now leads to an immediately
+  understandable edit in the same field, helping people replace generic
+  responsibilities with truthful, concrete proof without a black-box score.
+- Provisional next opportunity: reassess import-review confidence and the
+  first-use path against newly accessible market feedback before adding more
+  role-tailoring features.
+
 ## 2026-07-10 00:29 PDT
 
 - Market reassessment: current products such as Teal and Jobscan center

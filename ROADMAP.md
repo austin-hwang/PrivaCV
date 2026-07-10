@@ -45,7 +45,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - Keep refining Resume Check guidance with more specific recommendations for
   crowded sections and low-evidence resumes; it now prompts for measurable
-  scope or results without requiring every bullet to contain a number.
+  scope or results without requiring every bullet to contain a number, with an
+  in-context per-entry cue that identifies the bullets to reconsider.
 - Keep the editor and live resume preview equally reachable on a phone, while
   preserving the fast desktop split workspace and print layout.
 - Improve the export checkpoint with role-aware recommendations and more

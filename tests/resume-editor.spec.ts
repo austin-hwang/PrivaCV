@@ -90,6 +90,20 @@ test("guides users to add measurable evidence without requiring every bullet to 
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
+test("shows an in-context evidence cue for the bullets being edited", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.locator("#field-experience-0-details").fill(
+    "Migrated the payment flow for 2 teams.\nMentored engineers through a release.\nReduced support tickets by 30%.",
+  );
+
+  await expect(page.getByText("2 of 3 bullets show measurable scope or results.")).toBeVisible();
+  await expect(page.getByText("Review bullet 2. Add a truthful scale or outcome where you know it; not every bullet needs a number.")).toBeVisible();
+});
+
 test("suggests exact role phrases for a local wording review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
