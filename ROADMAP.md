@@ -22,8 +22,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Prioritize a clear, field-by-field import review before adding more
   role-matching heuristics: imported resumes now guide users through every
   non-empty imported entry and keep confirmation beside the editable value, but
-  still need an understandable correction path before users can trust later
-  tailoring or export guidance.
+  now also make detected and not-detected resume areas explicit before users
+  confirm their draft. Reassess whether import parsing itself or a stronger
+  source-to-field correction aid is now the remaining trust gap.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear.
@@ -73,9 +74,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF and pasted-text import review with clearer confidence
   signals and a better before/after correction flow now that every imported
-  entry can be explicitly confirmed and checked against the local extracted
-  source text. Reassess whether a lightweight import-quality explanation or
-  clearer correction context is the next remaining first-use gap.
+  entry can be explicitly confirmed, checked against local extracted source
+  text, and compared with a detected/not-detected coverage snapshot. Reassess
+  whether parsing accuracy itself or a more direct source-to-field correction
+  aid is the next remaining first-use gap.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep manual checkpoint export/import available as a utility, without making

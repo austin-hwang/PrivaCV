@@ -43,6 +43,12 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByText("Import review")).toBeVisible();
   await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
+  await expect(page.getByText("What the importer detected")).toBeVisible();
+  await expect(page.getByText("1 entry detected")).toBeVisible();
+  await expect(page.getByText("No education entries detected")).toBeVisible();
+  await expect(page.getByText("Not detected” means the importer did not place content there.")).toBeVisible();
+  await page.getByRole("button", { name: /education no education entries detected/i }).click();
+  await expect(page.locator("#add-education-entry")).toBeFocused();
   await expect(page.getByText(/0 of \d+ confirmed/)).toBeVisible();
   await expect(page.getByRole("button", { name: /^finish review$/i })).toBeDisabled();
   await page.getByText("View the text used for this import").click();

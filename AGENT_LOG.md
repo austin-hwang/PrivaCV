@@ -1,5 +1,35 @@
 # Agent Log
 
+## 2026-07-10 11:35 PDT
+
+- Market research and reprioritization: current alternatives make job-specific
+  tailoring, ATS-aware feedback, saved versions, and flexible export table
+  stakes. Recent job-seeker discussions still put import reliability and quick
+  mobile correction ahead of opaque scoring or generic AI rewrites. Users need
+  to understand what an importer did not capture before they can trust a draft.
+- Decision: shipped an import-coverage explainer instead of DOCX export,
+  another role-matching heuristic, or a template. The product already required
+  explicit review, but only showed fields it recognized; a skipped education,
+  skills, or experience section could be invisible. This small change improves
+  first-use confidence for every pasted-text or PDF import.
+- Implementation: import review now shows a local detected/not-detected
+  coverage snapshot for the header, summary, experience, education, projects,
+  and skills. Each item opens the relevant editable field or add control, and
+  the copy explicitly distinguishes parser coverage from what the source may
+  contain. The snapshot is stored with the review while older local reviews use
+  a safe computed fallback.
+- Why it matters: people can catch a section the parser skipped before they
+  confirm or export, without giving sensitive resume data to a service or
+  assuming an absent item was intentionally omitted.
+- Verification: `CI=true pnpm typecheck`, `CI=true pnpm lint`, and `CI=true
+  pnpm test` (28 tests) passed. Browser coverage passed in two Playwright runs:
+  23 core flows and 6 version/backup flows (29 total); the strengthened import
+  coverage and direct-correction flow also passed again after its final test
+  assertion. `CI=true pnpm build` and `git diff --check` passed.
+- Provisional next direction only: reassess whether actual parsing accuracy for
+  common resume layouts or a tighter source-to-field correction path outweighs
+  ATS-safe DOCX export and deeper role-tailoring assistance.
+
 ## 2026-07-10 10:31 PDT
 
 - Market research and reprioritization: current Teal and Jobscan alternatives
