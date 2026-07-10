@@ -41,7 +41,7 @@ import {
   MIN_TEXT_SCALE,
   SECTION_LABELS,
 } from "@/lib/resume";
-import { formatCheckpointTime } from "@/lib/resume-workspace";
+import { buildImportCoverage, formatCheckpointTime } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 export function ResumeEditor() {
@@ -124,6 +124,7 @@ export function ResumeEditor() {
   const nextImportReviewItem = importReview?.items.find(
     (item) => !importReview.reviewedItemIds?.includes(item.id),
   );
+  const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state) : []);
 
   return (
     <>
@@ -328,6 +329,34 @@ export function ResumeEditor() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="rounded-md border border-amber-300 bg-background p-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                    <p className="text-sm font-semibold text-amber-950">What the importer detected</p>
+                    <p className="text-xs text-muted-foreground">A quick coverage check before you confirm.</p>
+                  </div>
+                  <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                    “Not detected” means the importer did not place content there. Compare the source text and add it only if it belongs on your resume.
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {importCoverage.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={cn(
+                          "flex min-h-16 items-start gap-2 rounded-md border p-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                          item.detected ? "border-emerald-300 bg-emerald-50/50" : "border-amber-300 bg-amber-50/50",
+                        )}
+                        onClick={() => focusEditorTarget(item.targetId)}
+                      >
+                        {item.detected ? <Check className="mt-0.5 size-4 shrink-0 text-emerald-800" /> : <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />}
+                        <span>
+                          <span className="block text-sm font-medium text-foreground">{item.label}</span>
+                          <span className="block text-xs leading-snug text-muted-foreground">{item.detail}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {nextImportReviewItem ? (
                   <div className="flex flex-col gap-2 rounded-md border border-amber-300 bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>

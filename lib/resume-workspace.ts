@@ -53,12 +53,21 @@ export type ImportReviewItem = {
   detail: string;
 };
 
+export type ImportCoverageItem = {
+  id: "header" | "summary" | "experience" | "education" | "projects" | "skills";
+  label: string;
+  detected: boolean;
+  detail: string;
+  targetId: string;
+};
+
 export type ImportReviewState = {
   fileName: string;
   sections: string[];
   items: ImportReviewItem[];
   reviewedItemIds?: string[];
   sourceText?: string;
+  coverage?: ImportCoverageItem[];
 };
 
 export type RecoveryPoint = {
@@ -300,6 +309,76 @@ export function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], ent
   return `field-${section}-${index}-${field}`;
 }
 
+function populatedEntryCount(entries: ResumeEntry[]) {
+  return entries.filter(entryHasContent).length;
+}
+
+function entryCoverage(
+  section: Exclude<(typeof REPEATABLE_SECTIONS)[number], "skills">,
+  state: ResumeState,
+): ImportCoverageItem {
+  const count = populatedEntryCount(state[section]);
+  const label = SECTION_LABELS[section];
+  const firstEntry = state[section].find(entryHasContent);
+  const firstEntryIndex = firstEntry ? state[section].indexOf(firstEntry) : -1;
+
+  return {
+    id: section,
+    label,
+    detected: count > 0,
+    detail: count
+      ? `${count} ${count === 1 ? "entry" : "entries"} detected`
+      : `No ${label.toLocaleLowerCase()} entries detected`,
+    targetId: firstEntry && firstEntryIndex >= 0
+      ? entryTargetId(section, firstEntry, firstEntryIndex)
+      : `add-${section}-entry`,
+  };
+}
+
+/**
+ * Gives import review a truthful coverage snapshot. "Not detected" describes
+ * what the local parser placed in the draft; it does not claim the source was
+ * missing that content. This helps people spot a skipped section before they
+ * confirm or export an imported resume.
+ */
+export function buildImportCoverage(state: ResumeState): ImportCoverageItem[] {
+  const contactCount = [state.email, state.phone, state.location, state.website].filter((value) => value.trim()).length;
+  const skillLineCount = state.skills.split("\n").filter((line) => line.trim()).length;
+
+  return [
+    {
+      id: "header",
+      label: "Header",
+      detected: Boolean(state.name.trim() || contactCount),
+      detail: state.name.trim()
+        ? `Name and ${contactCount} ${contactCount === 1 ? "contact detail" : "contact details"} detected`
+        : contactCount
+          ? `${contactCount} ${contactCount === 1 ? "contact detail" : "contact details"} detected; no name detected`
+          : "No name or contact details detected",
+      targetId: state.name.trim() ? "field-name" : "field-email",
+    },
+    {
+      id: "summary",
+      label: "Summary",
+      detected: Boolean(state.summary.trim()),
+      detail: state.summary.trim() ? "Summary text detected" : "No summary detected",
+      targetId: "field-summary",
+    },
+    entryCoverage("experience", state),
+    entryCoverage("education", state),
+    entryCoverage("projects", state),
+    {
+      id: "skills",
+      label: "Skills",
+      detected: skillLineCount > 0,
+      detail: skillLineCount
+        ? `${skillLineCount} ${skillLineCount === 1 ? "skill line" : "skill lines"} detected`
+        : "No skills detected",
+      targetId: "field-skills",
+    },
+  ];
+}
+
 export function buildImportReview(state: ResumeState, fileName: string, sourceText?: string): ImportReviewState {
   const items: ImportReviewItem[] = [];
   const sections = new Set<string>();
@@ -363,6 +442,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
     items,
     reviewedItemIds: [],
     sourceText: sourceText?.trim() || undefined,
+    coverage: buildImportCoverage(state),
   };
 }
 

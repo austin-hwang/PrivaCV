@@ -15,6 +15,7 @@ import {
   MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
   VERSION_HISTORY_BACKUP_VERSION,
+  buildImportCoverage,
   buildImportReview,
   importReviewProgress,
   mergeVersionHistory,
@@ -94,6 +95,22 @@ describe("resume helpers", () => {
       reviewedCount: 1,
       remainingCount: review.items.length - 1,
     });
+  });
+
+  it("shows what an import did and did not place in the resume", () => {
+    const state = emptyState();
+    state.name = "Ada Lovelace";
+    state.email = "ada@example.com";
+    state.experience = [{ title: "Engineer", subtitle: "Example Co.", meta: "2022 - Present", details: "Built reliable systems." }];
+
+    const coverage = buildImportCoverage(state);
+
+    expect(coverage).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "header", detected: true, detail: "Name and 1 contact detail detected" }),
+      expect.objectContaining({ id: "experience", detected: true, detail: "1 entry detected", targetId: "field-experience-0-title" }),
+      expect.objectContaining({ id: "education", detected: false, detail: "No education entries detected", targetId: "add-education-entry" }),
+      expect.objectContaining({ id: "skills", detected: false, detail: "No skills detected", targetId: "field-skills" }),
+    ]));
   });
 
   it("normalizes legacy JSON into a complete resume state", () => {
