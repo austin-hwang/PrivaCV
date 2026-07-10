@@ -10,7 +10,7 @@ import {
   summarizeEvidence,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
-import { importResumeText, importResumeTextWithSource } from "@/lib/pdf-import";
+import { detectSection, importResumeText, importResumeTextWithSource } from "@/lib/pdf-import";
 import {
   MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
@@ -48,6 +48,46 @@ describe("resume helpers", () => {
 
     expect(imported.sourceText).toBe("Ada Lovelace\n\nExperience\nEngineer | Example Co.");
     expect(imported.state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Example Co." });
+  });
+
+  it("recognizes common alternate resume section headings before parsing content", () => {
+    expect(detectSection("Career Profile")).toBe("summary");
+    expect(detectSection("Relevant Experience")).toBe("experience");
+    expect(detectSection("Education & Training")).toBe("education");
+    expect(detectSection("Academic Projects")).toBe("projects");
+    expect(detectSection("Key Skills")).toBe("skills");
+  });
+
+  it("imports content under common alternate resume section headings", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Career Profile",
+      "Platform engineer building dependable developer tools.",
+      "",
+      "Relevant Experience",
+      "Staff Engineer | Analytical Engines | 2022–Present",
+      "• Built reliable systems.",
+      "",
+      "Education & Training",
+      "M.S. Computer Science | Example University | 2018–2020",
+      "",
+      "Academic Projects",
+      "Compiler | TypeScript | 2020",
+      "• Built a teaching compiler.",
+      "",
+      "Key Skills",
+      "TypeScript, React, systems design",
+    ].join("\n"));
+
+    expect(state).toMatchObject({
+      summary: "Platform engineer building dependable developer tools.",
+      skills: "TypeScript, React, systems design",
+    });
+    expect(state.experience[0]).toMatchObject({ title: "Staff Engineer", subtitle: "Analytical Engines" });
+    expect(state.education[0]).toMatchObject({ title: "M.S. Computer Science", subtitle: "Example University" });
+    expect(state.projects[0]).toMatchObject({ title: "Compiler", subtitle: "TypeScript" });
   });
 
   it("keeps adjacent dated roles separate when exported resumes put dates on their own line", () => {
