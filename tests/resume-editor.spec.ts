@@ -61,6 +61,34 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText("Import review")).toBeHidden();
 });
 
+test("asks users to review every imported experience entry", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "Platform Engineer",
+    "ada@example.com | San Francisco, CA",
+    "",
+    "Experience",
+    "Staff Engineer | Analytical Engines | 2022–Present",
+    "• Built reliable systems.",
+    "",
+    "Software Engineer | Example Co. | 2018–2022",
+    "• Improved deployment tooling.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByText("Experience entry 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("Experience entry 2", { exact: true })).toBeVisible();
+  await page.locator(".min-h-24").filter({ hasText: "Experience entry 2" })
+    .getByRole("button", { name: /^review field$/i }).click();
+  await expect(page.locator("#field-experience-1-title")).toBeFocused();
+});
+
 test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

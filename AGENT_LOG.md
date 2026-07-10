@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-10 06:45 PDT
+
+- Market research and reprioritization: current resume-tailoring products make
+  job-description matching and keyword feedback commonplace, while user feedback
+  warns against generic suggestions and opaque automation. That made trustworthy
+  import review higher value than another match heuristic or template this run.
+- User problem addressed: the editor promised review of every imported field but
+  only created a review item for the first experience, education, and project,
+  leaving later imported history easy to miss before export.
+- Implementation: import review now creates a distinct, direct field jump and
+  explicit confirmation for every non-empty imported repeatable entry. Labels
+  identify the exact entry number, so users can navigate and confirm long work
+  histories without guessing what was covered.
+- Why it matters: users can verify parsing errors anywhere in their resume,
+  retain control of factual content, and trust the local import flow before
+  tailoring or exporting.
+- Verification: `CI=true node_modules/.bin/tsc --noEmit`,
+  `CI=true node_modules/.bin/next lint`, `CI=true node_modules/.bin/vitest run`
+  (26 tests), `node_modules/.bin/playwright test` (27 tests),
+  `CI=true node_modules/.bin/next build`, and `git diff --check` all passed.
+  The `pnpm` wrapper could not begin checks because its supply-chain policy
+  requires an explicit build-script decision for the already-locked `workerd`
+  dependency, so the repository's installed binaries were used instead.
+- Provisional next direction only: reassess an import-source comparison view,
+  mobile editing density, and ATS-safe template choice against fresh research.
+
 ## 2026-07-10 06:28 PDT
 
 - Market reassessment: fresh review of Jobscan, Teal, and Rezi confirms that

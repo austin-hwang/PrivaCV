@@ -330,18 +330,18 @@ export function buildImportReview(state: ResumeState, fileName: string): ImportR
   }
 
   REPEATABLE_SECTIONS.forEach((section) => {
-    const index = state[section].findIndex(entryHasContent);
-    if (index < 0) return;
-    const entry = state[section][index];
-    addItem(
-      {
-        id: section,
-        label: `First ${SECTION_LABELS[section].toLowerCase()} entry`,
-        targetId: entryTargetId(section, entry, index),
-        detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
-      },
-      SECTION_LABELS[section],
-    );
+    state[section].forEach((entry, index) => {
+      if (!entryHasContent(entry)) return;
+      addItem(
+        {
+          id: `${section}-${index}`,
+          label: `${SECTION_LABELS[section]} entry ${index + 1}`,
+          targetId: entryTargetId(section, entry, index),
+          detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
+        },
+        SECTION_LABELS[section],
+      );
+    });
   });
 
   if (state.skills) {
