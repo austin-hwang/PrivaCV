@@ -8,7 +8,7 @@ import {
   ENTRY_SCHEMA,
   REPEATABLE_SECTIONS,
 } from "@/lib/resume-workspace";
-import { SECTION_LABELS, type ResumeEntry } from "@/lib/resume";
+import { SECTION_LABELS, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 export function FieldGroup({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
@@ -96,6 +96,7 @@ export function EntryList({
   onRemove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => void;
 }) {
   const schema = ENTRY_SCHEMA[section];
+  const supportsEvidenceReview = section === "experience" || section === "projects";
 
   if (!entries.length) {
     return (
@@ -107,9 +108,15 @@ export function EntryList({
 
   return (
     <div className="space-y-3">
-      {entries.map((entry, index) => (
-        <Card key={index} className="bg-muted/20 shadow-none">
-          <CardContent className="space-y-3 p-3">
+      {entries.map((entry, index) => {
+        const evidence = supportsEvidenceReview ? summarizeEvidence(entry.details) : null;
+        const reviewLabel = evidence?.unmeasuredIndexes.length
+          ? `Review ${evidence.unmeasuredIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
+          : null;
+
+        return (
+          <Card key={index} className="bg-muted/20 shadow-none">
+            <CardContent className="space-y-3 p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <Button
@@ -165,9 +172,33 @@ export function EntryList({
               reviewTarget={reviewTargets.has(`field-${section}-${index}-details`)}
               onChange={(value) => onUpdate(section, index, "details", value)}
             />
-          </CardContent>
-        </Card>
-      ))}
+            {evidence?.bulletCount ? (
+              <div
+                className={cn(
+                  "rounded-md border px-3 py-2 text-xs leading-snug",
+                  evidence.unmeasuredIndexes.length
+                    ? "border-amber-300 bg-amber-50 text-amber-950"
+                    : "border-emerald-300 bg-emerald-50 text-emerald-950",
+                )}
+                aria-live="polite"
+              >
+                <p className="font-semibold">
+                  {evidence.measuredCount} of {evidence.bulletCount} {evidence.bulletCount === 1 ? "bullet shows" : "bullets show"}{" "}
+                  measurable scope or results.
+                </p>
+                {reviewLabel ? (
+                  <p className="mt-1 text-muted-foreground">
+                    {reviewLabel}. Add a truthful scale or outcome where you know it; not every bullet needs a number.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-muted-foreground">Each bullet includes a concrete scope or result.</p>
+                )}
+              </div>
+            ) : null}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

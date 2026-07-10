@@ -7,6 +7,7 @@ import {
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
+  summarizeEvidence,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
 import { importResumeText } from "@/lib/pdf-import";
@@ -80,6 +81,16 @@ describe("resume helpers", () => {
       targetId: "field-experience-0-details",
     });
     expect(evidence?.guidance).toContain("Not every bullet needs a number");
+  });
+
+  it("summarizes the specific bullets that could use stronger evidence", () => {
+    expect(
+      summarizeEvidence("Migrated the payment flow for 2 teams.\nMentored engineers through a release.\nReduced support tickets by 30%."),
+    ).toEqual({
+      bulletCount: 3,
+      measuredCount: 2,
+      unmeasuredIndexes: [1],
+    });
   });
 
   it("targets the first missing contact field", () => {

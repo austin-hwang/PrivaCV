@@ -48,6 +48,12 @@ export type ResumeCheck = {
   targetId: string;
 };
 
+export type EvidenceSummary = {
+  bulletCount: number;
+  measuredCount: number;
+  unmeasuredIndexes: number[];
+};
+
 export type ExportChange = {
   id: string;
   label: string;
@@ -138,10 +144,28 @@ export function allBullets(state: ResumeState) {
   );
 }
 
-function hasMeasuredEvidence(bullet: string) {
+export function hasMeasuredEvidence(bullet: string) {
   return /(?:[$€£]\s?\d[\d,.]*(?:[kmb])?|\b\d[\d,.]*(?:%|\+|x\b|[kmb]\b)|\b\d[\d,.]*\s+(?:users?|customers?|clients?|teams?|engineers?|people|projects?|releases?|hours?|days?|weeks?|months?|years?|requests?|transactions?|applications?|companies|locations|markets|reports?|experiments?|campaigns?)\b)/i.test(
     bullet,
   );
+}
+
+/**
+ * Gives the editor a small, transparent evidence cue for one experience or
+ * project entry. It deliberately recognizes scope as well as numeric outcomes
+ * so users can decide which bullets can truthfully be made more specific.
+ */
+export function summarizeEvidence(details: string): EvidenceSummary {
+  const bullets = bulletsFrom(details);
+  const unmeasuredIndexes = bullets
+    .map((bullet, index) => (hasMeasuredEvidence(bullet) ? -1 : index))
+    .filter((index) => index >= 0);
+
+  return {
+    bulletCount: bullets.length,
+    measuredCount: bullets.length - unmeasuredIndexes.length,
+    unmeasuredIndexes,
+  };
 }
 
 function evidenceBullets(state: ResumeState) {
