@@ -10,7 +10,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Local-first Next.js editor that runs without a backend.
 - Live Letter-size preview with reliable PDF export.
 - Reviewable plain-text copy for ATS checks and application forms.
-- Import from text-based PDFs and editable JSON backups.
+- Import from text-based PDFs and editable JSON files.
 - Repeatable sections for education, experience, projects, and skills.
 
 ## User Experience
@@ -30,20 +30,14 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make post-export changes easier to audit with concise before/after context
   before the next PDF export, including a full expandable audit trail for dense
   tailoring sessions.
-- Let users keep named, annotated browser-only version history so job-specific
-  tailoring feels reversible without accounts or cloud storage.
-- Make saved checkpoint management forgiving, including recovery from accidental
-  deletes while the page is still open.
-- Let users compare a saved checkpoint with the current resume before restoring
-  or exporting a tailored draft.
-- Make checkpoint comparisons name the exact edited fields so users can audit
-  job-specific tailoring without rereading every section.
-- Let users compare two saved checkpoints directly when deciding which tailored
-  draft to revive.
-- Keep checkpoint comparisons explicit about role-focus context so identical
-  resume content never hides a different saved job description.
-- Show what changed immediately after restoring a checkpoint so reverting a
-  tailored draft still feels reviewable, even when many areas changed.
+- Let users keep lightweight browser-only checkpoints so job-specific tailoring
+  feels reversible without accounts or cloud storage.
+- Make saved drafts quick to scan, compare, restore, or undo when users are
+  deciding which tailored version to continue.
+- Keep role-focus context attached to the right saved draft without making
+  version management dominate the editor.
+- Show what changed after restoring a checkpoint so reverting a tailored draft
+  still feels reviewable.
 - Improve mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
@@ -60,22 +54,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
-- Improve local version history with clearer checkpoint labels, lineage cues,
-  lightweight guidance for choosing which saved draft to restore, and reliable
-  role-focus context when returning to a tailored draft without carrying an
-  unrelated role into a general version.
-- Keep local checkpoint cleanup low-risk with undo paths, visible capacity
-  limits, and clear replacement warnings before the five-version cap rotates an
-  older draft out.
-- Make saved checkpoints glanceable enough to choose quickly before opening a
-  comparison or restoring an older draft.
-- Recommend the closest saved checkpoint to review first when the current
-  tailored draft differs from multiple local versions.
-- Keep improving restored checkpoint summaries with clearer scan hierarchy for
-  large edits.
-- Continue refining checkpoint backup import guidance with clear duplicate
-  handling when a backup overlaps existing browser-only drafts, including
-  explicit capacity review for backups larger than local history.
+- Improve local version history just enough to support tailoring: clear labels,
+  role context, simple comparisons, undo paths, and readable restore summaries.
+- Keep manual checkpoint export/import available as a utility, without making
+  backup management a central workflow.
 
 ## UI System
 

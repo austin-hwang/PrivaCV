@@ -260,6 +260,30 @@ test("restores the local role focus saved with a tailored checkpoint", async ({ 
   await expect(description).toHaveValue("Lead design systems for a consumer product team.");
 });
 
+test("keeps same-resume checkpoints separate for different private role labels", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByLabel("Private role label (optional)").fill("Acme — Senior Product Engineer");
+  await page.getByLabel("Job description").fill("Build reliable product experiences for growing teams.");
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Acme application");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await page.getByLabel("Private role label (optional)").fill("Northstar — Platform Engineer");
+  await page.getByLabel("Job description").fill("Build scalable platform systems for engineering teams.");
+  await page.getByRole("button", { name: /save version/i }).click();
+  await expect(page.getByText("Matching checkpoint found")).toBeHidden();
+  await page.getByLabel("Checkpoint name").fill("Northstar application");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await expect(page.getByText("2/5 saved")).toBeVisible();
+  await expect(page.getByText(/Role label · Acme — Senior Product Engineer/)).toBeVisible();
+  await expect(page.getByText(/Role label · Northstar — Platform Engineer/)).toBeVisible();
+});
+
 test("clears an unrelated role focus when restoring a checkpoint without one", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

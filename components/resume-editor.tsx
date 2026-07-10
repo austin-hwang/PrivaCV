@@ -24,7 +24,7 @@ import {
   Undo2,
   Upload,
 } from "lucide-react";
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { forwardRef, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,867 +39,129 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { importResumePdf } from "@/lib/pdf-import";
+import { useResumeEditor } from "@/hooks/use-resume-editor";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
 import {
-  blankEntry,
-  buildResumeChecks,
   bulletsFrom,
   clampTextScale,
-  emptyState,
   exportChangeSummary,
   hasAnyContent,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
-  normalizeResume,
   plainTextStats,
-  resumeExportFingerprint,
   resumePlainText,
-  sampleState,
   SECTION_LABELS,
   type ExportChange,
   type ResumeEntry,
   type ResumeState,
   type SectionKey,
 } from "@/lib/resume";
+import {
+  CHANGE_PREVIEW_LIMIT,
+  ENTRY_SCHEMA,
+  MAX_VERSION_HISTORY,
+  REPEATABLE_SECTIONS,
+  compactDetail,
+  formatCheckpointTime,
+  roleContextFingerprint,
+  versionContentBadges,
+  versionHeadline,
+  type RestoredVersionSummary,
+  type VersionHistoryItem,
+} from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "resume-editor-data-v2";
-const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
-const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
-const ROLE_FOCUS_KEY = "resume-editor-role-focus-v1";
-const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
-const VERSION_HISTORY_BACKUP_VERSION = 1;
-const MAX_VERSION_HISTORY = 5;
-const CHANGE_PREVIEW_LIMIT = 4;
-const REPEATABLE_SECTIONS = ["experience", "education", "projects"] as const;
-
-const ENTRY_SCHEMA: Record<(typeof REPEATABLE_SECTIONS)[number], { title: string; subtitle: string; meta: string; details: string }> = {
-  experience: {
-    title: "Job Title",
-    subtitle: "Company",
-    meta: "Dates (e.g. Jan 2020 - Present)",
-    details: "Responsibilities / achievements (one bullet per line)",
-  },
-  education: {
-    title: "Degree",
-    subtitle: "School",
-    meta: "Dates / Location",
-    details: "Details (one bullet per line, optional)",
-  },
-  projects: {
-    title: "Project Name",
-    subtitle: "Technologies / Role",
-    meta: "Dates / Link",
-    details: "Description (one bullet per line)",
-  },
-};
-
-type ToastState = {
-  id: number;
-  message: string;
-};
-
-type ImportReviewItem = {
-  id: string;
-  label: string;
-  targetId: string;
-  detail: string;
-};
-
-type ImportReviewState = {
-  fileName: string;
-  sections: string[];
-  items: ImportReviewItem[];
-};
-
-type RecoveryPoint = {
-  label: string;
-  state: ResumeState;
-  importReview: ImportReviewState | null;
-  jobDescription: string;
-};
-
-type VersionHistoryItem = {
-  id: string;
-  savedAt: string;
-  label: string;
-  note?: string;
-  derivedFromId?: string;
-  derivedFromLabel?: string;
-  fingerprint: string;
-  state: ResumeState;
-  importReview: ImportReviewState | null;
-  jobDescription?: string;
-};
-
-type VersionHistoryBackup = {
-  format: typeof VERSION_HISTORY_BACKUP_FORMAT;
-  version: typeof VERSION_HISTORY_BACKUP_VERSION;
-  exportedAt: string;
-  checkpoints: VersionHistoryItem[];
-};
-
-type VersionHistoryMerge = {
-  checkpoints: VersionHistoryItem[];
-  overflow: VersionHistoryItem[];
-  incomingUnique: VersionHistoryItem[];
-  matchingCheckpoints: VersionHistoryItem[];
-};
-
-type VersionCompareTarget = {
-  baseId: string;
-  targetId: "current" | string;
-};
-
-type RestoredVersionSummary = {
-  id: string;
-  label: string;
-  savedAt: string;
-  fingerprint: string;
-  changes: ExportChange[];
-};
-
-type ExportCheckpoint = {
-  fingerprint: string;
-  exportedAt: string;
-  pageCount: number;
-  issueCount: number;
-  snapshot?: ResumeState;
-};
-
-function compactDetail(value: string) {
-  const cleaned = value.replace(/\s+/g, " ").trim();
-  if (!cleaned) return "No text detected";
-  return cleaned.length > 92 ? `${cleaned.slice(0, 89)}...` : cleaned;
-}
-
-function roleFocusFingerprint(value: string | undefined) {
-  return (value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase();
-}
-
-function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as Partial<ExportCheckpoint>;
-    if (
-      typeof parsed.fingerprint === "string" &&
-      typeof parsed.exportedAt === "string" &&
-      typeof parsed.pageCount === "number" &&
-      typeof parsed.issueCount === "number"
-    ) {
-      return {
-        fingerprint: parsed.fingerprint,
-        exportedAt: parsed.exportedAt,
-        pageCount: parsed.pageCount,
-        issueCount: parsed.issueCount,
-        snapshot: parsed.snapshot ? normalizeResume(parsed.snapshot) : undefined,
-      };
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function parseVersionHistory(value: string | null, limit = MAX_VERSION_HISTORY): VersionHistoryItem[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item): VersionHistoryItem | null => {
-        if (
-          !item ||
-          typeof item.id !== "string" ||
-          typeof item.savedAt !== "string" ||
-          typeof item.label !== "string" ||
-          typeof item.fingerprint !== "string"
-        ) {
-          return null;
-        }
-        return {
-          id: item.id,
-          savedAt: item.savedAt,
-          label: item.label,
-          note: typeof item.note === "string" ? item.note : undefined,
-          derivedFromId: typeof item.derivedFromId === "string" ? item.derivedFromId : undefined,
-          derivedFromLabel: typeof item.derivedFromLabel === "string" ? item.derivedFromLabel : undefined,
-          fingerprint: item.fingerprint,
-          state: normalizeResume(item.state),
-          importReview: item.importReview ?? null,
-          jobDescription: typeof item.jobDescription === "string" ? item.jobDescription : undefined,
-        };
-      })
-      .filter((item): item is VersionHistoryItem => Boolean(item))
-      .slice(0, limit);
-  } catch {
-    return [];
-  }
-}
-
-function parseVersionHistoryBackup(value: unknown): VersionHistoryItem[] | null {
-  if (!value || typeof value !== "object") return null;
-  const backup = value as Partial<VersionHistoryBackup>;
-  if (
-    backup.format !== VERSION_HISTORY_BACKUP_FORMAT ||
-    backup.version !== VERSION_HISTORY_BACKUP_VERSION ||
-    !Array.isArray(backup.checkpoints)
-  ) {
-    return null;
-  }
-
-  // Backups can legitimately contain more drafts than this browser keeps. Keep
-  // every valid entry until mergeVersionHistory can sort them, deduplicate them,
-  // and explicitly tell the user which older drafts remain in the backup.
-  return parseVersionHistory(JSON.stringify(backup.checkpoints), Number.POSITIVE_INFINITY);
-}
-
-function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]): VersionHistoryMerge {
-  const existingFingerprints = new Set(existing.map((item) => item.fingerprint));
-  const seenIncomingFingerprints = new Set<string>();
-  const matchingCheckpoints = incoming.filter((item) => existingFingerprints.has(item.fingerprint));
-  const incomingUnique = incoming.filter((item) => {
-    if (existingFingerprints.has(item.fingerprint) || seenIncomingFingerprints.has(item.fingerprint)) return false;
-    seenIncomingFingerprints.add(item.fingerprint);
-    return true;
-  });
-  const seenFingerprints = new Set<string>();
-  const usedIds = new Set<string>();
-
-  const uniqueHistory = [...existing, ...incomingUnique]
-    .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
-    .filter((item) => {
-      if (seenFingerprints.has(item.fingerprint)) return false;
-      seenFingerprints.add(item.fingerprint);
-      return true;
-    })
-    .map((item) => {
-      let id = item.id;
-      let suffix = 2;
-      while (usedIds.has(id)) {
-        id = `${item.id}-${suffix}`;
-        suffix += 1;
-      }
-      usedIds.add(id);
-      return id === item.id ? item : { ...item, id };
-    });
-
-  return {
-    checkpoints: uniqueHistory.slice(0, MAX_VERSION_HISTORY),
-    overflow: uniqueHistory.slice(MAX_VERSION_HISTORY),
-    incomingUnique,
-    matchingCheckpoints,
-  };
-}
-
-function formatCheckpointTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "recently";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function versionLabel(state: ResumeState) {
-  return state.name.trim() || state.title.trim() || "Untitled resume";
-}
-
-function versionHeadline(state: ResumeState) {
-  return [state.name.trim() || "Unnamed resume", state.title.trim()].filter(Boolean).join(" - ");
-}
-
-function entryHasContent(entry: ResumeEntry) {
-  return Boolean(entry.title || entry.subtitle || entry.meta || entry.details);
-}
-
-function versionContentBadges(state: ResumeState) {
-  const experienceCount = state.experience.filter(entryHasContent).length;
-  const educationCount = state.education.filter(entryHasContent).length;
-  const projectCount = state.projects.filter(entryHasContent).length;
-  const skillCount = state.skills.split("\n").filter((line) => line.trim()).length;
-  const badges: string[] = [];
-
-  if (experienceCount) badges.push(`${experienceCount} ${experienceCount === 1 ? "role" : "roles"}`);
-  if (educationCount) badges.push(`${educationCount} education`);
-  if (projectCount) badges.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
-  if (skillCount) badges.push(`${skillCount} ${skillCount === 1 ? "skill line" : "skill lines"}`);
-
-  return badges.length ? badges : ["Empty draft"];
-}
-
-function versionReplacementCandidate(versions: VersionHistoryItem[], fingerprint: string) {
-  if (versions.some((item) => item.fingerprint === fingerprint)) return null;
-  if (versions.length < MAX_VERSION_HISTORY) return null;
-  return versions[versions.length - 1] ?? null;
-}
-
-function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], entry: ResumeEntry, index: number) {
-  const field = entry.title ? "title" : entry.subtitle ? "subtitle" : entry.meta ? "meta" : "details";
-  return `field-${section}-${index}-${field}`;
-}
-
-function buildImportReview(state: ResumeState, fileName: string): ImportReviewState {
-  const items: ImportReviewItem[] = [];
-  const sections = new Set<string>();
-  const addItem = (item: ImportReviewItem, section: string) => {
-    items.push(item);
-    sections.add(section);
-  };
-
-  addItem(
-    {
-      id: "contact",
-      label: "Contact details",
-      targetId: state.name ? "field-name" : "field-email",
-      detail: compactDetail([state.name, state.email, state.phone, state.location, state.website].filter(Boolean).join(" | ")),
-    },
-    "Header",
-  );
-
-  if (state.summary) {
-    addItem(
-      {
-        id: "summary",
-        label: "Summary",
-        targetId: "field-summary",
-        detail: compactDetail(state.summary),
-      },
-      "Summary",
-    );
-  }
-
-  (["experience", "education", "projects"] as const).forEach((section) => {
-    const index = state[section].findIndex(entryHasContent);
-    if (index < 0) return;
-    const entry = state[section][index];
-    addItem(
-      {
-        id: section,
-        label: `First ${SECTION_LABELS[section].toLowerCase()} entry`,
-        targetId: entryTargetId(section, entry, index),
-        detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
-      },
-      SECTION_LABELS[section],
-    );
-  });
-
-  if (state.skills) {
-    addItem(
-      {
-        id: "skills",
-        label: "Skills",
-        targetId: "field-skills",
-        detail: compactDetail(state.skills.split("\n")[0] ?? state.skills),
-      },
-      "Skills",
-    );
-  }
-
-  return {
-    fileName,
-    sections: [...sections],
-    items,
-  };
-}
-
 export function ResumeEditor() {
-  const [state, setState] = useState<ResumeState>(() => emptyState());
-  const [loaded, setLoaded] = useState(false);
-  const [pageCount, setPageCount] = useState(1);
-  const [textReviewOpen, setTextReviewOpen] = useState(false);
-  const [exportCheckOpen, setExportCheckOpen] = useState(false);
-  const [versionSaveOpen, setVersionSaveOpen] = useState(false);
-  const [versionDraftLabel, setVersionDraftLabel] = useState("");
-  const [versionDraftNote, setVersionDraftNote] = useState("");
-  const [versionCompareTarget, setVersionCompareTarget] = useState<VersionCompareTarget | null>(null);
-  const [draftSourceVersionId, setDraftSourceVersionId] = useState<string | null>(null);
-  const [toast, setToast] = useState<ToastState | null>(null);
-  const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
-  const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
-  const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
-  const [deletedVersion, setDeletedVersion] = useState<VersionHistoryItem | null>(null);
-  const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
-  const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
-  const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
-  const [jobDescription, setJobDescription] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const jsonInputRef = useRef<HTMLInputElement>(null);
-  const historyBackupInputRef = useRef<HTMLInputElement>(null);
-  const resumeRef = useRef<HTMLDivElement>(null);
-
-  const hasContent = hasAnyContent(state);
-  const checks = useMemo(() => buildResumeChecks(state, pageCount), [state, pageCount]);
-  const failedChecks = checks.filter((check) => !check.ok);
-  const passedChecks = checks.filter((check) => check.ok).length;
-  const plainText = useMemo(() => resumePlainText(state), [state]);
-  const roleFocus = useMemo(() => buildRoleFocus(plainText, jobDescription), [jobDescription, plainText]);
-  const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
-  const visibleRestoredVersionSummary =
-    restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;
-  const exportIsCurrent = Boolean(exportCheckpoint && exportCheckpoint.fingerprint === exportFingerprint);
-  const exportChanges = useMemo(
-    () =>
-      exportCheckpoint?.snapshot && !exportIsCurrent
-        ? exportChangeSummary(exportCheckpoint.snapshot, state)
-        : [],
-    [exportCheckpoint, exportIsCurrent, state],
-  );
-  const comparedBaseVersion = useMemo(
-    () => versionHistory.find((item) => item.id === versionCompareTarget?.baseId) ?? null,
-    [versionCompareTarget?.baseId, versionHistory],
-  );
-  const comparedTargetVersion = useMemo(
-    () =>
-      versionCompareTarget?.targetId && versionCompareTarget.targetId !== "current"
-        ? versionHistory.find((item) => item.id === versionCompareTarget.targetId) ?? null
-        : null,
-    [versionCompareTarget?.targetId, versionHistory],
-  );
-  const comparedTargetState = versionCompareTarget?.targetId === "current" ? state : comparedTargetVersion?.state;
-  const versionCompareUsesCurrent = versionCompareTarget?.targetId === "current";
-  const comparedBaseRoleFocus = comparedBaseVersion?.jobDescription ?? "";
-  const comparedTargetRoleFocus = versionCompareUsesCurrent ? jobDescription : comparedTargetVersion?.jobDescription ?? "";
-  const versionRoleFocusChanged =
-    roleFocusFingerprint(comparedBaseRoleFocus) !== roleFocusFingerprint(comparedTargetRoleFocus);
-  const versionToReplaceOnSave = useMemo(
-    () => versionReplacementCandidate(versionHistory, exportFingerprint),
-    [exportFingerprint, versionHistory],
-  );
-  const existingVersionForSave = useMemo(
-    () => versionHistory.find((item) => item.fingerprint === exportFingerprint) ?? null,
-    [exportFingerprint, versionHistory],
-  );
-  const mergedHistoryBackup = useMemo(
-    () =>
-      historyBackupToImport
-        ? mergeVersionHistory(versionHistory, historyBackupToImport)
-        : { checkpoints: [], overflow: [], incomingUnique: [], matchingCheckpoints: [] },
-    [historyBackupToImport, versionHistory],
-  );
-  const versionChanges = useMemo(
-    () =>
-      comparedBaseVersion && comparedTargetState
-        ? exportChangeSummary(comparedBaseVersion.state, comparedTargetState)
-        : [],
-    [comparedBaseVersion, comparedTargetState],
-  );
-  const versionCompareDescription = useMemo(() => {
-    if (!comparedBaseVersion) return "Compare a saved checkpoint with the current resume or another saved checkpoint.";
-    const base = `${comparedBaseVersion.label} saved ${formatCheckpointTime(comparedBaseVersion.savedAt)}`;
-    if (versionCompareUsesCurrent) return `${base} compared with the current resume.`;
-    if (!comparedTargetVersion) return base;
-    return `${base} compared with ${comparedTargetVersion.label} saved ${formatCheckpointTime(comparedTargetVersion.savedAt)}.`;
-  }, [comparedBaseVersion, comparedTargetVersion, versionCompareUsesCurrent]);
-  const versionCompareBeforeLabel = versionCompareUsesCurrent ? "Saved" : "Base";
-  const versionCompareAfterLabel = versionCompareUsesCurrent ? "Current" : "Compared";
-  const versionCompareOpen = Boolean(
-    comparedBaseVersion && (versionCompareUsesCurrent || comparedTargetVersion),
-  );
-  const importReviewTargets = useMemo(
-    () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
-    [importReview],
-  );
-
-  const flash = useCallback((message: string) => {
-    setToast({ id: Date.now(), message });
-  }, []);
-
-  const saveRecoveryPoint = useCallback(
-    (label: string, previousState = state, previousImportReview = importReview, previousJobDescription = jobDescription) => {
-      if (!hasAnyContent(previousState) && !previousImportReview) {
-        setRecoveryPoint(null);
-        return;
-      }
-      setRecoveryPoint({
-        label,
-        state: previousState,
-        importReview: previousImportReview,
-        jobDescription: previousJobDescription,
-      });
-    },
-    [importReview, jobDescription, state],
-  );
-
-  const restoreRecoveryPoint = () => {
-    if (!recoveryPoint) return;
-    setState(recoveryPoint.state);
-    setImportReview(recoveryPoint.importReview);
-    setJobDescription(recoveryPoint.jobDescription);
-    setRecoveryPoint(null);
-    setRestoredVersionSummary(null);
-    setDraftSourceVersionId(null);
-    flash("Restored previous resume");
-  };
-
-  const openVersionSave = () => {
-    if (!hasAnyContent(state)) {
-      flash("Add resume details first");
-      return;
-    }
-    setVersionDraftLabel(versionLabel(state));
-    setVersionDraftNote("");
-    setVersionSaveOpen(true);
-  };
-
-  const saveVersion = () => {
-    if (!hasAnyContent(state)) {
-      flash("Add resume details first");
-      return;
-    }
-    const fingerprint = resumeExportFingerprint(state);
-    const label = versionDraftLabel.trim() || versionLabel(state);
-    const note = versionDraftNote.trim();
-    const replacement = versionReplacementCandidate(versionHistory, fingerprint);
-    const derivedFrom =
-      versionHistory.find((item) => item.id === draftSourceVersionId && item.fingerprint !== fingerprint) ??
-      versionHistory.find((item) => item.fingerprint !== fingerprint) ??
-      null;
-    const entry: VersionHistoryItem = {
-      id: `${Date.now()}`,
-      savedAt: new Date().toISOString(),
-      label,
-      note: note || undefined,
-      derivedFromId: derivedFrom?.id,
-      derivedFromLabel: derivedFrom?.label,
-      fingerprint,
-      state: normalizeResume(state),
-      importReview,
-      jobDescription: jobDescription.trim() || undefined,
-    };
-    setVersionHistory((current) => [entry, ...current.filter((item) => item.fingerprint !== fingerprint)].slice(0, MAX_VERSION_HISTORY));
-    setDraftSourceVersionId(entry.id);
-    setVersionSaveOpen(false);
-    flash(replacement ? `Saved locally and replaced ${replacement.label}` : "Version saved locally");
-  };
-
-  const restoreVersion = (item: VersionHistoryItem) => {
-    saveRecoveryPoint(`Before restoring ${item.label}`);
-    setRestoredVersionSummary({
-      id: item.id,
-      label: item.label,
-      savedAt: item.savedAt,
-      fingerprint: item.fingerprint,
-      changes: exportChangeSummary(state, item.state),
-    });
-    setState(item.state);
-    setImportReview(item.importReview);
-    // Older checkpoints predate role context. Treat their missing description
-    // as intentionally empty so an unrelated, previously pasted role cannot
-    // stay visible after the resume itself has changed.
-    setJobDescription(item.jobDescription ?? "");
-    setDraftSourceVersionId(item.id);
-    flash("Restored saved version");
-  };
-
-  const deleteVersion = (id: string) => {
-    const deleted = versionHistory.find((item) => item.id === id) ?? null;
-    setVersionHistory((current) => current.filter((item) => item.id !== id));
-    setDeletedVersion(deleted);
-    if (versionCompareTarget?.baseId === id || versionCompareTarget?.targetId === id) setVersionCompareTarget(null);
-    if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
-    if (draftSourceVersionId === id) setDraftSourceVersionId(null);
-    flash("Deleted saved version");
-  };
-
-  const undoDeleteVersion = () => {
-    if (!deletedVersion) return;
-    setVersionHistory((current) =>
-      [deletedVersion, ...current.filter((item) => item.id !== deletedVersion.id)]
-        .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
-        .slice(0, MAX_VERSION_HISTORY),
-    );
-    setDeletedVersion(null);
-    flash("Restored deleted checkpoint");
-  };
-
-  const focusFromVersionCompare = (targetId: string) => {
-    setVersionCompareTarget(null);
-    window.setTimeout(() => focusCheckTarget(targetId), 120);
-  };
-
-  useEffect(() => {
-    try {
-      const legacy = localStorage.getItem("resume-editor-data-v1");
-      const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
-      if (saved) setState(normalizeResume(JSON.parse(saved)));
-      setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
-      setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
-      setJobDescription(localStorage.getItem(ROLE_FOCUS_KEY) ?? "");
-    } catch {
-      // localStorage may be unavailable.
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    const timer = window.setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch {
-        // Ignore storage failures; the user can still export JSON.
-      }
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [loaded, state]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(versionHistory));
-    } catch {
-      // Manual JSON export still works if history storage is unavailable.
-    }
-  }, [loaded, versionHistory]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      if (jobDescription.trim()) localStorage.setItem(ROLE_FOCUS_KEY, jobDescription);
-      else localStorage.removeItem(ROLE_FOCUS_KEY);
-    } catch {
-      // The role description remains available for this session if storage fails.
-    }
-  }, [jobDescription, loaded]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 1600);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
-  useEffect(() => {
-    const measure = () => {
-      const sheet = resumeRef.current;
-      if (!sheet) return;
-      const pageHeightPx = 11 * 96 - 16;
-      setPageCount(Math.max(1, Math.ceil(sheet.scrollHeight / pageHeightPx)));
-    };
-    measure();
-    document.fonts?.ready.then(measure).catch(() => undefined);
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [state]);
-
-  const updateField = <K extends keyof ResumeState>(key: K, value: ResumeState[K]) => {
-    setState((current) => ({ ...current, [key]: value }));
-  };
-
-  const updateEntry = (
-    section: (typeof REPEATABLE_SECTIONS)[number],
-    index: number,
-    key: keyof ResumeEntry,
-    value: string,
-  ) => {
-    setState((current) => ({
-      ...current,
-      [section]: current[section].map((entry, entryIndex) =>
-        entryIndex === index ? { ...entry, [key]: value } : entry,
-      ),
-    }));
-  };
-
-  const addEntry = (section: (typeof REPEATABLE_SECTIONS)[number]) => {
-    setState((current) => ({ ...current, [section]: [...current[section], blankEntry()] }));
-  };
-
-  const removeEntry = (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => {
-    setState((current) => ({
-      ...current,
-      [section]: current[section].filter((_, entryIndex) => entryIndex !== index),
-    }));
-  };
-
-  const moveEntry = (section: (typeof REPEATABLE_SECTIONS)[number], index: number, direction: -1 | 1) => {
-    setState((current) => {
-      const next = [...current[section]];
-      const target = index + direction;
-      if (target < 0 || target >= next.length) return current;
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...current, [section]: next };
-    });
-  };
-
-  const moveSection = (section: SectionKey, direction: -1 | 1) => {
-    setState((current) => {
-      const next = [...current.sectionOrder];
-      const index = next.indexOf(section);
-      const target = index + direction;
-      if (target < 0 || target >= next.length) return current;
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...current, sectionOrder: next };
-    });
-  };
-
-  const saveJson = () => {
-    const json = JSON.stringify(state, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const safeName = (state.name || "resume").trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${safeName || "resume"}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    flash("Saved JSON to downloads");
-  };
-
-  const saveVersionHistoryBackup = () => {
-    if (!versionHistory.length) {
-      flash("Save a checkpoint first");
-      return;
-    }
-    const backup: VersionHistoryBackup = {
-      format: VERSION_HISTORY_BACKUP_FORMAT,
-      version: VERSION_HISTORY_BACKUP_VERSION,
-      exportedAt: new Date().toISOString(),
-      checkpoints: versionHistory,
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const safeName = (state.name || "resume").trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${safeName || "resume"}-checkpoints.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    flash("Saved checkpoint backup to downloads");
-  };
-
-  const openVersionHistoryBackup = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      const checkpoints = parseVersionHistoryBackup(JSON.parse(await file.text()));
-      if (!checkpoints?.length) {
-        flash("That backup has no saved checkpoints");
-        return;
-      }
-      setHistoryBackupToImport(checkpoints);
-    } catch {
-      flash("That file is not a checkpoint backup");
-    }
-  };
-
-  const importVersionHistoryBackup = () => {
-    if (!historyBackupToImport) return;
-    const importedCount = mergedHistoryBackup.checkpoints.filter((checkpoint) =>
-      mergedHistoryBackup.incomingUnique.some((incoming) => incoming.fingerprint === checkpoint.fingerprint),
-    ).length;
-    const matchingCount = mergedHistoryBackup.matchingCheckpoints.length;
-    setVersionHistory(mergedHistoryBackup.checkpoints);
-    setHistoryBackupToImport(null);
-    setDeletedVersion(null);
-    setVersionCompareTarget(null);
-    setDraftSourceVersionId(null);
-    flash(
-      importedCount
-        ? `Added ${importedCount} ${importedCount === 1 ? "checkpoint" : "checkpoints"}${
-            matchingCount ? ` · ${matchingCount} already saved` : ""
-          }`
-        : "All backup checkpoints are already saved",
-    );
-  };
-
-  const openJson = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const nextState = normalizeResume(JSON.parse(text));
-      saveRecoveryPoint(`Before opening ${file.name}`);
-      setState(nextState);
-      setImportReview(null);
-      setRestoredVersionSummary(null);
-      setDraftSourceVersionId(null);
-      flash("Loaded JSON");
-    } catch {
-      flash("That file is not valid resume JSON");
-    }
-  };
-
-  const openPdf = async (file: File | undefined) => {
-    if (!file) return;
-    const previousState = state;
-    const previousImportReview = importReview;
-    setIsImporting(true);
-    try {
-      const imported = await importResumePdf(file);
-      saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
-      setState(imported);
-      setImportReview(buildImportReview(imported, file.name));
-      setRestoredVersionSummary(null);
-      setDraftSourceVersionId(null);
-      flash("Imported PDF - please review");
-    } catch (error) {
-      flash(error instanceof Error ? error.message : "Could not import this PDF");
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const copyPlainText = async () => {
-    if (!plainText) {
-      flash("Add resume details first");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(plainText);
-      flash("Copied plain text");
-    } catch {
-      flash("Could not copy text");
-    }
-  };
-
-  const focusCheckTarget = (targetId: string) => {
-    const target = document.getElementById(targetId);
-    if (!target) return;
-    target.scrollIntoView({ block: "center", behavior: "smooth" });
-    window.setTimeout(() => target.focus({ preventScroll: true }), 220);
-  };
-
-  const startPrintExport = () => {
-    const checkpoint: ExportCheckpoint = {
-      fingerprint: exportFingerprint,
-      exportedAt: new Date().toISOString(),
-      pageCount,
-      issueCount: failedChecks.length + (importReview ? 1 : 0),
-      snapshot: normalizeResume(state),
-    };
-    setExportCheckpoint(checkpoint);
-    try {
-      localStorage.setItem(EXPORT_CHECKPOINT_KEY, JSON.stringify(checkpoint));
-    } catch {
-      // The status card is still useful for this session.
-    }
-    window.print();
-  };
-
-  const requestExport = () => {
-    if (failedChecks.length || importReview) {
-      setExportCheckOpen(true);
-      return;
-    }
-    startPrintExport();
-  };
-
-  const exportAnyway = () => {
-    setExportCheckOpen(false);
-    window.setTimeout(startPrintExport, 120);
-  };
-
-  const focusFromExportCheck = (targetId: string) => {
-    setExportCheckOpen(false);
-    window.setTimeout(() => focusCheckTarget(targetId), 120);
-  };
+  const {
+    addEntry,
+    checks,
+    clearResume,
+    comparedBaseRoleFocus,
+    comparedBaseRoleLabel,
+    comparedBaseVersion,
+    comparedTargetRoleFocus,
+    comparedTargetRoleLabel,
+    comparedTargetState,
+    comparedTargetVersion,
+    copyPlainText,
+    deleteVersion,
+    deletedVersion,
+    dismissRecoveryPoint,
+    dismissRestoredVersionSummary,
+    existingVersionForSave,
+    exportAnyway,
+    exportChanges,
+    exportCheckOpen,
+    exportCheckpoint,
+    exportFingerprint,
+    exportIsCurrent,
+    failedChecks,
+    focusCheckTarget,
+    focusFromExportCheck,
+    focusFromVersionCompare,
+    hasContent,
+    historyBackupInputRef,
+    historyBackupToImport,
+    importReview,
+    importReviewTargets,
+    importVersionHistoryBackup,
+    isImporting,
+    jobDescription,
+    jsonInputRef,
+    loadSample,
+    mergedHistoryBackup,
+    moveEntry,
+    moveSection,
+    openJson,
+    openPdf,
+    openVersionHistoryBackup,
+    openVersionSave,
+    pageCount,
+    passedChecks,
+    pdfInputRef,
+    plainText,
+    recoveryPoint,
+    removeEntry,
+    requestExport,
+    restoreRecoveryPoint,
+    restoreVersion,
+    resumeRef,
+    roleFocus,
+    roleLabel,
+    saveJson,
+    saveVersion,
+    saveVersionHistoryBackup,
+    setDeletedVersion,
+    setExportCheckOpen,
+    setHistoryBackupToImport,
+    setImportReview,
+    setJobDescription,
+    setRoleLabel,
+    setTextReviewOpen,
+    setVersionCompareTarget,
+    setVersionDraftLabel,
+    setVersionDraftNote,
+    setVersionSaveOpen,
+    state,
+    textReviewOpen,
+    toast,
+    undoDeleteVersion,
+    updateEntry,
+    updateField,
+    versionChanges,
+    versionCompareAfterLabel,
+    versionCompareBeforeLabel,
+    versionCompareDescription,
+    versionCompareOpen,
+    versionCompareUsesCurrent,
+    versionDraftLabel,
+    versionDraftNote,
+    versionHistory,
+    versionRoleFocusChanged,
+    versionSaveOpen,
+    versionToReplaceOnSave,
+    visibleRestoredVersionSummary,
+  } = useResumeEditor();
 
   return (
     <>
@@ -943,14 +205,7 @@ export function ResumeEditor() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => {
-                saveRecoveryPoint("Before loading the sample");
-                setState(sampleState());
-                setImportReview(null);
-                setRestoredVersionSummary(null);
-                setDraftSourceVersionId(null);
-                flash("Sample loaded");
-              }}
+              onClick={loadSample}
             >
               <FileText /> Sample
             </Button>
@@ -959,12 +214,7 @@ export function ResumeEditor() {
               variant="ghost"
               onClick={() => {
                 if (window.confirm("Clear all fields? You can restore this version from the recovery card.")) {
-                  saveRecoveryPoint("Before clearing the resume");
-                  setState(emptyState());
-                  setImportReview(null);
-                  setRestoredVersionSummary(null);
-                  setDraftSourceVersionId(null);
-                  flash("Cleared");
+                  clearResume();
                 }
               }}
             >
@@ -993,14 +243,7 @@ export function ResumeEditor() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      saveRecoveryPoint("Before loading the sample");
-                      setState(sampleState());
-                      setImportReview(null);
-                      setRestoredVersionSummary(null);
-                      setDraftSourceVersionId(null);
-                      flash("Sample loaded");
-                    }}
+                    onClick={loadSample}
                   >
                     <FileText /> Use Sample
                   </Button>
@@ -1038,7 +281,7 @@ export function ResumeEditor() {
                   <Button type="button" variant="outline" size="sm" onClick={restoreRecoveryPoint}>
                     <Undo2 /> Restore previous
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setRecoveryPoint(null)}>
+                  <Button type="button" variant="ghost" size="sm" onClick={dismissRecoveryPoint}>
                     Dismiss
                   </Button>
                 </div>
@@ -1098,6 +341,7 @@ export function ResumeEditor() {
             currentState={state}
             currentFingerprint={exportFingerprint}
             currentRoleFocus={jobDescription}
+            currentRoleLabel={roleLabel}
             deletedVersion={deletedVersion}
             onSave={openVersionSave}
             onSaveBackup={saveVersionHistoryBackup}
@@ -1113,7 +357,7 @@ export function ResumeEditor() {
           {visibleRestoredVersionSummary ? (
             <RestoredVersionCard
               summary={visibleRestoredVersionSummary}
-              onDismiss={() => setRestoredVersionSummary(null)}
+              onDismiss={dismissRestoredVersionSummary}
               onFocus={focusCheckTarget}
             />
           ) : null}
@@ -1121,9 +365,11 @@ export function ResumeEditor() {
           {hasContent ? (
             <RoleFocusCard
               jobDescription={jobDescription}
+              roleLabel={roleLabel}
               roleFocus={roleFocus}
               resumeText={plainText}
               onChange={setJobDescription}
+              onRoleLabelChange={setRoleLabel}
               onClear={() => setJobDescription("")}
             />
           ) : null}
@@ -1428,13 +674,17 @@ export function ResumeEditor() {
                 onChange={(event) => setVersionDraftNote(event.target.value)}
               />
             </label>
-            <Alert className={jobDescription.trim() ? "border-sky-300 bg-sky-50/70" : undefined}>
+            <Alert className={jobDescription.trim() || roleLabel.trim() ? "border-sky-300 bg-sky-50/70" : undefined}>
               <Target className="h-4 w-4" />
-              <AlertTitle>{jobDescription.trim() ? "Role focus included" : "No role focus to include"}</AlertTitle>
+              <AlertTitle>
+                {jobDescription.trim() ? "Role focus included" : roleLabel.trim() ? "Role label included" : "No role focus to include"}
+              </AlertTitle>
               <AlertDescription>
                 {jobDescription.trim()
-                  ? "This checkpoint will keep its pasted job description so you can resume the same local wording review when you restore it."
-                  : "Add a job description in Role Focus before saving if you want this checkpoint to retain that tailoring context."}
+                  ? "This checkpoint will keep its pasted job description and private role label so you can resume the same local wording review when you restore it."
+                  : roleLabel.trim()
+                    ? "This checkpoint will keep its private role label so this draft stays recognizable in local version history."
+                    : "Add a job description or private role label in Role Focus before saving if you want this checkpoint to retain tailoring context."}
               </AlertDescription>
             </Alert>
             {versionToReplaceOnSave ? (
@@ -1579,6 +829,8 @@ export function ResumeEditor() {
                 <RoleFocusComparison
                   beforeLabel={versionCompareBeforeLabel}
                   afterLabel={versionCompareAfterLabel}
+                  beforeRoleLabel={comparedBaseRoleLabel}
+                  afterRoleLabel={comparedTargetRoleLabel}
                   beforeDescription={comparedBaseRoleFocus}
                   afterDescription={comparedTargetRoleFocus}
                 />
@@ -1840,11 +1092,15 @@ function VersionChangeRow({
 function RoleFocusComparison({
   beforeLabel,
   afterLabel,
+  beforeRoleLabel,
+  afterRoleLabel,
   beforeDescription,
   afterDescription,
 }: {
   beforeLabel: string;
   afterLabel: string;
+  beforeRoleLabel: string;
+  afterRoleLabel: string;
   beforeDescription: string;
   afterDescription: string;
 }) {
@@ -1853,8 +1109,20 @@ function RoleFocusComparison({
       <Target className="h-4 w-4 text-sky-800" />
       <AlertTitle>Role focus changed</AlertTitle>
       <AlertDescription className="grid gap-2">
-        <span>These drafts use different local job descriptions. Restore the matching checkpoint to bring its role context back.</span>
+        <span>These drafts use different local role context. Restore the matching checkpoint to bring its role label and job description back.</span>
         <span className="grid gap-1.5 rounded-md border border-sky-200 bg-background p-2 text-xs leading-snug text-muted-foreground">
+          {beforeRoleLabel || afterRoleLabel ? (
+            <>
+              <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+                <span className="font-medium text-foreground">{beforeLabel} label</span>
+                <span>{beforeRoleLabel || "No label saved"}</span>
+              </span>
+              <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+                <span className="font-medium text-foreground">{afterLabel} label</span>
+                <span>{afterRoleLabel || "No label saved"}</span>
+              </span>
+            </>
+          ) : null}
           <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
             <span className="font-medium text-foreground">{beforeLabel}</span>
             <span>{beforeDescription ? compactDetail(beforeDescription) : "No role focus saved"}</span>
@@ -2003,15 +1271,19 @@ function FieldGroup({ title, actions, children }: { title: string; actions?: Rea
 
 function RoleFocusCard({
   jobDescription,
+  roleLabel,
   roleFocus,
   resumeText,
   onChange,
+  onRoleLabelChange,
   onClear,
 }: {
   jobDescription: string;
+  roleLabel: string;
   roleFocus: ReturnType<typeof buildRoleFocus>;
   resumeText: string;
   onChange: (value: string) => void;
+  onRoleLabelChange: (value: string) => void;
   onClear: () => void;
 }) {
   const [phrase, setPhrase] = useState("");
@@ -2055,6 +1327,17 @@ function RoleFocusCard({
         ) : null}
       </CardHeader>
       <CardContent className="space-y-3">
+        <label className="grid gap-1.5 text-sm font-medium">
+          <span>Private role label (optional)</span>
+          <Input
+            value={roleLabel}
+            onChange={(event) => onRoleLabelChange(event.target.value)}
+            placeholder="e.g. Acme — Senior Product Engineer"
+          />
+          <span className="text-xs font-normal leading-snug text-muted-foreground">
+            A short local-only label makes saved drafts easy to recognize. It never appears in your resume or PDF.
+          </span>
+        </label>
         <label className="grid gap-1.5 text-sm font-medium">
           <span>Job description</span>
           <Textarea
@@ -2175,6 +1458,7 @@ function VersionHistoryCard({
   currentState,
   currentFingerprint,
   currentRoleFocus,
+  currentRoleLabel,
   deletedVersion,
   onSave,
   onSaveBackup,
@@ -2191,6 +1475,7 @@ function VersionHistoryCard({
   currentState: ResumeState;
   currentFingerprint: string;
   currentRoleFocus: string;
+  currentRoleLabel: string;
   deletedVersion: VersionHistoryItem | null;
   onSave: () => void;
   onSaveBackup: () => void;
@@ -2209,11 +1494,13 @@ function VersionHistoryCard({
       versions.map((item) => {
         const text = resumePlainText(item.state);
         const isCurrent = item.fingerprint === currentFingerprint;
-        const roleFocusMatchesCurrent = roleFocusFingerprint(item.jobDescription) === roleFocusFingerprint(currentRoleFocus);
+        const roleFocusMatchesCurrent =
+          roleContextFingerprint(item.jobDescription, item.roleLabel) ===
+          roleContextFingerprint(currentRoleFocus, currentRoleLabel);
         const changesFromCurrent = isCurrent ? [] : exportChangeSummary(item.state, currentState);
         return { item, text, isCurrent, roleFocusMatchesCurrent, changesFromCurrent };
       }),
-    [currentFingerprint, currentRoleFocus, currentState, versions],
+    [currentFingerprint, currentRoleFocus, currentRoleLabel, currentState, versions],
   );
   const suggestedComparison = useMemo(
     () =>
@@ -2430,10 +1717,13 @@ function VersionHistoryCard({
                         <span className="truncate">Derived from {item.derivedFromLabel}</span>
                       </p>
                     ) : null}
-                    {item.jobDescription ? (
+                    {item.roleLabel || item.jobDescription ? (
                       <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
                         <Target className="size-3 shrink-0" />
-                        <span className="truncate">Role focus saved · {compactDetail(item.jobDescription)}</span>
+                        <span className="truncate">
+                          {item.roleLabel ? `Role label · ${item.roleLabel}` : "Role focus saved"}
+                          {item.jobDescription ? ` · ${compactDetail(item.jobDescription)}` : ""}
+                        </span>
                       </p>
                     ) : null}
                     {item.note ? <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
