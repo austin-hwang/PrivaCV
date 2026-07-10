@@ -1,5 +1,30 @@
 # Agent Log
 
+## 2026-07-10 03:32 PDT
+
+- Market reassessment: Jobscan, Teal, and Resume Worded continue to make
+  job-description comparison and review standard. Recent job-seeker discussion
+  describes manual tailoring as exhausting, while reviews value actionable,
+  role-specific feedback and warn against generic or opaque scoring. The
+  existing product already has local import, mobile focus, evidence checks,
+  and a transparent wording review, so templates, an ATS score, and automatic
+  rewrites were lower value this session.
+- Decision: made Role Focus requirement-aware. The prior repeated-word ranking
+  could bury a one-time must-have; it now recognizes explicit
+  qualifications-style headings, brings a bounded set of those terms to the
+  front, and labels each as present or worth review. Benefits and other known
+  non-requirement sections stop the local parser.
+- Why it matters: applicants can check the job's stated requirements first,
+  then trace existing wording back to truthful resume evidence, without
+  uploading sensitive data or treating a keyword tally as a hiring prediction.
+- Verification: ran `CI=true node_modules/.bin/tsc --noEmit`,
+  `CI=true node_modules/.bin/next lint`, `CI=true node_modules/.bin/vitest run`
+  (24 tests), `CI=true node_modules/.bin/playwright test` (25 tests),
+  `CI=true node_modules/.bin/next build`, and `git diff --check`.
+- Provisional next opportunity: reassess whether import-review confidence and
+  correction guidance now create more first-use value than improving local
+  phrase ranking or adding another resume template.
+
 ## 2026-07-10 02:29 PDT
 
 - Market reassessment: current Jobscan and Teal positioning makes

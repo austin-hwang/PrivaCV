@@ -11,12 +11,14 @@ export type RoleTerm = {
   count: number;
   matched: boolean;
   evidence: RoleTermEvidence[];
+  isRequirement: boolean;
 };
 
 export type RoleFocus = {
   terms: RoleTerm[];
   matchedCount: number;
   totalCount: number;
+  requirementCount: number;
 };
 
 export type RolePhraseReview = {
@@ -89,6 +91,7 @@ const STOP_WORDS = new Set([
 ]);
 
 const MAX_TERMS = 14;
+const MAX_REQUIREMENT_TERMS = 7;
 const MAX_PHRASE_SUGGESTIONS = 3;
 const PHRASE_STOP_WORDS = new Set([
   ...STOP_WORDS,
@@ -114,6 +117,41 @@ const PHRASE_STOP_WORDS = new Set([
   "supporting",
 ]);
 
+const REQUIREMENT_HEADINGS = new Set([
+  "basic qualifications",
+  "desired qualifications",
+  "minimum qualifications",
+  "must have",
+  "must-haves",
+  "nice to have",
+  "nice-to-haves",
+  "preferred qualifications",
+  "qualifications",
+  "requirements",
+  "skills",
+  "what we are looking for",
+  "what we're looking for",
+  "what you bring",
+  "what you'll bring",
+  "you have",
+]);
+
+const NON_REQUIREMENT_HEADINGS = new Set([
+  "about the company",
+  "about the role",
+  "about us",
+  "application process",
+  "benefits",
+  "compensation",
+  "equal opportunity",
+  "interview process",
+  "responsibilities",
+  "the role",
+  "what you'll do",
+  "what you will do",
+  "who we are",
+]);
+
 function rawWords(text: string) {
   return (text.match(/[a-z][a-z0-9+#.]*/gi) ?? [])
     .map((term) => term.replace(/^\.+|\.+$/g, ""))
@@ -134,6 +172,58 @@ function isUsefulPhraseTerm(term: string) {
 
 function containsTerm(text: string, term: string) {
   return words(text).includes(term);
+}
+
+function normalizeHeading(value: string) {
+  return value
+    .toLocaleLowerCase()
+    .replace(/[’]/g, "'")
+    .replace(/[\s:–—-]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function requirementHeading(line: string) {
+  const [heading, ...remainder] = line.split(":");
+  const normalizedHeading = normalizeHeading(heading);
+  if (!REQUIREMENT_HEADINGS.has(normalizedHeading)) return null;
+  return remainder.join(":").trim();
+}
+
+/**
+ * Pulls terms from common qualification-style job-description sections. The
+ * parser intentionally recognizes only explicit headings, so it can elevate
+ * a stated requirement without guessing whether a sentence is essential.
+ */
+function requirementTermOrder(jobDescription: string) {
+  const terms = new Map<string, number>();
+  let isReadingRequirements = false;
+
+  jobDescription.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    const headingRemainder = requirementHeading(trimmed);
+    if (headingRemainder !== null) {
+      isReadingRequirements = true;
+      words(headingRemainder).filter(isUsefulTerm).forEach((term) => {
+        if (!terms.has(term)) terms.set(term, terms.size);
+      });
+      return;
+    }
+
+    if (NON_REQUIREMENT_HEADINGS.has(normalizeHeading(trimmed))) {
+      isReadingRequirements = false;
+      return;
+    }
+
+    if (!isReadingRequirements) return;
+    words(trimmed).filter(isUsefulTerm).forEach((term) => {
+      if (!terms.has(term)) terms.set(term, terms.size);
+    });
+  });
+
+  return terms;
 }
 
 function entryEvidence(section: "experience" | "projects", entries: ResumeEntry[], term: string): RoleTermEvidence[] {
@@ -191,22 +281,33 @@ export function buildRoleFocus(resume: ResumeState | string, jobDescription: str
     ...resume.education.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
   ].join(" ");
   const resumeTerms = new Set(words(resumeText));
-  const terms = [...counts.entries()]
+  const rankedTerms = [...counts.entries()]
     .sort(([firstTerm, firstCount], [secondTerm, secondCount]) =>
       secondCount - firstCount || secondTerm.length - firstTerm.length || firstTerm.localeCompare(secondTerm),
+    );
+  const requirements = requirementTermOrder(jobDescription);
+  const requirementTerms = rankedTerms
+    .filter(([term]) => requirements.has(term))
+    .sort(([firstTerm, firstCount], [secondTerm, secondCount]) =>
+      secondCount - firstCount || (requirements.get(firstTerm) ?? 0) - (requirements.get(secondTerm) ?? 0),
     )
-    .slice(0, MAX_TERMS)
+    .slice(0, MAX_REQUIREMENT_TERMS);
+  const generalTerms = rankedTerms.filter(([term]) => !requirements.has(term));
+  const selectedTerms = [...requirementTerms, ...generalTerms].slice(0, MAX_TERMS);
+  const terms = selectedTerms
     .map(([term, count]) => ({
       term,
       count,
       matched: resumeTerms.has(term),
       evidence: typeof resume === "string" ? [] : findTermEvidence(resume, term),
+      isRequirement: requirements.has(term),
     }));
 
   return {
     terms,
     matchedCount: terms.filter((term) => term.matched).length,
     totalCount: terms.length,
+    requirementCount: terms.filter((term) => term.isRequirement).length,
   };
 }
 

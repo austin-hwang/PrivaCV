@@ -134,6 +134,26 @@ test("shows where a matched role term is supported in the resume", async ({ page
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
+test("elevates explicit role requirements without treating them as an ATS score", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByLabel("Job description").fill([
+    "Build reliable product systems and collaborate across product teams.",
+    "Requirements",
+    "- TypeScript and GraphQL experience",
+    "Benefits",
+    "- Flexible work arrangements",
+  ].join("\n"));
+
+  await expect(page.getByText("Listed requirements", { exact: true })).toBeVisible();
+  await expect(page.getByText("typescript present", { exact: true })).toBeVisible();
+  await expect(page.getByText("graphql review", { exact: true })).toBeVisible();
+  await expect(page.getByText(/This is a wording review, not an ATS score/i)).toBeVisible();
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
