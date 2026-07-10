@@ -60,6 +60,35 @@ describe("resume helpers", () => {
     });
   });
 
+  it("includes every imported repeatable entry in the review", () => {
+    const state = sampleState();
+    state.experience.push({
+      title: "Software Engineer",
+      subtitle: "Example Co.",
+      meta: "2018 - 2021",
+      details: "Built customer-facing tools.",
+    });
+    state.education.push({
+      title: "B.S. Computer Science",
+      subtitle: "Example University",
+      meta: "2014 - 2018",
+      details: "",
+    });
+
+    const review = buildImportReview(state, "resume.pdf");
+
+    expect(review.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "experience-0", label: "Experience entry 1", targetId: "field-experience-0-title" }),
+      expect.objectContaining({ id: "experience-1", label: "Experience entry 2", targetId: "field-experience-1-title" }),
+      expect.objectContaining({ id: "education-0", label: "Education entry 1", targetId: "field-education-0-title" }),
+      expect.objectContaining({ id: "education-1", label: "Education entry 2", targetId: "field-education-1-title" }),
+    ]));
+    expect(importReviewProgress({ ...review, reviewedItemIds: ["experience-0"] })).toMatchObject({
+      reviewedCount: 1,
+      remainingCount: review.items.length - 1,
+    });
+  });
+
   it("normalizes legacy JSON into a complete resume state", () => {
     const state = normalizeResume({ name: "Ada", sectionOrder: ["skills"] });
 
@@ -385,7 +414,7 @@ describe("resume helpers", () => {
     expect(review.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "contact", targetId: "field-name" }),
-        expect.objectContaining({ id: "experience", targetId: "field-experience-0-title" }),
+        expect.objectContaining({ id: "experience-0", targetId: "field-experience-0-title" }),
         expect.objectContaining({ id: "skills", targetId: "field-skills" }),
       ]),
     );
