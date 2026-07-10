@@ -14,7 +14,7 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
 });
 
-test("imports a pasted resume locally and flags suggested fields for review", async ({ page }) => {
+test("imports a pasted resume locally and requires explicit field confirmation", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -31,6 +31,19 @@ test("imports a pasted resume locally and flags suggested fields for review", as
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByText("Import review")).toBeVisible();
   await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
+  await expect(page.getByText(/0 of \d+ confirmed/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^finish review$/i })).toBeDisabled();
+
+  await page.getByRole("button", { name: /review field/i }).first().click();
+  await expect(page.locator("#field-name")).toBeFocused();
+
+  const confirmationButtons = page.getByRole("button", { name: /^mark reviewed$/i });
+  while (await confirmationButtons.count()) {
+    await confirmationButtons.first().click();
+  }
+  await expect(page.getByText(/All suggested fields are confirmed/i)).toBeVisible();
+  await page.getByRole("button", { name: /^finish review$/i }).click();
+  await expect(page.getByText("Import review")).toBeHidden();
 });
 
 test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {

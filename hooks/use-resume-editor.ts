@@ -30,6 +30,7 @@ import {
   VERSION_HISTORY_KEY,
   buildImportReview,
   formatCheckpointTime,
+  importReviewProgress,
   mergeVersionHistory,
   parseExportCheckpoint,
   parseVersionHistory,
@@ -169,6 +170,10 @@ export function useResumeEditor() {
   );
   const importReviewTargets = useMemo(
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
+    [importReview],
+  );
+  const importReviewStatus = useMemo(
+    () => (importReview ? importReviewProgress(importReview) : null),
     [importReview],
   );
 
@@ -456,6 +461,25 @@ export function useResumeEditor() {
     setRestoredVersionSummary(null);
   };
 
+  const toggleImportReviewItem = (itemId: string) => {
+    setImportReview((current) => {
+      if (!current || !current.items.some((item) => item.id === itemId)) return current;
+      const reviewedItemIds = new Set(current.reviewedItemIds ?? []);
+      if (reviewedItemIds.has(itemId)) {
+        reviewedItemIds.delete(itemId);
+      } else {
+        reviewedItemIds.add(itemId);
+      }
+      return { ...current, reviewedItemIds: [...reviewedItemIds] };
+    });
+  };
+
+  const completeImportReview = () => {
+    if (!importReview || !importReviewProgress(importReview).isComplete) return;
+    setImportReview(null);
+    flash("Import review complete");
+  };
+
   const saveJson = () => {
     downloadJsonFile(state, `${safeResumeFilename(state.name || "resume")}.json`);
     flash("Saved JSON to downloads");
@@ -644,6 +668,7 @@ export function useResumeEditor() {
     historyBackupInputRef,
     historyBackupToImport,
     importReview,
+    importReviewStatus,
     importReviewTargets,
     importVersionHistoryBackup,
     isImporting,
@@ -690,6 +715,8 @@ export function useResumeEditor() {
     textReviewOpen,
     textImportOpen,
     toast,
+    toggleImportReviewItem,
+    completeImportReview,
     undoDeleteVersion,
     updateEntry,
     updateField,
