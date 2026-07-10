@@ -35,6 +35,8 @@ subscriptions, watermarks, or backend storage.
 - Role-aware checkpoints that restore their exact optional job-description
   context (including an intentionally blank one), so wording review never
   carries over from another tailored draft.
+- Checkpoint comparisons that separately flag different saved job-description
+  contexts, even when the resume content itself is unchanged.
 - Reversible checkpoint deletion so an accidental cleanup does not permanently
   remove a local draft before the user can recover it.
 - Version-history capacity guidance that shows the five-checkpoint limit, names

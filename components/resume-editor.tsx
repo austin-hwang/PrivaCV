@@ -174,6 +174,10 @@ function compactDetail(value: string) {
   return cleaned.length > 92 ? `${cleaned.slice(0, 89)}...` : cleaned;
 }
 
+function roleFocusFingerprint(value: string | undefined) {
+  return (value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+}
+
 function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
   if (!value) return null;
   try {
@@ -458,6 +462,10 @@ export function ResumeEditor() {
   );
   const comparedTargetState = versionCompareTarget?.targetId === "current" ? state : comparedTargetVersion?.state;
   const versionCompareUsesCurrent = versionCompareTarget?.targetId === "current";
+  const comparedBaseRoleFocus = comparedBaseVersion?.jobDescription ?? "";
+  const comparedTargetRoleFocus = versionCompareUsesCurrent ? jobDescription : comparedTargetVersion?.jobDescription ?? "";
+  const versionRoleFocusChanged =
+    roleFocusFingerprint(comparedBaseRoleFocus) !== roleFocusFingerprint(comparedTargetRoleFocus);
   const versionToReplaceOnSave = useMemo(
     () => versionReplacementCandidate(versionHistory, exportFingerprint),
     [exportFingerprint, versionHistory],
@@ -1089,6 +1097,7 @@ export function ResumeEditor() {
             versions={versionHistory}
             currentState={state}
             currentFingerprint={exportFingerprint}
+            currentRoleFocus={jobDescription}
             deletedVersion={deletedVersion}
             onSave={openVersionSave}
             onSaveBackup={saveVersionHistoryBackup}
@@ -1565,35 +1574,49 @@ export function ResumeEditor() {
           </DialogHeader>
 
           {comparedBaseVersion && comparedTargetState ? (
-            versionChanges.length ? (
-              <div className="grid max-h-[56vh] gap-2 overflow-y-auto pr-1">
-                {versionChanges.map((change) => (
-                  <VersionChangeRow
-                    key={change.id}
-                    change={change}
-                    beforeLabel={versionCompareBeforeLabel}
-                    afterLabel={versionCompareAfterLabel}
-                    onSelect={versionCompareUsesCurrent ? () => focusFromVersionCompare(change.targetId) : undefined}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Alert>
-                <Check className="h-4 w-4" />
-                <AlertTitle>No differences found</AlertTitle>
-                <AlertDescription>
-                  {versionCompareUsesCurrent
-                    ? "The current resume matches this saved checkpoint."
-                    : "These saved checkpoints contain the same resume content."}
-                </AlertDescription>
-              </Alert>
-            )
+            <div className="grid max-h-[56vh] gap-3 overflow-y-auto pr-1">
+              {versionRoleFocusChanged ? (
+                <RoleFocusComparison
+                  beforeLabel={versionCompareBeforeLabel}
+                  afterLabel={versionCompareAfterLabel}
+                  beforeDescription={comparedBaseRoleFocus}
+                  afterDescription={comparedTargetRoleFocus}
+                />
+              ) : null}
+              {versionChanges.length ? (
+                <div className="grid gap-2">
+                  {versionChanges.map((change) => (
+                    <VersionChangeRow
+                      key={change.id}
+                      change={change}
+                      beforeLabel={versionCompareBeforeLabel}
+                      afterLabel={versionCompareAfterLabel}
+                      onSelect={versionCompareUsesCurrent ? () => focusFromVersionCompare(change.targetId) : undefined}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Alert>
+                  <Check className="h-4 w-4" />
+                  <AlertTitle>No resume differences found</AlertTitle>
+                  <AlertDescription>
+                    {versionCompareUsesCurrent
+                      ? "The current resume matches this saved checkpoint."
+                      : "These saved checkpoints contain the same resume content."}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
           ) : null}
 
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">
               {versionChanges.length
-                ? `${versionChanges.length} changed ${versionChanges.length === 1 ? "area" : "areas"}`
+                ? `${versionChanges.length} changed ${versionChanges.length === 1 ? "area" : "areas"}${
+                    versionRoleFocusChanged ? " · role focus changed" : ""
+                  }`
+                : versionRoleFocusChanged
+                  ? "Same resume · role focus changed"
                 : "Saved only in this browser"}
             </span>
             <div className="flex justify-end gap-2">
@@ -1812,6 +1835,38 @@ function VersionChangeRow({
   }
 
   return <div className={className}>{content}</div>;
+}
+
+function RoleFocusComparison({
+  beforeLabel,
+  afterLabel,
+  beforeDescription,
+  afterDescription,
+}: {
+  beforeLabel: string;
+  afterLabel: string;
+  beforeDescription: string;
+  afterDescription: string;
+}) {
+  return (
+    <Alert className="border-sky-300 bg-sky-50/70">
+      <Target className="h-4 w-4 text-sky-800" />
+      <AlertTitle>Role focus changed</AlertTitle>
+      <AlertDescription className="grid gap-2">
+        <span>These drafts use different local job descriptions. Restore the matching checkpoint to bring its role context back.</span>
+        <span className="grid gap-1.5 rounded-md border border-sky-200 bg-background p-2 text-xs leading-snug text-muted-foreground">
+          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+            <span className="font-medium text-foreground">{beforeLabel}</span>
+            <span>{beforeDescription ? compactDetail(beforeDescription) : "No role focus saved"}</span>
+          </span>
+          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
+            <span className="font-medium text-foreground">{afterLabel}</span>
+            <span>{afterDescription ? compactDetail(afterDescription) : "No role focus saved"}</span>
+          </span>
+        </span>
+      </AlertDescription>
+    </Alert>
+  );
 }
 
 function ChangeSummaryGrid({
@@ -2119,6 +2174,7 @@ function VersionHistoryCard({
   versions,
   currentState,
   currentFingerprint,
+  currentRoleFocus,
   deletedVersion,
   onSave,
   onSaveBackup,
@@ -2134,6 +2190,7 @@ function VersionHistoryCard({
   versions: VersionHistoryItem[];
   currentState: ResumeState;
   currentFingerprint: string;
+  currentRoleFocus: string;
   deletedVersion: VersionHistoryItem | null;
   onSave: () => void;
   onSaveBackup: () => void;
@@ -2152,10 +2209,11 @@ function VersionHistoryCard({
       versions.map((item) => {
         const text = resumePlainText(item.state);
         const isCurrent = item.fingerprint === currentFingerprint;
+        const roleFocusMatchesCurrent = roleFocusFingerprint(item.jobDescription) === roleFocusFingerprint(currentRoleFocus);
         const changesFromCurrent = isCurrent ? [] : exportChangeSummary(item.state, currentState);
-        return { item, text, isCurrent, changesFromCurrent };
+        return { item, text, isCurrent, roleFocusMatchesCurrent, changesFromCurrent };
       }),
-    [currentFingerprint, currentState, versions],
+    [currentFingerprint, currentRoleFocus, currentState, versions],
   );
   const suggestedComparison = useMemo(
     () =>
@@ -2329,7 +2387,7 @@ function VersionHistoryCard({
           </div>
         ) : null}
         {versions.length ? (
-          versionInsights.map(({ item, text, isCurrent, changesFromCurrent }) => {
+          versionInsights.map(({ item, text, isCurrent, roleFocusMatchesCurrent, changesFromCurrent }) => {
             return (
               <div key={item.id} className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 gap-3">
@@ -2341,9 +2399,13 @@ function VersionHistoryCard({
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Saved {formatCheckpointTime(item.savedAt)}
                       </p>
-                      {isCurrent ? (
+                      {isCurrent && roleFocusMatchesCurrent ? (
                         <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                           Current
+                        </Badge>
+                      ) : isCurrent ? (
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                          Same resume
                         </Badge>
                       ) : changesFromCurrent.length ? (
                         <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
@@ -2354,6 +2416,11 @@ function VersionHistoryCard({
                           No visible differences
                         </Badge>
                       )}
+                      {isCurrent && !roleFocusMatchesCurrent ? (
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                          Role focus changed
+                        </Badge>
+                      ) : null}
                     </div>
                     <p className="truncate text-sm font-semibold">{item.label}</p>
                     <p className="truncate text-xs text-muted-foreground">{versionHeadline(item.state)}</p>

@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-09 20:27 PDT
+
+- User problem addressed: two checkpoints could contain the same resume text
+  while representing different job applications, and the comparison UI called
+  that state "Current" or "No differences found."
+- Implementation: added normalized local role-context comparison to checkpoint
+  cards and the saved-version dialog. The UI now distinguishes a same-resume
+  draft with changed Role Focus, shows concise before/after job-description
+  context, and keeps resume-content differences separate.
+- UI components or patterns used: existing shadcn/ui-style Alert, Badge,
+  Dialog, and Card patterns with the lucide Target icon.
+- Why it matters: job seekers can choose or restore the right tailored draft
+  without mistaking identical resume wording for identical application context.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test` (13 tests), `CI=true pnpm test:e2e` (18 tests),
+  `CI=true pnpm build`, and `git diff --check`.
+- Future opportunities: let users optionally add a short private role label so
+  saved checkpoints remain scannable even when descriptions are long.
+
 ## 2026-07-09 19:27 PDT
 
 - User problem addressed: restoring a general resume checkpoint after tailoring

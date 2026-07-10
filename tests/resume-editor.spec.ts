@@ -280,6 +280,31 @@ test("clears an unrelated role focus when restoring a checkpoint without one", a
   await expect(description).toHaveValue("Lead design systems for a consumer product team.");
 });
 
+test("audits changed role focus even when a saved resume still matches", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  const description = page.getByLabel("Job description");
+  await description.fill("Build reliable platform services for product teams.");
+  await page.getByRole("button", { name: /save version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Platform services role");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await description.fill("Lead a consumer design system for mobile experiences.");
+  await expect(page.getByText("Same resume", { exact: true })).toBeVisible();
+  await expect(page.getByText("Role focus changed", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: /^compare$/i }).click();
+  const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
+  await expect(compareDialog.getByText("Role focus changed", { exact: true })).toBeVisible();
+  await expect(compareDialog.getByText("No resume differences found")).toBeVisible();
+  await expect(compareDialog.getByText("Build reliable platform services for product teams.")).toBeVisible();
+  await expect(compareDialog.getByText("Lead a consumer design system for mobile experiences.")).toBeVisible();
+  await expect(compareDialog.getByText("Same resume · role focus changed")).toBeVisible();
+});
+
 test("compares two saved version history checkpoints", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
