@@ -124,7 +124,7 @@ export function ResumeEditor() {
   const nextImportReviewItem = importReview?.items.find(
     (item) => !importReview.reviewedItemIds?.includes(item.id),
   );
-  const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state) : []);
+  const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
 
   return (
     <>
@@ -335,7 +335,7 @@ export function ResumeEditor() {
                     <p className="text-xs text-muted-foreground">A quick coverage check before you confirm.</p>
                   </div>
                   <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                    “Not detected” means the importer did not place content there. Compare the source text and add it only if it belongs on your resume.
+                    “Not detected” means the importer did not place content there. When a source heading is found, it is called out so you can correct a skipped section quickly.
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {importCoverage.map((item) => (
@@ -352,6 +352,9 @@ export function ResumeEditor() {
                         <span>
                           <span className="block text-sm font-medium text-foreground">{item.label}</span>
                           <span className="block text-xs leading-snug text-muted-foreground">{item.detail}</span>
+                          {item.sourceDetected && !item.detected ? (
+                            <span className="mt-1 block text-xs font-medium text-amber-950">Source section needs review</span>
+                          ) : null}
                         </span>
                       </button>
                     ))}

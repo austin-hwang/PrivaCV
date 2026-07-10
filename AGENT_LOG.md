@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-10 13:27 PDT
+
+- Market research and reprioritization: current Teal and Jobscan alternatives
+  make job-description matching and fast tailoring expected, while recent user
+  discussion still reports incomplete imports and distrust of opaque match
+  scores. This product already provides local, transparent role review and
+  field-level source excerpts, so another scorer, AI rewrite, or template was
+  lower value than making an import loss unmistakable.
+- Decision: shipped source-aware import coverage instead of a broader parser
+  rewrite, ATS-safe DOCX export, or new role-matching heuristic. A plain
+  “not detected” state made it unclear whether a section was absent from the
+  source or silently skipped by the parser.
+- Implementation: coverage now examines recognizable local source headings and
+  differentiates a source section from a populated draft section. When a
+  Summary, Experience, Education, Projects, or Skills heading exists but no
+  content is placed, the review card names that mismatch and sends the user to
+  the correct field or add control. Older saved reviews safely retain their
+  existing snapshot while computed fallbacks use the stored source text.
+- Why it matters: people can catch and repair a partially imported resume
+  before confirming or exporting, without uploads, opaque confidence scores,
+  or hunting through the raw extraction.
+- Verification: `CI=true pnpm typecheck`, `CI=true pnpm lint`, and `CI=true
+  pnpm test` (30 tests) passed. The full browser suite passed all 29 flows
+  against an isolated local server on port 3101, including the source-section
+  correction flow. `CI=true node_modules/.bin/next build` and `git diff --check`
+  passed. The `pnpm test:e2e` and `pnpm build` wrappers could not run because
+  port 3100 was already occupied and the wrapper requested a build policy choice
+  for the locked `workerd` dependency, respectively.
+- Provisional next direction only: reassess targeted parser accuracy for common
+  source layouts against ATS-safe DOCX export and further role-tailoring work.
+
 ## 2026-07-10 12:31 PDT
 
 - Market research and reprioritization: current alternatives make

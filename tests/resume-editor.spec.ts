@@ -36,7 +36,7 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(importDialog.getByText("OCR'd scanned PDF")).toBeVisible();
   await expect(importDialog.getByText("Nothing is uploaded or sent anywhere.")).toBeVisible();
   await importDialog.getByLabel("Resume text").fill(
-    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
+    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
@@ -45,9 +45,10 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
   await expect(page.getByText("What the importer detected")).toBeVisible();
   await expect(page.getByText("1 entry detected")).toBeVisible();
-  await expect(page.getByText("No education entries detected")).toBeVisible();
-  await expect(page.getByText("Not detected” means the importer did not place content there.")).toBeVisible();
-  await page.getByRole("button", { name: /education no education entries detected/i }).click();
+  await expect(page.getByText("Education heading found in source, but no entries detected")).toBeVisible();
+  await expect(page.getByText("Source section needs review")).toBeVisible();
+  await expect(page.getByText("“Not detected” means the importer did not place content there.")).toBeVisible();
+  await page.getByRole("button", { name: /education education heading found in source/i }).click();
   await expect(page.locator("#add-education-entry")).toBeFocused();
   await expect(page.getByText(/0 of \d+ confirmed/)).toBeVisible();
   await expect(page.getByRole("button", { name: /^finish review$/i })).toBeDisabled();
