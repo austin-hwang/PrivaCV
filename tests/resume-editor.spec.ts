@@ -91,6 +91,36 @@ test("asks users to review every imported experience entry", async ({ page }) =>
   await expect(page.locator("#field-experience-1-title")).toBeFocused();
 });
 
+test("keeps mobile import review focused on the next editable field", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByText("Keep editing; confirm each imported field.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /review next imported field/i })).toBeVisible();
+  await expect(page.locator("#import-review-panel")).toBeHidden();
+
+  await page.getByRole("button", { name: /review next imported field/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+
+  await page.getByRole("button", { name: /^open checklist$/i }).click();
+  await expect(page.locator("#import-review-panel")).toBeVisible();
+  await expect(page.getByText("View the text used for this import")).toBeVisible();
+  await page.getByRole("button", { name: /back to editing/i }).click();
+  await expect(page.locator("#import-review-panel")).toBeHidden();
+
+  await context.close();
+});
+
 test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

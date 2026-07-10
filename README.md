@@ -11,8 +11,9 @@ subscriptions, watermarks, or backend storage.
   shadcn/ui-style components.
 - Live two-pane editor with a printable resume preview.
 - Focused mobile editor and preview views, plus an on-demand Review tools strip
-  for checks, role focus, and versions, so editing fields stay within reach on
-  a narrow screen.
+  for import checklists, checks, role focus, and versions; imported resumes keep
+  a compact next-field prompt above the form so editing stays within reach on a
+  narrow screen.
 - First-run start panel with fast paths for PDF import, pasted resume text,
   saved JSON, or a sample resume.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.

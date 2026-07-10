@@ -47,9 +47,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
   still feels reviewable.
 - Keep refining mobile and narrow-window editing without compromising the print
-  layout. The phone workspace now keeps the form first and moves resume checks,
-  role focus, and version history into an on-demand Review tools strip; reassess
-  whether import review needs a similarly focused mobile treatment.
+  layout. The phone workspace keeps the form first, surfaces a compact next-field
+  prompt for imported resumes, and moves the full import checklist, resume checks,
+  role focus, and version history into on-demand Review tools; reassess whether
+  the remaining import-quality explanation or correction context needs more help.
 
 ## Core Features
 
@@ -73,8 +74,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep improving PDF and pasted-text import review with clearer confidence
   signals and a better before/after correction flow now that every imported
   entry can be explicitly confirmed and checked against the local extracted
-  source text. Reassess whether mobile correction density or a lightweight
-  import-quality explanation is the next remaining first-use gap.
+  source text. Reassess whether a lightweight import-quality explanation or
+  clearer correction context is the next remaining first-use gap.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep manual checkpoint export/import available as a utility, without making

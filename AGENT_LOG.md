@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-10 10:31 PDT
+
+- Market research and reprioritization: current Teal and Jobscan alternatives
+  make role matching, keyword feedback, and job tracking expected, while recent
+  job-seeker discussion repeatedly calls tailoring slow and cluttered. The
+  product already offers transparent local role comparison, so a trustworthy
+  import correction path is a higher-value prerequisite than another opaque
+  matcher, rewrite, or template.
+- Decision: prioritized a focused mobile import review. A full checklist ahead
+  of the form made correction laborious on a phone; a DOCX export and deeper
+  tailoring automation were lower value because they do not fix that first-use
+  trust bottleneck.
+- Implementation: added a compact mobile import prompt with progress and a
+  direct next-field action; moved the full checklist and extracted-source review
+  into the existing on-demand mobile Review tools, while preserving the complete
+  desktop review and explicit field confirmations.
+- Why it matters: people can correct an imported resume one field at a time on
+  a narrow screen without losing access to the full local audit when they need it.
+- Verification: `CI=true pnpm typecheck`, `CI=true pnpm lint`, and `CI=true
+  pnpm test` (27 tests) passed. Focused browser coverage and the full Playwright
+  suite (29 tests) passed against an isolated local server; `CI=true
+  node_modules/.bin/next build` and `git diff --check` passed.
+- Provisional next direction only: reassess whether an import-quality
+  explanation or clearer correction context is a higher-value first-use
+  improvement than more role-tailoring automation.
+
 ## 2026-07-10 09:27 PDT
 
 - Market research and reprioritization: current Teal and Jobscan alternatives
