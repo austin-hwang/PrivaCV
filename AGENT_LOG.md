@@ -1,5 +1,29 @@
 # Agent Log
 
+## 2026-07-10 02:29 PDT
+
+- Market reassessment: current Jobscan and Teal positioning makes
+  job-description matching a table-stakes expectation. Recent job-seeker
+  discussions point to time-consuming tailoring and distrust of generic AI
+  rewrites or opaque scores, while reviews value actionable, role-specific
+  feedback. This product already has a local phrase and term review, so a new
+  template, a numerical score, or automatic rewriting was lower value than
+  making existing match signals traceable to real resume evidence.
+- Decision: added evidence locations to Role Focus. Matched job-description
+  terms now show whether they occur in an experience/project detail or only in
+  a title, summary, or skills, and each location jumps directly to the editable
+  field. The UI asks users to ground supporting mentions in truthful
+  achievements rather than copy missing keywords.
+- Why it matters: users can quickly audit whether role language is backed by
+  concrete work, then make a focused revision without losing their place or
+  trusting a black-box ATS score.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test` (23 tests), `CI=true pnpm test:e2e` (24 tests),
+  `CI=true pnpm build`, and `git diff --check`.
+- Provisional next opportunity: reassess whether first-run import confidence,
+  mobile action density, or a requirement-aware local role review produces the
+  largest remaining job-application friction.
+
 ## 2026-07-10 01:34 PDT
 
 - Market reassessment: attempted fresh research across Teal, Jobscan, review

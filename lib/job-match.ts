@@ -1,7 +1,16 @@
+import type { ResumeEntry, ResumeState } from "@/lib/resume";
+
+export type RoleTermEvidence = {
+  label: string;
+  targetId: string;
+  isConcrete: boolean;
+};
+
 export type RoleTerm = {
   term: string;
   count: number;
   matched: boolean;
+  evidence: RoleTermEvidence[];
 };
 
 export type RoleFocus = {
@@ -123,24 +132,76 @@ function isUsefulPhraseTerm(term: string) {
   return term.length >= 3 && !PHRASE_STOP_WORDS.has(term) && !/^\d/.test(term);
 }
 
+function containsTerm(text: string, term: string) {
+  return words(text).includes(term);
+}
+
+function entryEvidence(section: "experience" | "projects", entries: ResumeEntry[], term: string): RoleTermEvidence[] {
+  return entries.flatMap((entry, index) => {
+    const detailsMatch = containsTerm(entry.details, term);
+    const contextMatch = containsTerm([entry.title, entry.subtitle, entry.meta].join(" "), term);
+    if (!detailsMatch && !contextMatch) return [];
+
+    return [{
+      label: `${section === "experience" ? "Experience" : "Project"} ${index + 1}`,
+      targetId: `field-${section}-${index}-${detailsMatch ? "details" : "title"}`,
+      isConcrete: detailsMatch,
+    }];
+  });
+}
+
+function findTermEvidence(state: ResumeState, term: string): RoleTermEvidence[] {
+  const evidence: RoleTermEvidence[] = [];
+
+  if (containsTerm(state.summary, term)) {
+    evidence.push({ label: "Summary", targetId: "field-summary", isConcrete: false });
+  }
+  if (containsTerm(state.skills, term)) {
+    evidence.push({ label: "Skills", targetId: "field-skills", isConcrete: false });
+  }
+  if (containsTerm(state.title, term)) {
+    evidence.push({ label: "Title", targetId: "field-title", isConcrete: false });
+  }
+
+  return [...entryEvidence("experience", state.experience, term), ...entryEvidence("projects", state.projects, term), ...evidence];
+}
+
 /**
  * Finds the most repeated, substantive terms in a pasted job description and
  * checks whether the current resume already uses those terms. This is a
  * transparent wording aid, not an ATS score or a claim about job fit.
  */
-export function buildRoleFocus(resumeText: string, jobDescription: string): RoleFocus {
+export function buildRoleFocus(resume: ResumeState | string, jobDescription: string): RoleFocus {
   const counts = new Map<string, number>();
   words(jobDescription)
     .filter(isUsefulTerm)
     .forEach((term) => counts.set(term, (counts.get(term) ?? 0) + 1));
 
+  const resumeText = typeof resume === "string" ? resume : [
+    resume.name,
+    resume.title,
+    resume.email,
+    resume.phone,
+    resume.location,
+    resume.website,
+    resume.summary,
+    resume.skills,
+    ...resume.experience.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+    ...resume.projects.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+    ...resume.education.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+  ].join(" ");
   const resumeTerms = new Set(words(resumeText));
   const terms = [...counts.entries()]
     .sort(([firstTerm, firstCount], [secondTerm, secondCount]) =>
       secondCount - firstCount || secondTerm.length - firstTerm.length || firstTerm.localeCompare(secondTerm),
     )
     .slice(0, MAX_TERMS)
-    .map(([term, count]) => ({ term, count, matched: resumeTerms.has(term) }));
+    .map(([term, count]) => ({
+      term,
+      count,
+      matched: resumeTerms.has(term),
+      evidence: typeof resume === "string" ? [] : findTermEvidence(resume, term),
+    }));
 
   return {
     terms,

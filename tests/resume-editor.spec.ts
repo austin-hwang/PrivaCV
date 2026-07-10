@@ -121,6 +121,19 @@ test("suggests exact role phrases for a local wording review", async ({ page }) 
   await expect(page.getByText("Phrase already appears in your resume.")).toBeVisible();
 });
 
+test("shows where a matched role term is supported in the resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
+  const evidenceButton = page.getByRole("button", { name: /experience 1/i }).first();
+  await expect(evidenceButton).toBeVisible();
+  await evidenceButton.click();
+  await expect(page.locator("#field-experience-0-details")).toBeFocused();
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {

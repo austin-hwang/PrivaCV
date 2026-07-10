@@ -209,6 +209,27 @@ describe("resume helpers", () => {
     expect(focus.totalCount).toBeLessThanOrEqual(14);
   });
 
+  it("locates role terms in concrete experience separately from supporting mentions", () => {
+    const state = sampleState();
+    state.summary = "Product engineer focused on reliable systems.";
+    state.skills = "Languages: TypeScript\nPractices: Product discovery";
+    state.experience[0].details = "Built TypeScript services for product teams.";
+
+    const focus = buildRoleFocus(state, "Product engineers build TypeScript services and lead product discovery.");
+
+    expect(focus.terms.find((term) => term.term === "typescript")?.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Experience 1", targetId: "field-experience-0-details", isConcrete: true }),
+        expect.objectContaining({ label: "Skills", targetId: "field-skills", isConcrete: false }),
+      ]),
+    );
+    expect(focus.terms.find((term) => term.term === "product")?.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Summary", targetId: "field-summary", isConcrete: false }),
+      ]),
+    );
+  });
+
   it("checks an opted-in role phrase in word order while ignoring punctuation", () => {
     const resume = "Built TypeScript services, improving release reliability.";
 
