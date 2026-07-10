@@ -17,9 +17,9 @@ subscriptions, watermarks, or backend storage.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
 - Add, remove, and reorder repeatable entries.
 - Reorder resume sections while keeping the preview and plain-text export in sync.
-- Resume Check panel for page count, missing contact fields, long bullets,
-  summary length, and overall density, with guidance and actions that jump to
-  the field that needs attention.
+- Resume Check panel for page count, missing contact fields, concise bullets,
+  measurable experience/project evidence, summary length, and overall density,
+  with guidance and actions that jump to the field that needs attention.
 - Local-only Role Focus review that compares a pasted job description with the
   current resume's wording, clearly separates terms already present from terms
   to consider, suggests a small set of direct exact phrases to review, includes

@@ -64,8 +64,22 @@ describe("resume helpers", () => {
     const state = sampleState();
     const checks = buildResumeChecks(state, 1);
 
-    expect(checks).toHaveLength(5);
+    expect(checks).toHaveLength(6);
     expect(checks.every((check) => check.ok)).toBe(true);
+  });
+
+  it("flags experience and project bullets that lack enough measurable evidence", () => {
+    const state = sampleState();
+    state.experience[0].details = "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.";
+    const evidence = buildResumeChecks(state, 1).find((check) => check.id === "evidence");
+
+    expect(evidence).toMatchObject({
+      ok: false,
+      detail: "2 of 7 experience or project bullets show scope or results",
+      actionLabel: "Strengthen a bullet",
+      targetId: "field-experience-0-details",
+    });
+    expect(evidence?.guidance).toContain("Not every bullet needs a number");
   });
 
   it("targets the first missing contact field", () => {

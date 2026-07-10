@@ -39,7 +39,7 @@ export const resumeSchema = z.object({
 export type ResumeState = z.infer<typeof resumeSchema>;
 
 export type ResumeCheck = {
-  id: "length" | "contact" | "bullets" | "summary" | "density";
+  id: "length" | "contact" | "bullets" | "evidence" | "summary" | "density";
   label: string;
   ok: boolean;
   detail: string;
@@ -138,6 +138,20 @@ export function allBullets(state: ResumeState) {
   );
 }
 
+function hasMeasuredEvidence(bullet: string) {
+  return /(?:[$€£]\s?\d[\d,.]*(?:[kmb])?|\b\d[\d,.]*(?:%|\+|x\b|[kmb]\b)|\b\d[\d,.]*\s+(?:users?|customers?|clients?|teams?|engineers?|people|projects?|releases?|hours?|days?|weeks?|months?|years?|requests?|transactions?|applications?|companies|locations|markets|reports?|experiments?|campaigns?)\b)/i.test(
+    bullet,
+  );
+}
+
+function evidenceBullets(state: ResumeState) {
+  return (["experience", "projects"] as const).flatMap((section) =>
+    state[section].flatMap((entry, index) =>
+      bulletsFrom(entry.details).map((bullet) => ({ section, index, bullet })),
+    ),
+  );
+}
+
 export function buildResumeChecks(state: ResumeState, pageCount: number): ResumeCheck[] {
   const missingContact = [
     ["name", "name"],
@@ -150,6 +164,10 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
 
   const bullets = allBullets(state);
   const longBullets = bullets.filter((bullet) => wordCount(bullet) > 28);
+  const evidence = evidenceBullets(state);
+  const measuredEvidence = evidence.filter(({ bullet }) => hasMeasuredEvidence(bullet));
+  const evidenceIsBalanced = !evidence.length || measuredEvidence.length / evidence.length >= 0.5;
+  const firstUnmeasuredEvidence = evidence.find(({ bullet }) => !hasMeasuredEvidence(bullet));
   const summaryWords = wordCount(state.summary);
   const totalWords = wordCount(resumePlainText(state));
   const firstBulletTarget =
@@ -193,6 +211,19 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
       guidance: "Short bullets are easier to skim and make measurable results stand out.",
       actionLabel: bullets.length ? "Tighten bullets" : "Add bullets",
       targetId: firstBulletTargetId,
+    },
+    {
+      id: "evidence",
+      label: "Evidence",
+      ok: evidenceIsBalanced,
+      detail: evidence.length
+        ? `${measuredEvidence.length} of ${evidence.length} experience or project bullets show scope or results`
+        : "No experience or project bullets to review yet",
+      guidance: "Not every bullet needs a number, but measurable scope or results make your strongest work more credible at a glance.",
+      actionLabel: evidence.length ? "Strengthen a bullet" : "Add bullets",
+      targetId: firstUnmeasuredEvidence
+        ? `field-${firstUnmeasuredEvidence.section}-${firstUnmeasuredEvidence.index}-details`
+        : firstBulletTargetId,
     },
     {
       id: "summary",
