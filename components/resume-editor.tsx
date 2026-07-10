@@ -260,7 +260,47 @@ export function ResumeEditor() {
           ) : null}
 
           {importReview ? (
-            <Card className="mb-6 border-amber-300 bg-amber-50/70">
+            <Card className="mb-5 border-amber-300 bg-amber-50/70 lg:hidden">
+              <CardHeader className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardDescription className="font-semibold uppercase tracking-[0.16em] text-amber-900">
+                      Imported resume
+                    </CardDescription>
+                    <CardTitle className="text-base">Keep editing; confirm each imported field.</CardTitle>
+                  </div>
+                  <Badge variant="outline" className="shrink-0 border-amber-400 bg-background tabular-nums text-amber-950">
+                    {importReviewStatus?.reviewedCount ?? 0}/{importReview.items.length}
+                  </Badge>
+                </div>
+                <CardDescription>
+                  {nextImportReviewItem
+                    ? `Next: ${nextImportReviewItem.label}. Edit it if needed, then confirm it beside the field.`
+                    : "Every suggested field is confirmed. Open the checklist to finish this review."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {nextImportReviewItem ? (
+                  <Button type="button" size="sm" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
+                    <ArrowRight /> Review next imported field
+                  </Button>
+                ) : null}
+                <Button type="button" variant="outline" size="sm" onClick={() => setMobileReviewTool("import-review")}>
+                  {nextImportReviewItem ? "Open checklist" : "Finish checklist"}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {importReview ? (
+            <Card
+              id="import-review-panel"
+              className={cn(
+                "mb-6 border-amber-300 bg-amber-50/70",
+                mobileReviewTool !== "import-review" && "hidden",
+                "lg:block",
+              )}
+            >
               <CardHeader className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -276,6 +316,9 @@ export function ResumeEditor() {
                     {importReviewStatus?.reviewedCount ?? 0} of {importReview.items.length} confirmed
                   </Badge>
                 </div>
+                <Button type="button" variant="ghost" size="sm" className="w-fit lg:hidden" onClick={() => setMobileReviewTool(null)}>
+                  Back to editing
+                </Button>
                 <div className="flex flex-wrap gap-2">
                   {importReview.sections.map((section) => (
                     <Badge key={section} variant="secondary">
@@ -360,6 +403,10 @@ export function ResumeEditor() {
               passedChecks={passedChecks}
               totalChecks={checks.length}
               hasRoleFocus={Boolean(jobDescription.trim())}
+              importReview={importReview ? {
+                reviewedCount: importReviewStatus?.reviewedCount ?? 0,
+                itemCount: importReview.items.length,
+              } : null}
               versionCount={versionHistory.length}
               onChange={setMobileReviewTool}
             />

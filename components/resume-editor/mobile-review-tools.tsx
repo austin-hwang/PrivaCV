@@ -1,16 +1,17 @@
 "use client";
 
-import { Check, History, Target } from "lucide-react";
+import { Check, FileSearch, History, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type MobileReviewTool = "versions" | "role-focus" | "checks";
+export type MobileReviewTool = "import-review" | "versions" | "role-focus" | "checks";
 
 export function MobileReviewTools({
   activeTool,
   passedChecks,
   totalChecks,
   hasRoleFocus,
+  importReview,
   versionCount,
   onChange,
 }: {
@@ -18,6 +19,7 @@ export function MobileReviewTools({
   passedChecks: number;
   totalChecks: number;
   hasRoleFocus: boolean;
+  importReview: { reviewedCount: number; itemCount: number } | null;
   versionCount: number;
   onChange: (tool: MobileReviewTool | null) => void;
 }) {
@@ -26,7 +28,21 @@ export function MobileReviewTools({
   return (
     <section className="mb-5 lg:hidden" aria-label="Resume review tools">
       <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Review tools</p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className={cn("grid gap-2", importReview ? "grid-cols-2" : "grid-cols-3")}>
+        {importReview ? (
+          <Button
+            type="button"
+            variant={activeTool === "import-review" ? "secondary" : "outline"}
+            size="sm"
+            className="h-auto min-h-14 flex-col gap-1 px-2 py-2 text-[11px] leading-tight"
+            aria-pressed={activeTool === "import-review"}
+            aria-controls="import-review-panel"
+            onClick={() => toggle("import-review")}
+          >
+            <FileSearch className="size-3.5 text-amber-800" />
+            <span>Import · {importReview.reviewedCount}/{importReview.itemCount}</span>
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant={activeTool === "checks" ? "secondary" : "outline"}
