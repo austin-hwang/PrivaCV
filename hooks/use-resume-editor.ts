@@ -172,6 +172,15 @@ export function useResumeEditor() {
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
     [importReview],
   );
+  const importReviewItemsByTarget = useMemo(() => {
+    const reviewedItemIds = new Set(importReview?.reviewedItemIds ?? []);
+    return new Map(
+      (importReview?.items ?? []).map((item) => [item.targetId, {
+        ...item,
+        confirmed: reviewedItemIds.has(item.id),
+      }]),
+    );
+  }, [importReview]);
   const importReviewStatus = useMemo(
     () => (importReview ? importReviewProgress(importReview) : null),
     [importReview],
@@ -668,6 +677,7 @@ export function useResumeEditor() {
     historyBackupInputRef,
     historyBackupToImport,
     importReview,
+    importReviewItemsByTarget,
     importReviewStatus,
     importReviewTargets,
     importVersionHistoryBackup,

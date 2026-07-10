@@ -62,6 +62,7 @@ export function ResumeEditor() {
     hasContent,
     historyBackupInputRef,
     importReview,
+    importReviewItemsByTarget,
     importReviewStatus,
     importReviewTargets,
     isImporting,
@@ -113,6 +114,9 @@ export function ResumeEditor() {
     setMobileWorkspaceView("editor");
     focusFromVersionCompare(targetId);
   };
+  const nextImportReviewItem = importReview?.items.find(
+    (item) => !importReview.reviewedItemIds?.includes(item.id),
+  );
 
   return (
     <>
@@ -309,6 +313,14 @@ export function ResumeEditor() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                {nextImportReviewItem ? (
+                  <div className="flex flex-col gap-2 rounded-md border border-amber-300 bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>
+                    <Button type="button" size="sm" className="shrink-0" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
+                      <ArrowRight /> Review next field
+                    </Button>
+                  </div>
+                ) : null}
                 <div className="grid gap-2 sm:grid-cols-2">
                   {importReview.items.map((item) => {
                     const confirmed = Boolean(importReview.reviewedItemIds?.includes(item.id));
@@ -501,6 +513,8 @@ export function ResumeEditor() {
                 value={state.name}
                 placeholder="Jane Doe"
                 reviewTarget={importReviewTargets.has("field-name")}
+                reviewItem={importReviewItemsByTarget.get("field-name")}
+                onToggleReview={toggleImportReviewItem}
                 onChange={(value) => updateField("name", value)}
               />
               <TextField
@@ -509,6 +523,8 @@ export function ResumeEditor() {
                 value={state.title}
                 placeholder="Senior Software Engineer"
                 reviewTarget={importReviewTargets.has("field-title")}
+                reviewItem={importReviewItemsByTarget.get("field-title")}
+                onToggleReview={toggleImportReviewItem}
                 onChange={(value) => updateField("title", value)}
               />
               <div className="grid gap-3 sm:grid-cols-2">
@@ -518,6 +534,8 @@ export function ResumeEditor() {
                   value={state.email}
                   placeholder="jane@example.com"
                   reviewTarget={importReviewTargets.has("field-email")}
+                  reviewItem={importReviewItemsByTarget.get("field-email")}
+                  onToggleReview={toggleImportReviewItem}
                   onChange={(value) => updateField("email", value)}
                 />
                 <TextField
@@ -526,6 +544,8 @@ export function ResumeEditor() {
                   value={state.phone}
                   placeholder="(555) 123-4567"
                   reviewTarget={importReviewTargets.has("field-phone")}
+                  reviewItem={importReviewItemsByTarget.get("field-phone")}
+                  onToggleReview={toggleImportReviewItem}
                   onChange={(value) => updateField("phone", value)}
                 />
               </div>
@@ -536,6 +556,8 @@ export function ResumeEditor() {
                   value={state.location}
                   placeholder="San Francisco, CA"
                   reviewTarget={importReviewTargets.has("field-location")}
+                  reviewItem={importReviewItemsByTarget.get("field-location")}
+                  onToggleReview={toggleImportReviewItem}
                   onChange={(value) => updateField("location", value)}
                 />
                 <TextField
@@ -544,6 +566,8 @@ export function ResumeEditor() {
                   value={state.website}
                   placeholder="linkedin.com/in/janedoe"
                   reviewTarget={importReviewTargets.has("field-website")}
+                  reviewItem={importReviewItemsByTarget.get("field-website")}
+                  onToggleReview={toggleImportReviewItem}
                   onChange={(value) => updateField("website", value)}
                 />
               </div>
@@ -556,6 +580,8 @@ export function ResumeEditor() {
                 value={state.summary}
                 placeholder="Brief overview of your experience and strengths."
                 reviewTarget={importReviewTargets.has("field-summary")}
+                reviewItem={importReviewItemsByTarget.get("field-summary")}
+                onToggleReview={toggleImportReviewItem}
                 onChange={(value) => updateField("summary", value)}
               />
             </FieldGroup>
@@ -612,9 +638,11 @@ export function ResumeEditor() {
                     section={section}
                     entries={state[section]}
                     reviewTargets={importReviewTargets}
+                    reviewItemsByTarget={importReviewItemsByTarget}
                     onUpdate={updateEntry}
                     onMove={moveEntry}
                     onRemove={removeEntry}
+                    onToggleReview={toggleImportReviewItem}
                   />
                 )}
               </FieldGroup>

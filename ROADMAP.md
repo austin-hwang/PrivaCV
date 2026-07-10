@@ -18,8 +18,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make first use obvious: import from PDF or pasted text, open saved work, or
   start from a strong sample.
 - Prioritize a clear, field-by-field import review before adding more
-  role-matching heuristics: imported resumes need an understandable correction
-  path before users can trust later tailoring or export guidance.
+  role-matching heuristics: imported resumes now guide users to each suggested
+  field and keep confirmation beside the editable value, but still need an
+  understandable correction path before users can trust later tailoring or
+  export guidance.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear.
