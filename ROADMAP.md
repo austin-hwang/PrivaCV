@@ -46,7 +46,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   version management dominate the editor.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
   still feels reviewable.
-- Keep refining mobile and narrow-window editing without compromising the print layout.
+- Keep refining mobile and narrow-window editing without compromising the print
+  layout. The phone workspace now keeps the form first and moves resume checks,
+  role focus, and version history into an on-demand Review tools strip; reassess
+  whether import review needs a similarly focused mobile treatment.
 
 ## Core Features
 
@@ -55,7 +58,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   scope or results without requiring every bullet to contain a number, with an
   in-context per-entry cue that identifies the bullets to reconsider.
 - Keep the editor and live resume preview equally reachable on a phone, while
-  preserving the fast desktop split workspace and print layout.
+  preserving the fast desktop split workspace and print layout. Avoid putting
+  optional review dashboards ahead of the first editable field on a phone.
 - Improve the export checkpoint with role-aware recommendations and more
   granular changed-field detail for dense edit sessions.
 - Keep refining the local Role Focus review so its transparent wording cues

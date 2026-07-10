@@ -212,6 +212,29 @@ test("elevates explicit role requirements without treating them as an ATS score"
   await expect(page.getByText(/This is a wording review, not an ATS score/i)).toBeVisible();
 });
 
+test("keeps mobile editing focused while leaving review tools one tap away", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await expect(page.getByText("Review tools", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Full Name")).toBeVisible();
+  await expect(page.getByLabel("Job description")).toBeHidden();
+
+  await page.getByRole("button", { name: /^role focus$/i }).click();
+  await expect(page.getByLabel("Job description")).toBeVisible();
+
+  await page.getByRole("button", { name: /^check · 6\/6$/i }).click();
+  await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Job description")).toBeHidden();
+
+  await context.close();
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {

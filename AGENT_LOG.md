@@ -1,5 +1,39 @@
 # Agent Log
 
+## 2026-07-10 09:27 PDT
+
+- Market research and reprioritization: current Teal and Jobscan alternatives
+  make role matching, keyword feedback, and job tracking expected, while recent
+  job-seeker feedback repeatedly calls tailoring slow, cluttered, and difficult
+  to trust when tools obscure the user's actual experience. Competitor reviews
+  also flag formatting friction and generic AI content. The product already
+  provides transparent local role review and import verification, so another
+  matcher, automatic rewrite, or template was lower value than removing a
+  visible workflow bottleneck.
+- Decision: prioritized mobile information hierarchy. On a 390px viewport the
+  prior layout placed version history, role focus, and six resume checks before
+  the first editable field. The new Review tools strip keeps those capabilities
+  one tap away while making editing the immediate default; desktop remains fully
+  expanded. This won over DOCX export and deeper import parsing because it is a
+  small change on every mobile editing session with no compromise to privacy or
+  factual control.
+- Implementation: added a reusable mobile review-tools control, moved mobile
+  version history, role focus, and resume checks behind its accessible toggles,
+  and close those panels before direct field-jump actions. Added mobile browser
+  coverage and aligned the README and roadmap.
+- Why it matters: job seekers can start editing immediately instead of scrolling
+  through a dashboard, yet retain quick access to guidance, tailored wording,
+  and safe checkpoints when they need them.
+- Verification: `CI=true node_modules/.bin/tsc --noEmit`, `CI=true
+  node_modules/.bin/next lint`, and `CI=true node_modules/.bin/vitest run`
+  (27 tests) passed. `node_modules/.bin/playwright test` passed all 28 browser
+  tests using the repository's existing local server; `CI=true` could not start
+  a duplicate server because port 3100 was already in use. `CI=true
+  node_modules/.bin/next build` and `git diff --check` passed.
+- Provisional next direction only: reassess whether the now-expanded mobile
+  import review still puts too much source context ahead of correction, versus
+  an ATS-safe output format such as DOCX, before choosing another feature.
+
 ## 2026-07-10 08:33 PDT
 
 - Market research and reprioritization: recent job-seeker discussion continues
