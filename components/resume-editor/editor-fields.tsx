@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Eye, Trash2 } from "lucide-react";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ENTRY_SCHEMA,
   REPEATABLE_SECTIONS,
+  type ImportReviewItem,
 } from "@/lib/resume-workspace";
 import { SECTION_LABELS, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,8 @@ export function TextField({
   value,
   placeholder,
   reviewTarget,
+  reviewItem,
+  onToggleReview,
   onChange,
 }: {
   id?: string;
@@ -35,11 +38,13 @@ export function TextField({
   value: string;
   placeholder?: string;
   reviewTarget?: boolean;
+  reviewItem?: ImportReviewItem & { confirmed: boolean };
+  onToggleReview?: (itemId: string) => void;
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-      <span>{label}</span>
+    <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+      <label htmlFor={id}>{label}</label>
       <Input
         id={id}
         value={value}
@@ -47,7 +52,8 @@ export function TextField({
         className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
         onChange={(event) => onChange(event.target.value)}
       />
-    </label>
+      <ImportReviewFieldPrompt item={reviewItem} onToggleReview={onToggleReview} />
+    </div>
   );
 }
 
@@ -57,6 +63,8 @@ export function TextAreaField({
   value,
   placeholder,
   reviewTarget,
+  reviewItem,
+  onToggleReview,
   onChange,
 }: {
   id?: string;
@@ -64,11 +72,13 @@ export function TextAreaField({
   value: string;
   placeholder?: string;
   reviewTarget?: boolean;
+  reviewItem?: ImportReviewItem & { confirmed: boolean };
+  onToggleReview?: (itemId: string) => void;
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-      <span>{label}</span>
+    <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+      <label htmlFor={id}>{label}</label>
       <Textarea
         id={id}
         value={value}
@@ -76,7 +86,40 @@ export function TextAreaField({
         className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
         onChange={(event) => onChange(event.target.value)}
       />
-    </label>
+      <ImportReviewFieldPrompt item={reviewItem} onToggleReview={onToggleReview} />
+    </div>
+  );
+}
+
+function ImportReviewFieldPrompt({
+  item,
+  onToggleReview,
+}: {
+  item?: ImportReviewItem & { confirmed: boolean };
+  onToggleReview?: (itemId: string) => void;
+}) {
+  if (!item || !onToggleReview) return null;
+
+  return (
+    <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-xs leading-snug", item.confirmed ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-amber-300 bg-amber-50 text-amber-950")}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        {item.confirmed ? <Check className="size-3.5 shrink-0" /> : <Eye className="size-3.5 shrink-0" />}
+        <p>
+          <span className="font-semibold">Imported {item.label}.</span>{" "}
+          {item.confirmed ? "Confirmed for this import review." : "Edit if needed, then confirm it here."}
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant={item.confirmed ? "secondary" : "outline"}
+        size="sm"
+        className="h-7 shrink-0 px-2"
+        aria-pressed={item.confirmed}
+        onClick={() => onToggleReview(item.id)}
+      >
+        <Check /> {item.confirmed ? "Confirmed" : `Mark ${item.label} reviewed`}
+      </Button>
+    </div>
   );
 }
 
@@ -84,16 +127,20 @@ export function EntryList({
   section,
   entries,
   reviewTargets,
+  reviewItemsByTarget,
   onUpdate,
   onMove,
   onRemove,
+  onToggleReview,
 }: {
   section: (typeof REPEATABLE_SECTIONS)[number];
   entries: ResumeEntry[];
   reviewTargets: Set<string>;
+  reviewItemsByTarget: Map<string, ImportReviewItem & { confirmed: boolean }>;
   onUpdate: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, key: keyof ResumeEntry, value: string) => void;
   onMove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, direction: -1 | 1) => void;
   onRemove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => void;
+  onToggleReview: (itemId: string) => void;
 }) {
   const schema = ENTRY_SCHEMA[section];
   const supportsEvidenceReview = section === "experience" || section === "projects";
@@ -149,6 +196,8 @@ export function EntryList({
               label={schema.title}
               value={entry.title}
               reviewTarget={reviewTargets.has(`field-${section}-${index}-title`)}
+              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-title`)}
+              onToggleReview={onToggleReview}
               onChange={(value) => onUpdate(section, index, "title", value)}
             />
             <TextField
@@ -156,6 +205,8 @@ export function EntryList({
               label={schema.subtitle}
               value={entry.subtitle}
               reviewTarget={reviewTargets.has(`field-${section}-${index}-subtitle`)}
+              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-subtitle`)}
+              onToggleReview={onToggleReview}
               onChange={(value) => onUpdate(section, index, "subtitle", value)}
             />
             <TextField
@@ -163,6 +214,8 @@ export function EntryList({
               label={schema.meta}
               value={entry.meta}
               reviewTarget={reviewTargets.has(`field-${section}-${index}-meta`)}
+              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-meta`)}
+              onToggleReview={onToggleReview}
               onChange={(value) => onUpdate(section, index, "meta", value)}
             />
             <TextAreaField
@@ -170,6 +223,8 @@ export function EntryList({
               label={schema.details}
               value={entry.details}
               reviewTarget={reviewTargets.has(`field-${section}-${index}-details`)}
+              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-details`)}
+              onToggleReview={onToggleReview}
               onChange={(value) => onUpdate(section, index, "details", value)}
             />
             {evidence?.bulletCount ? (

@@ -34,8 +34,11 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText(/0 of \d+ confirmed/)).toBeVisible();
   await expect(page.getByRole("button", { name: /^finish review$/i })).toBeDisabled();
 
-  await page.getByRole("button", { name: /review field/i }).first().click();
+  await page.getByRole("button", { name: /review next field/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
+  await expect(page.getByText("Imported Contact details.")).toBeVisible();
+  await page.getByRole("button", { name: /mark contact details reviewed/i }).click();
+  await expect(page.getByText(/1 of \d+ confirmed/)).toBeVisible();
 
   const confirmationButtons = page.getByRole("button", { name: /^mark reviewed$/i });
   while (await confirmationButtons.count()) {

@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-10 05:30 PDT
+
+- Market reassessment: current Teal and Resume.io messaging reinforces that
+  job-specific tailoring, import, and immediate guidance are baseline
+  expectations. Recent job-seeker discussion describes the repeated work of
+  tailoring and a distrust of automatic rewriting or paywalled promises; users
+  need to stay in control of the final wording. The product already has a
+  transparent local Role Focus review and explicit import confirmation, so more
+  matching heuristics, templates, automatic rewrites, or application tracking
+  were lower-value than reducing friction in the existing correction flow.
+- Decision: prioritized in-place import correction. The import review now has a
+  clear next-field action, and each highlighted imported field carries its own
+  explicit confirm/reopen control beside the editable value. The summary still
+  shows every suggested field and export remains gated until review completion.
+- Why it matters: people can correct a parsed value and acknowledge it in the
+  same place, instead of repeatedly scrolling between an import checklist and
+  the editor. This keeps human review obvious without pretending that imported
+  content is automatically correct.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`, `CI=true
+  pnpm test` (25 tests), `CI=true pnpm test:e2e` (25 tests), `CI=true pnpm
+  build`, and `git diff --check`.
+- Provisional next opportunity: reassess whether the empty-state action
+  hierarchy, richer import correction context, or mobile editing density now
+  creates more first-use value than templates, DOCX export, or additional
+  role-matching heuristics.
+
 ## 2026-07-10 04:31 PDT
 
 - Market reassessment: current Teal and Jobscan positioning continues to make
