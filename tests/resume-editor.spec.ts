@@ -100,6 +100,34 @@ test("asks users to review every imported experience entry", async ({ page }) =>
   await expect(page.locator("#field-experience-1-title")).toBeFocused();
 });
 
+test("keeps adjacent roles separate when dates are on their own lines", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Experience",
+    "Staff Engineer",
+    "Analytical Engines",
+    "Jan 2022 – Present",
+    "• Built reliable systems.",
+    "Software Engineer",
+    "Example Company",
+    "Jun 2018 – Dec 2021",
+    "• Improved deployment tooling.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByLabel("Job Title", { exact: true }).nth(0)).toHaveValue("Staff Engineer");
+  await expect(page.getByLabel("Job Title", { exact: true }).nth(1)).toHaveValue("Software Engineer");
+  await expect(page.getByText("Experience entry 2", { exact: true })).toBeVisible();
+});
+
 test("keeps mobile import review focused on the next editable field", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();

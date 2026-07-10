@@ -119,6 +119,41 @@ function looksLikeSubtitle(line: string) {
   return /[|]/.test(value) || CITY_RE.test(value) || (words <= 9 && !/[.;]$/.test(value));
 }
 
+function isStandaloneDateLine(line: string) {
+  const match = line.match(DATE_RANGE_RE);
+  if (!match) return false;
+  return line.replace(match[0], "").replace(/[\s|,;()\[\].]+/g, "").length === 0;
+}
+
+/**
+ * Some exported resumes put a role and company above a separate dates line,
+ * without blank lines between roles. A date is then the end of an entry's
+ * header rather than the start of the next entry. When the details are
+ * explicitly bulleted, use that boundary to keep adjacent roles separate.
+ */
+function splitStandaloneDateEntries(flat: string[]) {
+  const dateIndexes = flat.flatMap((line, index) => (isStandaloneDateLine(line) ? [index] : []));
+  if (dateIndexes.length < 2) return null;
+
+  const boundaries = [0];
+  for (let index = 1; index < dateIndexes.length; index += 1) {
+    const previousDate = dateIndexes[index - 1];
+    const nextDate = dateIndexes[index];
+    const firstBullet = flat.findIndex((line, lineIndex) =>
+      lineIndex > previousDate && lineIndex < nextDate && /^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
+    );
+    if (firstBullet < 0) return null;
+
+    const nextHeader = flat.findIndex((line, lineIndex) =>
+      lineIndex > firstBullet && lineIndex < nextDate && !/^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
+    );
+    if (nextHeader < 0) return null;
+    boundaries.push(nextHeader);
+  }
+
+  return boundaries.map((start, index) => flat.slice(start, boundaries[index + 1] ?? flat.length));
+}
+
 function splitIntoChunks(blockLines: string[]) {
   const chunks: string[][] = [];
   let current: string[] = [];
@@ -136,6 +171,10 @@ function splitIntoChunks(blockLines: string[]) {
     const dated: string[][] = [];
     let buffer: string[] = [];
     const flat = blockLines.filter(Boolean);
+
+    const standaloneDateEntries = splitStandaloneDateEntries(flat);
+    if (standaloneDateEntries) return standaloneDateEntries;
+
     flat.forEach((line, index) => {
       if (index > 0 && DATE_RANGE_RE.test(line) && buffer.length) {
         dated.push(buffer);
