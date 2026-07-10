@@ -32,6 +32,8 @@ subscriptions, watermarks, or backend storage.
   snippets and an expandable full audit trail for edited resume areas.
 - Local version history for naming, annotating, saving, and restoring
   browser-only checkpoints while tailoring a resume for different applications.
+- Role-aware checkpoints that retain an optional pasted job description, so
+  restoring a tailored draft also restores its local wording-review context.
 - Reversible checkpoint deletion so an accidental cleanup does not permanently
   remove a local draft before the user can recover it.
 - Version-history capacity guidance that shows the five-checkpoint limit, names

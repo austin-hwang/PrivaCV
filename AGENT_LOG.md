@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-09 18:30 PDT
+
+- User problem addressed: returning to a saved, job-specific resume draft did
+  not recover the pasted role description that had guided its local wording
+  review.
+- Implementation: saved optional Role Focus descriptions alongside local
+  checkpoints, made the save dialog explicit about whether that context will be
+  retained, surfaced a compact context cue in each saved draft, and restored the
+  description with its checkpoint. Recovery points now preserve the prior role
+  description too.
+- UI components or patterns used: existing shadcn/ui-style Dialog, Alert,
+  Card, Badge, and Button patterns with the lucide Target icon.
+- Why it matters: job seekers can resume a tailored application with its
+  relevant wording context instead of repasting or accidentally reviewing
+  against the wrong role.
+- Verification: ran `CI=true pnpm lint`, `CI=true pnpm typecheck`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, and `CI=true pnpm build`.
+- Future opportunities: let users optionally add a short, private role label
+  separate from the full pasted description for quicker checkpoint scanning.
+
 ## 2026-07-09 17:30 PDT
 
 - User problem addressed: even with an exact phrase checker, job seekers still

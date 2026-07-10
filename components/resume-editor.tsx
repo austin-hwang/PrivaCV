@@ -117,6 +117,7 @@ type RecoveryPoint = {
   label: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
+  jobDescription: string;
 };
 
 type VersionHistoryItem = {
@@ -129,6 +130,7 @@ type VersionHistoryItem = {
   fingerprint: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
+  jobDescription?: string;
 };
 
 type VersionHistoryBackup = {
@@ -222,6 +224,7 @@ function parseVersionHistory(value: string | null, limit = MAX_VERSION_HISTORY):
           fingerprint: item.fingerprint,
           state: normalizeResume(item.state),
           importReview: item.importReview ?? null,
+          jobDescription: typeof item.jobDescription === "string" ? item.jobDescription : undefined,
         };
       })
       .filter((item): item is VersionHistoryItem => Boolean(item))
@@ -499,7 +502,7 @@ export function ResumeEditor() {
   }, []);
 
   const saveRecoveryPoint = useCallback(
-    (label: string, previousState = state, previousImportReview = importReview) => {
+    (label: string, previousState = state, previousImportReview = importReview, previousJobDescription = jobDescription) => {
       if (!hasAnyContent(previousState) && !previousImportReview) {
         setRecoveryPoint(null);
         return;
@@ -508,15 +511,17 @@ export function ResumeEditor() {
         label,
         state: previousState,
         importReview: previousImportReview,
+        jobDescription: previousJobDescription,
       });
     },
-    [importReview, state],
+    [importReview, jobDescription, state],
   );
 
   const restoreRecoveryPoint = () => {
     if (!recoveryPoint) return;
     setState(recoveryPoint.state);
     setImportReview(recoveryPoint.importReview);
+    setJobDescription(recoveryPoint.jobDescription);
     setRecoveryPoint(null);
     setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
@@ -556,6 +561,7 @@ export function ResumeEditor() {
       fingerprint,
       state: normalizeResume(state),
       importReview,
+      jobDescription: jobDescription.trim() || undefined,
     };
     setVersionHistory((current) => [entry, ...current.filter((item) => item.fingerprint !== fingerprint)].slice(0, MAX_VERSION_HISTORY));
     setDraftSourceVersionId(entry.id);
@@ -574,6 +580,7 @@ export function ResumeEditor() {
     });
     setState(item.state);
     setImportReview(item.importReview);
+    if (typeof item.jobDescription === "string") setJobDescription(item.jobDescription);
     setDraftSourceVersionId(item.id);
     flash("Restored saved version");
   };
@@ -1409,6 +1416,15 @@ export function ResumeEditor() {
                 onChange={(event) => setVersionDraftNote(event.target.value)}
               />
             </label>
+            <Alert className={jobDescription.trim() ? "border-sky-300 bg-sky-50/70" : undefined}>
+              <Target className="h-4 w-4" />
+              <AlertTitle>{jobDescription.trim() ? "Role focus included" : "No role focus to include"}</AlertTitle>
+              <AlertDescription>
+                {jobDescription.trim()
+                  ? "This checkpoint will keep its pasted job description so you can resume the same local wording review when you restore it."
+                  : "Add a job description in Role Focus before saving if you want this checkpoint to retain that tailoring context."}
+              </AlertDescription>
+            </Alert>
             {versionToReplaceOnSave ? (
               <Alert className="border-amber-300 bg-amber-50/70">
                 <AlertCircle className="h-4 w-4" />
@@ -1950,6 +1966,10 @@ function RoleFocusCard({
     [jobDescription, resumeText],
   );
 
+  useEffect(() => {
+    setPhrase("");
+  }, [jobDescription]);
+
   const clearDescription = () => {
     setPhrase("");
     onClear();
@@ -2338,6 +2358,12 @@ function VersionHistoryCard({
                       <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
                         <GitBranch className="size-3 shrink-0" />
                         <span className="truncate">Derived from {item.derivedFromLabel}</span>
+                      </p>
+                    ) : null}
+                    {item.jobDescription ? (
+                      <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                        <Target className="size-3 shrink-0" />
+                        <span className="truncate">Role focus saved · {compactDetail(item.jobDescription)}</span>
                       </p>
                     ) : null}
                     {item.note ? <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
