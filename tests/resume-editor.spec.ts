@@ -57,6 +57,8 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await page.getByRole("button", { name: /review next field/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Imported Contact details.")).toBeVisible();
+  await expect(page.getByText("Matching source context:").first()).toBeVisible();
+  await expect(page.getByText("Ada Lovelace", { exact: true }).last()).toBeVisible();
   await page.getByRole("button", { name: /mark contact details reviewed/i }).click();
   await expect(page.getByText(/1 of \d+ confirmed/)).toBeVisible();
 

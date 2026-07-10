@@ -17,6 +17,7 @@ import {
   VERSION_HISTORY_BACKUP_VERSION,
   buildImportCoverage,
   buildImportReview,
+  importSourceExcerpt,
   importReviewProgress,
   mergeVersionHistory,
   parseExportCheckpoint,
@@ -47,6 +48,24 @@ describe("resume helpers", () => {
 
     expect(imported.sourceText).toBe("Ada Lovelace\n\nExperience\nEngineer | Example Co.");
     expect(imported.state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Example Co." });
+  });
+
+  it("puts a short matching source excerpt beside imported fields", () => {
+    const sourceText = [
+      "Ada Lovelace",
+      "Platform Engineer",
+      "ada@example.com | San Francisco, CA",
+      "",
+      "Experience",
+      "Engineer | Analytical Engines | 2022–Present",
+      "• Built reliable systems.",
+    ].join("\n");
+    const state = importResumeText(sourceText);
+    const review = buildImportReview(state, "pasted resume text", sourceText);
+
+    expect(importSourceExcerpt(sourceText, ["Engineer", "Analytical Engines"])).toContain("Engineer | Analytical Engines | 2022–Present");
+    expect(review.items.find((item) => item.id === "contact")?.sourceExcerpt).toContain("Ada Lovelace");
+    expect(review.items.find((item) => item.id === "experience-0")?.sourceExcerpt).toContain("Built reliable systems.");
   });
 
   it("rejects an empty pasted resume", () => {
