@@ -97,7 +97,7 @@ export function useResumeEditor() {
   const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
-  const roleFocus = useMemo(() => buildRoleFocus(plainText, jobDescription), [jobDescription, plainText]);
+  const roleFocus = useMemo(() => buildRoleFocus(state, jobDescription), [jobDescription, state]);
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
   const visibleRestoredVersionSummary =
     restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;

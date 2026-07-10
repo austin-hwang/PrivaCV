@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Check, Target } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ export function RoleFocusCard({
   onChange,
   onRoleLabelChange,
   onClear,
+  onFocus,
 }: {
   jobDescription: string;
   roleLabel: string;
@@ -27,6 +28,7 @@ export function RoleFocusCard({
   onChange: (value: string) => void;
   onRoleLabelChange: (value: string) => void;
   onClear: () => void;
+  onFocus: (targetId: string) => void;
 }) {
   const [phrase, setPhrase] = useState("");
   const hasDescription = Boolean(jobDescription.trim());
@@ -124,6 +126,49 @@ export function RoleFocusCard({
             <p className="mt-3 text-xs leading-snug text-muted-foreground">
               Use missing terms only when they accurately describe your experience. This is a wording review, not an ATS score.
             </p>
+            {matchedTerms.some((term) => term.evidence.length) ? (
+              <div className="mt-3 border-t pt-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Where matched terms appear</p>
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                  Jump to the wording you already have. Terms found only in a title, summary, or skills can be worth grounding in a truthful achievement too.
+                </p>
+                <div className="mt-2 space-y-2">
+                  {matchedTerms.filter((term) => term.evidence.length).map((term) => {
+                    const concreteEvidence = term.evidence.filter((item) => item.isConcrete);
+                    const supportingEvidence = term.evidence.filter((item) => !item.isConcrete);
+                    return (
+                      <div key={term.term} className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="font-semibold text-foreground">{term.term}</span>
+                        {concreteEvidence.map((item) => (
+                          <Button
+                            key={`${term.term}-${item.targetId}`}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-emerald-300 bg-emerald-50 px-2 text-emerald-950"
+                            onClick={() => onFocus(item.targetId)}
+                          >
+                            {item.label} <ArrowRight />
+                          </Button>
+                        ))}
+                        {supportingEvidence.map((item) => (
+                          <Button
+                            key={`${term.term}-${item.targetId}`}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-sky-300 bg-sky-50 px-2 text-sky-950"
+                            onClick={() => onFocus(item.targetId)}
+                          >
+                            {item.label} <ArrowRight />
+                          </Button>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : hasDescription ? (
           <Alert>

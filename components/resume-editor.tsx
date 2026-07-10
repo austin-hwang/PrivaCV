@@ -361,6 +361,7 @@ export function ResumeEditor() {
               onChange={setJobDescription}
               onRoleLabelChange={setRoleLabel}
               onClear={() => setJobDescription("")}
+              onFocus={focusEditorTarget}
             />
           ) : null}
 
