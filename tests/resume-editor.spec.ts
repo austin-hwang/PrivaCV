@@ -14,6 +14,35 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
 });
 
+test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  const editorPane = page.locator("#resume-editor-pane");
+  const previewPane = page.locator("#resume-preview-pane");
+  await expect(editorPane).toBeVisible();
+  await expect(previewPane).toBeHidden();
+  await page.getByLabel("Phone").fill("");
+
+  await page.getByRole("button", { name: /^preview$/i }).click();
+  await expect(previewPane).toBeVisible();
+  await expect(editorPane).toBeHidden();
+  await expect(page.getByText("Live preview updates as you edit.")).toBeVisible();
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await page.getByRole("dialog", { name: /review before exporting/i }).getByRole("button", { name: /fix contact/i }).click();
+  await expect(editorPane).toBeVisible();
+  await expect(page.locator("#field-phone")).toBeFocused();
+
+  await page.getByRole("button", { name: /^preview$/i }).click();
+  await expect(previewPane).toBeVisible();
+  await page.getByRole("button", { name: /^edit resume$/i }).last().click();
+  await expect(previewPane).toBeHidden();
+});
+
 test("focuses the field behind a failed resume check", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

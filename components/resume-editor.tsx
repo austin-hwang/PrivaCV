@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -41,6 +42,7 @@ import { cn } from "@/lib/utils";
 
 export function ResumeEditor() {
   const editor = useResumeEditor();
+  const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
   const {
     addEntry,
     checks,
@@ -54,6 +56,8 @@ export function ResumeEditor() {
     exportFingerprint,
     exportIsCurrent,
     focusCheckTarget,
+    focusFromExportCheck,
+    focusFromVersionCompare,
     hasContent,
     historyBackupInputRef,
     importReview,
@@ -92,6 +96,18 @@ export function ResumeEditor() {
     versionHistory,
     visibleRestoredVersionSummary,
   } = editor;
+  const focusEditorTarget = (targetId: string) => {
+    setMobileWorkspaceView("editor");
+    window.setTimeout(() => focusCheckTarget(targetId), 120);
+  };
+  const focusEditorFromExportCheck = (targetId: string) => {
+    setMobileWorkspaceView("editor");
+    focusFromExportCheck(targetId);
+  };
+  const focusEditorFromVersionCompare = (targetId: string) => {
+    setMobileWorkspaceView("editor");
+    focusFromVersionCompare(targetId);
+  };
 
   return (
     <>
@@ -101,8 +117,8 @@ export function ResumeEditor() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Private workspace</p>
             <h1 className="text-lg font-semibold tracking-normal">Resume Editor</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex min-w-64 flex-1 items-center gap-2 rounded-md border bg-background px-3 py-2 text-xs text-muted-foreground lg:flex-none">
+          <div className="flex max-w-full items-center gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:pb-0">
+            <label className="hidden min-w-64 flex-1 items-center gap-2 rounded-md border bg-background px-3 py-2 text-xs text-muted-foreground sm:flex lg:flex-none">
               <span className="whitespace-nowrap">Text size</span>
               <input
                 id="resume-text-scale"
@@ -152,10 +168,43 @@ export function ResumeEditor() {
             </Button>
           </div>
         </div>
+        <div className="border-t px-4 py-2 lg:hidden">
+          <div className="grid grid-cols-2 rounded-md border bg-muted/30 p-1" aria-label="Resume workspace view">
+            <Button
+              id="mobile-editor-tab"
+              type="button"
+              size="sm"
+              variant={mobileWorkspaceView === "editor" ? "secondary" : "ghost"}
+              aria-pressed={mobileWorkspaceView === "editor"}
+              aria-controls="resume-editor-pane"
+              onClick={() => setMobileWorkspaceView("editor")}
+            >
+              <FileText /> Edit resume
+            </Button>
+            <Button
+              id="mobile-preview-tab"
+              type="button"
+              size="sm"
+              variant={mobileWorkspaceView === "preview" ? "secondary" : "ghost"}
+              aria-pressed={mobileWorkspaceView === "preview"}
+              aria-controls="resume-preview-pane"
+              onClick={() => setMobileWorkspaceView("preview")}
+            >
+              <Eye /> Preview
+            </Button>
+          </div>
+        </div>
       </header>
 
       <main className="app-shell grid min-h-[calc(100vh-73px)] grid-cols-1 lg:grid-cols-[minmax(390px,1fr)_minmax(440px,1fr)]">
-        <section className="editor-pane overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:p-6">
+        <section
+          id="resume-editor-pane"
+          aria-label="Resume editor"
+          className={cn(
+            "editor-pane overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:p-6",
+            mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
+          )}
+        >
           {!hasContent ? (
             <Card className="mb-6">
               <CardHeader>
@@ -251,7 +300,7 @@ export function ResumeEditor() {
                     key={item.id}
                     type="button"
                     className="group flex min-h-16 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors hover:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => focusCheckTarget(item.targetId)}
+                    onClick={() => focusEditorTarget(item.targetId)}
                   >
                     <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />
                     <span className="min-w-0">
@@ -288,7 +337,7 @@ export function ResumeEditor() {
             <RestoredVersionCard
               summary={visibleRestoredVersionSummary}
               onDismiss={dismissRestoredVersionSummary}
-              onFocus={focusCheckTarget}
+              onFocus={focusEditorTarget}
             />
           ) : null}
 
@@ -337,7 +386,7 @@ export function ResumeEditor() {
                             variant="outline"
                             size="sm"
                             className="mt-2 h-7 px-2"
-                            onClick={() => focusCheckTarget(check.targetId)}
+                            onClick={() => focusEditorTarget(check.targetId)}
                           >
                             <ArrowRight /> {check.actionLabel}
                           </Button>
@@ -396,7 +445,7 @@ export function ResumeEditor() {
                     changes={exportChanges}
                     beforeLabel="Before"
                     afterLabel="Now"
-                    onSelect={(change) => focusCheckTarget(change.targetId)}
+                    onSelect={(change) => focusEditorTarget(change.targetId)}
                   />
                 </CardContent>
               ) : null}
@@ -532,8 +581,21 @@ export function ResumeEditor() {
           </div>
         </section>
 
-        <section className="preview-pane overflow-y-auto bg-muted/70 p-4 lg:max-h-[calc(100vh-73px)] lg:p-7" aria-label="Resume preview">
+        <section
+          id="resume-preview-pane"
+          className={cn(
+            "preview-pane overflow-y-auto bg-muted/70 p-4 lg:max-h-[calc(100vh-73px)] lg:p-7",
+            mobileWorkspaceView !== "preview" && "mobile-workspace-hidden",
+          )}
+          aria-label="Resume preview"
+        >
           <div className="mx-auto flex flex-col items-center gap-3">
+            <div className="app-chrome flex w-full max-w-[8.5in] items-center justify-between gap-3 lg:hidden">
+              <p className="text-xs text-muted-foreground">Live preview updates as you edit.</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMobileWorkspaceView("editor")}>
+                <FileText /> Edit resume
+              </Button>
+            </div>
             <ResumePreview state={state} ref={resumeRef} />
             <p className="app-chrome text-xs text-muted-foreground">
               {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
@@ -542,7 +604,13 @@ export function ResumeEditor() {
         </section>
       </main>
 
-      <ResumeEditorOverlays editor={editor} />
+      <ResumeEditorOverlays
+        editor={{
+          ...editor,
+          focusFromExportCheck: focusEditorFromExportCheck,
+          focusFromVersionCompare: focusEditorFromVersionCompare,
+        }}
+      />
     </>
   );
 }

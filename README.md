@@ -10,6 +10,8 @@ subscriptions, watermarks, or backend storage.
 - Next.js App Router app built with TypeScript, React, Tailwind CSS, and local
   shadcn/ui-style components.
 - Live two-pane editor with a printable resume preview.
+- Focused mobile editor and preview views, so a long form never buries the
+  live resume preview on a narrow screen.
 - First-run start panel with fast paths for PDF import, saved JSON, or a sample
   resume.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
@@ -106,7 +108,7 @@ Notes:
 | File or folder | Purpose |
 | --- | --- |
 | `app/` | Next.js App Router routes, layout, and global styles |
-| `components/resume-editor.tsx` | Page-level editor composition |
+| `components/resume-editor.tsx` | Page-level editor composition and responsive workspace switching |
 | `components/resume-editor/` | Focused form, preview, role-focus, history, comparison, and dialog components |
 | `components/ui/` | Local shadcn/ui-style primitives |
 | `hooks/use-resume-editor.ts` | Client-side editor orchestration and persistence |

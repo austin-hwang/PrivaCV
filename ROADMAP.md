@@ -38,12 +38,14 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   version management dominate the editor.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
   still feels reviewable.
-- Improve mobile and narrow-window editing without compromising the print layout.
+- Keep refining mobile and narrow-window editing without compromising the print layout.
 
 ## Core Features
 
 - Keep refining Resume Check guidance with more specific recommendations for
   crowded sections and low-evidence resumes.
+- Keep the editor and live resume preview equally reachable on a phone, while
+  preserving the fast desktop split workspace and print layout.
 - Improve the export checkpoint with role-aware recommendations and more
   granular changed-field detail for dense edit sessions.
 - Keep refining the local Role Focus review so its transparent wording cues

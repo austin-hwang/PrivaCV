@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-09 21:30 PDT
+
+- User problem addressed: on a phone, the editor and preview were one long
+  vertical page, so reaching the live resume preview after an edit meant
+  scrolling through the entire form; the dense toolbar also consumed valuable
+  vertical space.
+- Implementation: added an accessible, sticky mobile workspace switcher for
+  focused Edit resume and Preview views, converted the mobile action bar to a
+  horizontal scroller, and hid the text-size slider only where it would crowd
+  the smallest screens. Every field-fix link now automatically returns a user
+  from Preview to the editable field. Desktop retains the existing split pane,
+  and print explicitly keeps the resume preview visible.
+- Why it matters: job seekers can review the actual document after each change
+  without losing their place, while still reaching PDF export and all existing
+  local-first actions on a narrow screen.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`, `CI=true
+  pnpm test` (18 tests), `CI=true pnpm test:e2e` (20 tests), `CI=true pnpm
+  build`, and `git diff --check`. Added a Playwright mobile workflow covering
+  view switching and an export warning that focuses the relevant editor field.
+- Future opportunities: introduce a compact mobile overflow menu if the
+  toolbar gains more frequent actions, while keeping Export PDF immediately
+  reachable.
+
 ## 2026-07-09 20:51 PDT
 
 - User problem addressed: job seekers could not save two applications with the
