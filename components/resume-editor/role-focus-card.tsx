@@ -34,6 +34,9 @@ export function RoleFocusCard({
   const hasDescription = Boolean(jobDescription.trim());
   const matchedTerms = roleFocus.terms.filter((term) => term.matched);
   const missingTerms = roleFocus.terms.filter((term) => !term.matched);
+  const requirementTerms = roleFocus.terms.filter((term) => term.isRequirement);
+  const generalMatchedTerms = matchedTerms.filter((term) => !term.isRequirement);
+  const generalMissingTerms = missingTerms.filter((term) => !term.isRequirement);
   const phraseReview = useMemo(() => reviewRolePhrase(resumeText, phrase), [phrase, resumeText]);
   const phraseSuggestions = useMemo(
     () => buildRolePhraseSuggestions(resumeText, jobDescription),
@@ -97,13 +100,33 @@ export function RoleFocusCard({
               <Badge variant="secondary" className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
                 {roleFocus.matchedCount} of {roleFocus.totalCount} selected terms already used
               </Badge>
-              <span className="text-xs text-muted-foreground">Repeated terms are listed first.</span>
+              <span className="text-xs text-muted-foreground">
+                {roleFocus.requirementCount
+                  ? `${roleFocus.requirementCount} listed requirement${roleFocus.requirementCount === 1 ? "" : "s"} shown first.`
+                  : "Repeated terms are listed first."}
+              </span>
             </div>
-            {matchedTerms.length ? (
+            {requirementTerms.length ? (
+              <div className="mb-3">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Listed requirements</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {requirementTerms.map((term) => (
+                    <Badge
+                      key={term.term}
+                      variant="outline"
+                      className={term.matched ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-amber-300 bg-amber-50 text-amber-950"}
+                    >
+                      {term.term} <span className="ml-1 text-[10px] font-medium">{term.matched ? "present" : "review"}</span>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {generalMatchedTerms.length ? (
               <div className="mb-3">
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Already present</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {matchedTerms.map((term) => (
+                  {generalMatchedTerms.map((term) => (
                     <Badge key={term.term} variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-900">
                       {term.term}
                     </Badge>
@@ -111,11 +134,11 @@ export function RoleFocusCard({
                 </div>
               </div>
             ) : null}
-            {missingTerms.length ? (
+            {generalMissingTerms.length ? (
               <div>
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Not found verbatim</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {missingTerms.map((term) => (
+                  {generalMissingTerms.map((term) => (
                     <Badge key={term.term} variant="outline" className="border-amber-300 bg-amber-50 text-amber-950">
                       {term.term}
                     </Badge>
@@ -124,7 +147,7 @@ export function RoleFocusCard({
               </div>
             ) : null}
             <p className="mt-3 text-xs leading-snug text-muted-foreground">
-              Use missing terms only when they accurately describe your experience. This is a wording review, not an ATS score.
+              Requirements come only from an explicit qualifications-style heading. Use any missing term only when it accurately describes your experience. This is a wording review, not an ATS score.
             </p>
             {matchedTerms.some((term) => term.evidence.length) ? (
               <div className="mt-3 border-t pt-3">

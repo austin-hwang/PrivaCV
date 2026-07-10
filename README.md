@@ -23,12 +23,13 @@ subscriptions, watermarks, or backend storage.
   experience and project entry also identifies bullets that could use more
   truthful scope or outcome evidence.
 - Local-only Role Focus review that compares a pasted job description with the
-  current resume's wording, clearly separates terms already present from terms
-  to consider, shows whether matched terms are grounded in an experience or
-  project detail versus only mentioned in a title, summary, or skills, jumps
-  directly to that wording, suggests a small set of direct exact phrases to
-  review, includes an opt-in exact phrase check for multi-word concepts, and
-  avoids opaque ATS scoring.
+  current resume's wording, surfaces terms from explicit qualifications-style
+  sections before repeated general wording, clearly separates terms already
+  present from terms to consider, shows whether matched terms are grounded in
+  an experience or project detail versus only mentioned in a title, summary, or
+  skills, jumps directly to that wording, suggests a small set of direct exact
+  phrases to review, includes an opt-in exact phrase check for multi-word
+  concepts, and avoids opaque ATS scoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog.
 - Local last-export status that shows whether the current resume still matches

@@ -209,6 +209,29 @@ describe("resume helpers", () => {
     expect(focus.totalCount).toBeLessThanOrEqual(14);
   });
 
+  it("shows terms from an explicit requirements section before repeated general wording", () => {
+    const focus = buildRoleFocus(
+      "Product engineer building TypeScript services.",
+      [
+        "Build reliable product systems and collaborate across product teams.",
+        "Requirements",
+        "- TypeScript and React experience",
+        "- Kubernetes and distributed systems knowledge",
+        "Benefits",
+        "- Flexible work arrangements",
+      ].join("\n"),
+    );
+
+    expect(focus.requirementCount).toBeGreaterThan(0);
+    expect(focus.terms.slice(0, focus.requirementCount)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ term: "typescript", isRequirement: true, matched: true }),
+        expect.objectContaining({ term: "kubernetes", isRequirement: true, matched: false }),
+      ]),
+    );
+    expect(focus.terms.find((term) => term.term === "flexible")?.isRequirement).toBe(false);
+  });
+
   it("locates role terms in concrete experience separately from supporting mentions", () => {
     const state = sampleState();
     state.summary = "Product engineer focused on reliable systems.";
