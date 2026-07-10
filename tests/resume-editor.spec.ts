@@ -27,6 +27,23 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
+test("suggests exact role phrases for a local wording review", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page
+    .getByLabel("Job description")
+    .fill("Build backend microservices, partner with product teams, and improve backend microservices.");
+
+  const phraseButton = page.getByRole("button", { name: /backend microservices/i }).first();
+  await expect(phraseButton).toBeVisible();
+  await phraseButton.click();
+  await expect(page.getByLabel("Check an exact phrase from this role")).toHaveValue("backend microservices");
+  await expect(page.getByText("Phrase already appears in your resume.")).toBeVisible();
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {

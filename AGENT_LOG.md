@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-09 17:30 PDT
+
+- User problem addressed: even with an exact phrase checker, job seekers still
+  had to spot every meaningful multi-word concept in a lengthy role description
+  before they could review it.
+- Implementation: added up to three local, deterministic two-word phrase
+  suggestions derived from adjacent substantive job-description wording. A
+  single click places a suggestion in the existing exact-phrase review, which
+  clearly states whether it already appears in the resume. Also corrected the
+  local tokenizer so terminal punctuation does not create false phrase misses.
+- UI components or patterns used: existing shadcn/ui-style Card, Button,
+  Input, Badge, and Alert patterns with the existing polite live-result region.
+- Why it matters: users can move from role language to an honest, explicit
+  wording check with fewer steps, without uploading their resume or receiving a
+  black-box ATS score.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test`, `CI=true pnpm test:e2e`, `CI=true pnpm build`, and
+  `git diff --check`. Added deterministic unit coverage and a Playwright flow
+  for selecting a suggested phrase.
+- Future opportunities: improve phrase candidate ranking for longer role
+  descriptions while keeping each suggestion directly traceable to the pasted
+  text.
+
 ## 2026-07-09 16:29 PDT
 
 - User problem addressed: a list of individual role terms could miss an

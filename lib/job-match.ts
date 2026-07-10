@@ -16,6 +16,8 @@ export type RolePhraseReview = {
   matched: boolean;
 };
 
+export type RolePhraseSuggestion = RolePhraseReview;
+
 const STOP_WORDS = new Set([
   "about",
   "across",
@@ -78,13 +80,47 @@ const STOP_WORDS = new Set([
 ]);
 
 const MAX_TERMS = 14;
+const MAX_PHRASE_SUGGESTIONS = 3;
+const PHRASE_STOP_WORDS = new Set([
+  ...STOP_WORDS,
+  "build",
+  "builds",
+  "collaborate",
+  "collaborating",
+  "create",
+  "creating",
+  "deliver",
+  "delivering",
+  "drive",
+  "driving",
+  "improve",
+  "improving",
+  "lead",
+  "leading",
+  "manage",
+  "managing",
+  "partner",
+  "partnering",
+  "support",
+  "supporting",
+]);
+
+function rawWords(text: string) {
+  return (text.match(/[a-z][a-z0-9+#.]*/gi) ?? [])
+    .map((term) => term.replace(/^\.+|\.+$/g, ""))
+    .filter(Boolean);
+}
 
 function words(text: string) {
-  return text.toLocaleLowerCase().match(/[a-z][a-z0-9+#.]*/g) ?? [];
+  return rawWords(text).map((term) => term.toLocaleLowerCase());
 }
 
 function isUsefulTerm(term: string) {
   return term.length >= 3 && !STOP_WORDS.has(term) && !/^\d/.test(term);
+}
+
+function isUsefulPhraseTerm(term: string) {
+  return term.length >= 3 && !PHRASE_STOP_WORDS.has(term) && !/^\d/.test(term);
 }
 
 /**
@@ -131,4 +167,44 @@ export function reviewRolePhrase(resumeText: string, phrase: string): RolePhrase
     termCount: phraseTerms.length,
     matched,
   };
+}
+
+/**
+ * Surfaces a small set of exact two-word phrases from the role description so
+ * people can review useful concepts without having to spot every phrase on
+ * their own. Suggestions remain deterministic, local, and deliberately avoid
+ * inferring missing skills or job fit.
+ */
+export function buildRolePhraseSuggestions(resumeText: string, jobDescription: string): RolePhraseSuggestion[] {
+  const sourceTerms = rawWords(jobDescription);
+  const normalizedTerms = sourceTerms.map((term) => term.toLocaleLowerCase());
+  const counts = new Map<string, number>();
+  normalizedTerms
+    .filter(isUsefulTerm)
+    .forEach((term) => counts.set(term, (counts.get(term) ?? 0) + 1));
+
+  const candidates = new Map<string, { phrase: string; score: number; occurrences: number }>();
+  normalizedTerms.forEach((term, index) => {
+    const nextTerm = normalizedTerms[index + 1];
+    if (!nextTerm || !isUsefulPhraseTerm(term) || !isUsefulPhraseTerm(nextTerm)) return;
+
+    const key = `${term} ${nextTerm}`;
+    const existing = candidates.get(key);
+    const score = (counts.get(term) ?? 0) + (counts.get(nextTerm) ?? 0);
+    candidates.set(key, {
+      phrase: existing?.phrase ?? `${sourceTerms[index]} ${sourceTerms[index + 1]}`,
+      score,
+      occurrences: (existing?.occurrences ?? 0) + 1,
+    });
+  });
+
+  return [...candidates.values()]
+    .sort(
+      (first, second) =>
+        second.occurrences - first.occurrences ||
+        second.score - first.score ||
+        first.phrase.localeCompare(second.phrase),
+    )
+    .slice(0, MAX_PHRASE_SUGGESTIONS)
+    .map(({ phrase }) => reviewRolePhrase(resumeText, phrase));
 }
