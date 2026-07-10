@@ -195,6 +195,10 @@
     background: #fff !important;
   }
 
+  .mobile-workspace-hidden {
+    display: block !important;
+  }
+
   .resume-sheet {
     width: auto;
     min-height: 11in;
@@ -207,6 +211,12 @@
 
   .resume-section-title {
     break-after: avoid;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mobile-workspace-hidden {
+    display: none;
   }
 }
 
