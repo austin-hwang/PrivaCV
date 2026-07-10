@@ -79,11 +79,11 @@ const DATE_RANGE_RE = new RegExp(
   "i",
 );
 const SECTION_MAP: Array<[RegExp, keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">]> = [
-  [/^(summary|professional\s+summary|profile|about\s+me|about|objective|career\s+objective)\b/i, "summary"],
-  [/^(experience|work\s+experience|professional\s+experience|employment(\s+history)?|work\s+history)\b/i, "experience"],
-  [/^(education|academic\s+background|academics)\b/i, "education"],
-  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects)\b/i, "projects"],
-  [/^(skills|technical\s+skills|core\s+(competencies|skills)|technologies|expertise)\b/i, "skills"],
+  [/^(summary|professional\s+summary|profile|career\s+profile|about\s+me|about|objective|career\s+objective)\b/i, "summary"],
+  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+background)\b/i, "experience"],
+  [/^(education|education\s+(and|&)\s+training|academic\s+background|academics)\b/i, "education"],
+  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects|academic\s+projects|relevant\s+projects|project\s+experience)\b/i, "projects"],
+  [/^(skills|technical\s+skills|key\s+skills|core\s+(competencies|skills)|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
 ];
 
 export function extractPhone(text: string) {

@@ -50,9 +50,11 @@ subscriptions, watermarks, or backend storage.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand,
   plus a local pasted-text path for documents, LinkedIn, and scanned PDFs. The
-  importer also recognizes adjacent entries whose dates are on their own lines:
-  roles remain separate when bulleted details make the boundary clear, and
-  compact degree-and-school histories remain separate without bullets.
+  importer recognizes common alternate section headings such as Career Profile,
+  Relevant Experience, Education & Training, Academic Projects, and Key Skills;
+  it also recognizes adjacent entries whose dates are on their own lines: roles
+  remain separate when bulleted details make the boundary clear, and compact
+  degree-and-school histories remain separate without bullets.
 - Post-import review panel that guides users through each imported contact,
   summary, experience, education, project, and skills entry, keeps explicit
   confirmation and a matching source excerpt beside the editable value, keeps

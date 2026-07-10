@@ -72,6 +72,35 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText("Import review")).toBeHidden();
 });
 
+test("imports common alternate section headings without losing resume content", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Career Profile",
+    "Platform engineer building dependable developer tools.",
+    "",
+    "Relevant Experience",
+    "Staff Engineer | Analytical Engines | 2022–Present",
+    "• Built reliable systems.",
+    "",
+    "Key Skills",
+    "TypeScript, React, systems design",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
+  await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
+  await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
+  await expect(page.getByText("What the importer detected")).toBeVisible();
+});
+
 test("asks users to review every imported experience entry", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-10 16:30 PDT
+
+- Market research and reprioritization: Teal, Rezi, Jobscan, and newer
+  tailoring products make job-description matching, scoring, templates, and
+  AI rewriting crowded expectations. Fresh job-seeker discussion instead keeps
+  surfacing broken imports, formatting anxiety, and a need to preserve a clean
+  editable master resume. The existing transparent local role review already
+  covers the useful non-generative tailoring layer, so a score, rewrite,
+  template, or DOCX export was lower value than reducing import loss.
+- Decision: shipped conservative alternate-heading recognition for imported
+  resumes. Career Profile, Relevant/Selected Experience, Education & Training,
+  Academic/Relevant Projects, Key Skills, and similar common headings were
+  previously treated as ordinary text and could leave whole sections missing.
+- Implementation: expanded the importer’s heading map, added unit coverage for
+  individual headings and full imported content, added a browser import flow,
+  and aligned README and roadmap documentation. The parser still requires
+  explicit review before export and makes no claims about ambiguous layouts.
+- Why it matters: job seekers retain their summary, work history, education,
+  projects, and skills when importing common resume variants instead of
+  rebuilding silently skipped sections before tailoring or exporting.
+- Verification: `CI=true pnpm test` (34 tests), `CI=true pnpm typecheck`,
+  `CI=true pnpm lint`, full Playwright coverage (32 tests; passed against the
+  existing local server after the CI-managed server ended early), `CI=true
+  node_modules/.bin/next build`, and `git diff --check` passed.
+- Provisional next direction only: reassess remaining import layout gaps and
+  export confidence against a lightweight ATS-text validation aid before
+  choosing another feature.
+
 ## 2026-07-10 15:29 PDT
 
 - Market research and reprioritization: current Teal, Kickresume, and
