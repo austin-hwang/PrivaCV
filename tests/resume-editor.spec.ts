@@ -75,6 +75,21 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
+test("guides users to add measurable evidence without requiring every bullet to have a number", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.locator("#field-experience-0-details").fill(
+    "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.",
+  );
+
+  await expect(page.getByText("Not every bullet needs a number, but measurable scope or results make your strongest work more credible at a glance.")).toBeVisible();
+  await page.getByRole("button", { name: /strengthen a bullet/i }).click();
+  await expect(page.locator("#field-experience-0-details")).toBeFocused();
+});
+
 test("suggests exact role phrases for a local wording review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

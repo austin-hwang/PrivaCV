@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-10 00:29 PDT
+
+- Market reassessment: current products such as Teal and Jobscan center
+  job-description matching, but recent job-seeker discussion still asks for
+  concise, ATS-safe resumes with quantified impact rather than decorative
+  templates or opaque scores. The editor already has a privacy-first import
+  path and transparent Role Focus, so a new template or additional keyword
+  matching was lower-value this session.
+- Decision: shipped one Resume Check for measurable evidence. It flags when
+  fewer than half of experience and project bullets show a quantified scope or
+  result, names the exact coverage, and focuses the first bullet that needs a
+  stronger proof point. The guidance explicitly says not every bullet needs a
+  number.
+- Why it matters: users get a concrete prompt to replace generic
+  responsibilities with credible outcomes while keeping the decision and all
+  resume data local.
+- Provisional next opportunity: reassess whether import-review confidence cues
+  or more granular low-evidence guidance creates the largest remaining friction.
+
 ## 2026-07-09 23:27 PDT
 
 - Reassessed current alternatives and user discussion: Teal and Jobscan make

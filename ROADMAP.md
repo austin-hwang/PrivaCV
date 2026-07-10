@@ -44,7 +44,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 ## Core Features
 
 - Keep refining Resume Check guidance with more specific recommendations for
-  crowded sections and low-evidence resumes.
+  crowded sections and low-evidence resumes; it now prompts for measurable
+  scope or results without requiring every bullet to contain a number.
 - Keep the editor and live resume preview equally reachable on a phone, while
   preserving the fast desktop split workspace and print layout.
 - Improve the export checkpoint with role-aware recommendations and more
