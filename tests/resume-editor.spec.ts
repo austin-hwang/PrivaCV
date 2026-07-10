@@ -182,6 +182,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByRole("dialog", { name: /name this checkpoint/i })).toBeVisible();
   await page.getByLabel("Checkpoint name").fill("Original software resume");
   await page.getByLabel("Note (optional)").fill("Before tailoring for the platform role.");
+  await expect(page.getByText("No role focus to include")).toBeVisible();
   await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect(page.getByText("Version saved locally")).toBeVisible();
   await expect(page.getByText("Original software resume")).toBeVisible();
@@ -233,6 +234,30 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.getByRole("button", { name: /undo delete/i }).click();
   await expect(page.getByText("Restored deleted checkpoint")).toBeVisible();
   await expect(page.getByLabel("Delete saved version Original software resume")).toBeVisible();
+});
+
+test("restores the local role focus saved with a tailored checkpoint", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  const description = page.getByLabel("Job description");
+  await description.fill("Build TypeScript services for product teams and improve release reliability.");
+  await page.getByRole("button", { name: /save version/i }).click();
+  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
+  await expect(saveDialog.getByText("Role focus included")).toBeVisible();
+  await page.getByLabel("Checkpoint name").fill("Platform role draft");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await expect(page.getByText("Role focus saved · Build TypeScript services for product teams and improve release reliability.")).toBeVisible();
+
+  await description.fill("Lead design systems for a consumer product team.");
+  await page.getByLabel("Professional Summary").fill("Product engineer focused on reliable platform launches.");
+  await page.getByRole("button", { name: /^restore$/i }).click();
+
+  await expect(description).toHaveValue("Build TypeScript services for product teams and improve release reliability.");
+  await page.getByRole("button", { name: /restore previous/i }).click();
+  await expect(description).toHaveValue("Lead design systems for a consumer product team.");
 });
 
 test("compares two saved version history checkpoints", async ({ page }) => {

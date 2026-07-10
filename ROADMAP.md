@@ -59,7 +59,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep improving PDF import review with clearer confidence signals and a better
   before/after correction flow.
 - Improve local version history with clearer checkpoint labels, lineage cues,
-  and lightweight guidance for choosing which saved draft to restore.
+  lightweight guidance for choosing which saved draft to restore, and reliable
+  role-focus context when returning to a tailored draft.
 - Keep local checkpoint cleanup low-risk with undo paths, visible capacity
   limits, and clear replacement warnings before the five-version cap rotates an
   older draft out.
