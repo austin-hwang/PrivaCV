@@ -82,6 +82,34 @@ describe("resume helpers", () => {
     ]);
   });
 
+  it("keeps compact education entries separate when their standalone dates have no bullets", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Education",
+      "Master of Science in Computer Science",
+      "University of Example",
+      "2016 – 2018",
+      "Bachelor of Science in Mathematics",
+      "Example College",
+      "2012 – 2016",
+    ].join("\n"));
+
+    expect(state.education).toEqual([
+      expect.objectContaining({
+        title: "Master of Science in Computer Science",
+        subtitle: "University of Example",
+        meta: "2016 – 2018",
+      }),
+      expect.objectContaining({
+        title: "Bachelor of Science in Mathematics",
+        subtitle: "Example College",
+        meta: "2012 – 2016",
+      }),
+    ]);
+  });
+
   it("puts a short matching source excerpt beside imported fields", () => {
     const sourceText = [
       "Ada Lovelace",

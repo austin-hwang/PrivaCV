@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-10 15:29 PDT
+
+- Market research and reprioritization: current Teal, Kickresume, and
+  Jobscan-style tools make job-specific matching, scoring, templates, and AI
+  rewriting crowded expectations. Fresh job-seeker discussion still describes
+  per-application tailoring as slow and warns that generic or invented wording
+  is harmful. The editor already provides a transparent local wording review,
+  so factual import preservation remains a higher-value prerequisite than a
+  new score, rewrite, template, or DOCX export.
+- Decision: shipped a conservative compact-education parser correction instead
+  of expanding role matching or output formats. Date-line resumes frequently
+  use degree, school, and date without bullets; the importer could merge that
+  history into one entry even though the standalone dates clearly delimit it.
+- Implementation: adjacent standalone-date entries now split when either the
+  existing bulleted-boundary signal is present or the next short header follows
+  immediately. Added unit and browser coverage for a two-degree, no-bullets
+  paste-import flow, and updated the product documentation.
+- Why it matters: people keep distinct education records during import and can
+  verify the resulting fields instead of reconstructing a merged history
+  before tailoring or exporting.
+- Verification: `CI=true pnpm test` (32 tests), `CI=true pnpm typecheck`,
+  `CI=true pnpm lint`, focused Playwright coverage (2 tests), full Playwright
+  coverage on an isolated port (31 tests), `CI=true node_modules/.bin/next
+  build`, and `git diff --check` passed.
+- Provisional next direction only: reassess remaining uncommon import-header
+  layouts against an ATS-safe DOCX export and a more role-aware export review
+  before choosing another feature.
+
 ## 2026-07-10 14:32 PDT
 
 - Market research and reprioritization: current Teal, Rezi, and Jobscan-style
