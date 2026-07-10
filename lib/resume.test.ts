@@ -9,6 +9,7 @@ import {
   sampleState,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
+import { importResumeText } from "@/lib/pdf-import";
 import {
   MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
@@ -24,6 +25,24 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("imports pasted resume text with line-ending cleanup", () => {
+    const state = importResumeText(
+      "Ada Lovelace\r\nPlatform Engineer\r\nada@example.com | San Francisco, CA\r\n\r\nExperience\r\nEngineer | Analytical Engines | 2022–Present\r\n• Built reliable systems.",
+    );
+
+    expect(state).toMatchObject({
+      name: "Ada Lovelace",
+      title: "Platform Engineer",
+      email: "ada@example.com",
+      location: "San Francisco, CA",
+    });
+    expect(state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Analytical Engines" });
+  });
+
+  it("rejects an empty pasted resume", () => {
+    expect(() => importResumeText(" \n\t ")).toThrow("Paste some resume text to import.");
+  });
+
   it("normalizes legacy JSON into a complete resume state", () => {
     const state = normalizeResume({ name: "Ada", sectionOrder: ["skills"] });
 

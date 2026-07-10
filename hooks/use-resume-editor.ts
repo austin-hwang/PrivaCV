@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { importResumePdf } from "@/lib/pdf-import";
+import { importResumePdf, importResumeText } from "@/lib/pdf-import";
 import { buildRoleFocus } from "@/lib/job-match";
 import {
   blankEntry,
@@ -69,6 +69,7 @@ export function useResumeEditor() {
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
+  const [textImportOpen, setTextImportOpen] = useState(false);
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
   const [versionDraftLabel, setVersionDraftLabel] = useState("");
@@ -547,6 +548,23 @@ export function useResumeEditor() {
     }
   };
 
+  const openTextImport = (text: string) => {
+    try {
+      const imported = importResumeText(text);
+      saveRecoveryPoint("Before importing pasted resume text");
+      setState(imported);
+      setImportReview(buildImportReview(imported, "pasted resume text"));
+      setRestoredVersionSummary(null);
+      setDraftSourceVersionId(null);
+      setTextImportOpen(false);
+      flash("Imported pasted text - please review");
+      return true;
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "Could not import pasted text");
+      return false;
+    }
+  };
+
   const copyPlainText = async () => {
     if (!plainText) {
       flash("Add resume details first");
@@ -637,6 +655,7 @@ export function useResumeEditor() {
     moveSection,
     openJson,
     openPdf,
+    openTextImport,
     openVersionHistoryBackup,
     openVersionSave,
     pageCount,
@@ -662,12 +681,14 @@ export function useResumeEditor() {
     setJobDescription,
     setRoleLabel,
     setTextReviewOpen,
+    setTextImportOpen,
     setVersionCompareTarget,
     setVersionDraftLabel,
     setVersionDraftNote,
     setVersionSaveOpen,
     state,
     textReviewOpen,
+    textImportOpen,
     toast,
     undoDeleteVersion,
     updateEntry,

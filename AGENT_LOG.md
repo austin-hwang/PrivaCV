@@ -1,5 +1,41 @@
 # Agent Log
 
+## 2026-07-09 23:27 PDT
+
+- Reassessed current alternatives and user discussion: Teal and Jobscan make
+  job-specific matching and review standard, while users still emphasize quick
+  imports, readable output, and control over automatic tailoring. The existing
+  local Role Focus already covers the transparent review need; improving the
+  no-account import path remained the larger first-use win.
+- Decision: keep the pasted-text importer as this session's only shipped
+  improvement, ahead of more role-matching, checkpoint, or template work.
+  Pasting from documents, LinkedIn, and OCR&apos;d scans is the smallest way to
+  remove a common import dead end without adding a backend or opaque AI edits.
+- Polish: made the empty-state route explicit and clarified that scanned PDFs
+  need copied OCR text. The browser flow verifies this privacy-first wording,
+  structured import, and required field review.
+- Provisional next opportunity: reassess whether import-review confidence cues
+  or more useful resume-quality guidance now creates the largest user friction.
+
+## 2026-07-09 22:30 PDT
+
+- Market reassessment: Jobscan and Teal lead with job-description matching, but
+  user reviews repeatedly cite incomplete imports and clunky workflows. Since
+  the editor already has transparent local Role Focus, another tailoring feature
+  was lower value than making the first import path work for more source formats.
+- Decision: shipped a local pasted-resume-text importer. It reuses the existing
+  deterministic parser and mandatory review safeguards, rather than introducing
+  OCR, an AI rewrite, or more opaque matching.
+- Implementation: added Paste resume text to first-run and main actions, a
+  privacy-forward dialog, robust line-ending cleanup, empty-input feedback,
+  recovery support, and generalized import-review copy for both PDFs and pasted
+  text. Added unit and browser coverage.
+- Why it matters: people can move a resume from Word, LinkedIn, or a scanned PDF
+  into a structured, editable, ATS-friendly workspace without accounts, uploads,
+  or a PDF with extractable text.
+- Provisional next opportunity: reassess whether import-review confidence cues
+  or the mobile action hierarchy now creates the largest remaining friction.
+
 ## 2026-07-09 21:30 PDT
 
 - User problem addressed: on a phone, the editor and preview were one long

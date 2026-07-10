@@ -12,8 +12,8 @@ subscriptions, watermarks, or backend storage.
 - Live two-pane editor with a printable resume preview.
 - Focused mobile editor and preview views, so a long form never buries the
   live resume preview on a narrow screen.
-- First-run start panel with fast paths for PDF import, saved JSON, or a sample
-  resume.
+- First-run start panel with fast paths for PDF import, pasted resume text,
+  saved JSON, or a sample resume.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
 - Add, remove, and reorder repeatable entries.
 - Reorder resume sections while keeping the preview and plain-text export in sync.
@@ -41,9 +41,10 @@ subscriptions, watermarks, or backend storage.
   post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
-- Best-effort PDF import for text-based resumes through pdf.js loaded on demand.
-- Post-import review panel that highlights parsed fields most likely to need a
-  human check before export.
+- Best-effort PDF import for text-based resumes through pdf.js loaded on demand,
+  plus a local pasted-text path for documents, LinkedIn, and scanned PDFs.
+- Post-import review panel that highlights suggested fields most likely to need
+  a human check before export.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
 - Local autosave in browser storage plus user-managed JSON files for manual
@@ -102,6 +103,12 @@ Notes:
 - Scanned/image-only PDFs do not contain extractable text.
 - PDF import loads the parser from a CDN on demand, so that action requires an
   internet connection.
+
+## Importing pasted text
+
+Choose **Paste resume text** and paste text copied from a document, LinkedIn,
+or an OCR&apos;d scanned PDF. Parsing happens only in the browser and uses the same
+review step as PDF import, so confirm the suggested fields before export.
 
 ## Files
 
