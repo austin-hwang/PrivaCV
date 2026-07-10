@@ -10,7 +10,7 @@ import {
   summarizeEvidence,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
-import { importResumeText } from "@/lib/pdf-import";
+import { importResumeText, importResumeTextWithSource } from "@/lib/pdf-import";
 import {
   MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
@@ -39,6 +39,13 @@ describe("resume helpers", () => {
       location: "San Francisco, CA",
     });
     expect(state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Analytical Engines" });
+  });
+
+  it("keeps the normalized source text available during import review", () => {
+    const imported = importResumeTextWithSource("Ada Lovelace\r\n\r\nExperience\r\nEngineer | Example Co.");
+
+    expect(imported.sourceText).toBe("Ada Lovelace\n\nExperience\nEngineer | Example Co.");
+    expect(imported.state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Example Co." });
   });
 
   it("rejects an empty pasted resume", () => {

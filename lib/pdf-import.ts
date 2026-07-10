@@ -262,20 +262,32 @@ export function parseResume(lines: string[]) {
 }
 
 export function importResumeText(text: string) {
-  const lines = text
+  return importResumeTextWithSource(text).state;
+}
+
+function normalizedTextLines(text: string) {
+  return text
     .replace(/\r\n?/g, "\n")
     .replace(/\u00a0/g, " ")
     .split("\n")
     .map((line) => line.trim());
+}
+
+export function importResumeTextWithSource(text: string) {
+  const lines = normalizedTextLines(text);
 
   if (!lines.some(Boolean)) {
     throw new Error("Paste some resume text to import.");
   }
 
-  return parseResume(lines);
+  return { state: parseResume(lines), sourceText: lines.join("\n").trim() };
 }
 
 export async function importResumePdf(file: File) {
+  return (await importResumePdfWithSource(file)).state;
+}
+
+export async function importResumePdfWithSource(file: File) {
   if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
     throw new Error("Please choose a PDF file.");
   }
@@ -284,5 +296,5 @@ export async function importResumePdf(file: File) {
   if (!lines.filter(Boolean).length) {
     throw new Error("No text could be extracted. Scanned PDFs are not supported yet.");
   }
-  return parseResume(lines);
+  return { state: parseResume(lines), sourceText: lines.join("\n").trim() };
 }

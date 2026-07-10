@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-10 08:33 PDT
+
+- Market research and reprioritization: recent job-seeker discussion continues
+  to treat job-specific tailoring, keyword gaps, and exports as baseline
+  expectations, but repeatedly calls out slow tailoring, unreliable parsing,
+  and distrust of opaque or untruthful optimization. Competitors such as Teal,
+  Jobscan, and newer tailor tools compete heavily on match scores and rewrites;
+  this product's local, reviewable approach is more differentiated when its
+  import path is easier to verify.
+- Decision: shipped an import-source reference instead of an ATS score,
+  template, DOCX export, or another matching heuristic. Source verification
+  won because deterministic parsing is the highest-risk step in the existing
+  first-use workflow, and it is a small improvement users notice immediately.
+- Implementation: PDF and pasted-text imports now retain the normalized text
+  used by the parser with the local import-review state. A collapsed, readable
+  reference lets people compare extracted text with editable fields before
+  confirming them; completion still clears the export reminder. The
+  parser's established state-returning APIs remain compatible, with new
+  source-aware wrappers used by the editor.
+- Why it matters: people can catch a missing or misplaced fact without
+  switching back to their original document or trusting the importer blindly,
+  while keeping sensitive resume data in the browser.
+- Verification: `CI=true pnpm typecheck`, `CI=true pnpm lint`, `CI=true pnpm
+  test` (27 tests), `node_modules/.bin/playwright test` (27 tests; direct Next
+  binary used because the `pnpm dev` wrapper is blocked by the existing
+  `workerd` build-script policy), `CI=true node_modules/.bin/next build`, and
+  `git diff --check` passed.
+- Provisional next direction only: reassess mobile correction density,
+  import-quality explanation, and ATS-safe template choice against fresh
+  market evidence before selecting the next improvement.
+
 ## 2026-07-10 06:45 PDT
 
 - Market research and reprioritization: current resume-tailoring products make

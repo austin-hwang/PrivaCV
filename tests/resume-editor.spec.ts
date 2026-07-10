@@ -45,6 +45,8 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
   await expect(page.getByText(/0 of \d+ confirmed/)).toBeVisible();
   await expect(page.getByRole("button", { name: /^finish review$/i })).toBeDisabled();
+  await page.getByText("View the text used for this import").click();
+  await expect(page.getByLabel("Imported source text")).toHaveValue(/Ada Lovelace[\s\S]*Built reliable systems\./);
 
   await page.getByRole("button", { name: /review next field/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
