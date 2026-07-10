@@ -30,37 +30,13 @@ subscriptions, watermarks, or backend storage.
 - Field-level change summary after edits so users can recheck exactly what
   changed since their last PDF export attempt, including compact before/after
   snippets and an expandable full audit trail for edited resume areas.
-- Local version history for naming, annotating, saving, and restoring
+- Local version history for naming, annotating, comparing, and restoring a few
   browser-only checkpoints while tailoring a resume for different applications.
-- Role-aware checkpoints that restore their exact optional job-description
-  context (including an intentionally blank one), so wording review never
-  carries over from another tailored draft.
-- Checkpoint comparisons that separately flag different saved job-description
-  contexts, even when the resume content itself is unchanged.
-- Reversible checkpoint deletion so an accidental cleanup does not permanently
-  remove a local draft before the user can recover it.
-- Version-history capacity guidance that shows the five-checkpoint limit, names
-  the oldest saved draft, and warns before a new unique checkpoint replaces it.
-- Portable checkpoint-history backups that let users archive or move their
-  browser-only tailored drafts without uploading resume data anywhere.
-- Clear backup-import capacity review that considers every valid checkpoint in
-  a backup and names older drafts that will remain only in the backup when the
-  browser&apos;s five-draft limit is reached.
-- Explicit backup-overlap review that identifies drafts already saved in the
-  browser before a merge, so matching checkpoints do not look like new work.
-- Glanceable checkpoint summaries that show saved draft contents, current-match
-  status, and changed-area counts before comparing or restoring.
-- Checkpoint lineage cues that show which saved draft a tailored version was
-  derived from.
-- Suggested checkpoint comparison that highlights the closest saved draft to
-  review first when several tailored versions exist.
-- Saved-version comparison that shows changed areas with saved/current snippets
-  and exact edited field labels before restoring or continuing a tailored draft.
-- Saved-to-saved comparison for auditing how two local checkpoints differ
-  without replacing the current resume.
-- Post-restore audit panel that shows what changed when a saved checkpoint is
-  restored, with expandable change details and jump actions back to the
-  affected fields.
+- Role-aware checkpoints with optional private labels, so job-specific wording
+  context stays attached to the right local draft without appearing in the
+  resume or exported PDF.
+- Glanceable version summaries, suggested comparisons, reversible deletion, and
+  post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand.
@@ -68,9 +44,8 @@ subscriptions, watermarks, or backend storage.
   human check before export.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
-- Local autosave in browser storage plus Save JSON / Open JSON backup files.
-- Save or open a checkpoint-history JSON backup to preserve up to five named
-  tailored drafts outside a single browser.
+- Local autosave in browser storage plus user-managed JSON files for manual
+  save, open, and checkpoint export/import when needed.
 - Clean print stylesheet for browser Save as PDF.
 
 ## Stack
@@ -133,7 +108,9 @@ Notes:
 | `app/` | Next.js App Router routes, layout, and global styles |
 | `components/resume-editor.tsx` | Main client-side resume editor experience |
 | `components/ui/` | Local shadcn/ui-style primitives |
+| `hooks/use-resume-editor.ts` | Client-side editor orchestration and persistence |
 | `lib/resume.ts` | Typed resume state, validation, checks, plain-text export |
+| `lib/resume-workspace.ts` | Local workspace, checkpoint, and import-review business rules |
 | `lib/pdf-import.ts` | PDF text extraction and parsing |
 | `lib/resume.test.ts` | Vitest coverage for resume helpers |
 | `ROADMAP.md` | Product vision and priorities |

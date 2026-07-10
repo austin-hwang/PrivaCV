@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-09 20:51 PDT
+
+- User problem addressed: job seekers could not save two applications with the
+  exact same resume wording because version history treated the resume content
+  alone as a duplicate; long saved job descriptions also made drafts slow to
+  scan.
+- Implementation: added an optional private role label in Role Focus, persisted
+  it locally and with checkpoints/backups/recovery points, and changed local
+  checkpoint deduplication to use both resume content and saved role context.
+  Comparisons now treat a changed label as role-context change, while cards
+  show the compact label ahead of the longer pasted description.
+- UI components or patterns used: existing local Role Focus, Version History,
+  Alert, Badge, Input, and Dialog patterns with the Target icon.
+- Why it matters: users can keep distinct, recognizable drafts for separate
+  applications even before tailoring any resume bullet, without putting role
+  information into the exported resume or sending it to a service.
+- Verification: ran `CI=true node_modules/.bin/tsc --noEmit`,
+  `CI=true node_modules/.bin/next lint`, `CI=true node_modules/.bin/vitest run`
+  (13 tests), `CI=true node_modules/.bin/playwright test` (19 tests),
+  `CI=true node_modules/.bin/next build`, and `git diff --check`. The `pnpm`
+  wrapper itself was blocked by its minimum-release-age policy for existing
+  `wrangler`/`miniflare` lockfile entries, so the checked-in project binaries
+  were used.
+- Future opportunities: let users selectively import checkpoint-overflow drafts
+  from a backup rather than retaining only the newest five locally.
+
 ## 2026-07-09 20:27 PDT
 
 - User problem addressed: two checkpoints could contain the same resume text

@@ -9,6 +9,19 @@ import {
   sampleState,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
+import {
+  MAX_VERSION_HISTORY,
+  VERSION_HISTORY_BACKUP_FORMAT,
+  VERSION_HISTORY_BACKUP_VERSION,
+  buildImportReview,
+  mergeVersionHistory,
+  parseExportCheckpoint,
+  parseVersionHistoryBackup,
+  roleContextFingerprint,
+  versionContentBadges,
+  versionHistoryFingerprint,
+  type VersionHistoryItem,
+} from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
   it("normalizes legacy JSON into a complete resume state", () => {
@@ -184,6 +197,100 @@ describe("resume helpers", () => {
       expect.arrayContaining([
         expect.objectContaining({ phrase: "TypeScript services", termCount: 2, matched: true }),
       ]),
+    );
+  });
+
+  it("normalizes saved export checkpoints and rejects malformed data", () => {
+    const state = sampleState();
+    const checkpoint = parseExportCheckpoint(
+      JSON.stringify({
+        fingerprint: "abc",
+        exportedAt: "2026-07-09T12:00:00.000Z",
+        pageCount: 1,
+        issueCount: 0,
+        snapshot: { ...state, sectionOrder: ["skills"] },
+      }),
+    );
+
+    expect(checkpoint?.snapshot?.sectionOrder).toEqual(["skills", "education", "experience", "projects"]);
+    expect(parseExportCheckpoint(JSON.stringify({ fingerprint: "abc" }))).toBeNull();
+    expect(parseExportCheckpoint("not json")).toBeNull();
+  });
+
+  it("parses version-history backups without applying the browser slot limit early", () => {
+    const checkpoints = Array.from({ length: MAX_VERSION_HISTORY + 2 }, (_, index): VersionHistoryItem => ({
+      id: `${index}`,
+      savedAt: `2026-07-0${index + 1}T12:00:00.000Z`,
+      label: `Draft ${index}`,
+      fingerprint: `fingerprint-${index}`,
+      state: sampleState(),
+      importReview: null,
+    }));
+
+    expect(
+      parseVersionHistoryBackup({
+        format: VERSION_HISTORY_BACKUP_FORMAT,
+        version: VERSION_HISTORY_BACKUP_VERSION,
+        exportedAt: "2026-07-09T12:00:00.000Z",
+        checkpoints,
+      }),
+    ).toHaveLength(MAX_VERSION_HISTORY + 2);
+  });
+
+  it("deduplicates version history by resume and role context when merging backups", () => {
+    const baseState = sampleState();
+    const existing: VersionHistoryItem[] = [
+      {
+        id: "1",
+        savedAt: "2026-07-09T12:00:00.000Z",
+        label: "Current",
+        fingerprint: "same-resume",
+        state: baseState,
+        importReview: null,
+        roleLabel: "Frontend",
+      },
+    ];
+    const incoming: VersionHistoryItem[] = [
+      {
+        ...existing[0],
+        id: "incoming-duplicate",
+      },
+      {
+        ...existing[0],
+        id: "incoming-new-role",
+        savedAt: "2026-07-10T12:00:00.000Z",
+        label: "Backend",
+        roleLabel: "Backend",
+      },
+    ];
+
+    const merged = mergeVersionHistory(existing, incoming);
+
+    expect(merged.matchingCheckpoints).toHaveLength(1);
+    expect(merged.incomingUnique).toHaveLength(1);
+    expect(merged.checkpoints.map((item) => item.label)).toEqual(["Backend", "Current"]);
+    expect(versionHistoryFingerprint(existing[0])).toBe(`same-resume\u0000${roleContextFingerprint(undefined, "Frontend")}`);
+  });
+
+  it("builds import-review targets for likely PDF parser guesses", () => {
+    const state = sampleState();
+    const review = buildImportReview(state, "resume.pdf");
+
+    expect(review.fileName).toBe("resume.pdf");
+    expect(review.sections).toEqual(expect.arrayContaining(["Header", "Summary", "Experience", "Education", "Projects", "Skills"]));
+    expect(review.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "contact", targetId: "field-name" }),
+        expect.objectContaining({ id: "experience", targetId: "field-experience-0-title" }),
+        expect.objectContaining({ id: "skills", targetId: "field-skills" }),
+      ]),
+    );
+  });
+
+  it("summarizes version content badges from normalized resume content", () => {
+    expect(versionContentBadges(emptyState())).toEqual(["Empty draft"]);
+    expect(versionContentBadges(sampleState())).toEqual(
+      expect.arrayContaining(["2 roles", "1 education", "1 project", "4 skill lines"]),
     );
   });
 });
