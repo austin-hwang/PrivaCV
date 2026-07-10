@@ -29,9 +29,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   the remaining trust gap.
 - Improve parsing accuracy for common plain-text layouts before expanding
   output formats: adjacent roles whose dates appear on separate lines now stay
-  distinct when their bullets make the entry boundary clear. Continue to favor
-  conservative extraction plus explicit review over guesses that could merge
-  or invent experience.
+  distinct when their bullets make the entry boundary clear, and compact
+  degree-and-school entries without bullets now remain separate when each date
+  ends its header. Continue to favor conservative extraction plus explicit
+  review over guesses that could merge or invent experience.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear.
@@ -83,8 +84,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   signals and a better before/after correction flow now that every imported
   entry can be explicitly confirmed, checked against nearby local source
   context, and compared with a source-aware coverage snapshot that identifies
-  recognizable headings the parser did not populate. Reassess whether parsing
-  accuracy itself is the next remaining first-use gap.
+  recognizable headings the parser did not populate. Reassess the remaining
+  parsing gaps, particularly uncommon header formats, before expanding output
+  formats or tailoring automation.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep manual checkpoint export/import available as a utility, without making

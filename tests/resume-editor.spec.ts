@@ -128,6 +128,32 @@ test("keeps adjacent roles separate when dates are on their own lines", async ({
   await expect(page.getByText("Experience entry 2", { exact: true })).toBeVisible();
 });
 
+test("keeps compact education entries separate when dates are on their own lines", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Education",
+    "Master of Science in Computer Science",
+    "University of Example",
+    "2016 – 2018",
+    "Bachelor of Science in Mathematics",
+    "Example College",
+    "2012 – 2016",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByLabel("Degree", { exact: true }).nth(0)).toHaveValue("Master of Science in Computer Science");
+  await expect(page.getByLabel("Degree", { exact: true }).nth(1)).toHaveValue("Bachelor of Science in Mathematics");
+  await expect(page.getByText("Education entry 2", { exact: true })).toBeVisible();
+});
+
 test("keeps mobile import review focused on the next editable field", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();

@@ -129,7 +129,9 @@ function isStandaloneDateLine(line: string) {
  * Some exported resumes put a role and company above a separate dates line,
  * without blank lines between roles. A date is then the end of an entry's
  * header rather than the start of the next entry. When the details are
- * explicitly bulleted, use that boundary to keep adjacent roles separate.
+ * explicitly bulleted, or the next short header follows immediately, use that
+ * boundary to keep adjacent entries separate. The latter also covers compact
+ * education histories that do not use bullets.
  */
 function splitStandaloneDateEntries(flat: string[]) {
   const dateIndexes = flat.flatMap((line, index) => (isStandaloneDateLine(line) ? [index] : []));
@@ -142,11 +144,13 @@ function splitStandaloneDateEntries(flat: string[]) {
     const firstBullet = flat.findIndex((line, lineIndex) =>
       lineIndex > previousDate && lineIndex < nextDate && /^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
     );
-    if (firstBullet < 0) return null;
-
-    const nextHeader = flat.findIndex((line, lineIndex) =>
-      lineIndex > firstBullet && lineIndex < nextDate && !/^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
-    );
+    const nextHeader = firstBullet >= 0
+      ? flat.findIndex((line, lineIndex) =>
+        lineIndex > firstBullet && lineIndex < nextDate && !/^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
+      )
+      : flat.findIndex((line, lineIndex) =>
+        lineIndex > previousDate && lineIndex < nextDate && looksLikeSubtitle(line),
+      );
     if (nextHeader < 0) return null;
     boundaries.push(nextHeader);
   }
