@@ -68,7 +68,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF and pasted-text import review with clearer confidence
   signals and a better before/after correction flow now that every imported
-  entry can be explicitly confirmed.
+  entry can be explicitly confirmed and checked against the local extracted
+  source text. Reassess whether mobile correction density or a lightweight
+  import-quality explanation is the next remaining first-use gap.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep manual checkpoint export/import available as a utility, without making

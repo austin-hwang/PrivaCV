@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
@@ -318,6 +319,22 @@ export function ResumeEditor() {
                     );
                   })}
                 </div>
+                {importReview.sourceText ? (
+                  <details className="rounded-md border border-amber-300 bg-background p-3">
+                    <summary className="cursor-pointer text-sm font-medium text-amber-950 marker:text-amber-800">
+                      View the text used for this import
+                    </summary>
+                    <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                      Compare this extracted text with the editable fields above as you correct them. It stays in this browser during this review.
+                    </p>
+                    <Textarea
+                      className="mt-3 min-h-40 resize-y font-mono text-xs leading-relaxed"
+                      value={importReview.sourceText}
+                      readOnly
+                      aria-label="Imported source text"
+                    />
+                  </details>
+                ) : null}
                 <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs leading-snug text-muted-foreground">
                     {importReviewStatus?.isComplete

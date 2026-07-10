@@ -50,7 +50,8 @@ subscriptions, watermarks, or backend storage.
   plus a local pasted-text path for documents, LinkedIn, and scanned PDFs.
 - Post-import review panel that guides users through each imported contact,
   summary, experience, education, project, and skills entry, keeps explicit
-  confirmation beside the editable value, and keeps the export reminder visible
+  confirmation beside the editable value, keeps the extracted source text
+  available for local fact-checking, and keeps the export reminder visible
   until the review is finished.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.

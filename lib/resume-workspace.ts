@@ -58,6 +58,7 @@ export type ImportReviewState = {
   sections: string[];
   items: ImportReviewItem[];
   reviewedItemIds?: string[];
+  sourceText?: string;
 };
 
 export type RecoveryPoint = {
@@ -299,7 +300,7 @@ export function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], ent
   return `field-${section}-${index}-${field}`;
 }
 
-export function buildImportReview(state: ResumeState, fileName: string): ImportReviewState {
+export function buildImportReview(state: ResumeState, fileName: string, sourceText?: string): ImportReviewState {
   const items: ImportReviewItem[] = [];
   const sections = new Set<string>();
   const addItem = (item: ImportReviewItem, section: string) => {
@@ -361,6 +362,7 @@ export function buildImportReview(state: ResumeState, fileName: string): ImportR
     sections: [...sections],
     items,
     reviewedItemIds: [],
+    sourceText: sourceText?.trim() || undefined,
   };
 }
 

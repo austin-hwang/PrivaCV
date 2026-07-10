@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { importResumePdf, importResumeText } from "@/lib/pdf-import";
+import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
 import { buildRoleFocus } from "@/lib/job-match";
 import {
   blankEntry,
@@ -567,10 +567,10 @@ export function useResumeEditor() {
     const previousImportReview = importReview;
     setIsImporting(true);
     try {
-      const imported = await importResumePdf(file);
+      const imported = await importResumePdfWithSource(file);
       saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
-      setState(imported);
-      setImportReview(buildImportReview(imported, file.name));
+      setState(imported.state);
+      setImportReview(buildImportReview(imported.state, file.name, imported.sourceText));
       setRestoredVersionSummary(null);
       setDraftSourceVersionId(null);
       flash("Imported PDF - please review");
@@ -583,10 +583,10 @@ export function useResumeEditor() {
 
   const openTextImport = (text: string) => {
     try {
-      const imported = importResumeText(text);
+      const imported = importResumeTextWithSource(text);
       saveRecoveryPoint("Before importing pasted resume text");
-      setState(imported);
-      setImportReview(buildImportReview(imported, "pasted resume text"));
+      setState(imported.state);
+      setImportReview(buildImportReview(imported.state, "pasted resume text", imported.sourceText));
       setRestoredVersionSummary(null);
       setDraftSourceVersionId(null);
       setTextImportOpen(false);
