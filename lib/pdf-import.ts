@@ -261,6 +261,20 @@ export function parseResume(lines: string[]) {
   return normalizeResume(result);
 }
 
+export function importResumeText(text: string) {
+  const lines = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .split("\n")
+    .map((line) => line.trim());
+
+  if (!lines.some(Boolean)) {
+    throw new Error("Paste some resume text to import.");
+  }
+
+  return parseResume(lines);
+}
+
 export async function importResumePdf(file: File) {
   if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
     throw new Error("Please choose a PDF file.");

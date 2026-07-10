@@ -7,6 +7,7 @@ import {
   ArrowUp,
   Check,
   ClipboardCopy,
+  ClipboardPaste,
   Download,
   Eye,
   FileCheck2,
@@ -88,6 +89,7 @@ export function ResumeEditor() {
     setJobDescription,
     setRoleLabel,
     setTextReviewOpen,
+    setTextImportOpen,
     setVersionCompareTarget,
     state,
     undoDeleteVersion,
@@ -138,6 +140,9 @@ export function ResumeEditor() {
             </Button>
             <Button type="button" variant="outline" onClick={() => setTextReviewOpen(true)}>
               <ClipboardCopy /> Review Text
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setTextImportOpen(true)}>
+              <ClipboardPaste /> Paste text
             </Button>
             <Button type="button" variant="outline" onClick={() => pdfInputRef.current?.click()} disabled={isImporting}>
               <Upload /> {isImporting ? "Importing" : "Import PDF"}
@@ -211,13 +216,20 @@ export function ResumeEditor() {
                 <CardDescription className="font-semibold uppercase tracking-[0.16em]">Private resume workspace</CardDescription>
                 <CardTitle className="text-2xl">Start from the resume you already have.</CardTitle>
                 <CardDescription>
-                  Import a PDF, open a saved JSON file, or load a polished sample to see the final structure instantly.
+                  Import a PDF, paste copied resume text, open saved work, or load a polished sample to see the final structure instantly.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" onClick={() => pdfInputRef.current?.click()} disabled={isImporting}>
                     <Upload /> Import PDF
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setTextImportOpen(true)}
+                  >
+                    <ClipboardPaste /> Paste resume text
                   </Button>
                   <Button
                     type="button"
@@ -274,12 +286,11 @@ export function ResumeEditor() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <CardDescription className="font-semibold uppercase tracking-[0.16em] text-amber-900">
-                      PDF import review
+                      Import review
                     </CardDescription>
-                    <CardTitle className="text-base">Check the fields PDF parsing usually guesses.</CardTitle>
+                    <CardTitle className="text-base">Check the fields the importer usually guesses.</CardTitle>
                     <CardDescription>
-                      Imported from {importReview.fileName}. Formatting in PDFs is approximate, so confirm these fields
-                      before exporting.
+                      Imported from {importReview.fileName}. Confirm these suggested fields before exporting.
                     </CardDescription>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={() => setImportReview(null)}>

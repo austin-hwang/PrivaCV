@@ -14,6 +14,25 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
 });
 
+test("imports a pasted resume locally and flags suggested fields for review", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await expect(importDialog.getByText("OCR'd scanned PDF")).toBeVisible();
+  await expect(importDialog.getByText("Nothing is uploaded or sent anywhere.")).toBeVisible();
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+  await expect(page.getByText("Import review")).toBeVisible();
+  await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
+});
+
 test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

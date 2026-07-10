@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
   Check,
   ClipboardCopy,
+  ClipboardPaste,
   Eye,
   History,
   Printer,
@@ -38,6 +40,7 @@ export function ResumeEditorOverlays({
 }: {
   editor: ReturnType<typeof useResumeEditor>;
 }) {
+  const [pastedResumeText, setPastedResumeText] = useState("");
   const {
     checks,
     comparedBaseRoleFocus,
@@ -63,6 +66,7 @@ export function ResumeEditorOverlays({
     mergedHistoryBackup,
     openJson,
     openPdf,
+    openTextImport,
     openVersionHistoryBackup,
     pdfInputRef,
     plainText,
@@ -73,11 +77,13 @@ export function ResumeEditorOverlays({
     setHistoryBackupToImport,
     setImportReview,
     setTextReviewOpen,
+    setTextImportOpen,
     setVersionCompareTarget,
     setVersionDraftLabel,
     setVersionDraftNote,
     setVersionSaveOpen,
     textReviewOpen,
+    textImportOpen,
     toast,
     versionChanges,
     versionCompareAfterLabel,
@@ -95,6 +101,53 @@ export function ResumeEditorOverlays({
 
   return (
     <>
+      <Dialog
+        open={textImportOpen}
+        onOpenChange={(open) => {
+          setTextImportOpen(open);
+          if (!open) setPastedResumeText("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Local text import</DialogDescription>
+            <DialogTitle>Paste the resume you already have</DialogTitle>
+            <DialogDescription>
+              Paste text copied from a document, LinkedIn, or an OCR&apos;d scanned PDF. Resume Editor structures it in this browser, then asks you to review the suggested fields.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (openTextImport(pastedResumeText)) setPastedResumeText("");
+            }}
+          >
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>Resume text</span>
+              <Textarea
+                autoFocus
+                value={pastedResumeText}
+                placeholder={"Jane Doe\nSoftware Engineer\njane@example.com | San Francisco, CA\n\nExperience\nSoftware Engineer | Acme | 2022–Present\n• Built reliable web experiences for customers."}
+                className="min-h-64 font-mono text-xs leading-relaxed"
+                onChange={(event) => setPastedResumeText(event.target.value)}
+              />
+            </label>
+            <DialogFooter className="items-center sm:justify-between">
+              <span className="text-xs text-muted-foreground">Nothing is uploaded or sent anywhere.</span>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setTextImportOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <ClipboardPaste /> Import text
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={textReviewOpen} onOpenChange={setTextReviewOpen}>
         <DialogContent>
           <DialogHeader>
@@ -401,9 +454,9 @@ export function ResumeEditorOverlays({
               <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">PDF import still needs review</p>
+                    <p className="text-sm font-semibold">Imported fields still need review</p>
                     <p className="text-xs leading-snug text-muted-foreground">
-                      Confirm the parser guessed fields correctly before exporting {importReview.fileName}.
+                      Confirm the suggested fields before exporting.
                     </p>
                   </div>
                   <Badge variant="secondary">{importReview.items.length} fields</Badge>
@@ -455,7 +508,7 @@ export function ResumeEditorOverlays({
               <Alert>
                 <Check className="h-4 w-4" />
                 <AlertTitle>Resume checks passed</AlertTitle>
-                <AlertDescription>The remaining checkpoint is the imported PDF review.</AlertDescription>
+                <AlertDescription>The remaining checkpoint is the imported-field review.</AlertDescription>
               </Alert>
             )}
           </div>
