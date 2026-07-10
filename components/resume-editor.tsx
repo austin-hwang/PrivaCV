@@ -40,7 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { importResumePdf } from "@/lib/pdf-import";
-import { buildRoleFocus, reviewRolePhrase } from "@/lib/job-match";
+import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
 import {
   blankEntry,
   buildResumeChecks,
@@ -1945,6 +1945,10 @@ function RoleFocusCard({
   const matchedTerms = roleFocus.terms.filter((term) => term.matched);
   const missingTerms = roleFocus.terms.filter((term) => !term.matched);
   const phraseReview = useMemo(() => reviewRolePhrase(resumeText, phrase), [phrase, resumeText]);
+  const phraseSuggestions = useMemo(
+    () => buildRolePhraseSuggestions(resumeText, jobDescription),
+    [jobDescription, resumeText],
+  );
 
   const clearDescription = () => {
     setPhrase("");
@@ -2041,6 +2045,31 @@ function RoleFocusCard({
             <p id="role-phrase-help" className="mt-1.5 text-xs leading-snug text-muted-foreground">
               Compare a specific two-or-more-word concept after deciding it accurately reflects your work.
             </p>
+            {phraseSuggestions.length ? (
+              <div className="mt-3 border-t pt-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Suggested exact phrases</p>
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                  Pick one to review it below. Suggestions come directly from adjacent wording in the job description.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {phraseSuggestions.map((suggestion) => (
+                    <Button
+                      key={suggestion.phrase}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-auto min-h-8 whitespace-normal py-1 text-left"
+                      onClick={() => setPhrase(suggestion.phrase)}
+                    >
+                      {suggestion.phrase}
+                      <span className={cn("ml-1.5 text-xs", suggestion.matched ? "text-emerald-800" : "text-muted-foreground")}>
+                        {suggestion.matched ? "in resume" : "review"}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {phraseReview.phrase ? (
               <div aria-live="polite" className="mt-3 rounded-md border bg-muted/30 p-2.5 text-sm">
                 {phraseReview.termCount < 2 ? (

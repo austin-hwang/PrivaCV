@@ -8,7 +8,7 @@ import {
   resumePlainText,
   sampleState,
 } from "@/lib/resume";
-import { buildRoleFocus, reviewRolePhrase } from "@/lib/job-match";
+import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
 
 describe("resume helpers", () => {
   it("normalizes legacy JSON into a complete resume state", () => {
@@ -171,5 +171,19 @@ describe("resume helpers", () => {
       termCount: 2,
       matched: false,
     });
+  });
+
+  it("suggests a small set of exact job-description phrases with transparent matches", () => {
+    const suggestions = buildRolePhraseSuggestions(
+      "Built TypeScript services and React interfaces for product teams.",
+      "Build TypeScript services, partner with product teams, and improve TypeScript services.",
+    );
+
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ phrase: "TypeScript services", termCount: 2, matched: true }),
+      ]),
+    );
   });
 });
