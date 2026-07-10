@@ -50,6 +50,38 @@ describe("resume helpers", () => {
     expect(imported.state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Example Co." });
   });
 
+  it("keeps adjacent dated roles separate when exported resumes put dates on their own line", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Experience",
+      "Staff Engineer",
+      "Analytical Engines",
+      "Jan 2022 – Present",
+      "• Built reliable systems.",
+      "Software Engineer",
+      "Example Company",
+      "Jun 2018 – Dec 2021",
+      "• Improved deployment tooling.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({
+        title: "Staff Engineer",
+        subtitle: "Analytical Engines",
+        meta: "Jan 2022 – Present",
+        details: "Built reliable systems.",
+      }),
+      expect.objectContaining({
+        title: "Software Engineer",
+        subtitle: "Example Company",
+        meta: "Jun 2018 – Dec 2021",
+        details: "Improved deployment tooling.",
+      }),
+    ]);
+  });
+
   it("puts a short matching source excerpt beside imported fields", () => {
     const sourceText = [
       "Ada Lovelace",

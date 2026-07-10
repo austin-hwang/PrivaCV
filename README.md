@@ -49,7 +49,9 @@ subscriptions, watermarks, or backend storage.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
 - Best-effort PDF import for text-based resumes through pdf.js loaded on demand,
-  plus a local pasted-text path for documents, LinkedIn, and scanned PDFs.
+  plus a local pasted-text path for documents, LinkedIn, and scanned PDFs. The
+  importer also recognizes adjacent roles whose dates are on their own lines
+  when their bulleted details make the boundary clear.
 - Post-import review panel that guides users through each imported contact,
   summary, experience, education, project, and skills entry, keeps explicit
   confirmation and a matching source excerpt beside the editable value, keeps

@@ -1,5 +1,35 @@
 # Agent Log
 
+## 2026-07-10 14:32 PDT
+
+- Market research and reprioritization: current Teal, Rezi, and Jobscan-style
+  alternatives make job-description matching, AI rewrites, and scorecards
+  crowded expectations. Recent job-seeker discussions still describe tailoring
+  as time-consuming and warn that literal keyword insertion can sound forced.
+  This product already offers transparent local wording review, so import
+  correctness remains a higher-value trust prerequisite than another score,
+  automatic rewrite, DOCX export, or template.
+- Decision: shipped a focused parser correction for compact role histories
+  instead of a broader parser rewrite, new output format, or deeper
+  role-tailoring logic. Common exports put role and company lines above a
+  standalone date range with no blank line between jobs; the prior fallback
+  could merge the next role into the preceding entry.
+- Implementation: the importer now recognizes multiple standalone date lines
+  when explicit bullets make the following role header boundary unambiguous,
+  keeping adjacent entries separate while leaving ambiguous layouts to the
+  existing conservative review flow. Added unit and browser coverage, and
+  documented the supported layout.
+- Why it matters: people can correct and confirm each imported role instead of
+  reconstructing silently merged experience before tailoring or exporting.
+- Verification: `CI=true pnpm typecheck`, `CI=true pnpm lint`, `CI=true pnpm
+  test` (31 tests), `CI=true node_modules/.bin/next build`, and `git diff
+  --check` passed. Playwright passed all 30 browser flows on an isolated local
+  server at port 3137 (the full run's first 22 completed successfully, and the
+  remaining 8 checkpoint/role-focus flows were rerun together successfully).
+- Provisional next direction only: reassess conservative parsing improvements
+  for other common layouts against an ATS-safe DOCX export and role-tailoring
+  refinements before selecting another feature.
+
 ## 2026-07-10 13:27 PDT
 
 - Market research and reprioritization: current Teal and Jobscan alternatives
