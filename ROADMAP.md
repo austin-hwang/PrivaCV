@@ -15,8 +15,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## User Experience
 
-- Make first use obvious: import from PDF or pasted text, open saved work, or
-  start from a strong sample.
+- Keep first use obvious: the onboarding now recommends pasted text for copied
+  documents, LinkedIn, and OCR while clearly reserving PDF import for
+  selectable-text files; reassess whether deeper import correction context or
+  mobile editing density is the next first-use friction.
 - Prioritize a clear, field-by-field import review before adding more
   role-matching heuristics: imported resumes now guide users to each suggested
   field and keep confirmation beside the editable value, but still need an

@@ -1,5 +1,29 @@
 # Agent Log
 
+## 2026-07-10 06:28 PDT
+
+- Market reassessment: fresh review of Jobscan, Teal, and Rezi confirms that
+  role matching, keyword lists, and AI rewrites are crowded baseline features.
+  Current comparison feedback also notes that workflows can feel overwhelming,
+  keyword lists can contain filler, and users should not add skills they do not
+  have just to improve a score. The product already gives a local, transparent
+  wording review and explicit import confirmation, so another matcher,
+  template, automatic rewrite, or job tracker was lower-value than getting
+  first-time users into the right import path.
+- Decision: prioritized the first-run source-selection hierarchy. The
+  onboarding now makes pasted text the recommended path for copied resumes,
+  LinkedIn, and OCR, scopes PDF import to selectable-text files, and places
+  saved-work and sample options in clear secondary positions.
+- Why it matters: users can avoid a failed PDF-import attempt and understand
+  what will happen before they commit to an import, while retaining a private,
+  field-by-field review before PDF export.
+- Verification: ran `CI=true pnpm typecheck`, `CI=true pnpm lint`,
+  `CI=true pnpm test` (25 tests), `CI=true pnpm test:e2e` (26 tests),
+  `CI=true pnpm build`, and `git diff --check`.
+- Provisional next opportunity: reassess whether richer import correction
+  context, mobile editing density, or an ATS-safe template choice now creates
+  more first-use value than DOCX export or additional role-matching heuristics.
+
 ## 2026-07-10 05:30 PDT
 
 - Market reassessment: current Teal and Resume.io messaging reinforces that
