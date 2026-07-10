@@ -132,6 +132,30 @@ describe("resume helpers", () => {
     ]));
   });
 
+  it("calls out a recognizable source section that produced no draft content", () => {
+    const state = emptyState();
+    state.name = "Ada Lovelace";
+    state.experience = [{ title: "Engineer", subtitle: "Example Co.", meta: "2022 - Present", details: "Built reliable systems." }];
+
+    const coverage = buildImportCoverage(state, [
+      "Ada Lovelace",
+      "Experience",
+      "Engineer | Example Co. | 2022 - Present",
+      "Education",
+    ].join("\n"));
+
+    expect(coverage.find((item) => item.id === "education")).toMatchObject({
+      detected: false,
+      sourceDetected: true,
+      detail: "Education heading found in source, but no entries detected",
+    });
+    expect(coverage.find((item) => item.id === "skills")).toMatchObject({
+      detected: false,
+      sourceDetected: false,
+      detail: "No skills detected",
+    });
+  });
+
   it("normalizes legacy JSON into a complete resume state", () => {
     const state = normalizeResume({ name: "Ada", sectionOrder: ["skills"] });
 

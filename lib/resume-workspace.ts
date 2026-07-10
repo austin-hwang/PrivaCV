@@ -5,6 +5,7 @@ import {
   type ResumeEntry,
   type ResumeState,
 } from "@/lib/resume";
+import { detectSection } from "@/lib/pdf-import";
 
 export const STORAGE_KEY = "resume-editor-data-v2";
 export const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
@@ -60,6 +61,8 @@ export type ImportCoverageItem = {
   detected: boolean;
   detail: string;
   targetId: string;
+  /** Whether the imported source contained a recognizable heading for this area. */
+  sourceDetected?: boolean;
 };
 
 export type ImportReviewState = {
@@ -352,6 +355,7 @@ function populatedEntryCount(entries: ResumeEntry[]) {
 function entryCoverage(
   section: Exclude<(typeof REPEATABLE_SECTIONS)[number], "skills">,
   state: ResumeState,
+  sourceSections: Set<Exclude<ReturnType<typeof detectSection>, null>>,
 ): ImportCoverageItem {
   const count = populatedEntryCount(state[section]);
   const label = SECTION_LABELS[section];
@@ -364,22 +368,32 @@ function entryCoverage(
     detected: count > 0,
     detail: count
       ? `${count} ${count === 1 ? "entry" : "entries"} detected`
-      : `No ${label.toLocaleLowerCase()} entries detected`,
+      : sourceSections.has(section)
+        ? `${label} heading found in source, but no entries detected`
+        : `No ${label.toLocaleLowerCase()} entries detected`,
     targetId: firstEntry && firstEntryIndex >= 0
       ? entryTargetId(section, firstEntry, firstEntryIndex)
       : `add-${section}-entry`,
+    sourceDetected: sourceSections.has(section),
   };
 }
 
 /**
- * Gives import review a truthful coverage snapshot. "Not detected" describes
- * what the local parser placed in the draft; it does not claim the source was
- * missing that content. This helps people spot a skipped section before they
- * confirm or export an imported resume.
+ * Gives import review a truthful coverage snapshot. When source text is
+ * available, a recognizable heading is kept separate from the parser's draft
+ * output so a skipped section is explicit rather than mistaken for an omitted
+ * one. This remains a review aid, not a claim that every source section should
+ * appear in the resume.
  */
-export function buildImportCoverage(state: ResumeState): ImportCoverageItem[] {
+export function buildImportCoverage(state: ResumeState, sourceText?: string): ImportCoverageItem[] {
   const contactCount = [state.email, state.phone, state.location, state.website].filter((value) => value.trim()).length;
   const skillLineCount = state.skills.split("\n").filter((line) => line.trim()).length;
+  const sourceSections = new Set(
+    (sourceText ?? "")
+      .split(/\r?\n/)
+      .map((line) => detectSection(line))
+      .filter((section): section is Exclude<ReturnType<typeof detectSection>, null> => Boolean(section)),
+  );
 
   return [
     {
@@ -397,20 +411,28 @@ export function buildImportCoverage(state: ResumeState): ImportCoverageItem[] {
       id: "summary",
       label: "Summary",
       detected: Boolean(state.summary.trim()),
-      detail: state.summary.trim() ? "Summary text detected" : "No summary detected",
+      detail: state.summary.trim()
+        ? "Summary text detected"
+        : sourceSections.has("summary")
+          ? "Summary heading found in source, but no text detected"
+          : "No summary detected",
       targetId: "field-summary",
+      sourceDetected: sourceSections.has("summary"),
     },
-    entryCoverage("experience", state),
-    entryCoverage("education", state),
-    entryCoverage("projects", state),
+    entryCoverage("experience", state, sourceSections),
+    entryCoverage("education", state, sourceSections),
+    entryCoverage("projects", state, sourceSections),
     {
       id: "skills",
       label: "Skills",
       detected: skillLineCount > 0,
       detail: skillLineCount
         ? `${skillLineCount} ${skillLineCount === 1 ? "skill line" : "skill lines"} detected`
-        : "No skills detected",
+        : sourceSections.has("skills")
+          ? "Skills heading found in source, but no text detected"
+          : "No skills detected",
       targetId: "field-skills",
+      sourceDetected: sourceSections.has("skills"),
     },
   ];
 }
@@ -484,7 +506,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
     items,
     reviewedItemIds: [],
     sourceText: sourceText?.trim() || undefined,
-    coverage: buildImportCoverage(state),
+    coverage: buildImportCoverage(state, sourceText),
   };
 }
 
