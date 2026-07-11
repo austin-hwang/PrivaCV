@@ -5,6 +5,9 @@ overrides:
   postcss: 8.5.16
 
 allowBuilds:
+  # pdfjs-dist declares canvas for optional Node-side rendering. The browser-only
+  # importer does not use it, so keep its native install script disabled.
+  canvas: false
   esbuild: true
   sharp: true
   unrs-resolver: true

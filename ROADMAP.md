@@ -125,6 +125,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - Keep the app local-first with browser storage and JSON files until accounts,
   syncing, or collaboration become clearly valuable.
+- Keep sensitive import paths self-contained: the on-demand PDF parser and its
+  worker now ship from the app origin rather than a third-party CDN, so the
+  user's selected resume never depends on or contacts an external parser host.
 - Continue using zod normalization for imported and saved resume data.
 - Keep the dependency graph free of known production advisories. PostCSS is
   explicitly overridden to the patched 8.5.16 release because the currently

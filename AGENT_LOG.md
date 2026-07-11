@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-11 00:10 PDT
+
+- Market research and reprioritization: current leaders such as Teal and Rezi
+  make import, job-specific keyword review, repeatable versions, and readable
+  ATS exports table stakes. The editor already supplies those core flows with
+  an intentionally transparent local Role Focus review instead of opaque
+  scoring or AI rewriting.
+- Public-launch audit: browser metadata, recovery routes, local persistence,
+  and dependency advisories were in good shape, but the PDF importer loaded its
+  executable parser and worker from a third-party CDN. Although the PDF data
+  stayed in-browser, that dependency weakened the local-first privacy claim and
+  created an avoidable availability and supply-chain failure point.
+- Decision: chose fully local PDF-parser delivery over new templates, parsing
+  heuristics, or additional role-match features. It is the smallest high-impact
+  production-hardening improvement for a sensitive first-use workflow.
+- Implementation: added the pinned `pdfjs-dist` package, dynamically loads its
+  parser only when PDF import is selected, and resolves its worker from the
+  app's own build output. Updated user-facing documentation to say clearly that
+  selected PDFs and extracted text stay in the browser and are not sent to a
+  third party.
+- Verification: passed type checking, lint (apart from Next.js's migration
+  notice), 40 Vitest tests, the full 41-flow Playwright suite including a
+  generated-PDF import with no third-party parser requests, optimized production
+  build, and production dependency audit with no known vulnerabilities.
+- Provisional next step: reassess import review quality, mobile correction
+  density, recruiter-readability guidance, and a stable hosted public page;
+  do not inherit this choice without fresh market and launch-readiness review.
+
 ## 2026-07-10 23:33 PDT
 
 - Market research and reprioritization: credible resume guidance and current
