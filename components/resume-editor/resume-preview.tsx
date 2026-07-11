@@ -143,7 +143,10 @@ function ContactPart({
 }
 
 function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumePreviewProps & { section: string }) {
-  const sectionActive = activeTarget === `section-title-${section}` || activeTarget?.startsWith(`field-${section}-`);
+  const sectionActive =
+    activeTarget === `section-title-${section}` ||
+    activeTarget === `field-${section}` ||
+    activeTarget?.startsWith(`field-${section}-`);
   const title = getSectionTitle(state, section).trim();
   if (section === "skills") {
     const lines = state.skills
