@@ -1,5 +1,68 @@
 import { blankEntry, emptyState, normalizeResume, type ResumeState } from "@/lib/resume";
 
+export type PositionedTextItem = {
+  str?: string;
+  transform: number[];
+};
+
+type PositionedTextLine = {
+  y: number;
+  items: Array<{ x: number; text: string }>;
+};
+
+// PDF text is positioned glyph-by-glyph rather than stored as semantic lines.
+// A strict coordinate match splits otherwise normal text when a font, glyph, or
+// PDF producer gives adjacent fragments slightly different baselines. Keep the
+// tolerance deliberately small: it repairs those fragments without guessing at
+// nearby visual rows or attempting to reflow multi-column documents.
+const LINE_BASELINE_TOLERANCE = 2;
+
+/**
+ * Rebuilds readable lines from positioned PDF text while preserving the source
+ * reading order as conservatively as possible. Exported for focused tests so
+ * the fragile coordinate behavior stays covered without loading pdf.js.
+ */
+export function linesFromPositionedTextItems(items: PositionedTextItem[]) {
+  const rows: PositionedTextLine[] = [];
+
+  [...items]
+    .filter((item) => item.str?.trim())
+    .sort((a, b) => (b.transform[5] ?? 0) - (a.transform[5] ?? 0))
+    .forEach((item) => {
+      const y = item.transform[5] ?? 0;
+      const existing = rows.find((row) => Math.abs(row.y - y) <= LINE_BASELINE_TOLERANCE);
+      const text = item.str!.trim();
+      const x = item.transform[4] ?? 0;
+      if (existing) {
+        existing.items.push({ x, text });
+        // Stabilize a row whose fragments land above and below its baseline.
+        existing.y = (existing.y * (existing.items.length - 1) + y) / existing.items.length;
+      } else {
+        rows.push({ y, items: [{ x, text }] });
+      }
+    });
+
+  const sortedRows = rows.sort((a, b) => b.y - a.y);
+  const gaps = sortedRows.slice(1).map((row, index) => sortedRows[index].y - row.y);
+  const sortedGaps = [...gaps].sort((a, b) => a - b);
+  const median = sortedGaps.length ? sortedGaps[Math.floor(sortedGaps.length / 2)] : 0;
+  const blankThreshold = median > 0 ? median * 1.7 : Infinity;
+  const lines: string[] = [];
+
+  sortedRows.forEach((row, index) => {
+    if (index > 0 && sortedRows[index - 1].y - row.y > blankThreshold) lines.push("");
+    const text = row.items
+      .sort((a, b) => a.x - b.x)
+      .map((item) => item.text)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text) lines.push(text);
+  });
+
+  return lines;
+}
+
 type PdfJs = {
   GlobalWorkerOptions: { workerSrc: string };
   getDocument: (args: { data: ArrayBuffer }) => {
@@ -7,7 +70,7 @@ type PdfJs = {
       numPages: number;
       getPage: (page: number) => Promise<{
         getTextContent: () => Promise<{
-          items: Array<{ str?: string; transform: number[] }>;
+          items: PositionedTextItem[];
         }>;
       }>;
     }>;
@@ -37,35 +100,7 @@ export async function extractLines(buffer: ArrayBuffer) {
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    const rows = new Map<number, Array<{ x: number; text: string }>>();
-
-    for (const item of content.items) {
-      if (!item.str?.trim()) continue;
-      const y = Math.round(item.transform[5] ?? 0);
-      const x = item.transform[4] ?? 0;
-      if (!rows.has(y)) rows.set(y, []);
-      rows.get(y)?.push({ x, text: item.str });
-    }
-
-    const ys = [...rows.keys()].sort((a, b) => b - a);
-    const gaps: number[] = [];
-    for (let index = 1; index < ys.length; index += 1) gaps.push(ys[index - 1] - ys[index]);
-    const sorted = [...gaps].sort((a, b) => a - b);
-    const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
-    const blankThreshold = median > 0 ? median * 1.7 : Infinity;
-
-    let prevY: number | null = null;
-    for (const y of ys) {
-      if (prevY !== null && prevY - y > blankThreshold) lines.push("");
-      const text = (rows.get(y) ?? [])
-        .sort((a, b) => a.x - b.x)
-        .map((row) => row.text)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (text) lines.push(text);
-      prevY = y;
-    }
+    lines.push(...linesFromPositionedTextItems(content.items));
     lines.push("");
   }
 

@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-11 12:29 PDT
+
+- Market and product review: current resume tools differentiate on fast
+  tailoring, but their convenience still leaves users to catch parsing mistakes.
+  This product's local, source-backed review is most valuable when ordinary
+  positioned PDFs preserve a readable first pass rather than forcing retyping.
+- Finding and decision: PDF extraction treated each rounded vertical coordinate
+  as a separate text row. Small baseline variations between fragments—common in
+  generated PDFs—could split one name, heading, or role into several lines
+  before the conservative parser had a chance to review it. A narrow baseline
+  clustering fix won over multi-column inference because it repairs a routine
+  loss mode without inventing reading order or resume facts.
+- Implementation: positioned fragments within two source units now reconstruct
+  into one x-ordered line, while larger vertical gaps still preserve blank-line
+  context. Focused unit coverage protects both the reconstructed source and its
+  downstream resume import. README and roadmap document the deliberate limit.
+
 ## 2026-07-11 11:29 PDT
 
 - Market and product review: current builders still make import and quick output
