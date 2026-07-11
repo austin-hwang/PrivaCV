@@ -57,6 +57,23 @@ test("presents credible browser metadata and public launch assets", async ({ pag
   expect(appleIcon.headers()["content-type"]).toContain("image/png");
 });
 
+test("protects the local workspace with production response security headers", async ({ request }) => {
+  const response = await request.get("/");
+  const headers = response.headers();
+
+  expect(response.ok()).toBeTruthy();
+  expect(headers["content-security-policy"]).toContain("default-src 'self'");
+  expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(headers["content-security-policy"]).toContain("worker-src 'self' blob:");
+  expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
+  expect(headers["cross-origin-resource-policy"]).toBe("same-origin");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["strict-transport-security"]).toBe("max-age=31536000");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-frame-options"]).toBe("DENY");
+});
+
 test("helps first-time users choose the right private import route", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -79,7 +96,7 @@ test("imports a PDF with parser code served from the app", async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /import a pdf/i }).click();
-  await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles({
+  await page.locator('input[type="file"][accept*="application/pdf"]').setInputFiles({
     name: "ada-resume.pdf",
     mimeType: "application/pdf",
     buffer: makeTextPdf("Ada Lovelace"),
