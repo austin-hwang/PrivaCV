@@ -40,6 +40,32 @@
   }
 }
 
+@keyframes sheet-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheet-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.app-chrome[data-state="open"] {
+  animation: sheet-slide-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.app-chrome[data-state="closed"] {
+  animation: sheet-slide-out 180ms ease-in;
+}
+
 .resume-sheet {
   width: 8.5in;
   min-height: 11in;

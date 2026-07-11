@@ -11,9 +11,9 @@ import {
 import { isBuiltinSection, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
-export function FieldGroup({ title, actions, children, className }: { title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+export function FieldGroup({ id, title, actions, children, className }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cn("border-b pb-5 transition-colors last:border-b-0", className)}>
+    <section id={id} className={cn("scroll-mt-16 border-b pb-5 transition-colors last:border-b-0", className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
         {actions}

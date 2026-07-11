@@ -1,4 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function openMenu(page: Page) {
+  await page.getByRole("button", { name: /^more actions$/i }).click();
+}
+
+async function loadSample(page: Page) {
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^sample$/i }).click();
+}
+
+async function openTools(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /review tools/i });
+  if (!(await dialog.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: /open review tools/i }).click();
+    await expect(dialog).toBeVisible();
+  }
+}
 
 function makeTextPdf(text: string) {
   const stream = `BT\n/F1 14 Tf\n72 720 Td\n(${text.replace(/[\\()]/g, "\\$&")}) Tj\nET\n`;
@@ -79,9 +96,27 @@ test("keeps the editor interactive while development security headers are active
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+});
+
+test("keeps secondary toolbar actions usable from the keyboard", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const trigger = page.getByRole("button", { name: /^more actions$/i });
+  await trigger.focus();
+  await page.keyboard.press("ArrowDown");
+
+  await expect(page.getByRole("menuitem", { name: /^paste text$/i })).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(page.getByRole("menuitem", { name: /^clear$/i })).toBeFocused();
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(trigger).toBeFocused();
 });
 
 test("helps first-time users choose the right private import route", async ({ page }) => {
@@ -121,13 +156,16 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
-  await expect(page.getByText("Resume Check")).toBeVisible();
   await expect(page.getByText("Jane Doe").first()).toBeVisible();
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: /review text/i }).click();
+  await openTools(page);
+  await expect(page.getByText("Resume Check")).toBeVisible();
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /review text/i }).click();
   await expect(page.getByRole("dialog", { name: /review before copying/i })).toBeVisible();
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
 });
@@ -136,7 +174,7 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   const experienceTitle = page.getByLabel("Experience section title");
   await experienceTitle.fill("Selected Experience");
@@ -163,7 +201,7 @@ test("adds a common section with its useful heading already in place", async ({ 
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.getByRole("button", { name: /certifications/i }).click();
 
@@ -177,7 +215,7 @@ test("reorders resume sections by dragging their handles", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.locator('[data-arrange-section="skills"] [draggable="true"]').dragTo(page.locator('[data-arrange-section="education"]'));
 
@@ -190,10 +228,11 @@ test("keeps a summary optional when the resume already has experience detail", a
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.getByLabel("Professional Summary").fill("");
 
+  await openTools(page);
   await expect(page.getByText("Optional — experience leads")).toBeVisible();
   await expect(page.getByRole("button", { name: /add optional summary/i })).toBeVisible();
   await expect(page.getByText("Missing summary")).toBeHidden();
@@ -441,7 +480,7 @@ test("switches between focused editor and preview views on a narrow screen", asy
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   const editorPane = page.locator("#resume-editor-pane");
   const previewPane = page.locator("#resume-preview-pane");
@@ -469,9 +508,10 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.getByLabel("Phone").fill("");
+  await openTools(page);
   await expect(page.getByText("Missing contact details can make a strong resume impossible to follow up on.")).toBeVisible();
   await page.getByRole("button", { name: /fix contact/i }).click();
 
@@ -482,12 +522,13 @@ test("guides users to add measurable evidence without requiring every bullet to 
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.locator("#field-experience-0-details").fill(
     "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.",
   );
 
+  await openTools(page);
   await expect(page.getByText("Not every bullet needs a number, but measurable scope or results make your strongest work more credible at a glance.")).toBeVisible();
   await page.getByRole("button", { name: /strengthen a bullet/i }).click();
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
@@ -497,7 +538,7 @@ test("shows an in-context evidence cue for the bullets being edited", async ({ p
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.locator("#field-experience-0-details").fill(
     "Migrated the payment flow for 2 teams.\nMentored engineers through a release.\nReduced support tickets by 30%.",
@@ -511,7 +552,8 @@ test("suggests exact role phrases for a local wording review", async ({ page }) 
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page
     .getByLabel("Job description")
@@ -528,7 +570,8 @@ test("shows where a matched role term is supported in the resume", async ({ page
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
   const evidenceButton = page.getByRole("button", { name: /experience 1/i }).first();
@@ -541,10 +584,11 @@ test("counts truthful custom-section evidence in role focus and links back to it
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
   await page.getByRole("button", { name: /certifications/i }).click();
   await page.locator('[id^="field-custom-"][id$="-0-details"]').fill("Administered Kubernetes clusters for production releases.");
+  await openTools(page);
   await page.getByLabel("Job description").fill([
     "Requirements",
     "- Kubernetes experience",
@@ -561,7 +605,8 @@ test("elevates explicit role requirements without treating them as an ATS score"
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByLabel("Job description").fill([
     "Build reliable product systems and collaborate across product teams.",
@@ -584,18 +629,20 @@ test("keeps mobile editing focused while leaving review tools one tap away", asy
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
 
-  await expect(page.getByText("Review tools", { exact: true })).toBeVisible();
+  // Editing stays front-and-center; review tools live one tap away in the drawer.
   await expect(page.getByLabel("Full Name")).toBeVisible();
   await expect(page.getByLabel("Job description")).toBeHidden();
 
-  await page.getByRole("button", { name: /^role focus$/i }).click();
+  await openTools(page);
+  await expect(page.getByRole("dialog", { name: /review tools/i })).toBeVisible();
+  await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Job description")).toBeVisible();
 
-  await page.getByRole("button", { name: /^check · 6\/6$/i }).click();
-  await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Job description")).toBeHidden();
+  await page.getByRole("button", { name: /close tools/i }).click();
+  await expect(page.getByRole("dialog", { name: /review tools/i })).toBeHidden();
+  await expect(page.getByLabel("Full Name")).toBeVisible();
 
   await context.close();
 });
@@ -614,7 +661,7 @@ test("shows an export checkpoint before printing an unresolved resume", async ({
       window.localStorage.setItem("print-called", "true");
     };
   });
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
   await page.getByLabel("Phone").fill("");
 
   await page.getByRole("button", { name: /export pdf/i }).click();
@@ -645,7 +692,8 @@ test("shows when the resume changed after the last PDF export", async ({ page })
       window.localStorage.setItem("print-called", "true");
     };
   });
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByRole("button", { name: /export pdf/i }).click();
 
@@ -677,7 +725,8 @@ test("expands dense change audits after export and restore", async ({ page }) =>
       window.localStorage.setItem("print-called", "true");
     };
   });
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Clean baseline");
@@ -713,11 +762,12 @@ test("restores the previous resume after clearing", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
   await page.getByLabel("Full Name").fill("Ada Lovelace");
 
+  await openMenu(page);
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: /^clear$/i }).click();
+  await page.getByRole("menuitem", { name: /^clear$/i }).click();
 
   await expect(page.getByText("Restore point saved")).toBeVisible();
   await page.getByRole("button", { name: /restore previous/i }).click();
@@ -730,7 +780,8 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByRole("button", { name: /save version/i }).click();
   await expect(page.getByRole("dialog", { name: /name this checkpoint/i })).toBeVisible();
@@ -771,6 +822,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(compareDialog).toBeHidden();
 
+  await openTools(page);
   await page.getByRole("button", { name: /^restore$/i }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
   await expect(page.getByText("Checkpoint restored")).toBeVisible();
@@ -781,6 +833,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Restore point saved")).toBeVisible();
 
+  await openTools(page);
   await page.getByLabel("Delete saved version Original software resume").click();
   await expect(page.getByText("Deleted checkpoint")).toBeVisible();
   await expect(page.getByText("Restore it to version history before closing this page.")).toBeVisible();
@@ -794,7 +847,8 @@ test("restores the local role focus saved with a tailored checkpoint", async ({ 
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   const description = page.getByLabel("Job description");
   await description.fill("Build TypeScript services for product teams and improve release reliability.");
@@ -818,7 +872,8 @@ test("keeps same-resume checkpoints separate for different private role labels",
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByLabel("Private role label (optional)").fill("Acme — Senior Product Engineer");
   await page.getByLabel("Job description").fill("Build reliable product experiences for growing teams.");
@@ -842,7 +897,8 @@ test("clears an unrelated role focus when restoring a checkpoint without one", a
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("General resume");
@@ -862,7 +918,8 @@ test("audits changed role focus even when a saved resume still matches", async (
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   const description = page.getByLabel("Job description");
   await description.fill("Build reliable platform services for product teams.");
@@ -887,7 +944,8 @@ test("compares two saved version history checkpoints", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Original software resume");
@@ -921,7 +979,8 @@ test("warns before replacing the oldest local version history checkpoint", async
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   for (let index = 1; index <= 5; index += 1) {
     await page
@@ -961,7 +1020,8 @@ test("imports a checkpoint history backup without replacing the current resume",
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Platform baseline");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
@@ -987,16 +1047,18 @@ test("imports a checkpoint history backup without replacing the current resume",
   await expect(backupDialog.getByText("Platform baseline")).toBeVisible();
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
-  await expect(page.getByText("Platform baseline").first()).toBeVisible();
   await expect(page.getByText("Added 1 checkpoint")).toBeVisible();
   await expect(page.getByText("Start from the resume you already have.")).toBeVisible();
+  await openTools(page);
+  await expect(page.getByText("Platform baseline").first()).toBeVisible();
 });
 
 test("makes matching checkpoint backups explicit before merging", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Platform baseline");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
@@ -1031,7 +1093,8 @@ test("names checkpoints that remain only in a large imported backup", async ({ p
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Template checkpoint");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
@@ -1075,7 +1138,8 @@ test("reviews every checkpoint in backups larger than local history", async ({ p
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
   await page.getByRole("button", { name: /save version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Template checkpoint");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
@@ -1119,7 +1183,8 @@ test("reviews role language locally without presenting an ATS score", async ({ p
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /^sample$/i }).click();
+  await loadSample(page);
+  await openTools(page);
 
   const description = page.getByLabel("Job description");
   await description.fill(

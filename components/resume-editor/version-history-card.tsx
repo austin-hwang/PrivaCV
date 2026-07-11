@@ -92,10 +92,10 @@ export function VersionHistoryCard({
   if (!hasContent && !versions.length && !deletedVersion) return null;
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+    <Card className="border-none bg-transparent shadow-none">
+      <CardHeader className="flex-col gap-3 space-y-0 p-0">
         <div>
-          <CardDescription className="font-semibold uppercase tracking-[0.16em]">Version history</CardDescription>
+          <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em]">Version history</CardDescription>
           <CardTitle className="text-base">Save a local checkpoint before tailoring.</CardTitle>
           <CardDescription>
             Keep up to {MAX_VERSION_HISTORY} browser-only versions so you can experiment without losing a strong draft.
@@ -113,7 +113,7 @@ export function VersionHistoryCard({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 p-0 pt-4">
         {versions.length ? (
           <div
             className={cn(
