@@ -36,7 +36,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   its header. Compact inline headings such as `Skills: ...`, `Professional
   Summary: ...`, and `Experience: ...` also retain the content following the
   colon. Continue to favor conservative extraction plus explicit review over
-  guesses that could merge or invent experience.
+  guesses that could merge or invent experience. Company-first role headings
+  remain deliberately reviewable rather than guessed; each experience entry
+  now has a reversible one-click title/company swap.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear.

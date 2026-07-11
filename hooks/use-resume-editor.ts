@@ -412,6 +412,17 @@ export function useResumeEditor() {
     }));
   };
 
+  const swapExperienceTitleAndCompany = (index: number) => {
+    setState((current) => ({
+      ...current,
+      experience: current.experience.map((entry, entryIndex) =>
+        entryIndex === index
+          ? { ...entry, title: entry.subtitle, subtitle: entry.title }
+          : entry,
+      ),
+    }));
+  };
+
   const addEntry = (section: (typeof REPEATABLE_SECTIONS)[number]) => {
     setState((current) => ({ ...current, [section]: [...current[section], blankEntry()] }));
   };
@@ -722,6 +733,7 @@ export function useResumeEditor() {
     setVersionDraftNote,
     setVersionSaveOpen,
     state,
+    swapExperienceTitleAndCompany,
     textReviewOpen,
     textImportOpen,
     toast,

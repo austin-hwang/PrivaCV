@@ -63,7 +63,8 @@ subscriptions, watermarks, or backend storage.
   the extracted source text available for local fact-checking, shows a
   source-aware coverage snapshot that identifies recognizable source headings
   the parser did not populate, and keeps the export reminder visible until the
-  review is finished.
+  review is finished. Experience entries include a one-click title/company
+  swap for company-first source layouts.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
 - Local autosave in browser storage plus user-managed JSON files for manual

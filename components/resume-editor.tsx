@@ -98,6 +98,7 @@ export function ResumeEditor() {
     setTextImportOpen,
     setVersionCompareTarget,
     state,
+    swapExperienceTitleAndCompany,
     undoDeleteVersion,
     updateEntry,
     updateField,
@@ -726,6 +727,7 @@ export function ResumeEditor() {
                     onUpdate={updateEntry}
                     onMove={moveEntry}
                     onRemove={removeEntry}
+                    onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
                     onToggleReview={toggleImportReviewItem}
                   />
                 )}
