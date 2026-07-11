@@ -45,7 +45,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Show lightweight readiness feedback before export so users can fix obvious
   resume issues without leaving the page.
 - Keep the final export moment calm by surfacing unresolved checks without
-  trapping confident users.
+  trapping confident users. Import-review progress now remains explicit in
+  that checkpoint: users can jump to the next unconfirmed field or knowingly
+  export anyway, but cannot accidentally discard the checklist as "reviewed."
 - Make post-export confidence visible by showing whether the current resume has
   changed since the last PDF export attempt.
 - Show a compact field-level summary of what changed since the last export so
