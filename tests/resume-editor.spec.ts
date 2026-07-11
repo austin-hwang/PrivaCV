@@ -559,7 +559,8 @@ test("suggests exact role phrases for a local wording review", async ({ page }) 
     .getByLabel("Job description")
     .fill("Build backend microservices, partner with product teams, and improve backend microservices.");
 
-  const phraseButton = page.getByRole("button", { name: /backend microservices/i }).first();
+  const toolsDrawer = page.getByRole("dialog", { name: /review tools/i });
+  const phraseButton = toolsDrawer.getByRole("button", { name: /backend microservices/i }).first();
   await expect(phraseButton).toBeVisible();
   await phraseButton.click();
   await expect(page.getByLabel("Check an exact phrase from this role")).toHaveValue("backend microservices");
