@@ -206,6 +206,10 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await page.getByRole("menuitem", { name: /review text/i }).click();
   await expect(page.getByRole("dialog", { name: /review before copying/i })).toBeVisible();
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
+
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: /download \.txt/i }).click();
+  await expect((await download).suggestedFilename()).toBe("Jane_Doe.txt");
 });
 
 test("connects editor focus with the preview and supports custom sections", async ({ page }) => {

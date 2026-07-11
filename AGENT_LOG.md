@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-11 11:29 PDT
+
+- Market and product review: current builders still make import and quick output
+  central, while recent user feedback calls broken parsing and a forced retyping
+  loop especially frustrating. Reports on ATS extraction also reinforce that a
+  readable plain-text representation is a practical fallback, not an opaque
+  scoring feature.
+- Finding and decision: the product described an ATS-friendly plain-text export
+  but only placed it on the clipboard. Adding a direct `.txt` download won over
+  another parser heuristic because it completes an existing, high-frequency
+  application-portal path with no new data exposure or format conversion risk.
+- Implementation: the reviewed exact text can now be downloaded as a UTF-8
+  `.txt` file named from the resume owner, alongside Copy Text. The shared
+  browser download helper keeps JSON and text downloads consistent. README and
+  roadmap describe the completed route, and browser coverage asserts the real
+  download filename.
+- Verification: 46 Vitest tests, TypeScript, ESLint (with Next.js's existing
+  `next lint` deprecation notice), optimized production build, and all 50
+  Playwright flows passed.
+- Provisional next step: reassess real browser-engine print/PDF fidelity and
+  uncommon positioned-PDF extraction layouts before pursuing wider document
+  formats or AI writing assistance.
+
 ## 2026-07-11 10:30 PDT
 
 - Market and product review: Teal and Rezi continue to center imported master

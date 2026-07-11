@@ -61,7 +61,8 @@ subscriptions, watermarks, or backend storage.
 - Glanceable version summaries, suggested comparisons, reversible deletion, and
   post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF.
-- Review Text dialog for the exact ATS-friendly copy before copying.
+- Review Text dialog for the exact ATS-friendly copy before copying or downloading
+  a portable `.txt` file for application portals.
 - Best-effort PDF import for text-based resumes through a locally bundled,
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The

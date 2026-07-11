@@ -51,6 +51,15 @@ import {
 
 function downloadJsonFile(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  downloadFile(blob, filename);
+}
+
+function downloadTextFile(text: string, filename: string) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  downloadFile(blob, filename);
+}
+
+function downloadFile(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -709,6 +718,15 @@ export function useResumeEditor() {
     }
   };
 
+  const downloadPlainText = () => {
+    if (!plainText) {
+      flash("Add resume details first");
+      return;
+    }
+    downloadTextFile(plainText, `${safeResumeFilename(state.name || "resume")}.txt`);
+    flash("Saved plain text to downloads");
+  };
+
   const startPrintExport = () => {
     const checkpoint: ExportCheckpoint = {
       fingerprint: exportFingerprint,
@@ -758,6 +776,7 @@ export function useResumeEditor() {
     comparedTargetVersion,
     copyPlainText,
     deleteVersion,
+    downloadPlainText,
     deletedVersion,
     dismissRecoveryPoint,
     dismissRestoredVersionSummary,

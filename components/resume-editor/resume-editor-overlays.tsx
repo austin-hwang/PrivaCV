@@ -7,6 +7,7 @@ import {
   Check,
   ClipboardCopy,
   ClipboardPaste,
+  Download,
   Eye,
   History,
   Printer,
@@ -51,6 +52,7 @@ export function ResumeEditorOverlays({
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
+    downloadPlainText,
     existingVersionForSave,
     exportAnyway,
     exportCheckOpen,
@@ -174,6 +176,9 @@ export function ResumeEditorOverlays({
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">{plainText ? plainTextStats(plainText) : "0 words"}</span>
             <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={downloadPlainText} disabled={!plainText}>
+                <Download /> Download .txt
+              </Button>
               <Button type="button" onClick={copyPlainText} disabled={!plainText}>
                 <ClipboardCopy /> Copy Text
               </Button>
