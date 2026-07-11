@@ -9,19 +9,19 @@ import {
   clampTextScale,
   emptyState,
   exportChangeSummary,
+  getSectionEntries,
   hasAnyContent,
+  isBuiltinSection,
   normalizeResume,
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
   type ResumeEntry,
   type ResumeState,
-  type SectionKey,
 } from "@/lib/resume";
 import {
   EXPORT_CHECKPOINT_KEY,
   MAX_VERSION_HISTORY,
-  REPEATABLE_SECTIONS,
   ROLE_FOCUS_KEY,
   ROLE_FOCUS_LABEL_KEY,
   STORAGE_KEY,
@@ -309,8 +309,8 @@ export function useResumeEditor() {
   const focusCheckTarget = (targetId: string) => {
     const target = document.getElementById(targetId);
     if (!target) return;
+    target.focus({ preventScroll: true });
     target.scrollIntoView({ block: "center", behavior: "smooth" });
-    window.setTimeout(() => target.focus({ preventScroll: true }), 220);
   };
 
   const focusFromVersionCompare = (targetId: string) => {
@@ -385,8 +385,9 @@ export function useResumeEditor() {
     const measure = () => {
       const sheet = resumeRef.current;
       if (!sheet) return;
-      const pageHeightPx = 11 * 96 - 16;
-      setPageCount(Math.max(1, Math.ceil(sheet.scrollHeight / pageHeightPx)));
+      const pageHeightPx = 11 * 96;
+      const roundingTolerancePx = 2;
+      setPageCount(Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx)));
     };
     measure();
     document.fonts?.ready.then(measure).catch(() => undefined);
@@ -399,17 +400,29 @@ export function useResumeEditor() {
   };
 
   const updateEntry = (
-    section: (typeof REPEATABLE_SECTIONS)[number],
+    section: string,
     index: number,
     key: keyof ResumeEntry,
     value: string,
   ) => {
-    setState((current) => ({
-      ...current,
-      [section]: current[section].map((entry, entryIndex) =>
-        entryIndex === index ? { ...entry, [key]: value } : entry,
-      ),
-    }));
+    setState((current) => {
+      if (isBuiltinSection(section) && section !== "skills") {
+        return {
+          ...current,
+          [section]: current[section].map((entry, entryIndex) =>
+            entryIndex === index ? { ...entry, [key]: value } : entry,
+          ),
+        };
+      }
+      return {
+        ...current,
+        customSections: current.customSections.map((custom) =>
+          custom.id === section
+            ? { ...custom, entries: custom.entries.map((entry, entryIndex) => entryIndex === index ? { ...entry, [key]: value } : entry) }
+            : custom,
+        ),
+      };
+    });
   };
 
   const swapExperienceTitleAndCompany = (index: number) => {
@@ -423,36 +436,100 @@ export function useResumeEditor() {
     }));
   };
 
-  const addEntry = (section: (typeof REPEATABLE_SECTIONS)[number]) => {
-    setState((current) => ({ ...current, [section]: [...current[section], blankEntry()] }));
-  };
-
-  const removeEntry = (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => {
-    setState((current) => ({
-      ...current,
-      [section]: current[section].filter((_, entryIndex) => entryIndex !== index),
-    }));
-  };
-
-  const moveEntry = (section: (typeof REPEATABLE_SECTIONS)[number], index: number, direction: -1 | 1) => {
+  const addEntry = (section: string) => {
     setState((current) => {
-      const next = [...current[section]];
-      const target = index + direction;
-      if (target < 0 || target >= next.length) return current;
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...current, [section]: next };
+      if (isBuiltinSection(section) && section !== "skills") {
+        return { ...current, [section]: [...current[section], blankEntry()] };
+      }
+      return {
+        ...current,
+        customSections: current.customSections.map((custom) =>
+          custom.id === section ? { ...custom, entries: [...custom.entries, blankEntry()] } : custom,
+        ),
+      };
     });
   };
 
-  const moveSection = (section: SectionKey, direction: -1 | 1) => {
+  const removeEntry = (section: string, index: number) => {
+    setState((current) => {
+      if (isBuiltinSection(section) && section !== "skills") {
+        return { ...current, [section]: current[section].filter((_, entryIndex) => entryIndex !== index) };
+      }
+      return {
+        ...current,
+        customSections: current.customSections.map((custom) =>
+          custom.id === section ? { ...custom, entries: custom.entries.filter((_, entryIndex) => entryIndex !== index) } : custom,
+        ),
+      };
+    });
+  };
+
+  const reorderEntry = (section: string, index: number, target: number) => {
+    setState((current) => {
+      const next = [...getSectionEntries(current, section)];
+      if (target < 0 || target >= next.length) return current;
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      if (isBuiltinSection(section) && section !== "skills") return { ...current, [section]: next };
+      return {
+        ...current,
+        customSections: current.customSections.map((custom) => custom.id === section ? { ...custom, entries: next } : custom),
+      };
+    });
+  };
+
+  const moveEntry = (section: string, index: number, direction: -1 | 1) => reorderEntry(section, index, index + direction);
+
+  const reorderSection = (section: string, target: number) => {
+    setState((current) => {
+      const next = [...current.sectionOrder];
+      const index = next.indexOf(section);
+      if (target < 0 || target >= next.length) return current;
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      return { ...current, sectionOrder: next };
+    });
+  };
+
+  const moveSection = (section: string, direction: -1 | 1) => {
     setState((current) => {
       const next = [...current.sectionOrder];
       const index = next.indexOf(section);
       const target = index + direction;
-      if (target < 0 || target >= next.length) return current;
+      if (index < 0 || target < 0 || target >= next.length) return current;
       [next[index], next[target]] = [next[target], next[index]];
       return { ...current, sectionOrder: next };
     });
+  };
+
+  const updateSectionTitle = (section: string, title: string) => {
+    setState((current) => {
+      if (isBuiltinSection(section)) {
+        return { ...current, sectionTitles: { ...current.sectionTitles, [section]: title } };
+      }
+      return {
+        ...current,
+        customSections: current.customSections.map((custom) => custom.id === section ? { ...custom, title } : custom),
+      };
+    });
+  };
+
+  const addCustomSection = () => {
+    const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    setState((current) => ({
+      ...current,
+      customSections: [...current.customSections, { id, title: "New Section", entries: [blankEntry()] }],
+      sectionOrder: [...current.sectionOrder, id],
+    }));
+    return id;
+  };
+
+  const removeCustomSection = (section: string) => {
+    setState((current) => ({
+      ...current,
+      customSections: current.customSections.filter((custom) => custom.id !== section),
+      sectionOrder: current.sectionOrder.filter((id) => id !== section),
+    }));
   };
 
   const loadSample = () => {
@@ -658,6 +735,7 @@ export function useResumeEditor() {
   };
 
   return {
+    addCustomSection,
     addEntry,
     checks,
     clearResume,
@@ -710,6 +788,9 @@ export function useResumeEditor() {
     plainText,
     recoveryPoint,
     removeEntry,
+    removeCustomSection,
+    reorderEntry,
+    reorderSection,
     requestExport,
     restoreRecoveryPoint,
     restoreVersion,
@@ -742,6 +823,7 @@ export function useResumeEditor() {
     undoDeleteVersion,
     updateEntry,
     updateField,
+    updateSectionTitle,
     versionChanges,
     versionCompareAfterLabel,
     versionCompareBeforeLabel,

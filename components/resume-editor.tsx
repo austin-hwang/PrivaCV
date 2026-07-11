@@ -14,8 +14,11 @@ import {
   FileJson,
   FileText,
   History,
+  GripVertical,
+  Plus,
   Printer,
   RotateCcw,
+  Trash2,
   Undo2,
   Upload,
 } from "lucide-react";
@@ -23,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
@@ -37,9 +41,11 @@ import { VersionHistoryCard } from "@/components/resume-editor/version-history-c
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   clampTextScale,
+  getSectionEntries,
+  getSectionTitle,
+  isBuiltinSection,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
-  SECTION_LABELS,
 } from "@/lib/resume";
 import { buildImportCoverage, formatCheckpointTime } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
@@ -48,7 +54,9 @@ export function ResumeEditor() {
   const editor = useResumeEditor();
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
   const [mobileReviewTool, setMobileReviewTool] = useState<MobileReviewTool | null>(null);
+  const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const {
+    addCustomSection,
     addEntry,
     checks,
     clearResume,
@@ -82,6 +90,9 @@ export function ResumeEditor() {
     plainText,
     recoveryPoint,
     removeEntry,
+    removeCustomSection,
+    reorderEntry,
+    reorderSection,
     requestExport,
     restoreRecoveryPoint,
     restoreVersion,
@@ -102,12 +113,14 @@ export function ResumeEditor() {
     undoDeleteVersion,
     updateEntry,
     updateField,
+    updateSectionTitle,
     toggleImportReviewItem,
     completeImportReview,
     versionHistory,
     visibleRestoredVersionSummary,
   } = editor;
   const focusEditorTarget = (targetId: string) => {
+    setActiveTarget(targetId);
     setMobileWorkspaceView("editor");
     setMobileReviewTool(null);
     window.setTimeout(() => focusCheckTarget(targetId), 120);
@@ -221,6 +234,10 @@ export function ResumeEditor() {
         <section
           id="resume-editor-pane"
           aria-label="Resume editor"
+          onFocusCapture={(event) => {
+            const target = event.target as HTMLElement;
+            if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
+          }}
           className={cn(
             "editor-pane overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:p-6",
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
@@ -591,6 +608,56 @@ export function ResumeEditor() {
           ) : null}
 
           <div className="space-y-6">
+            <FieldGroup title="Arrange sections">
+              <p className="text-xs leading-snug text-muted-foreground">
+                Drag these blocks into the order you want. The preview updates immediately.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2" id="section-order-controls" tabIndex={-1}>
+                {state.sectionOrder.map((section, sectionIndex) => {
+                  const title = getSectionTitle(state, section);
+                  return (
+                    <div
+                      key={section}
+                      data-arrange-section={section}
+                      className="flex items-center gap-2 rounded-md border bg-background p-2 transition-colors hover:bg-muted/30"
+                      onDragOver={(event) => {
+                        if (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
+                      }}
+                      onDrop={(event) => {
+                        const customData = event.dataTransfer.getData("application/x-resume-section");
+                        const plainData = event.dataTransfer.getData("text/plain");
+                        if (!customData && !plainData.startsWith("section:")) return;
+                        const draggedSection = customData || plainData.replace(/^section:/, "");
+                        if (draggedSection === section) return;
+                        event.preventDefault();
+                        reorderSection(draggedSection, sectionIndex);
+                      }}
+                    >
+                      <span
+                        draggable
+                        aria-hidden="true"
+                        title="Drag to reorder; use the section move buttons for keyboard reordering"
+                        className="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("application/x-resume-section", section);
+                          event.dataTransfer.setData("text/plain", `section:${section}`);
+                        }}
+                      >
+                        <GripVertical className="size-4" />
+                      </span>
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
+                        onClick={() => focusEditorTarget(`section-title-${section}`)}
+                      >
+                        {title}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </FieldGroup>
             <FieldGroup title="Header">
               <TextField
                 id="field-name"
@@ -671,21 +738,64 @@ export function ResumeEditor() {
               />
             </FieldGroup>
 
-            {state.sectionOrder.map((section, sectionIndex) => (
-              <FieldGroup
+            {state.sectionOrder.map((section, sectionIndex) => {
+              const sectionTitle = getSectionTitle(state, section);
+              const entries = getSectionEntries(state, section);
+              const custom = !isBuiltinSection(section);
+              const sectionIsActive = activeTarget === `section-title-${section}` || activeTarget?.startsWith(`field-${section}-`);
+              return (
+              <div
                 key={section}
-                title={SECTION_LABELS[section]}
+                data-editor-section={section}
+                onDragOver={(event) => {
+                  if (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  const customData = event.dataTransfer.getData("application/x-resume-section");
+                  const plainData = event.dataTransfer.getData("text/plain");
+                  if (!customData && !plainData.startsWith("section:")) return;
+                  const draggedSection = customData || plainData.replace(/^section:/, "");
+                  if (!draggedSection || draggedSection === section) return;
+                  event.preventDefault();
+                  reorderSection(draggedSection, sectionIndex);
+                }}
+              >
+              <FieldGroup
+                className={cn(sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200")}
+                title={
+                  <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Section title
+                    <Input
+                      id={`section-title-${section}`}
+                      value={sectionTitle}
+                      className="h-8 min-w-0 normal-case tracking-normal text-foreground"
+                      aria-label={`${sectionTitle} section title`}
+                      onChange={(event) => updateSectionTitle(section, event.target.value)}
+                    />
+                  </label>
+                }
                 actions={
                   <div
-                    id={sectionIndex === 0 ? "section-order-controls" : undefined}
                     className="flex items-center gap-1 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-                    tabIndex={sectionIndex === 0 ? -1 : undefined}
                   >
+                    <span
+                      draggable
+                      aria-hidden="true"
+                      title="Drag to reorder; use the move buttons for keyboard reordering"
+                      className="inline-flex size-9 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("application/x-resume-section", section);
+                        event.dataTransfer.setData("text/plain", `section:${section}`);
+                      }}
+                    >
+                      <GripVertical className="size-4" />
+                    </span>
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Move ${SECTION_LABELS[section]} up`}
+                      aria-label={`Move ${sectionTitle} up`}
                       disabled={sectionIndex === 0}
                       onClick={() => moveSection(section, -1)}
                     >
@@ -695,7 +805,7 @@ export function ResumeEditor() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Move ${SECTION_LABELS[section]} down`}
+                      aria-label={`Move ${sectionTitle} down`}
                       disabled={sectionIndex === state.sectionOrder.length - 1}
                       onClick={() => moveSection(section, 1)}
                     >
@@ -704,6 +814,19 @@ export function ResumeEditor() {
                     {section !== "skills" ? (
                       <Button id={`add-${section}-entry`} type="button" variant="outline" size="sm" onClick={() => addEntry(section)}>
                         Add
+                      </Button>
+                    ) : null}
+                    {custom ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Remove ${sectionTitle} section`}
+                        onClick={() => {
+                          if (window.confirm(`Remove the ${sectionTitle || "custom"} section and all of its entries?`)) removeCustomSection(section);
+                        }}
+                      >
+                        <Trash2 />
                       </Button>
                     ) : null}
                   </div>
@@ -721,18 +844,33 @@ export function ResumeEditor() {
                 ) : (
                   <EntryList
                     section={section}
-                    entries={state[section]}
+                    sectionLabel={sectionTitle}
+                    entries={entries}
                     reviewTargets={importReviewTargets}
                     reviewItemsByTarget={importReviewItemsByTarget}
                     onUpdate={updateEntry}
                     onMove={moveEntry}
+                    onReorder={reorderEntry}
                     onRemove={removeEntry}
                     onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
                     onToggleReview={toggleImportReviewItem}
                   />
                 )}
               </FieldGroup>
-            ))}
+              </div>
+            );})}
+            <Button
+              id="add-custom-section"
+              type="button"
+              variant="outline"
+              className="w-full border-dashed"
+              onClick={() => {
+                const id = addCustomSection();
+                focusEditorTarget(`section-title-${id}`);
+              }}
+            >
+              <Plus /> Add custom section
+            </Button>
           </div>
         </section>
 
@@ -751,7 +889,12 @@ export function ResumeEditor() {
                 <FileText /> Edit resume
               </Button>
             </div>
-            <ResumePreview state={state} ref={resumeRef} />
+            <ResumePreview
+              state={state}
+              ref={resumeRef}
+              activeTarget={activeTarget}
+              onTargetSelect={focusEditorTarget}
+            />
             <p className="app-chrome text-xs text-muted-foreground">
               {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
             </p>
