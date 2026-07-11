@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-10 23:33 PDT
+
+- Market research and reprioritization: credible resume guidance and current
+  builder offerings continue to make readable, parsable, privacy-respecting
+  exports the baseline. The product already supports that differentiated
+  local-first workflow, while the launch audit uncovered a more immediate
+  trust risk in its production dependency graph: Next.js resolved PostCSS
+  8.4.31, which is affected by CVE-2026-41305 when stringified untrusted CSS is
+  embedded in a style element.
+- Decision: addressed the dependency advisory rather than expanding a resume
+  feature. Import UX, mobile density, readability cues, and a hosted landing
+  page were considered, but a known production advisory is a higher-value and
+  smaller production-hardening fix.
+- Implementation: added a workspace-level PostCSS 8.5.16 override so Next.js
+  and all build tooling resolve the patched release; regenerated the lockfile
+  with the declared pnpm 10.18.3 toolchain. The override is documented in the
+  technical roadmap for future removal once Next.js no longer pins an affected
+  version.
+- Verification: the production dependency audit reports no known
+  vulnerabilities; TypeScript, ESLint, 40 Vitest tests, the optimized Next.js
+  build, and 40 Playwright browser tests all pass. The advisory remains a
+  build-chain concern rather than evidence of a current runtime exploit path,
+  but keeping it patched reduces supply-chain risk.
+- Provisional next direction only: reassess import correction context, mobile
+  editing density, recruiter-readability guidance, and hosted public experience
+  before selecting work on the next run.
+
 ## 2026-07-10 22:15 PDT
 
 - Market research and reprioritization: current resume builders such as Teal
