@@ -1,5 +1,43 @@
 # Agent Log
 
+## 2026-07-10 20:28 PDT
+
+- Market research and reprioritization: current builders such as Rezi,
+  Resume.io, Teal, and newer mobile-first alternatives make job-description
+  tailoring, ATS-friendly exports, and templates expected. Recent job-seeker
+  feedback repeatedly warns that tailoring becomes too slow when every role
+  requires a rewrite, while competing products emphasize section control and
+  multiple resumes. This editor already has a strong transparent local role
+  review, import correction flow, readiness guidance, and checkpoints; another
+  score, AI rewrite, template, or output format would be lower value than
+  letting a real career history fit the document cleanly.
+- Decision: shipped flexible, ATS-safe resume organization. Editable standard
+  headings, custom repeatable sections, drag-and-drop ordering, and direct
+  editor/preview navigation let users include publications, certifications,
+  volunteer work, or other relevant evidence without forcing it into an
+  ill-fitting built-in section. Keyboard users retain explicit move controls;
+  drag handles do not masquerade as inaccessible buttons.
+- Implementation: extended the normalized local resume schema with safe custom
+  section IDs and titles, repaired legacy section order on load, made custom
+  content appear in the preview and plain-text copy, and included it in export
+  fingerprints. Added section and entry reordering, section removal, focused
+  preview highlighting, resilient custom IDs, page-count rounding correction,
+  unit coverage for persistence/normalization, and browser coverage for custom
+  content, focus linking, and section drag reordering. Updated README and
+  roadmap guidance.
+- Why it matters: job seekers can keep a single truthful master resume and
+  quickly make a role-specific structure without retyping content or choosing
+  a layout that risks ATS readability.
+- Verification: `CI=true node_modules/.bin/tsc --noEmit`, `CI=true
+  node_modules/.bin/next lint`, `CI=true node_modules/.bin/vitest run` (38
+  tests), a production `node_modules/.bin/next build`, and the full Playwright
+  suite (37 tests) against that production build passed. The `pnpm` wrapper
+  remains blocked by the existing `workerd` build-policy prompt, so direct
+  local binaries are used.
+- Provisional next direction only: next run must reassess whether common
+  section presets, deeper import correction context, mobile editing density,
+  or readability guidance has the highest user value.
+
 ## 2026-07-10 19:32 PDT
 
 - Market research and reprioritization: current Teal, Jobscan, and other
