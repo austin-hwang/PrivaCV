@@ -74,6 +74,16 @@ test("protects the local workspace with production response security headers", a
   expect(headers["x-frame-options"]).toBe("DENY");
 });
 
+test("keeps the editor interactive while development security headers are active", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+});
+
 test("helps first-time users choose the right private import route", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-11 02:31 PDT
+
+- Market research and reprioritization: current builders such as Teal center
+  import, job-specific review, and clean export; user feedback also points to
+  responsiveness and transparent, trustworthy workflows as more valuable than
+  decorative options or opaque scoring. The editor already covers those core
+  workflows, so the next public-use risk was verified directly in the browser.
+- Finding and decision: the production CSP was appropriately restrictive, but
+  it also blocked Next.js's development client bundle from evaluating, leaving
+  the locally run editor rendered but non-interactive. This breaks every
+  development and browser-test workflow, so it outranked more import heuristics
+  or template work.
+- Implementation: allow `unsafe-eval` only when `NODE_ENV` is `development`,
+  retain the stricter production CSP, and add a browser regression test that
+  loads the sample and confirms the editor state updates under development
+  headers. The technical roadmap now records that intentional environment
+  difference.
+- Why it matters: local contributors and future maintainers can now exercise
+  the same fast, private resume workflows users rely on, while deployed users
+  do not receive an unnecessary script-evaluation allowance.
+- Verification: full Playwright suite passed (43 tests); TypeScript, lint,
+  Vitest (44 tests), and optimized production build passed. A production server
+  smoke test confirmed that its CSP excludes `unsafe-eval` and that the hydrated
+  editor can load a sample. Next.js lint still reports its upstream deprecation
+  notice only.
+- Provisional next step: reassess parser correction confidence and mobile
+  import-review density before adding output formats or AI-style rewriting.
+
 ## 2026-07-11 01:31 PDT
 
 - Market research and reprioritization: current resume builders such as Rezi

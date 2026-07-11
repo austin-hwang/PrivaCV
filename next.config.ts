@@ -1,12 +1,16 @@
 import type { NextConfig } from "next";
 
+const developmentScriptSource = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  // Next.js evaluates its development client bundle. Keep that allowance out
+  // of production, where the editor's static bundle does not need it.
+  `script-src 'self' 'unsafe-inline'${developmentScriptSource}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",

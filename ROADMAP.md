@@ -130,8 +130,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   transport, cross-origin isolation, and unused-browser-permission controls
   protect the local workspace without introducing analytics or third-party
   dependencies. The static CSP intentionally retains Next.js-required inline
-  script/style support; reassess nonce- or SRI-based tightening only if a
-  future server-rendering/performance tradeoff is justified and verified.
+  script/style support; development alone also permits `unsafe-eval` because
+  Next.js needs it to hydrate its development client bundle, while production
+  excludes it. Reassess nonce- or SRI-based tightening only if a future
+  server-rendering/performance tradeoff is justified and verified.
 - Keep sensitive import paths self-contained: the on-demand PDF parser and its
   worker now ship from the app origin rather than a third-party CDN, so the
   user's selected resume never depends on or contacts an external parser host.
