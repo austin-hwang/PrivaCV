@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-10 17:29 PDT
+
+- Market research and reprioritization: current Teal-style builders make
+  job-description matching, templates, and AI rewriting expected, but recent
+  reviews and job-seeker discussions still report matching fatigue, generic or
+  inaccurate wording, and lost information during import. The existing local,
+  transparent role review already covers the safer tailoring layer, so another
+  score, rewrite, template, or DOCX export was lower value than closing a
+  concrete import-loss gap.
+- Decision: shipped conservative inline-heading import preservation. Resumes
+  that use compact lines such as `Professional Summary: ...`, `Skills: ...`,
+  or `Experience: ...` could have their recognized heading retained while the
+  content after its colon was silently dropped.
+- Implementation: the parser now retains colon-delimited content after a known
+  heading, while preserving blank-line entry boundaries and the existing
+  explicit import-review flow. Added unit and browser coverage for summary,
+  skills, and experience on inline headings, and documented the supported
+  layout in the README and roadmap.
+- Why it matters: people can import common compact resumes without rebuilding
+  content that was visibly present in their source before tailoring or export.
+- Verification: `CI=true node_modules/.bin/vitest run` (35 tests), `CI=true
+  node_modules/.bin/tsc --noEmit`, `CI=true node_modules/.bin/next lint`, a
+  production `next build`, focused inline-heading Playwright coverage, the full
+  Playwright suite (33 tests), and `git diff --check` passed. `pnpm` commands
+  remain blocked by the pre-existing user edit to `pnpm-workspace.yaml` that
+  requests a build-policy choice for `workerd`; this change leaves that file
+  untouched.
+- Provisional next direction only: reassess remaining import-layout gaps and
+  role-tailoring clarity against a lightweight ATS-text validation aid before
+  choosing another feature.
+
 ## 2026-07-10 16:30 PDT
 
 - Market research and reprioritization: Teal, Rezi, Jobscan, and newer

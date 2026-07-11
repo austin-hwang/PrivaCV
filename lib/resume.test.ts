@@ -90,6 +90,29 @@ describe("resume helpers", () => {
     expect(state.projects[0]).toMatchObject({ title: "Compiler", subtitle: "TypeScript" });
   });
 
+  it("preserves content written inline with common resume section headings", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Professional Summary: Platform engineer building dependable developer tools.",
+      "Skills: TypeScript, React, systems design",
+      "Experience: Staff Engineer | Analytical Engines | 2022–Present",
+      "• Built reliable systems.",
+    ].join("\n"));
+
+    expect(state).toMatchObject({
+      summary: "Platform engineer building dependable developer tools.",
+      skills: "TypeScript, React, systems design",
+    });
+    expect(state.experience[0]).toMatchObject({
+      title: "Staff Engineer",
+      subtitle: "Analytical Engines",
+      meta: "2022–Present",
+      details: "Built reliable systems.",
+    });
+  });
+
   it("keeps adjacent dated roles separate when exported resumes put dates on their own line", () => {
     const state = importResumeText([
       "Ada Lovelace",

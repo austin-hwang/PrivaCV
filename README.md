@@ -54,7 +54,9 @@ subscriptions, watermarks, or backend storage.
   Relevant Experience, Education & Training, Academic Projects, and Key Skills;
   it also recognizes adjacent entries whose dates are on their own lines: roles
   remain separate when bulleted details make the boundary clear, and compact
-  degree-and-school histories remain separate without bullets.
+  degree-and-school histories remain separate without bullets. Compact inline
+  headings such as `Professional Summary: ...`, `Skills: ...`, and
+  `Experience: ...` retain the content after the colon.
 - Post-import review panel that guides users through each imported contact,
   summary, experience, education, project, and skills entry, keeps explicit
   confirmation and a matching source excerpt beside the editable value, keeps

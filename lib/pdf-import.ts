@@ -86,6 +86,13 @@ const SECTION_MAP: Array<[RegExp, keyof Pick<ResumeState, "summary" | "experienc
   [/^(skills|technical\s+skills|key\s+skills|core\s+(competencies|skills)|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
 ];
 
+type ResumeSection = keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">;
+
+type SectionHeading = {
+  key: ResumeSection;
+  inlineContent: string;
+};
+
 export function extractPhone(text: string) {
   const candidates = text.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [];
   for (const candidate of candidates) {
@@ -102,6 +109,25 @@ export function detectSection(line: string) {
     if (re.test(norm)) return key;
   }
   return null;
+}
+
+/**
+ * Finds a known heading and preserves content that follows a colon on the
+ * same line. Compact resumes commonly use forms such as "Skills: TypeScript,
+ * React"; treating that entire line only as a heading silently loses the
+ * useful part. Other suffixes remain ordinary text to avoid guessing.
+ */
+function sectionHeading(line: string): SectionHeading | null {
+  const value = line.trim();
+  const colonIndex = value.indexOf(":");
+  if (colonIndex < 0) {
+    const key = detectSection(value);
+    return key ? { key, inlineContent: "" } : null;
+  }
+
+  const key = detectSection(value.slice(0, colonIndex).trim());
+  const inlineContent = value.slice(colonIndex + 1).trim();
+  return key ? { key, inlineContent } : null;
 }
 
 function stripBullet(line: string) {
@@ -243,13 +269,13 @@ export function parseResume(lines: string[]) {
   result.education = [];
   result.projects = [];
 
-  const sections: Array<{ key: ReturnType<typeof detectSection>; headerIndex: number; start?: number; end?: number }> = [];
+  const sections: Array<{ key: ResumeSection; headerIndex: number; inlineContent: string; start?: number; end?: number }> = [];
   let preambleEnd = lines.length;
   lines.forEach((line, index) => {
-    const key = detectSection(line);
-    if (key) {
+    const heading = sectionHeading(line);
+    if (heading) {
       if (!sections.length) preambleEnd = index;
-      sections.push({ key, headerIndex: index });
+      sections.push({ key: heading.key, headerIndex: index, inlineContent: heading.inlineContent });
     }
   });
   sections.forEach((section, index) => {
@@ -288,8 +314,9 @@ export function parseResume(lines: string[]) {
   if (rest.length) result.summary = rest.join(" ").trim();
 
   for (const section of sections) {
-    if (!section.key) continue;
-    const block = lines.slice(section.start, section.end);
+    const block = section.inlineContent
+      ? [section.inlineContent, ...lines.slice(section.start, section.end)]
+      : lines.slice(section.start, section.end);
     if (section.key === "summary") {
       result.summary = block.filter(Boolean).map(stripBullet).join(" ").trim();
     } else if (section.key === "skills") {
