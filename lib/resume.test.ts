@@ -287,6 +287,33 @@ describe("resume helpers", () => {
     expect(state.experience).toHaveLength(0);
   });
 
+  it("preserves editable headings and custom sections while normalizing", () => {
+    const state = normalizeResume({
+      sectionTitles: { experience: "Selected Experience" },
+      customSections: [{
+        id: "custom-publications",
+        title: "Publications",
+        entries: [{ title: "Reliable Interfaces", subtitle: "ACM", meta: "2025", details: "Published with 3 collaborators." }],
+      }],
+      sectionOrder: ["experience", "custom-publications", "skills"],
+    });
+
+    expect(state.sectionTitles.experience).toBe("Selected Experience");
+    expect(state.sectionTitles.education).toBe("Education");
+    expect(state.sectionOrder).toEqual(["experience", "custom-publications", "skills", "education", "projects"]);
+    expect(resumePlainText(state)).toContain("Publications\nReliable Interfaces");
+  });
+
+  it("drops invalid custom section IDs and repairs section order", () => {
+    const state = normalizeResume({
+      customSections: [{ id: "not-custom", title: "Ignored", entries: [] }],
+      sectionOrder: ["not-custom", "skills"],
+    });
+
+    expect(state.customSections).toEqual([]);
+    expect(state.sectionOrder).toEqual(["skills", "education", "experience", "projects"]);
+  });
+
   it("renders deterministic plain text in section order", () => {
     const state = sampleState();
     const text = resumePlainText(state);

@@ -142,6 +142,26 @@
   margin-bottom: 2px;
 }
 
+.resume-preview-target {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.resume-preview-target:hover {
+  background: rgb(224 242 254 / 55%);
+}
+
+.resume-preview-active {
+  background: rgb(186 230 253 / 58%);
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 22%);
+}
+
+.resume-preview-section-active:not(:has(.resume-preview-active)) {
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 14%);
+}
+
 .resume-empty {
   color: #4f545c;
 }
@@ -203,6 +223,14 @@
     width: auto;
     min-height: 11in;
     box-shadow: none;
+  }
+
+  .resume-preview-target,
+  .resume-preview-active,
+  .resume-preview-section-active {
+    cursor: default;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   .resume-entry {
