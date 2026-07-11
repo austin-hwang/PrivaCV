@@ -92,6 +92,14 @@ export type ResumeCheck = {
   targetId: string;
 };
 
+type ContactField = "name" | "email" | "phone" | "location" | "website";
+
+export type ContactFieldIssue = {
+  field: ContactField;
+  label: string;
+  detail: string;
+};
+
 export type EvidenceSummary = {
   bulletCount: number;
   measuredCount: number;
@@ -233,6 +241,57 @@ export function hasMeasuredEvidence(bullet: string) {
   );
 }
 
+function isPlausibleEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isPlausiblePhone(value: string) {
+  // Keep international and extension formats flexible, while catching an
+  // accidental partial number before it reaches a finished PDF.
+  return (value.match(/\d/g) ?? []).length >= 7;
+}
+
+function isPlausibleWebsite(value: string) {
+  if (/\s/.test(value)) return false;
+
+  try {
+    const url = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(value) ? value : `https://${value}`);
+    return Boolean(url.hostname) && url.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A deliberately light contact review. It checks only the obvious copy/paste
+ * mistakes that make a resume impossible to follow up on, without imposing a
+ * country-specific phone format or requiring a personal website.
+ */
+export function contactFieldIssues(state: ResumeState): ContactFieldIssue[] {
+  const required: Array<[Exclude<ContactField, "website">, string]> = [
+    ["name", "name"],
+    ["email", "email"],
+    ["phone", "phone"],
+    ["location", "location"],
+  ];
+  const missing = required
+    .filter(([field]) => !state[field].trim())
+    .map(([field, label]) => ({ field, label, detail: `Missing ${label}` }));
+  const invalid: ContactFieldIssue[] = [];
+
+  if (state.email.trim() && !isPlausibleEmail(state.email.trim())) {
+    invalid.push({ field: "email", label: "email", detail: "Invalid email" });
+  }
+  if (state.phone.trim() && !isPlausiblePhone(state.phone.trim())) {
+    invalid.push({ field: "phone", label: "phone", detail: "Invalid phone" });
+  }
+  if (state.website.trim() && !isPlausibleWebsite(state.website.trim())) {
+    invalid.push({ field: "website", label: "website", detail: "Invalid website" });
+  }
+
+  return [...missing, ...invalid];
+}
+
 /**
  * Gives the editor a small, transparent evidence cue for one experience or
  * project entry. It deliberately recognizes scope as well as numeric outcomes
@@ -260,14 +319,15 @@ function evidenceBullets(state: ResumeState) {
 }
 
 export function buildResumeChecks(state: ResumeState, pageCount: number): ResumeCheck[] {
-  const missingContact = [
-    ["name", "name"],
-    ["email", "email"],
-    ["phone", "phone"],
-    ["location", "location"],
+  const contactIssues = contactFieldIssues(state);
+  const missingContact = contactIssues.filter((issue) => issue.detail.startsWith("Missing"));
+  const invalidContact = contactIssues.filter((issue) => issue.detail.startsWith("Invalid"));
+  const contactDetail = [
+    missingContact.length ? `Missing ${missingContact.map((issue) => issue.label).join(", ")}` : "",
+    ...invalidContact.map((issue) => issue.detail),
   ]
-    .filter(([key]) => !String(state[key as keyof ResumeState] || "").trim())
-    .map(([, label]) => label);
+    .filter(Boolean)
+    .join(", ");
 
   const bullets = allBullets(state);
   const longBullets = bullets.filter((bullet) => wordCount(bullet) > 28);
@@ -311,11 +371,13 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
     {
       id: "contact",
       label: "Contact",
-      ok: missingContact.length === 0,
-      detail: missingContact.length ? `Missing ${missingContact.join(", ")}` : "Core details present",
-      guidance: "Missing contact details can make a strong resume impossible to follow up on.",
+      ok: contactIssues.length === 0,
+      detail: contactIssues.length ? contactDetail : "Core details present",
+      guidance: contactIssues.some((issue) => issue.detail.startsWith("Invalid"))
+        ? "Check the contact details exactly as a recruiter would use them. Email needs an @ and domain, phone needs enough digits to dial, and a link needs a valid domain."
+        : "Missing contact details can make a strong resume impossible to follow up on.",
       actionLabel: "Fix contact",
-      targetId: `field-${missingContact[0] ?? "name"}`,
+      targetId: `field-${contactIssues[0]?.field ?? "name"}`,
     },
     {
       id: "bullets",

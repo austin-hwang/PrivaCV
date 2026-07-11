@@ -33,7 +33,8 @@ subscriptions, watermarks, or backend storage.
   export in sync.
 - Click a preview heading or entry to return directly to its editor field; the
   active field is lightly highlighted in the preview while editing.
-- Resume Check panel for page count, missing contact fields, concise bullets,
+- Resume Check panel for page count, usable contact details (including obvious
+  malformed email, phone, and link mistakes), concise bullets,
   measurable experience/project evidence, optional summary guidance, and overall density.
   A two-page resume is a relevance prompt—not an export failure—while three or
   more pages receive trimming guidance. Each check has an action that jumps to
