@@ -47,7 +47,8 @@ subscriptions, watermarks, or backend storage.
   a small set of direct exact phrases to review, includes an opt-in exact
   phrase check for multi-word concepts, and avoids opaque ATS scoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
-  items before opening the browser print dialog.
+  items before opening the browser print dialog, including when the familiar
+  Cmd/Ctrl+P shortcut is used.
 - Local last-export status that shows whether the current resume still matches
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what

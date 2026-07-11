@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-11 14:26 PDT
+
+- Market and product review: current resume-builder feedback values fast,
+  trustworthy exports but repeatedly warns that an attractive preview is not
+  enough when the final application artifact is wrong. This editor already
+  provides a local export checkpoint and source-backed import confirmation.
+- Finding and decision: the familiar Cmd/Ctrl+P route invoked the browser's
+  native print dialog directly and could bypass that checkpoint. Routing the
+  shortcut through the existing review won over another ATS score or parser
+  rule because it closes a common, high-impact trust gap without changing the
+  user's habitual export gesture or adding friction for clean drafts.
+- Implementation: Cmd/Ctrl+P now opens the same actionable export review when
+  checks or import confirmation remain; otherwise it starts the normal local
+  print export. The export control exposes the shortcut on wide screens and in
+  its tooltip. A browser regression verifies incomplete drafts are reviewed
+  instead of being printed immediately.
+
 ## 2026-07-11 13:55 PDT
 
 - Market and product review: Teal and other builders make imports and tailored

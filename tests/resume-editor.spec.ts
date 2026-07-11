@@ -212,6 +212,22 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect((await download).suggestedFilename()).toBe("Jane_Doe.txt");
 });
 
+test("routes the browser print shortcut through the export review", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await page.getByLabel("Full Name").fill("Ada Lovelace");
+
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+P" : "Control+P");
+
+  const exportCheck = page.getByRole("dialog", { name: /review before exporting/i });
+  await expect(exportCheck).toBeVisible();
+  await expect(exportCheck).toContainText("Missing email, phone, location");
+  await expect(page).not.toHaveURL(/print/);
+});
+
 test("connects editor focus with the preview and supports custom sections", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

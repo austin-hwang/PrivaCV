@@ -119,6 +119,7 @@ export function useResumeEditor() {
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLDivElement>(null);
+  const requestExportRef = useRef<() => void>(() => undefined);
 
   const hasContent = hasAnyContent(state);
   const checks = useMemo(() => buildResumeChecks(state, pageCount), [state, pageCount]);
@@ -823,6 +824,31 @@ export function useResumeEditor() {
     }
     startPrintExport();
   };
+
+  // People naturally reach for the browser print shortcut when a PDF is the
+  // goal. Keep that familiar route, but do not let it skip the same local
+  // review checkpoint used by the visible Export PDF control.
+  requestExportRef.current = requestExport;
+
+  useEffect(() => {
+    const handlePrintShortcut = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        (!event.metaKey && !event.ctrlKey) ||
+        event.key.toLowerCase() !== "p"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      requestExportRef.current();
+    };
+
+    window.addEventListener("keydown", handlePrintShortcut);
+    return () => window.removeEventListener("keydown", handlePrintShortcut);
+  }, []);
 
   const exportAnyway = () => {
     setExportCheckOpen(false);
