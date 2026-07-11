@@ -884,6 +884,26 @@ test("shows an export checkpoint before printing an unresolved resume", async ({
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 });
 
+test("catches unusable contact details before export and uses contact-friendly inputs", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await expect(page.getByLabel("Email")).toHaveAttribute("type", "email");
+  await expect(page.getByLabel("Phone")).toHaveAttribute("type", "tel");
+  await expect(page.getByLabel("Website / LinkedIn")).toHaveAttribute("type", "url");
+
+  await page.getByLabel("Email").fill("jane-at-example");
+  await page.getByRole("button", { name: /export pdf/i }).click();
+
+  const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
+  await expect(exportDialog).toContainText("Invalid email");
+  await expect(exportDialog).toContainText("Email needs an @ and domain");
+  await exportDialog.getByRole("button", { name: /fix contact/i }).click();
+  await expect(page.getByLabel("Email")).toBeFocused();
+});
+
 test("keeps import confirmation explicit in the export checkpoint", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

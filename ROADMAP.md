@@ -104,6 +104,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## Core Features
 
+- Keep final contact details trustworthy: Resume Check now catches obvious
+  malformed email, too-short phone, and malformed optional website entries
+  locally, while the editor uses browser-friendly contact input types and
+  autocomplete hints. Reassess international name/address support only if a
+  user need arises; avoid enforcing a country-specific resume format.
 - Keep refining Resume Check guidance with more specific recommendations for
   crowded sections and low-evidence resumes; it now prompts for measurable
   scope or results without requiring every bullet to contain a number, with an

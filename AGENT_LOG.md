@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-11 15:31 PDT
+
+- Market and product review: Rezi and Teal continue to make existing-resume
+  import, editing, and export central, while user feedback calls out basic
+  polish such as spelling and reliable finished artifacts. The editor already
+  has browser-native writing support, but its final review only checked whether
+  essential contact fields were blank. A mistyped email, partial phone, or
+  malformed LinkedIn link could therefore reach the PDF unnoticed.
+- Finding and decision: a local contact-confidence check won over another ATS
+  heuristic or output format because it protects the one detail a recruiter
+  needs to respond, with no account, service, or country-specific formatting
+  assumption. It catches only obvious malformed email, phone, and optional
+  website values; international phone formats and scheme-less LinkedIn URLs
+  remain valid.
+- Implementation: Resume Check now identifies the first unusable contact field
+  and gives precise repair guidance before export. Contact fields expose
+  email/tel/url semantics, mobile-friendly input modes, autocomplete hints,
+  and explicit writing-support behavior. Unit and browser coverage protect the
+  validation and focus path; README and roadmap describe the behavior.
+- Verification: ESLint, TypeScript, 50 Vitest tests, production build, and the
+  focused Playwright contact-flow test passed. The complete 55-flow Playwright
+  rerun was interrupted by an environment-level dev-server connection refusal
+  after 23 passing flows; the failure did not report an application assertion.
+- Provisional next step: reassess browser-engine PDF fidelity and the remaining
+  uncommon PDF import layouts before considering larger export or AI-writing
+  features.
+
 ## 2026-07-11 14:42 PDT
 
 - Product and interaction audit: the section workflow had four connected

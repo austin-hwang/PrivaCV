@@ -11,6 +11,8 @@ import {
 import { isBuiltinSection, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
+type TextInputType = "email" | "tel" | "text" | "url";
+
 export function FieldGroup({ id, title, actions, children, className }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section id={id} className={cn("scroll-mt-32 border-b pb-5 transition-colors last:border-b-0 lg:scroll-mt-16", className)}>
@@ -31,6 +33,10 @@ export function TextField({
   reviewItem,
   onToggleReview,
   onChange,
+  type = "text",
+  autoComplete,
+  inputMode,
+  spellCheck,
 }: {
   id?: string;
   label: string;
@@ -40,14 +46,22 @@ export function TextField({
   reviewItem?: ImportReviewItem & { confirmed: boolean };
   onToggleReview?: (itemId: string) => void;
   onChange: (value: string) => void;
+  type?: TextInputType;
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  spellCheck?: boolean;
 }) {
   return (
     <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
       <label htmlFor={id}>{label}</label>
       <Input
         id={id}
+        type={type}
         value={value}
         placeholder={placeholder}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        spellCheck={spellCheck}
         className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -65,6 +79,7 @@ export function TextAreaField({
   reviewItem,
   onToggleReview,
   onChange,
+  spellCheck = true,
 }: {
   id?: string;
   label: string;
@@ -74,6 +89,7 @@ export function TextAreaField({
   reviewItem?: ImportReviewItem & { confirmed: boolean };
   onToggleReview?: (itemId: string) => void;
   onChange: (value: string) => void;
+  spellCheck?: boolean;
 }) {
   return (
     <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
@@ -82,6 +98,7 @@ export function TextAreaField({
         id={id}
         value={value}
         placeholder={placeholder}
+        spellCheck={spellCheck}
         className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
         onChange={(event) => onChange(event.target.value)}
       />

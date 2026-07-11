@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildResumeChecks,
+  contactFieldIssues,
   CUSTOM_SECTION_PRESETS,
   emptyState,
   exportChangeSummary,
@@ -573,6 +574,37 @@ describe("resume helpers", () => {
       ok: false,
       actionLabel: "Fix contact",
       targetId: "field-phone",
+    });
+  });
+
+  it("catches unusable contact details without imposing a country-specific format", () => {
+    const state = {
+      ...sampleState(),
+      email: "ada-at-example",
+      phone: "+44 20 7946 0958",
+      website: "linkedin.com/in/ada",
+    };
+    const contact = buildResumeChecks(state, 1).find((check) => check.id === "contact");
+
+    expect(contactFieldIssues(state)).toEqual([
+      { field: "email", label: "email", detail: "Invalid email" },
+    ]);
+    expect(contact).toMatchObject({
+      ok: false,
+      detail: "Invalid email",
+      targetId: "field-email",
+    });
+    expect(contact?.guidance).toContain("valid domain");
+  });
+
+  it("targets an invalid optional website after required contact details are complete", () => {
+    const state = { ...sampleState(), website: "linkedin profile" };
+    const contact = buildResumeChecks(state, 1).find((check) => check.id === "contact");
+
+    expect(contact).toMatchObject({
+      ok: false,
+      detail: "Invalid website",
+      targetId: "field-website",
     });
   });
 

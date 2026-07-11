@@ -663,6 +663,8 @@ export function ResumeEditor() {
                   label="Full Name"
                   value={state.name}
                   placeholder="Jane Doe"
+                  autoComplete="name"
+                  spellCheck={false}
                   reviewTarget={importReviewTargets.has("field-name")}
                   reviewItem={importReviewItemsByTarget.get("field-name")}
                   onToggleReview={toggleImportReviewItem}
@@ -673,6 +675,8 @@ export function ResumeEditor() {
                   label="Title / Role"
                   value={state.title}
                   placeholder="Senior Software Engineer"
+                  autoComplete="organization-title"
+                  spellCheck
                   reviewTarget={importReviewTargets.has("field-title")}
                   reviewItem={importReviewItemsByTarget.get("field-title")}
                   onToggleReview={toggleImportReviewItem}
@@ -684,6 +688,10 @@ export function ResumeEditor() {
                     label="Email"
                     value={state.email}
                     placeholder="jane@example.com"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    spellCheck={false}
                     reviewTarget={importReviewTargets.has("field-email")}
                     reviewItem={importReviewItemsByTarget.get("field-email")}
                     onToggleReview={toggleImportReviewItem}
@@ -694,6 +702,10 @@ export function ResumeEditor() {
                     label="Phone"
                     value={state.phone}
                     placeholder="(555) 123-4567"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    spellCheck={false}
                     reviewTarget={importReviewTargets.has("field-phone")}
                     reviewItem={importReviewItemsByTarget.get("field-phone")}
                     onToggleReview={toggleImportReviewItem}
@@ -705,6 +717,8 @@ export function ResumeEditor() {
                   label="Location"
                   value={state.location}
                   placeholder="San Francisco, CA"
+                  autoComplete="address-level2"
+                  spellCheck={false}
                   reviewTarget={importReviewTargets.has("field-location")}
                   reviewItem={importReviewItemsByTarget.get("field-location")}
                   onToggleReview={toggleImportReviewItem}
@@ -715,6 +729,10 @@ export function ResumeEditor() {
                   label="Website / LinkedIn"
                   value={state.website}
                   placeholder="linkedin.com/in/janedoe"
+                  type="url"
+                  autoComplete="url"
+                  inputMode="url"
+                  spellCheck={false}
                   reviewTarget={importReviewTargets.has("field-website")}
                   reviewItem={importReviewItemsByTarget.get("field-website")}
                   onToggleReview={toggleImportReviewItem}
