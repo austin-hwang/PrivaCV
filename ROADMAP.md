@@ -136,6 +136,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 ## Growth
 
 - Public demo page with no sign-in and a clear privacy promise.
+- Keep browser and sharing presentation trustworthy: the editor now has an
+  accurate title, description, Open Graph and social-card metadata, a web-app
+  manifest, crawl policy, and custom browser/Apple icons. Reassess a hosted
+  marketing page, canonical URL, sitemap, and social image only after a stable
+  public domain exists; do not invent production URLs before then.
 - Shareable exported JSON examples for common roles.
 - Optional static hosting workflow for a hosted version.
 
