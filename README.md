@@ -65,7 +65,7 @@ subscriptions, watermarks, or backend storage.
   LinkedIn, and scanned PDFs. The
   importer recognizes common alternate section headings such as Career Profile,
   Qualifications Summary, Relevant Experience, Education & Training, Academic
-  Projects, and Technical Proficiencies. It preserves specialty sections such
+  Projects, Skills & Tools, Technology Stack, and Technical Proficiencies. It preserves specialty sections such
   as Research Experience, Leadership, Publications, Presentations, and
   Coursework as separate editable sections, and cautiously keeps unfamiliar
   short ALL-CAPS headings separate rather than folding them into experience;

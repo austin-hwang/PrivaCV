@@ -34,15 +34,18 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Improve parsing accuracy for common plain-text layouts before expanding
   output formats: alternate headings such as Career Profile, Relevant
   Experience, Education & Training, Academic Projects, and Key Skills now map
-  to their expected fields; adjacent roles whose dates appear on separate lines
-  stay distinct when their bullets make the entry boundary clear, and compact
-  degree-and-school entries without bullets remain separate when each date ends
-  its header. Compact inline headings such as `Skills: ...`, `Professional
-  Summary: ...`, and `Experience: ...` also retain the content following the
-  colon. Continue to favor conservative extraction plus explicit review over
-  guesses that could merge or invent experience. Company-first role headings
-  remain deliberately reviewable rather than guessed; each experience entry
-  now has a reversible one-click title/company swap.
+  to their expected fields; common concise variants such as Professional
+  Overview, Professional History, Education & Credentials, Skills & Tools,
+  Technology Stack, and Technical Toolkit now do too. Adjacent roles whose
+  dates appear on separate lines stay distinct when their bullets make the
+  entry boundary clear, and compact degree-and-school entries without bullets
+  remain separate when each date ends its header. Compact inline headings such
+  as `Skills: ...`, `Professional Summary: ...`, and `Experience: ...` also
+  retain the content following the colon. Continue to favor conservative
+  extraction plus explicit review over guesses that could merge or invent
+  experience. Company-first role headings remain deliberately reviewable
+  rather than guessed; each experience entry now has a reversible one-click
+  title/company swap.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear.
