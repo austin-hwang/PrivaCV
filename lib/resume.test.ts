@@ -74,10 +74,15 @@ describe("resume helpers", () => {
 
   it("recognizes common alternate resume section headings before parsing content", () => {
     expect(detectSection("Career Profile")).toBe("summary");
+    expect(detectSection("Professional Overview")).toBe("summary");
     expect(detectSection("Relevant Experience")).toBe("experience");
+    expect(detectSection("Professional History")).toBe("experience");
     expect(detectSection("Education & Training")).toBe("education");
+    expect(detectSection("Education & Credentials")).toBe("education");
     expect(detectSection("Academic Projects")).toBe("projects");
     expect(detectSection("Key Skills")).toBe("skills");
+    expect(detectSection("Skills & Tools")).toBe("skills");
+    expect(detectSection("Technology Stack")).toBe("skills");
   });
 
   it("imports content under common alternate resume section headings", () => {
@@ -110,6 +115,22 @@ describe("resume helpers", () => {
     expect(state.experience[0]).toMatchObject({ title: "Staff Engineer", subtitle: "Analytical Engines" });
     expect(state.education[0]).toMatchObject({ title: "M.S. Computer Science", subtitle: "Example University" });
     expect(state.projects[0]).toMatchObject({ title: "Compiler", subtitle: "TypeScript" });
+  });
+
+  it("keeps skills and overview content under common concise headings", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Professional Overview",
+      "Platform engineer building dependable developer tools.",
+      "",
+      "Skills & Tools",
+      "TypeScript, React, systems design",
+    ].join("\n"));
+
+    expect(state.summary).toBe("Platform engineer building dependable developer tools.");
+    expect(state.skills).toBe("TypeScript, React, systems design");
   });
 
   it("keeps recognized custom PDF headings out of experience", () => {

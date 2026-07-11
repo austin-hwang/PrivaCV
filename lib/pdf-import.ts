@@ -82,11 +82,11 @@ const DATE_RANGE_RE = new RegExp(
   "i",
 );
 const SECTION_MAP: Array<[RegExp, keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">]> = [
-  [/^(summary|professional\s+summary|profile|professional\s+profile|career\s+profile|about\s+me|about|objective|career\s+objective|summary\s+of\s+qualifications|qualifications\s+(summary|profile))\b/i, "summary"],
-  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+background|internships?)\b/i, "experience"],
-  [/^(education|education\s+(and|&)\s+training|academic\s+background|academics)\b/i, "education"],
-  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects|academic\s+projects|relevant\s+projects|research\s+projects|project\s+experience)\b/i, "projects"],
-  [/^(skills|technical\s+skills|professional\s+skills|key\s+skills|core\s+(competencies|skills)|technical\s+proficiencies|computer\s+skills|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
+  [/^(summary|professional\s+summary|professional\s+overview|executive\s+summary|career\s+summary|profile|professional\s+profile|career\s+profile|about\s+me|about|objective|career\s+objective|summary\s+of\s+qualifications|qualifications\s+(summary|profile))\b/i, "summary"],
+  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+(background|history)|internships?)\b/i, "experience"],
+  [/^(education|education\s+(and|&)\s+(training|credentials)|academic\s+background|academics)\b/i, "education"],
+  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects|academic\s+projects|relevant\s+projects|research\s+projects|project\s+experience|portfolio\s+projects)\b/i, "projects"],
+  [/^(skills|relevant\s+skills|technical\s+skills|professional\s+skills|key\s+skills|core\s+(competencies|skills)|technical\s+proficiencies|computer\s+skills|skills\s*(?:&|and)\s*(?:tools|technologies)|tools\s*(?:&|and)\s*technologies|technology\s+stack|tech\s+stack|technical\s+toolkit|programming\s+languages|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
 ];
 
 type ResumeSection = keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">;

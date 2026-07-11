@@ -351,6 +351,31 @@ test("imports common alternate section headings without losing resume content", 
   await expect(page.getByText("What the importer detected")).toBeVisible();
 });
 
+test("imports concise overview and skills headings without losing their content", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Professional Overview",
+    "Platform engineer building dependable developer tools.",
+    "",
+    "Skills & Tools",
+    "TypeScript, React, systems design",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByLabel("Professional Summary")).toHaveValue("Platform engineer building dependable developer tools.");
+  await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
+  await expect(page.getByText("Summary text detected")).toBeVisible();
+  await expect(page.getByText("1 skill line detected")).toBeVisible();
+});
+
 test("requires review of imported specialty-section entries", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

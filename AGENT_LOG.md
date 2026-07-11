@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-11 09:28 PDT
+
+- Market and product review: current builders make imported source resumes and
+  job-specific matching central, but review feedback shows both import loss and
+  overwhelming edit volume erode trust. This editor's local source-backed
+  confirmation is a better differentiator than adding an opaque match score.
+- Finding and decision: common, concise headings such as Professional Overview
+  and Skills & Tools were not recognized, so valid summary and skill content
+  could be missed before the review checklist even began. Expanding only
+  semantically clear aliases won over guessing at ambiguous role/company
+  ordering because it preserves more user content without making silent
+  structural claims.
+- Implementation: the parser now recognizes Professional Overview, Executive
+  Summary, Career Summary, Professional History, Education & Credentials,
+  Portfolio Projects, Relevant Skills, Skills & Tools, Tools & Technologies,
+  Technology/Tech Stack, Technical Toolkit, and Programming Languages. Unit
+  and browser coverage confirm a concise overview and skills import lands in
+  the editable fields and coverage snapshot. README and roadmap now describe
+  the supported headings.
+- Verification: 45 Vitest tests, TypeScript, ESLint (aside from Next.js's
+  existing deprecation notice), optimized production build, focused Playwright
+  coverage, and the full 50-flow Playwright suite passed.
+- Provisional next step: reassess parsing accuracy for genuinely uncommon PDF
+  extraction layouts and browser-engine print fidelity before adding formats or
+  AI writing assistance.
+
 ## 2026-07-11 08:28 PDT
 
 - Market and product review: current builders emphasize tailored content and
