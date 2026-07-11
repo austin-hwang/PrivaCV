@@ -1,5 +1,40 @@
 import { expect, test } from "@playwright/test";
 
+test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
+  await page.goto("/");
+
+  await expect(page).toHaveTitle("Resume Editor — private, ATS-friendly PDFs");
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    "content",
+    /Build, tailor, and export a clean resume locally/i,
+  );
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+    "content",
+    "Resume Editor — private, ATS-friendly PDFs",
+  );
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest\.webmanifest$/);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg(?:\?.*)?$/);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("type", "image/png");
+
+  const appleIconHref = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
+  expect(appleIconHref).toBeTruthy();
+
+  const [manifest, robots, icon, appleIcon] = await Promise.all([
+    request.get("/manifest.webmanifest"),
+    request.get("/robots.txt"),
+    request.get("/icon.svg"),
+    request.get(appleIconHref!),
+  ]);
+  expect(manifest.ok()).toBeTruthy();
+  expect(await manifest.json()).toMatchObject({ short_name: "Resume Editor", display: "standalone" });
+  expect(robots.ok()).toBeTruthy();
+  expect(await robots.text()).toContain("User-Agent: *");
+  expect(icon.ok()).toBeTruthy();
+  expect(icon.headers()["content-type"]).toContain("image/svg+xml");
+  expect(appleIcon.ok()).toBeTruthy();
+  expect(appleIcon.headers()["content-type"]).toContain("image/png");
+});
+
 test("helps first-time users choose the right private import route", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

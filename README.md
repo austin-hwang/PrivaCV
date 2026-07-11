@@ -16,6 +16,9 @@ subscriptions, watermarks, or backend storage.
   narrow screen.
 - First-run start panel with fast paths for PDF import, pasted resume text,
   saved JSON, or a sample resume.
+- Public-facing browser metadata, a web-app manifest, custom app icons, and
+  graceful route-error recovery; titles and copy accurately describe the
+  local-first data model without inventing a hosted domain.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
 - Add, remove, and reorder repeatable entries, including with drag-and-drop or
   accessible move controls.

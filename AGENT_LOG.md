@@ -1,5 +1,30 @@
 # Agent Log
 
+## 2026-07-10 22:15 PDT
+
+- Market research and reprioritization: current resume builders such as Teal
+  and Enhancv make job-specific tailoring, readable exports, and trustworthy
+  feedback table stakes. Recent user discussion also flags generic or
+  fabricated AI edits as a failure mode. This editor already has transparent
+  local role review, import confirmation, export checks, and browser-only
+  checkpoints, but its public launch surface was still generic: no custom
+  browser icon, app manifest, robots policy, social metadata, or route-error
+  recovery.
+- Decision: shipped a focused public-launch foundation instead of another
+  tailoring feature. Accurate metadata and visual browser identity improve
+  first impressions, while route and global error boundaries prevent a raw
+  blank screen and explicitly reassure users that browser-local drafts remain
+  local.
+- Implementation: added metadata, responsive viewport and theme settings,
+  manifest and crawl routes, a compact document/checkmark icon for browser and
+  Apple contexts, regular and global error recovery pages, and Playwright
+  checks for title, descriptions, Open Graph metadata, manifest, robots, and
+  icon delivery. The roadmap documents that canonical URLs, sitemap, and a
+  social image must wait for a real public domain rather than use fake URLs.
+- Provisional next direction only: next run must reassess import correction
+  context, mobile editing density, recruiter-readability guidance, and the
+  need for a hosted public landing experience before choosing work.
+
 ## 2026-07-10 21:31 PDT
 
 - Market research and reprioritization: Teal and Jobscan make job-description
