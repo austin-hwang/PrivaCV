@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
+  AlertCircle,
   Check,
   ClipboardCopy,
   ClipboardPaste,
@@ -23,6 +24,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
@@ -90,6 +92,7 @@ export function ResumeEditor() {
     setTextReviewOpen,
     setTextImportOpen,
     state,
+    storageIssue,
     swapExperienceTitleAndCompany,
     updateEntry,
     updateField,
@@ -257,6 +260,7 @@ export function ResumeEditor() {
           {!hasContent ? (
             <StartPanel
               isImporting={isImporting}
+              storageIssue={storageIssue}
               onImportPdf={() => pdfInputRef.current?.click()}
               onImportText={() => setTextImportOpen(true)}
               onLoadSample={loadSample}
@@ -264,6 +268,19 @@ export function ResumeEditor() {
               onOpenCheckpointBackup={() => historyBackupInputRef.current?.click()}
               onChooseTemplate={(template) => updateField("template", template)}
             />
+          ) : null}
+
+          {storageIssue ? (
+            <Alert className="mb-6 border-amber-300 bg-amber-50/70">
+              <AlertCircle className="h-4 w-4 text-amber-900" />
+              <AlertTitle className="text-amber-950">Browser autosave is unavailable</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3 text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+                <span>Your edits remain open here, but may not survive a refresh. Save a JSON copy before closing this tab.</span>
+                <Button type="button" variant="outline" size="sm" className="w-fit border-amber-400 bg-background" onClick={saveJson}>
+                  <Download /> Save JSON copy
+                </Button>
+              </AlertDescription>
+            </Alert>
           ) : null}
 
           {recoveryPoint ? (

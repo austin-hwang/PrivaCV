@@ -8,6 +8,7 @@ import { RESUME_TEMPLATES, type ResumeTemplateId } from "@/lib/resume";
 
 type StartPanelProps = {
   isImporting: boolean;
+  storageIssue: boolean;
   onImportPdf: () => void;
   onImportText: () => void;
   onLoadSample: () => void;
@@ -18,6 +19,7 @@ type StartPanelProps = {
 
 export function StartPanel({
   isImporting,
+  storageIssue,
   onImportPdf,
   onImportText,
   onLoadSample,
@@ -110,11 +112,11 @@ export function StartPanel({
         </div>
 
         <div className="flex flex-wrap gap-2" aria-label="Privacy and export benefits">
-          {["No account", "Local autosave", "Free PDF export"].map((label) => (
-            <Badge key={label} variant="secondary">
-              {label}
-            </Badge>
-          ))}
+          <Badge variant="secondary">No account</Badge>
+          <Badge variant={storageIssue ? "outline" : "secondary"} className={storageIssue ? "border-amber-300 bg-amber-50 text-amber-950" : undefined}>
+            {storageIssue ? "Autosave unavailable" : "Local autosave"}
+          </Badge>
+          <Badge variant="secondary">Free PDF export</Badge>
         </div>
       </CardContent>
     </Card>

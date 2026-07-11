@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-11 04:30 PDT
+
+- Market research and product review: Teal continues to make a comprehensive
+  source resume and fast, versioned tailoring central, while Rezi emphasizes
+  immediate feedback and finished exports. The existing editor already meets
+  those workflow expectations locally; user feedback around polished builders
+  reinforces that reliable saving and export behavior matter more than another
+  opaque score or AI-writing feature.
+- Finding and decision: the editor advertised local autosave but deliberately
+  swallowed every browser-storage error. In private browsing, under a quota
+  limit, or when storage is blocked, that could leave a user believing a
+  sensitive draft would survive a refresh. Clear failure handling and a local
+  backup path therefore beat additional parsing heuristics, templates, or
+  tailoring features.
+- Implementation: the workspace now detects failed storage reads and writes,
+  replaces the autosave claim with an accurate unavailable state, and displays
+  an accessible persistent warning with a one-click JSON backup. The warning
+  makes the session-only limitation explicit without blocking the user from
+  continuing or exporting their resume.
+- Verification: TypeScript, ESLint (aside from Next.js's existing deprecation
+  notice), 44 Vitest tests, optimized production build, and the full 45-flow
+  Playwright suite passed. The new browser scenario forces a storage quota
+  error, confirms the warning, and confirms a downloadable JSON backup.
+- Provisional next step: reassess remaining import correction accuracy and
+  practical print/PDF reliability before expanding formats or adding AI-style
+  writing assistance.
+
 ## 2026-07-11 03:30 PDT
 
 - Market research and reprioritization: Teal now frames its builder around one
