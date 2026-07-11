@@ -70,8 +70,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   career that do not fit a fixed template: editable section headings, a small
   number of custom repeatable sections, and reversible section/entry ordering
   now cover publications, certifications, volunteer work, and similar content.
-  Reassess whether users need common section presets before adding decorative
-  templates or broader layout controls.
+  Familiar one-click presets for Certifications, Volunteer Experience,
+  Publications, Awards, Languages, and Training now reduce the blank-state
+  decision without constraining custom headings. Reassess whether users need
+  role-specific examples before adding decorative templates or broader layout
+  controls.
 
 ## Core Features
 

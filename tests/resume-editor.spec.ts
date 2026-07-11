@@ -54,6 +54,20 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await expect(page.getByLabel("Publications section title")).toBeVisible();
 });
 
+test("adds a common section with its useful heading already in place", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /certifications/i }).click();
+
+  await expect(page.getByLabel("Certifications section title")).toHaveValue("Certifications");
+  await expect(page.locator(".resume-sheet").getByText("Certifications", { exact: true })).toBeHidden();
+  await page.locator('[id^="field-custom-"][id$="-0-title"]').fill("AWS Certified Developer – Associate");
+  await expect(page.locator(".resume-sheet").getByText("Certifications", { exact: true })).toBeVisible();
+});
+
 test("reorders resume sections by dragging their handles", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

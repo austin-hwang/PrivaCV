@@ -41,6 +41,7 @@ import { VersionHistoryCard } from "@/components/resume-editor/version-history-c
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   clampTextScale,
+  CUSTOM_SECTION_PRESETS,
   getSectionEntries,
   getSectionTitle,
   isBuiltinSection,
@@ -859,18 +860,40 @@ export function ResumeEditor() {
               </FieldGroup>
               </div>
             );})}
-            <Button
-              id="add-custom-section"
-              type="button"
-              variant="outline"
-              className="w-full border-dashed"
-              onClick={() => {
-                const id = addCustomSection();
-                focusEditorTarget(`section-title-${id}`);
-              }}
-            >
-              <Plus /> Add custom section
-            </Button>
+            <div className="rounded-md border border-dashed bg-muted/20 p-3">
+              <p className="text-sm font-medium">Add a relevant section</p>
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                Choose a familiar heading or make your own. Keep only details that strengthen this application.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {CUSTOM_SECTION_PRESETS.map((title) => (
+                  <Button
+                    key={title}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const id = addCustomSection(title);
+                      focusEditorTarget(`section-title-${id}`);
+                    }}
+                  >
+                    <Plus /> {title}
+                  </Button>
+                ))}
+                <Button
+                  id="add-custom-section"
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const id = addCustomSection();
+                    focusEditorTarget(`section-title-${id}`);
+                  }}
+                >
+                  <Plus /> Add custom section
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
 

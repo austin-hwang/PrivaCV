@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-10 20:39 PDT
+
+- Market research and reprioritization: current builders commonly offer extra
+  sections for certifications, volunteer work, publications, awards, and
+  languages, while career guidance consistently says to include those only when
+  relevant to the target role. The editor had just gained generic custom
+  sections, but asking a user to name every common section still adds an
+  avoidable blank-state decision. More parser heuristics, AI rewriting,
+  templates, or broad mobile rework would be larger or lower-confidence next
+  steps; the existing role focus and import review already cover their core
+  friction.
+- Decision: shipped common custom-section presets. One click now starts
+  Certifications, Volunteer Experience, Publications, Awards, Languages, or
+  Training with a familiar, ATS-readable heading, while **Add custom section**
+  remains available for every other case. The preview stays intentionally empty
+  until the person enters real content, so a preset never creates filler.
+- Implementation: added a typed shared preset list, made the section creator
+  accept a starting title, rendered a concise responsive preset chooser, and
+  added unit and browser coverage for the new flow. Updated README and roadmap.
+- Why it matters: people can represent relevant career evidence quickly and
+  consistently without putting a certification into Skills, forcing volunteer
+  work into Employment, or manually correcting a generic heading.
+- Verification: `CI=true node_modules/.bin/tsc --noEmit`, `CI=true
+  node_modules/.bin/next lint`, `CI=true node_modules/.bin/vitest run` (39
+  tests), a production `node_modules/.bin/next build`, and Playwright (38
+  tests) against that production build passed. Direct binaries were used because
+  the `pnpm` wrapper remains blocked by the existing `workerd` build-policy
+  prompt.
+- Provisional next direction only: next run must reassess role-specific example
+  content, remaining import correction context, mobile editing density, and
+  recruiter-readability guidance before choosing one improvement.
+
 ## 2026-07-10 20:28 PDT
 
 - Market research and reprioritization: current builders such as Rezi,

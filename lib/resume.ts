@@ -11,6 +11,19 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   skills: "Skills",
 };
 
+/**
+ * Common, ATS-readable headings for career details that do not belong in the
+ * core resume sections. Custom headings remain available for everything else.
+ */
+export const CUSTOM_SECTION_PRESETS = [
+  "Certifications",
+  "Volunteer Experience",
+  "Publications",
+  "Awards",
+  "Languages",
+  "Training",
+] as const;
+
 export type SectionId = SectionKey | `custom-${string}`;
 
 export const sectionTitlesSchema = z.object({
