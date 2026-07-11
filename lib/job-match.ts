@@ -226,14 +226,14 @@ function requirementTermOrder(jobDescription: string) {
   return terms;
 }
 
-function entryEvidence(section: "experience" | "projects", entries: ResumeEntry[], term: string): RoleTermEvidence[] {
+function entryEvidence(section: string, label: string, entries: ResumeEntry[], term: string): RoleTermEvidence[] {
   return entries.flatMap((entry, index) => {
     const detailsMatch = containsTerm(entry.details, term);
     const contextMatch = containsTerm([entry.title, entry.subtitle, entry.meta].join(" "), term);
     if (!detailsMatch && !contextMatch) return [];
 
     return [{
-      label: `${section === "experience" ? "Experience" : "Project"} ${index + 1}`,
+      label: `${label} ${index + 1}`,
       targetId: `field-${section}-${index}-${detailsMatch ? "details" : "title"}`,
       isConcrete: detailsMatch,
     }];
@@ -253,7 +253,19 @@ function findTermEvidence(state: ResumeState, term: string): RoleTermEvidence[] 
     evidence.push({ label: "Title", targetId: "field-title", isConcrete: false });
   }
 
-  return [...entryEvidence("experience", state.experience, term), ...entryEvidence("projects", state.projects, term), ...evidence];
+  const customEvidence = state.customSections.flatMap((section) => [
+    ...(containsTerm(section.title, term)
+      ? [{ label: `${section.title} heading`, targetId: `section-title-${section.id}`, isConcrete: false }]
+      : []),
+    ...entryEvidence(section.id, section.title, section.entries, term),
+  ]);
+
+  return [
+    ...entryEvidence("experience", "Experience", state.experience, term),
+    ...entryEvidence("projects", "Project", state.projects, term),
+    ...customEvidence,
+    ...evidence,
+  ];
 }
 
 /**
@@ -279,6 +291,10 @@ export function buildRoleFocus(resume: ResumeState | string, jobDescription: str
     ...resume.experience.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
     ...resume.projects.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
     ...resume.education.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+    ...resume.customSections.flatMap((section) => [
+      section.title,
+      ...section.entries.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+    ]),
   ].join(" ");
   const resumeTerms = new Set(words(resumeText));
   const rankedTerms = [...counts.entries()]

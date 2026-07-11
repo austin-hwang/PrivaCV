@@ -1,5 +1,40 @@
 # Agent Log
 
+## 2026-07-10 21:31 PDT
+
+- Market research and reprioritization: Teal and Jobscan make job-description
+  tailoring and keyword feedback baseline expectations, while recent job-seeker
+  discussions stress that the useful part is verifying one specific role
+  truthfully—not blindly chasing a score or accepting a generic rewrite. The
+  editor already offers a transparent local wording review, import correction,
+  browser-only checkpoints, and flexible custom sections. However, Role Focus
+  did not count the custom evidence users had just added, so a certification or
+  volunteer entry could be inaccurately reported as absent. New templates,
+  parser heuristics, and AI writing would be broader and lower-value than
+  fixing this trust break in the existing role-tailoring flow.
+- Decision: shipped complete custom-section coverage in Role Focus. Custom
+  headings and entry fields now participate in term matching; result chips can
+  jump to the matching heading or exact entry, and detail-based matches retain
+  the existing “concrete evidence” distinction.
+- Implementation: generalized role-evidence lookup, included custom headings
+  and entry text in the local comparison corpus, clarified the supporting-copy,
+  and added both unit and browser coverage using a Kubernetes certification.
+  Updated README and roadmap language.
+- Why it matters: job seekers see an honest view of the language already on
+  their resume and can immediately inspect the proof behind a match, rather
+  than being prompted to duplicate truthful credentials or chase an opaque
+  score.
+- Verification: `CI=true node_modules/.bin/tsc --noEmit`, `CI=true
+  node_modules/.bin/next lint`, `CI=true node_modules/.bin/vitest run` (40
+  tests), production `CI=true node_modules/.bin/next build`, and `CI=true
+  PLAYWRIGHT_PORT=3201 node_modules/.bin/playwright test --reporter=list` (39
+  tests) passed. The initial browser-run output detached before the final
+  summary, so the complete rerun used a clean port and its test process exit was
+  confirmed.
+- Provisional next direction only: next run must reassess recruiter-readability
+  guidance, import correction context, mobile editing density, and role-specific
+  examples before choosing another improvement.
+
 ## 2026-07-10 20:39 PDT
 
 - Market research and reprioritization: current builders commonly offer extra

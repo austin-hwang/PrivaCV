@@ -94,8 +94,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   stay useful without pretending to predict ATS or hiring outcomes; it now
   elevates terms from explicit qualifications-style sections, distinguishes
   terms grounded in experience or project details from mentions that appear
-  only in a title, summary, or skills, and provides direct field jumps for
-  review. Reassess phrase ranking only where it stays reviewable and local-first.
+  only in a title, heading, summary, or skills, and provides direct field jumps
+  for review. Custom-section headings and entries now count as real resume
+  evidence too, so a relevant certification or volunteer entry is never
+  falsely reported as missing. Reassess phrase ranking only where it stays
+  reviewable and local-first.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF and pasted-text import review with clearer confidence
