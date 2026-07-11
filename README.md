@@ -17,8 +17,15 @@ subscriptions, watermarks, or backend storage.
 - First-run start panel with fast paths for PDF import, pasted resume text,
   saved JSON, or a sample resume.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
-- Add, remove, and reorder repeatable entries.
-- Reorder resume sections while keeping the preview and plain-text export in sync.
+- Add, remove, and reorder repeatable entries, including with drag-and-drop or
+  accessible move controls.
+- Rename standard section headings, add local custom sections for content such
+  as Publications or Certifications, start common sections with one click
+  (Certifications, Volunteer Experience, Publications, Awards, Languages, or
+  Training), and reorder every section while keeping the preview and plain-text
+  export in sync.
+- Click a preview heading or entry to return directly to its editor field; the
+  active field is lightly highlighted in the preview while editing.
 - Resume Check panel for page count, missing contact fields, concise bullets,
   measurable experience/project evidence, optional summary guidance, and overall density,
   with guidance and actions that jump to the field that needs attention; each

@@ -514,11 +514,11 @@ export function useResumeEditor() {
     });
   };
 
-  const addCustomSection = () => {
+  const addCustomSection = (title = "New Section") => {
     const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     setState((current) => ({
       ...current,
-      customSections: [...current.customSections, { id, title: "New Section", entries: [blankEntry()] }],
+      customSections: [...current.customSections, { id, title, entries: [blankEntry()] }],
       sectionOrder: [...current.sectionOrder, id],
     }));
     return id;
