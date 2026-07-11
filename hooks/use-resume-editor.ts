@@ -88,6 +88,7 @@ export function useResumeEditor() {
   const [jobDescription, setJobDescription] = useState("");
   const [roleLabel, setRoleLabel] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [storageIssue, setStorageIssue] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +189,14 @@ export function useResumeEditor() {
 
   const flash = useCallback((message: string) => {
     setToast({ id: Date.now(), message });
+  }, []);
+
+  const reportStorageIssue = useCallback(() => {
+    setStorageIssue(true);
+  }, []);
+
+  const confirmStorageAvailable = useCallback(() => {
+    setStorageIssue(false);
   }, []);
 
   const saveRecoveryPoint = useCallback(
@@ -328,32 +337,33 @@ export function useResumeEditor() {
       setJobDescription(localStorage.getItem(ROLE_FOCUS_KEY) ?? "");
       setRoleLabel(localStorage.getItem(ROLE_FOCUS_LABEL_KEY) ?? "");
     } catch {
-      // localStorage may be unavailable.
+      reportStorageIssue();
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [reportStorageIssue]);
 
   useEffect(() => {
     if (!loaded) return;
     const timer = window.setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        confirmStorageAvailable();
       } catch {
-        // Ignore storage failures; the user can still export JSON.
+        reportStorageIssue();
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [loaded, state]);
+  }, [confirmStorageAvailable, loaded, reportStorageIssue, state]);
 
   useEffect(() => {
     if (!loaded) return;
     try {
       localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(versionHistory));
     } catch {
-      // Manual JSON export still works if history storage is unavailable.
+      reportStorageIssue();
     }
-  }, [loaded, versionHistory]);
+  }, [loaded, reportStorageIssue, versionHistory]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -361,9 +371,9 @@ export function useResumeEditor() {
       if (jobDescription.trim()) localStorage.setItem(ROLE_FOCUS_KEY, jobDescription);
       else localStorage.removeItem(ROLE_FOCUS_KEY);
     } catch {
-      // The role description remains available for this session if storage fails.
+      reportStorageIssue();
     }
-  }, [jobDescription, loaded]);
+  }, [jobDescription, loaded, reportStorageIssue]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -371,9 +381,9 @@ export function useResumeEditor() {
       if (roleLabel.trim()) localStorage.setItem(ROLE_FOCUS_LABEL_KEY, roleLabel);
       else localStorage.removeItem(ROLE_FOCUS_LABEL_KEY);
     } catch {
-      // The role label remains available for this session if storage fails.
+      reportStorageIssue();
     }
-  }, [loaded, roleLabel]);
+  }, [loaded, reportStorageIssue, roleLabel]);
 
   useEffect(() => {
     if (!toast) return;
@@ -711,7 +721,7 @@ export function useResumeEditor() {
     try {
       localStorage.setItem(EXPORT_CHECKPOINT_KEY, JSON.stringify(checkpoint));
     } catch {
-      // The status card is still useful for this session.
+      reportStorageIssue();
     }
     window.print();
   };
@@ -814,6 +824,7 @@ export function useResumeEditor() {
     setVersionDraftNote,
     setVersionSaveOpen,
     state,
+    storageIssue,
     swapExperienceTitleAndCompany,
     textReviewOpen,
     textImportOpen,

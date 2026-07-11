@@ -125,6 +125,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - Keep the app local-first with browser storage and JSON files until accounts,
   syncing, or collaboration become clearly valuable.
+- Make the local-first promise honest when browser storage is blocked or full:
+  autosave failures now surface a persistent, actionable warning and a direct
+  JSON backup path instead of silently risking a draft on refresh. Reassess
+  durable cross-device backup only if it can retain the same privacy posture.
 - Keep a deployment-compatible response security baseline for every route: a
   same-origin Content Security Policy, anti-framing, MIME-sniffing, referrer,
   transport, cross-origin isolation, and unused-browser-permission controls

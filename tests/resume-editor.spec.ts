@@ -101,6 +101,28 @@ test("keeps the editor interactive while development security headers are active
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
 });
 
+test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Storage.prototype, "setItem", {
+      configurable: true,
+      value: () => {
+        throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+      },
+    });
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+
+  await loadSample(page);
+
+  const storageWarning = page.getByText("Browser autosave is unavailable", { exact: true }).locator("..");
+  await expect(storageWarning).toContainText("Browser autosave is unavailable");
+  await expect(storageWarning).toContainText("may not survive a refresh");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: /save json copy/i }).click();
+  await expect((await download).suggestedFilename()).toBe("Jane_Doe.json");
+});
+
 test("keeps secondary toolbar actions usable from the keyboard", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
