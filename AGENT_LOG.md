@@ -1,5 +1,29 @@
 # Agent Log
 
+## 2026-07-11 07:31 PDT
+
+- Market and product review: current ATS guidance and builder alternatives keep
+  role-specific tailoring and clean, readable structure central. The editor
+  already supports private import, review, and export, so an obstructed first
+  edit was a higher-value risk than adding another scoring or writing feature.
+- Finding and decision: the onboarding offered starting templates, but selecting
+  one only updated an empty draft's layout state while keeping the editor
+  hidden; it also lacked a direct blank-resume route. Making each route open
+  the form immediately won because it removes a first-use dead end without
+  changing the product's local-first or ATS-safe posture.
+- Implementation: added a visible blank-resume action and made each template
+  tile explicitly start a blank draft using that layout. Both paths move focus
+  to the Full Name field, while clearing returns a genuinely empty workspace to
+  the onboarding state. Added browser coverage for default and selected-layout
+  paths.
+- Verification: `pnpm typecheck`, `pnpm lint` (only Next.js's existing
+  deprecation notice), 44 Vitest tests, the focused regression, the full
+  48-flow Playwright suite, and the optimized production build passed. An
+  initial concurrent build/browser run interfered with Next's shared build
+  cache; rerunning them sequentially passed.
+- Provisional next step: reassess real print behavior across browser engines
+  and uncommon import layouts before adding formats or AI writing assistance.
+
 ## 2026-07-11 12:50 PDT
 
 - Market and product review: current leaders such as Teal prioritize rapid

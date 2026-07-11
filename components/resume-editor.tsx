@@ -58,6 +58,7 @@ export function ResumeEditor() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [importChecklistOpen, setImportChecklistOpen] = useState(false);
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
+  const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
   const {
     addCustomSection,
     addEntry,
@@ -104,6 +105,18 @@ export function ResumeEditor() {
     versionHistory,
     visibleRestoredVersionSummary,
   } = editor;
+  const workspaceHasStarted = hasContent || blankWorkspaceOpen;
+
+  const startBlankResume = (template = state.template) => {
+    updateField("template", template);
+    setBlankWorkspaceOpen(true);
+    window.setTimeout(() => document.getElementById("field-name")?.focus(), 120);
+  };
+
+  const clearEditor = () => {
+    setBlankWorkspaceOpen(false);
+    clearResume();
+  };
 
   const focusEditorTarget = (targetId: string) => {
     setActiveTarget(targetId);
@@ -128,7 +141,7 @@ export function ResumeEditor() {
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
 
   const checksReady = passedChecks === checks.length;
-  const navItems: SectionNavItem[] = hasContent
+  const navItems: SectionNavItem[] = workspaceHasStarted
     ? [
         { id: "edit-layout", label: "Layout" },
         { id: "edit-header", label: "Header" },
@@ -224,7 +237,7 @@ export function ResumeEditor() {
                   destructive
                   onSelect={() => {
                     if (window.confirm("Clear all fields? You can restore this version from the recovery card.")) {
-                      clearResume();
+                      clearEditor();
                     }
                   }}
                 >
@@ -275,7 +288,7 @@ export function ResumeEditor() {
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
           )}
         >
-          {!hasContent ? (
+          {!workspaceHasStarted ? (
             <StartPanel
               isImporting={isImporting}
               storageIssue={storageIssue}
@@ -284,7 +297,8 @@ export function ResumeEditor() {
               onLoadSample={loadSample}
               onOpenJson={() => jsonInputRef.current?.click()}
               onOpenCheckpointBackup={() => historyBackupInputRef.current?.click()}
-              onChooseTemplate={(template) => updateField("template", template)}
+              onStartBlank={startBlankResume}
+              onChooseTemplate={startBlankResume}
             />
           ) : null}
 
@@ -498,9 +512,9 @@ export function ResumeEditor() {
             />
           ) : null}
 
-          {hasContent ? <SectionNav items={navItems} /> : null}
+          {workspaceHasStarted ? <SectionNav items={navItems} /> : null}
 
-          {hasContent ? (
+          {workspaceHasStarted ? (
             <div className="space-y-6">
               <FieldGroup id="edit-layout" title="Resume template">
                 <p className="text-xs leading-snug text-muted-foreground">

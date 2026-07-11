@@ -101,6 +101,22 @@ test("keeps the editor interactive while development security headers are active
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
 });
 
+test("starts a fresh resume from the onboarding without hiding the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+  await expect(page.getByText("Starting fresh?")).toBeHidden();
+  await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Classic/);
+
+  await page.reload();
+  await page.getByRole("button", { name: /start blank with modern template/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+  await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Modern/);
+});
+
 test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(Storage.prototype, "setItem", {
@@ -1123,7 +1139,7 @@ test("imports a checkpoint history backup without replacing the current resume",
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
   await expect(page.getByText("Added 1 checkpoint")).toBeVisible();
-  await expect(page.getByText("Start from the resume you already have.")).toBeVisible();
+  await expect(page.getByText("Start from a resume you have—or a clean page.")).toBeVisible();
   await openTools(page);
   await expect(page.getByText("Platform baseline").first()).toBeVisible();
 });

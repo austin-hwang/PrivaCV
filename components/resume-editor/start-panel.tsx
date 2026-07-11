@@ -14,6 +14,7 @@ type StartPanelProps = {
   onLoadSample: () => void;
   onOpenJson: () => void;
   onOpenCheckpointBackup: () => void;
+  onStartBlank: (template?: ResumeTemplateId) => void;
   onChooseTemplate: (template: ResumeTemplateId) => void;
 };
 
@@ -25,13 +26,14 @@ export function StartPanel({
   onLoadSample,
   onOpenJson,
   onOpenCheckpointBackup,
+  onStartBlank,
   onChooseTemplate,
 }: StartPanelProps) {
   return (
     <Card className="mb-6">
       <CardHeader>
         <CardDescription className="font-semibold uppercase tracking-[0.16em]">Private resume workspace</CardDescription>
-        <CardTitle className="text-2xl">Start from the resume you already have.</CardTitle>
+        <CardTitle className="text-2xl">Start from a resume you have—or a clean page.</CardTitle>
         <CardDescription>
           Choose the route that best matches your source. You will review every imported field before you export.
         </CardDescription>
@@ -94,13 +96,26 @@ export function StartPanel({
           </Button>
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
+          <div>
+            <p className="text-sm font-medium">Starting fresh?</p>
+            <p className="mt-1 text-xs leading-snug text-muted-foreground">
+              Open a clean, ATS-readable draft and begin with your contact details.
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => onStartBlank()}>
+            <FileText /> Start a blank resume
+          </Button>
+        </div>
+
         <div className="border-t pt-3">
-          <p className="text-xs font-medium text-muted-foreground">Choose a starting template</p>
+          <p className="text-xs font-medium text-muted-foreground">Choose a layout and start blank</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {RESUME_TEMPLATES.map((template) => (
               <button
                 key={template.id}
                 type="button"
+                aria-label={`Start blank with ${template.label} template`}
                 className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => onChooseTemplate(template.id)}
               >
