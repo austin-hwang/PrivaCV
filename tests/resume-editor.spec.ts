@@ -117,6 +117,21 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Modern/);
 });
 
+test("keeps desktop section navigation flush with the app header", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const [header, navigation] = await Promise.all([
+    page.locator("header.app-chrome").boundingBox(),
+    page.getByRole("navigation", { name: "Jump to a resume section" }).boundingBox(),
+  ]);
+  expect(header).not.toBeNull();
+  expect(navigation).not.toBeNull();
+  expect(Math.abs(navigation!.y - (header!.y + header!.height))).toBeLessThanOrEqual(1);
+});
+
 test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(Storage.prototype, "setItem", {
@@ -255,6 +270,9 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await experienceTitle.fill("Selected Experience");
   await experienceTitle.focus();
   await expect(page.locator(".resume-preview-active")).toHaveText("Selected Experience");
+
+  await page.getByLabel(/^Skills \(one group per line/).focus();
+  await expect(page.locator(".resume-section.resume-preview-active")).toContainText("Skills");
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   const customTitle = page.getByLabel("New Section section title");

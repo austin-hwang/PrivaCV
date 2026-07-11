@@ -336,7 +336,7 @@ export function ResumeEditor() {
             if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
           }}
           className={cn(
-            "editor-pane overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:p-6",
+            "editor-pane overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:px-6 lg:pb-6 lg:pt-0",
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
           )}
         >
@@ -759,7 +759,10 @@ export function ResumeEditor() {
                 const sectionTitleLabel = sectionTitle.trim() ? `${sectionTitle} section title` : "Untitled section title";
                 const entries = getSectionEntries(state, section);
                 const custom = !isBuiltinSection(section);
-                const sectionIsActive = activeTarget === `section-title-${section}` || activeTarget?.startsWith(`field-${section}-`);
+                const sectionIsActive =
+                  activeTarget === `section-title-${section}` ||
+                  activeTarget === `field-${section}` ||
+                  activeTarget?.startsWith(`field-${section}-`);
                 return (
                 <div
                   key={section}
