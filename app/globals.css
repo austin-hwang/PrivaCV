@@ -92,7 +92,12 @@
   font-size: 0.9em;
 }
 
-.resume-contact span:not(:last-child)::after {
+.resume-contact a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.resume-contact > *:not(:last-child)::after {
   content: "  •  ";
   color: #999;
 }

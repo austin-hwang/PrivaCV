@@ -104,6 +104,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## Core Features
 
+- Keep final contact details useful after export: validated email, phone, and website values now remain clickable in the preview and browser-produced PDF, while malformed values stay visibly editable rather than becoming unsafe or misleading links. Reassess PDF annotation fidelity across browser engines separately from the app's semantic link markup.
 - Keep final contact details trustworthy: Resume Check now catches obvious
   malformed email, too-short phone, and malformed optional website entries
   locally, while the editor uses browser-friendly contact input types and
