@@ -17,8 +17,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 - Keep first use obvious: the onboarding now recommends pasted text for copied
   documents, LinkedIn, and OCR while clearly reserving PDF import for
-  selectable-text files; reassess whether deeper import correction context or
-  mobile editing density is the next first-use friction.
+  selectable-text files. Starting from scratch is now an equally direct route:
+  a blank resume opens the form with keyboard focus on the name field, and each
+  layout choice opens that same clean blank draft with the selected template
+  active. Reassess whether deeper import correction context or mobile editing
+  density is the next first-use friction.
 - Prioritize a clear, field-by-field import review before adding more
   role-matching heuristics: imported resumes now guide users through every
   non-empty imported entry, keep confirmation plus nearby matching source
