@@ -22,7 +22,6 @@ const SheetContent = React.forwardRef<
       onOpenAutoFocus={(event) => event.preventDefault()}
       className={cn(
         "app-chrome fixed bottom-0 right-0 z-40 flex w-full max-w-lg flex-col border-l bg-card shadow-2xl focus:outline-none",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
         className,
       )}
       {...props}
