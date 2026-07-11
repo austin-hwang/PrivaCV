@@ -212,6 +212,23 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect((await download).suggestedFilename()).toBe("Jane_Doe.txt");
 });
 
+test("makes validated contact details actionable in the preview", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const preview = page.locator(".resume-sheet");
+  await expect(preview.getByRole("link", { name: "jane.doe@example.com" })).toHaveAttribute("href", "mailto:jane.doe@example.com");
+  await expect(preview.getByRole("link", { name: "(555) 123-4567" })).toHaveAttribute("href", "tel:(555) 123-4567");
+  await expect(preview.getByRole("link", { name: "linkedin.com/in/janedoe" })).toHaveAttribute("href", "https://linkedin.com/in/janedoe");
+  expect(
+    await preview.locator(".resume-contact > *").first().evaluate(
+      (element) => getComputedStyle(element, "::after").content.includes("•"),
+    ),
+  ).toBeTruthy();
+});
+
 test("routes the browser print shortcut through the export review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

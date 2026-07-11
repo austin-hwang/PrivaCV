@@ -1,6 +1,7 @@
 import { forwardRef, type CSSProperties, type KeyboardEvent } from "react";
 import {
   bulletsFrom,
+  contactHref,
   entryHasContent,
   getSectionEntries,
   getSectionTitle,
@@ -80,20 +81,22 @@ function FilledResumePreview({ state, activeTarget, onTargetSelect }: ResumePrev
     ["phone", state.phone],
     ["location", state.location],
     ["website", state.website],
-  ].filter(([, value]) => Boolean(value));
+  ] as const;
 
   return (
     <>
       <h1 className={cn("resume-name resume-preview-target", activeTarget === "field-name" && "resume-preview-active")} {...previewTargetProps("field-name", onTargetSelect)}>{state.name || "Your Name"}</h1>
       {state.title ? <div className={cn("resume-title resume-preview-target", activeTarget === "field-title" && "resume-preview-active")} {...previewTargetProps("field-title", onTargetSelect)}>{state.title}</div> : null}
-      {contactParts.length ? (
+      {contactParts.some(([, value]) => Boolean(value)) ? (
         <div className="resume-contact">
           {contactParts.map(([field, value]) => (
-            <span
-              className={cn("resume-preview-target", activeTarget === `field-${field}` && "resume-preview-active")}
+            <ContactPart
               key={field}
-              {...previewTargetProps(`field-${field}`, onTargetSelect)}
-            >{value}</span>
+              field={field}
+              value={value}
+              active={activeTarget === `field-${field}`}
+              onTargetSelect={onTargetSelect}
+            />
           ))}
         </div>
       ) : null}
@@ -102,6 +105,40 @@ function FilledResumePreview({ state, activeTarget, onTargetSelect }: ResumePrev
         <ResumeSection key={section} state={state} section={section} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />
       ))}
     </>
+  );
+}
+
+function ContactPart({
+  field,
+  value,
+  active,
+  onTargetSelect,
+}: {
+  field: "email" | "phone" | "location" | "website";
+  value: string;
+  active: boolean;
+  onTargetSelect?: (targetId: string) => void;
+}) {
+  if (!value) return null;
+
+  const targetId = `field-${field}`;
+  const className = cn("resume-preview-target", active && "resume-preview-active");
+  const href = field === "location" ? undefined : contactHref(field, value);
+
+  if (!href) {
+    return <span className={className} {...previewTargetProps(targetId, onTargetSelect)}>{value}</span>;
+  }
+
+  return (
+    <a
+      className={className}
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={`Open ${field === "website" ? "website" : field} in a new tab`}
+    >
+      {value}
+    </a>
   );
 }
 

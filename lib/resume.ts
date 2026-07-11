@@ -293,6 +293,26 @@ export function contactFieldIssues(state: ResumeState): ContactFieldIssue[] {
 }
 
 /**
+ * Builds a browser- and PDF-safe contact link for values that have already
+ * passed the same light validation used by Resume Check. Invalid values stay
+ * as visible text instead of becoming misleading or unsafe links.
+ */
+export function contactHref(field: "email" | "phone" | "website", value: string) {
+  const cleanValue = value.trim();
+  if (!cleanValue) return undefined;
+
+  if (field === "email") return isPlausibleEmail(cleanValue) ? `mailto:${cleanValue}` : undefined;
+  if (field === "phone") return isPlausiblePhone(cleanValue) ? `tel:${cleanValue}` : undefined;
+
+  try {
+    const url = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(cleanValue) ? cleanValue : `https://${cleanValue}`);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Gives the editor a small, transparent evidence cue for one experience or
  * project entry. It deliberately recognizes scope as well as numeric outcomes
  * so users can decide which bullets can truthfully be made more specific.

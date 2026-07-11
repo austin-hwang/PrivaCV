@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildResumeChecks,
+  contactHref,
   contactFieldIssues,
   CUSTOM_SECTION_PRESETS,
   emptyState,
@@ -32,6 +33,14 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("creates safe contact links without turning invalid values into links", () => {
+    expect(contactHref("email", "ada@example.com")).toBe("mailto:ada@example.com");
+    expect(contactHref("phone", "+1 (415) 555-0123")).toBe("tel:+1 (415) 555-0123");
+    expect(contactHref("website", "linkedin.com/in/ada")).toBe("https://linkedin.com/in/ada");
+    expect(contactHref("website", "javascript:alert(1)")).toBeUndefined();
+    expect(contactHref("email", "not-an-email")).toBeUndefined();
+  });
+
   it("offers concise, ATS-readable custom section presets", () => {
     expect(CUSTOM_SECTION_PRESETS).toEqual([
       "Certifications",

@@ -1857,3 +1857,17 @@
 - Why it matters: users can spot formatting issues before sending applications, making the privacy-first export workflow feel more transparent and trustworthy.
 - Verification: ran `node --check app.js`, `node --check pdf-import.js`, `python3 -m py_compile server.py`, and a temporary Playwright/Chrome flow covering sample loading, the Review Text dialog, copy parity with the reviewed text, dialog closing, and 390px mobile dialog bounds.
 - Future opportunities: add field-specific jump targets from Resume Check warnings and a review mode for uncertain PDF-imported fields.
+# 2026-07-11 — Actionable contact details in exported resumes
+
+## Product review
+
+- **Finding:** Competitor feedback and ATS guidance emphasize fast, dependable finalization. The editor already validates contact details, but a recruiter reading the preview or browser-produced PDF could not use a valid email, phone number, or portfolio link directly.
+- **Options considered:** Add another opaque ATS heuristic, add a new document format, or make the final resume's existing contact information actionable. The contact-link improvement won because it removes immediate recruiter follow-up friction without adding data collection, AI claims, or a dependency.
+- **Expected user benefit:** A valid email, phone number, or portfolio now stays usable from the preview and PDF, while malformed or unsafe values remain visible text so Resume Check can guide the correction.
+
+## Changes
+
+- Added shared safe contact-link generation for email, phone, and HTTP(S) websites.
+- Rendered valid contact values as semantic links in the preview; browser print can preserve those links in the produced PDF.
+- Added unit coverage for safe-link behavior and browser coverage for sample-preview contact links.
+- Updated README and roadmap with the export-confidence behavior and browser-engine annotation caveat.
