@@ -1,8 +1,5 @@
 import { blankEntry, emptyState, normalizeResume, type ResumeState } from "@/lib/resume";
 
-const PDFJS_VERSION = "4.7.76";
-const PDFJS_BASE = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build`;
-
 type PdfJs = {
   GlobalWorkerOptions: { workerSrc: string };
   getDocument: (args: { data: ArrayBuffer }) => {
@@ -21,8 +18,14 @@ let pdfjsLib: PdfJs | null = null;
 
 async function loadPdfJs() {
   if (pdfjsLib) return pdfjsLib;
-  pdfjsLib = (await import(/* webpackIgnore: true */ `${PDFJS_BASE}/pdf.min.mjs`)) as PdfJs;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.mjs`;
+  // Keep parsing code and its worker on the app's own origin. Loading these
+  // files from a CDN would make a sensitive local import depend on a third
+  // party and would make the product's local-first promise less accurate.
+  pdfjsLib = (await import("pdfjs-dist")) as PdfJs;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
   return pdfjsLib;
 }
 

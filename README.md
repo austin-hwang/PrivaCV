@@ -58,8 +58,9 @@ subscriptions, watermarks, or backend storage.
   post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying.
-- Best-effort PDF import for text-based resumes through pdf.js loaded on demand,
-  plus a local pasted-text path for documents, LinkedIn, and scanned PDFs. The
+- Best-effort PDF import for text-based resumes through a locally bundled,
+  on-demand pdf.js parser, plus a local pasted-text path for documents,
+  LinkedIn, and scanned PDFs. The
   importer recognizes common alternate section headings such as Career Profile,
   Relevant Experience, Education & Training, Academic Projects, and Key Skills;
   it also recognizes adjacent entries whose dates are on their own lines: roles
@@ -131,8 +132,9 @@ Notes:
   resume structure.
 - Always review imported fields before exporting.
 - Scanned/image-only PDFs do not contain extractable text.
-- PDF import loads the parser from a CDN on demand, so that action requires an
-  internet connection.
+- PDF import loads its parser and worker from this app on demand. Your selected
+  PDF and its extracted text stay in the browser; importing does not send the
+  document to a third party.
 
 ## Importing pasted text
 

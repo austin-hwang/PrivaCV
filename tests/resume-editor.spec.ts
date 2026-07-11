@@ -1,5 +1,27 @@
 import { expect, test } from "@playwright/test";
 
+function makeTextPdf(text: string) {
+  const stream = `BT\n/F1 14 Tf\n72 720 Td\n(${text.replace(/[\\()]/g, "\\$&")}) Tj\nET\n`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    `<< /Length ${Buffer.byteLength(stream, "ascii")} >>\nstream\n${stream}endstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = objects.map((object, index) => {
+    const offset = Buffer.byteLength(pdf, "ascii");
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    return offset;
+  });
+  const xrefOffset = Buffer.byteLength(pdf, "ascii");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += offsets.map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, "ascii");
+}
+
 test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
   await page.goto("/");
 
@@ -42,9 +64,30 @@ test("helps first-time users choose the right private import route", async ({ pa
 
   await expect(page.getByText("Choose the route that best matches your source.")).toBeVisible();
   await expect(page.getByRole("button", { name: /paste resume text/i })).toContainText("OCR'd scanned PDFs");
-  await expect(page.getByRole("button", { name: /import a pdf/i })).toContainText("selectable text");
+  await expect(page.getByRole("button", { name: /import a pdf/i })).toContainText("Read locally");
   await expect(page.getByText("Already saved work?")).toBeVisible();
   await expect(page.getByText("You will review every imported field before you export.")).toBeVisible();
+});
+
+test("imports a PDF with parser code served from the app", async ({ page }) => {
+  const thirdPartyRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/cdn\.jsdelivr\.net|unpkg\.com/.test(request.url())) thirdPartyRequests.push(request.url());
+  });
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /import a pdf/i }).click();
+  await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles({
+    name: "ada-resume.pdf",
+    mimeType: "application/pdf",
+    buffer: makeTextPdf("Ada Lovelace"),
+  });
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+  await expect(page.getByText("Imported PDF - please review")).toBeVisible();
+  expect(thirdPartyRequests).toEqual([]);
 });
 
 test("loads the sample resume and reviews plain text", async ({ page }) => {

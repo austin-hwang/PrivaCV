@@ -63,7 +63,7 @@ export function StartPanel({
               <span>
                 <span className="block text-sm font-semibold">{isImporting ? "Importing PDF" : "Import a PDF"}</span>
                 <span className="mt-1 block text-sm leading-snug text-muted-foreground">
-                  Best for a PDF with selectable text. Scanned PDFs need OCR text first.
+                  Best for selectable-text PDFs. Read locally; scanned PDFs need OCR text first.
                 </span>
               </span>
             </span>
