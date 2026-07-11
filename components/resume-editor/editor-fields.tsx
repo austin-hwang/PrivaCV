@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Check, Eye, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, Check, Eye, Trash2 } from "lucide-react";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -136,6 +136,7 @@ export function EntryList({
   onUpdate,
   onMove,
   onRemove,
+  onSwapTitleAndSubtitle,
   onToggleReview,
 }: {
   section: (typeof REPEATABLE_SECTIONS)[number];
@@ -145,6 +146,7 @@ export function EntryList({
   onUpdate: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, key: keyof ResumeEntry, value: string) => void;
   onMove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, direction: -1 | 1) => void;
   onRemove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => void;
+  onSwapTitleAndSubtitle: (index: number) => void;
   onToggleReview: (itemId: string) => void;
 }) {
   const schema = ENTRY_SCHEMA[section];
@@ -192,10 +194,29 @@ export function EntryList({
                   <ArrowDown />
                 </Button>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(section, index)}>
-                <Trash2 /> Remove
-              </Button>
+              <div className="flex items-center gap-1">
+                {section === "experience" ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onSwapTitleAndSubtitle(index)}
+                    aria-label="Switch role and employer"
+                    title="Swap job title and company"
+                  >
+                    <ArrowLeftRight /> Swap
+                  </Button>
+                ) : null}
+                <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(section, index)}>
+                  <Trash2 /> Remove
+                </Button>
+              </div>
             </div>
+            {section === "experience" ? (
+              <p className="-mt-1 text-xs leading-snug text-muted-foreground">
+                Imported resumes sometimes list the company before the role. Use Swap to correct the order without retyping.
+              </p>
+            ) : null}
             <TextField
               id={`field-${section}-${index}-title`}
               label={schema.title}

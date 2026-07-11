@@ -125,6 +125,32 @@ test("preserves text written beside an inline resume heading", async ({ page }) 
   await expect(page.getByText("Import review")).toBeVisible();
 });
 
+test("quickly corrects company-first imported experience entries", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Experience",
+    "Analytical Engines | Staff Engineer | 2022–Present",
+    "• Built reliable systems.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  const title = page.getByLabel("Job Title", { exact: true }).first();
+  const company = page.getByLabel("Company", { exact: true }).first();
+  await expect(title).toHaveValue("Analytical Engines");
+  await expect(company).toHaveValue("Staff Engineer");
+  await page.getByRole("button", { name: /switch role and employer/i }).click();
+  await expect(title).toHaveValue("Staff Engineer");
+  await expect(company).toHaveValue("Analytical Engines");
+});
+
 test("asks users to review every imported experience entry", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

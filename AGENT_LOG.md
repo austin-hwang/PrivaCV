@@ -1,5 +1,38 @@
 # Agent Log
 
+## 2026-07-10 18:31 PDT
+
+- Market research and reprioritization: Teal continues to frame a comprehensive
+  master resume plus fast per-job tailoring as the core workflow, while Jobscan
+  makes match reporting and keyword gaps expected. Fresh job-seeker discussion
+  still emphasizes the repetitive labor of tailoring and the frustration of
+  correcting imported content. The existing local Role Focus review already
+  offers transparent wording comparison, while automatic rewriting, opaque
+  scoring, templates, and DOCX export would not remove an immediate correction
+  step from the first-use import flow.
+- Decision: shipped a reversible title/company swap for experience entries.
+  Company-first source lines are common, but automatically guessing which side
+  is the employer is unreliable. A clear in-place action lets people correct a
+  reversed imported entry without retyping or hiding the importer's uncertainty.
+- Implementation: added an accessible Swap action only to experience entries,
+  connected it to a focused state helper, documented the behavior and parser
+  boundary, and added browser coverage for a company-first imported role. The
+  action's accessible name intentionally avoids colliding with the Job Title
+  input label.
+- Why it matters: a job seeker can correct a frequent source-layout mismatch in
+  one click while reviewing their imported master resume, keeping the rest of
+  the role details and local review context intact.
+- Verification: `CI=true node_modules/.bin/vitest run` (35 tests), `CI=true
+  node_modules/.bin/tsc --noEmit`, `CI=true node_modules/.bin/next lint`, a
+  production `next build`, full Playwright coverage (34 tests), and `git diff
+  --check` passed. The standard Playwright web server could not use `pnpm dev`
+  because the existing user-owned `pnpm-workspace.yaml` still leaves `workerd`
+  build approval unresolved; the suite passed against an equivalent directly
+  started local Next dev server. That file remains untouched.
+- Provisional next direction only: next run must reassess whether remaining
+  import-layout correction friction, stronger recruiter-readability guidance,
+  or mobile edit density now offers the largest user value.
+
 ## 2026-07-10 17:29 PDT
 
 - Market research and reprioritization: current Teal-style builders make
