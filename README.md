@@ -35,10 +35,10 @@ subscriptions, watermarks, or backend storage.
   current resume's wording, surfaces terms from explicit qualifications-style
   sections before repeated general wording, clearly separates terms already
   present from terms to consider, shows whether matched terms are grounded in
-  an experience or project detail versus only mentioned in a title, summary, or
-  skills, jumps directly to that wording, suggests a small set of direct exact
-  phrases to review, includes an opt-in exact phrase check for multi-word
-  concepts, and avoids opaque ATS scoring.
+  an experience, project, or custom-section detail versus only mentioned in a
+  title, heading, summary, or skills, jumps directly to that wording, suggests
+  a small set of direct exact phrases to review, includes an opt-in exact
+  phrase check for multi-word concepts, and avoids opaque ATS scoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog.
 - Local last-export status that shows whether the current resume still matches

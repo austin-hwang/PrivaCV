@@ -432,6 +432,26 @@ test("shows where a matched role term is supported in the resume", async ({ page
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
+test("counts truthful custom-section evidence in role focus and links back to it", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /certifications/i }).click();
+  await page.locator('[id^="field-custom-"][id$="-0-details"]').fill("Administered Kubernetes clusters for production releases.");
+  await page.getByLabel("Job description").fill([
+    "Requirements",
+    "- Kubernetes experience",
+    "- Certifications",
+  ].join("\n"));
+
+  await expect(page.getByText("kubernetes present", { exact: true })).toBeVisible();
+  await expect(page.getByText("certifications present", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Certifications 1" }).click();
+  await expect(page.locator('[id^="field-custom-"][id$="-0-details"]')).toBeFocused();
+});
+
 test("elevates explicit role requirements without treating them as an ATS score", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -153,7 +153,7 @@ export function RoleFocusCard({
               <div className="mt-3 border-t pt-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Where matched terms appear</p>
                 <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                  Jump to the wording you already have. Terms found only in a title, summary, or skills can be worth grounding in a truthful achievement too.
+                  Jump to the wording you already have. Terms found only in a title, heading, summary, or skills can be worth grounding in a truthful achievement too.
                 </p>
                 <div className="mt-2 space-y-2">
                   {matchedTerms.filter((term) => term.evidence.length).map((term) => {

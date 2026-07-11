@@ -543,6 +543,48 @@ describe("resume helpers", () => {
     );
   });
 
+  it("includes custom section wording in role focus and links it to the saved entry", () => {
+    const state = sampleState();
+    state.customSections = [{
+      id: "custom-certifications",
+      title: "Certifications",
+      entries: [{
+        title: "Kubernetes Administrator",
+        subtitle: "Cloud Native Computing Foundation",
+        meta: "2026",
+        details: "Administered Kubernetes clusters for production releases.",
+      }],
+    }];
+    state.sectionOrder.push("custom-certifications");
+
+    const focus = buildRoleFocus(state, [
+      "Requirements",
+      "- Kubernetes experience",
+      "- Certifications",
+    ].join("\n"));
+
+    expect(focus.terms.find((term) => term.term === "kubernetes")).toMatchObject({
+      matched: true,
+      evidence: expect.arrayContaining([
+        expect.objectContaining({
+          label: "Certifications 1",
+          targetId: "field-custom-certifications-0-details",
+          isConcrete: true,
+        }),
+      ]),
+    });
+    expect(focus.terms.find((term) => term.term === "certifications")).toMatchObject({
+      matched: true,
+      evidence: expect.arrayContaining([
+        expect.objectContaining({
+          label: "Certifications heading",
+          targetId: "section-title-custom-certifications",
+          isConcrete: false,
+        }),
+      ]),
+    });
+  });
+
   it("checks an opted-in role phrase in word order while ignoring punctuation", () => {
     const resume = "Built TypeScript services, improving release reliability.";
 
