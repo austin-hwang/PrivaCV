@@ -200,9 +200,17 @@ export function ResumeEditor() {
                 ) : null}
               </Button>
             ) : null}
-            <Button type="button" onClick={requestExport} aria-label="Export PDF">
+            <Button
+              type="button"
+              onClick={requestExport}
+              aria-label="Export PDF"
+              title="Export PDF (Cmd/Ctrl+P)"
+            >
               <Printer /> <span className="hidden sm:inline">Export PDF</span>
               <span className="sm:hidden">Export</span>
+              <kbd className="hidden rounded border border-primary-foreground/35 px-1 py-px text-[10px] font-medium leading-none opacity-80 2xl:inline">
+                Cmd/Ctrl P
+              </kbd>
             </Button>
             <Menu>
               <MenuTrigger>

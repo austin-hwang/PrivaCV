@@ -57,6 +57,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   trapping confident users. Import-review progress now remains explicit in
   that checkpoint: users can jump to the next unconfirmed field or knowingly
   export anyway, but cannot accidentally discard the checklist as "reviewed."
+- Keep standard print behavior aligned with that export checkpoint: Cmd/Ctrl+P
+  now opens the same local review when attention is needed instead of bypassing
+  imported-field confirmation or resume checks. Reassess real browser-engine
+  PDF fidelity separately from this pre-export safeguard.
 - Keep a portable plain-text route alongside PDF export: the reviewed
   ATS-friendly text can now be copied or downloaded as a `.txt` file for
   application portals that accept text uploads. Reassess actual browser-print
