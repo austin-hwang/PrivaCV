@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type DragEvent } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -47,6 +47,8 @@ import {
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
   RESUME_TEMPLATES,
+  SECTION_KEYS,
+  SECTION_LABELS,
 } from "@/lib/resume";
 import { buildImportCoverage } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
@@ -59,8 +61,11 @@ export function ResumeEditor() {
   const [importChecklistOpen, setImportChecklistOpen] = useState(false);
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
+  const [draggedSection, setDraggedSection] = useState<string | null>(null);
+  const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const {
     addCustomSection,
+    addBuiltinSection,
     addEntry,
     checks,
     clearResume,
@@ -85,6 +90,7 @@ export function ResumeEditor() {
     recoveryPoint,
     removeEntry,
     removeCustomSection,
+    removeBuiltinSection,
     reorderEntry,
     reorderSection,
     requestExport,
@@ -141,14 +147,52 @@ export function ResumeEditor() {
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
 
   const checksReady = passedChecks === checks.length;
+  const removedBuiltinSections = SECTION_KEYS.filter((section) => !state.sectionOrder.includes(section));
   const navItems: SectionNavItem[] = workspaceHasStarted
     ? [
         { id: "edit-layout", label: "Layout" },
         { id: "edit-header", label: "Header" },
         { id: "edit-summary", label: "Summary" },
-        ...state.sectionOrder.map((section) => ({ id: `edit-section-${section}`, label: getSectionTitle(state, section) })),
+        ...state.sectionOrder.map((section) => ({
+          id: `edit-section-${section}`,
+          label: getSectionTitle(state, section).trim() || "Untitled section",
+        })),
       ]
     : [];
+
+  const startSectionDrag = (event: DragEvent<HTMLElement>, section: string, title: string) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-resume-section", section);
+    event.dataTransfer.setData("text/plain", `section:${section}`);
+
+    const dragImage = document.createElement("div");
+    dragImage.textContent = `Moving ${title.trim() || "Untitled section"}`;
+    Object.assign(dragImage.style, {
+      position: "fixed",
+      top: "-1000px",
+      left: "-1000px",
+      display: "flex",
+      alignItems: "center",
+      border: "1px solid rgb(148 163 184)",
+      borderRadius: "6px",
+      background: "white",
+      boxShadow: "0 8px 20px rgb(15 23 42 / 22%)",
+      padding: "8px 12px",
+      color: "rgb(15 23 42)",
+      fontSize: "13px",
+      fontWeight: "600",
+    });
+    document.body.append(dragImage);
+    event.dataTransfer.setDragImage(dragImage, 18, 18);
+    window.setTimeout(() => dragImage.remove(), 0);
+    setDraggedSection(section);
+    setDropTargetSection(null);
+  };
+
+  const finishSectionDrag = () => {
+    setDraggedSection(null);
+    setDropTargetSection(null);
+  };
 
   useEffect(() => {
     const updateMobilePreviewScale = () => {
@@ -169,7 +213,7 @@ export function ResumeEditor() {
 
   return (
     <>
-      <header className="app-chrome sticky top-0 z-50 border-b bg-card">
+      <header className="app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div className="min-w-0">
             <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:block">
@@ -548,18 +592,34 @@ export function ResumeEditor() {
               </FieldGroup>
               <FieldGroup title="Arrange sections">
                 <p className="text-xs leading-snug text-muted-foreground">
-                  Drag these blocks into the order you want. The preview updates immediately.
+                  Drag sections into the order you want, from top to bottom. The preview updates immediately.
                 </p>
-                <div className="grid gap-2 sm:grid-cols-2" id="section-order-controls" tabIndex={-1}>
+                <div className="mt-3 space-y-2" id="section-order-controls" tabIndex={-1}>
                   {state.sectionOrder.map((section, sectionIndex) => {
                     const title = getSectionTitle(state, section);
+                    const displayTitle = title.trim() || "Untitled section";
                     return (
                       <div
                         key={section}
                         data-arrange-section={section}
-                        className="flex items-center gap-2 rounded-md border bg-background p-2 transition-colors hover:bg-muted/30"
+                        data-dragging={draggedSection === section || undefined}
+                        data-drop-target={dropTargetSection === section && draggedSection !== section || undefined}
+                        className={cn(
+                          "flex items-center gap-2 rounded-md border bg-background p-2 transition-[background-color,border-color,box-shadow,opacity] hover:bg-muted/30",
+                          draggedSection === section && "opacity-45 ring-2 ring-muted-foreground/20",
+                          dropTargetSection === section && draggedSection !== section && "border-primary bg-primary/5 ring-2 ring-primary/25",
+                        )}
+                        onDragEnter={(event) => {
+                          if (draggedSection && (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain"))) {
+                            setDropTargetSection(section);
+                          }
+                        }}
                         onDragOver={(event) => {
-                          if (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
+                          if (draggedSection && (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain"))) {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = "move";
+                            setDropTargetSection(section);
+                          }
                         }}
                         onDrop={(event) => {
                           const customData = event.dataTransfer.getData("application/x-resume-section");
@@ -569,18 +629,19 @@ export function ResumeEditor() {
                           if (draggedSection === section) return;
                           event.preventDefault();
                           reorderSection(draggedSection, sectionIndex);
+                          finishSectionDrag();
                         }}
                       >
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums text-muted-foreground">
+                          {sectionIndex + 1}
+                        </span>
                         <span
                           draggable
                           aria-hidden="true"
                           title="Drag to reorder; use the section move buttons for keyboard reordering"
                           className="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing"
-                          onDragStart={(event) => {
-                            event.dataTransfer.effectAllowed = "move";
-                            event.dataTransfer.setData("application/x-resume-section", section);
-                            event.dataTransfer.setData("text/plain", `section:${section}`);
-                          }}
+                          onDragStart={(event) => startSectionDrag(event, section, title)}
+                          onDragEnd={finishSectionDrag}
                         >
                           <GripVertical className="size-4" />
                         </span>
@@ -589,7 +650,7 @@ export function ResumeEditor() {
                           className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
                           onClick={() => focusEditorTarget(`section-title-${section}`)}
                         >
-                          {title}
+                          {displayTitle}
                         </button>
                       </div>
                     );
@@ -676,6 +737,8 @@ export function ResumeEditor() {
 
               {state.sectionOrder.map((section, sectionIndex) => {
                 const sectionTitle = getSectionTitle(state, section);
+                const sectionDisplayTitle = sectionTitle.trim() || "Untitled section";
+                const sectionTitleLabel = sectionTitle.trim() ? `${sectionTitle} section title` : "Untitled section title";
                 const entries = getSectionEntries(state, section);
                 const custom = !isBuiltinSection(section);
                 const sectionIsActive = activeTarget === `section-title-${section}` || activeTarget?.startsWith(`field-${section}-`);
@@ -684,9 +747,20 @@ export function ResumeEditor() {
                   key={section}
                   id={`edit-section-${section}`}
                   data-editor-section={section}
-                  className="scroll-mt-16"
+                  className="scroll-mt-32 lg:scroll-mt-16"
+                  data-dragging={draggedSection === section || undefined}
+                  data-drop-target={dropTargetSection === section && draggedSection !== section || undefined}
+                  onDragEnter={(event) => {
+                    if (draggedSection && (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain"))) {
+                      setDropTargetSection(section);
+                    }
+                  }}
                   onDragOver={(event) => {
-                    if (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
+                    if (draggedSection && (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain"))) {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setDropTargetSection(section);
+                    }
                   }}
                   onDrop={(event) => {
                     const customData = event.dataTransfer.getData("application/x-resume-section");
@@ -696,10 +770,15 @@ export function ResumeEditor() {
                     if (!draggedSection || draggedSection === section) return;
                     event.preventDefault();
                     reorderSection(draggedSection, sectionIndex);
+                    finishSectionDrag();
                   }}
                 >
                 <FieldGroup
-                  className={cn(sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200")}
+                  className={cn(
+                    sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200",
+                    draggedSection === section && "rounded-md opacity-45",
+                    dropTargetSection === section && draggedSection !== section && "rounded-md bg-primary/5 px-3 pt-3 ring-2 ring-primary/25",
+                  )}
                   title={
                     <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       Section title
@@ -707,7 +786,7 @@ export function ResumeEditor() {
                         id={`section-title-${section}`}
                         value={sectionTitle}
                         className="h-8 min-w-0 normal-case tracking-normal text-foreground"
-                        aria-label={`${sectionTitle} section title`}
+                        aria-label={sectionTitleLabel}
                         onChange={(event) => updateSectionTitle(section, event.target.value)}
                       />
                     </label>
@@ -721,11 +800,8 @@ export function ResumeEditor() {
                         aria-hidden="true"
                         title="Drag to reorder; use the move buttons for keyboard reordering"
                         className="inline-flex size-9 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
-                        onDragStart={(event) => {
-                          event.dataTransfer.effectAllowed = "move";
-                          event.dataTransfer.setData("application/x-resume-section", section);
-                          event.dataTransfer.setData("text/plain", `section:${section}`);
-                        }}
+                        onDragStart={(event) => startSectionDrag(event, section, sectionTitle)}
+                        onDragEnd={finishSectionDrag}
                       >
                         <GripVertical className="size-4" />
                       </span>
@@ -733,7 +809,7 @@ export function ResumeEditor() {
                         type="button"
                         variant="outline"
                         size="icon"
-                        aria-label={`Move ${sectionTitle} up`}
+                        aria-label={`Move ${sectionDisplayTitle} up`}
                         disabled={sectionIndex === 0}
                         onClick={() => moveSection(section, -1)}
                       >
@@ -743,7 +819,7 @@ export function ResumeEditor() {
                         type="button"
                         variant="outline"
                         size="icon"
-                        aria-label={`Move ${sectionTitle} down`}
+                        aria-label={`Move ${sectionDisplayTitle} down`}
                         disabled={sectionIndex === state.sectionOrder.length - 1}
                         onClick={() => moveSection(section, 1)}
                       >
@@ -754,18 +830,16 @@ export function ResumeEditor() {
                           Add
                         </Button>
                       ) : null}
-                      {custom ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Remove ${sectionTitle} section`}
-                          title="Remove section (Undo available)"
-                          onClick={() => removeCustomSection(section)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      ) : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Remove ${sectionDisplayTitle} section`}
+                        title="Remove section (Undo available)"
+                        onClick={() => custom ? removeCustomSection(section) : removeBuiltinSection(section)}
+                      >
+                        <Trash2 />
+                      </Button>
                     </div>
                   }
                 >
@@ -802,6 +876,20 @@ export function ResumeEditor() {
                   Choose a familiar heading or make your own. Keep only details that strengthen this application.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {removedBuiltinSections.map((section) => (
+                    <Button
+                      key={section}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        addBuiltinSection(section);
+                        focusEditorTarget(`section-title-${section}`);
+                      }}
+                    >
+                      <Plus /> Add {SECTION_LABELS[section]}
+                    </Button>
+                  ))}
                   {CUSTOM_SECTION_PRESETS.map((title) => (
                     <Button
                       key={title}

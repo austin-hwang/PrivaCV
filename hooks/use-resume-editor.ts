@@ -16,6 +16,8 @@ import {
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
+  SECTION_LABELS,
+  type SectionKey,
   type CustomSection,
   type ResumeEntry,
   type ResumeState,
@@ -87,6 +89,15 @@ type UndoableRemoval =
       kind: "custom-section";
       toastId: number;
       section: CustomSection;
+      sectionOrderIndex: number;
+    }
+  | {
+      kind: "builtin-section";
+      toastId: number;
+      section: SectionKey;
+      title: string;
+      entries: ResumeEntry[];
+      skills: string;
       sectionOrderIndex: number;
     };
 
@@ -576,6 +587,20 @@ export function useResumeEditor() {
     return id;
   };
 
+  const addBuiltinSection = (section: SectionKey) => {
+    setState((current) => {
+      if (current.sectionOrder.includes(section)) return current;
+      const next = {
+        ...current,
+        sectionOrder: [...current.sectionOrder, section],
+        sectionTitles: { ...current.sectionTitles, [section]: SECTION_LABELS[section] },
+      };
+      if (section === "skills") return { ...next, skills: "" };
+      return { ...next, [section]: [blankEntry()] };
+    });
+    flash(`Added ${SECTION_LABELS[section]} section`);
+  };
+
   const removeCustomSection = (section: string) => {
     const removedSection = state.customSections.find((custom) => custom.id === section);
     if (!removedSection) return;
@@ -587,6 +612,26 @@ export function useResumeEditor() {
     }));
     const toastId = flash(`Removed ${removedSection.title || "custom"} section`, "undo");
     setUndoableRemoval({ kind: "custom-section", toastId, section: removedSection, sectionOrderIndex });
+  };
+
+  const removeBuiltinSection = (section: SectionKey) => {
+    if (!state.sectionOrder.includes(section)) return;
+    const sectionOrderIndex = state.sectionOrder.indexOf(section);
+    const title = state.sectionTitles[section];
+    const entries = section === "skills" ? [] : state[section];
+    const skills = section === "skills" ? state.skills : "";
+    setState((current) => {
+      if (!current.sectionOrder.includes(section)) return current;
+      const next = {
+        ...current,
+        sectionOrder: current.sectionOrder.filter((id) => id !== section),
+        sectionTitles: { ...current.sectionTitles, [section]: SECTION_LABELS[section] },
+      };
+      if (section === "skills") return { ...next, skills: "" };
+      return { ...next, [section]: [] };
+    });
+    const toastId = flash(`Removed ${title || SECTION_LABELS[section]} section`, "undo");
+    setUndoableRemoval({ kind: "builtin-section", toastId, section, title, entries, skills, sectionOrderIndex });
   };
 
   const undoRemoval = () => {
@@ -611,14 +656,27 @@ export function useResumeEditor() {
         };
       }
 
-      if (current.customSections.some((item) => item.id === undoableRemoval.section.id)) return current;
+      if (undoableRemoval.kind === "custom-section") {
+        if (current.customSections.some((item) => item.id === undoableRemoval.section.id)) return current;
+        const sectionOrder = [...current.sectionOrder];
+        sectionOrder.splice(Math.min(undoableRemoval.sectionOrderIndex, sectionOrder.length), 0, undoableRemoval.section.id);
+        return {
+          ...current,
+          customSections: [...current.customSections, undoableRemoval.section],
+          sectionOrder,
+        };
+      }
+
+      if (current.sectionOrder.includes(undoableRemoval.section)) return current;
       const sectionOrder = [...current.sectionOrder];
-      sectionOrder.splice(Math.min(undoableRemoval.sectionOrderIndex, sectionOrder.length), 0, undoableRemoval.section.id);
-      return {
+      sectionOrder.splice(Math.min(undoableRemoval.sectionOrderIndex, sectionOrder.length), 0, undoableRemoval.section);
+      const next = {
         ...current,
-        customSections: [...current.customSections, undoableRemoval.section],
         sectionOrder,
+        sectionTitles: { ...current.sectionTitles, [undoableRemoval.section]: undoableRemoval.title },
       };
+      if (undoableRemoval.section === "skills") return { ...next, skills: undoableRemoval.skills };
+      return { ...next, [undoableRemoval.section]: undoableRemoval.entries };
     });
     setUndoableRemoval(null);
     flash(undoableRemoval.kind === "entry" ? "Restored entry" : "Restored section");
@@ -862,6 +920,7 @@ export function useResumeEditor() {
 
   return {
     addCustomSection,
+    addBuiltinSection,
     addEntry,
     checks,
     clearResume,
@@ -916,6 +975,7 @@ export function useResumeEditor() {
     recoveryPoint,
     removeEntry,
     removeCustomSection,
+    removeBuiltinSection,
     reorderEntry,
     reorderSection,
     requestExport,

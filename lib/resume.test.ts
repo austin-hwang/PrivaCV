@@ -444,11 +444,11 @@ describe("resume helpers", () => {
     });
   });
 
-  it("normalizes legacy JSON into a complete resume state", () => {
+  it("preserves intentionally removed default sections while normalizing legacy JSON", () => {
     const state = normalizeResume({ name: "Ada", sectionOrder: ["skills"] });
 
     expect(state.name).toBe("Ada");
-    expect(state.sectionOrder).toEqual(["skills", "education", "experience", "projects"]);
+    expect(state.sectionOrder).toEqual(["skills"]);
     expect(state.experience).toHaveLength(0);
     expect(state.template).toBe("classic");
   });
@@ -466,7 +466,7 @@ describe("resume helpers", () => {
 
     expect(state.sectionTitles.experience).toBe("Selected Experience");
     expect(state.sectionTitles.education).toBe("Education");
-    expect(state.sectionOrder).toEqual(["experience", "custom-publications", "skills", "education", "projects"]);
+    expect(state.sectionOrder).toEqual(["experience", "custom-publications", "skills"]);
     expect(resumePlainText(state)).toContain("Publications\nReliable Interfaces");
   });
 
@@ -477,7 +477,19 @@ describe("resume helpers", () => {
     });
 
     expect(state.customSections).toEqual([]);
-    expect(state.sectionOrder).toEqual(["skills", "education", "experience", "projects"]);
+    expect(state.sectionOrder).toEqual(["skills"]);
+  });
+
+  it("keeps intentionally blank section titles blank in saved resumes and plain text", () => {
+    const state = normalizeResume({
+      sectionTitles: { experience: "" },
+      experience: [{ title: "Engineer", subtitle: "Example Co.", meta: "2025", details: "Built reliable systems." }],
+      sectionOrder: ["experience"],
+    });
+
+    expect(state.sectionTitles.experience).toBe("");
+    expect(resumePlainText(state)).toContain("Engineer\nExample Co. | 2025");
+    expect(resumePlainText(state)).not.toContain("Experience\nEngineer");
   });
 
   it("renders deterministic plain text in section order", () => {
@@ -802,7 +814,7 @@ describe("resume helpers", () => {
       }),
     );
 
-    expect(checkpoint?.snapshot?.sectionOrder).toEqual(["skills", "education", "experience", "projects"]);
+    expect(checkpoint?.snapshot?.sectionOrder).toEqual(["skills"]);
     expect(parseExportCheckpoint(JSON.stringify({ fingerprint: "abc" }))).toBeNull();
     expect(parseExportCheckpoint("not json")).toBeNull();
   });

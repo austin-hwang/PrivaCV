@@ -94,9 +94,13 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   now cover publications, certifications, volunteer work, and similar content.
   Familiar one-click presets for Certifications, Volunteer Experience,
   Publications, Awards, Languages, and Training now reduce the blank-state
-  decision without constraining custom headings. Reassess whether users need
-  role-specific examples before adding decorative templates or broader layout
-  controls.
+  decision without constraining custom headings. Default sections can now be
+  removed with a short Undo window and restored from the same relevant-section
+  control; blank titles remain intentionally blank in the preview and text
+  export. Reordering uses a single numbered top-to-bottom list with a visible
+  drag image and destination state, so the resulting document order is clear.
+  Reassess whether users need role-specific examples before adding decorative
+  templates or broader layout controls.
 
 ## Core Features
 

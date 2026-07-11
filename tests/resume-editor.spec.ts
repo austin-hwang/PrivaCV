@@ -303,6 +303,56 @@ test("reorders resume sections by dragging their handles", async ({ page }) => {
   const headings = page.locator(".resume-sheet .resume-section-title");
   await expect(headings.nth(0)).toHaveText("Skills");
   await expect(headings.nth(1)).toHaveText("Education");
+
+  const rowPositions = await page.locator("[data-arrange-section]").evaluateAll((rows) =>
+    rows.map((row) => Math.round(row.getBoundingClientRect().top)),
+  );
+  expect(rowPositions).toEqual([...rowPositions].sort((first, second) => first - second));
+});
+
+test("makes the active section drag and destination visible", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const source = page.locator('[data-arrange-section="skills"] [draggable="true"]');
+  const sourceRow = page.locator('[data-arrange-section="skills"]');
+  const targetRow = page.locator('[data-arrange-section="education"]');
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+
+  await source.dispatchEvent("dragstart", { dataTransfer });
+  await expect(sourceRow).toHaveAttribute("data-dragging", "true");
+  await targetRow.dispatchEvent("dragenter", { dataTransfer });
+  await expect(targetRow).toHaveAttribute("data-drop-target", "true");
+  await source.dispatchEvent("dragend", { dataTransfer });
+  await expect(sourceRow).not.toHaveAttribute("data-dragging", "true");
+});
+
+test("keeps blank titles blank and lets users remove and restore default sections", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const experienceTitle = page.getByLabel("Experience section title");
+  await experienceTitle.fill("");
+  await expect(page.locator("#section-title-experience")).toHaveValue("");
+  await page.waitForTimeout(450);
+  await page.reload();
+  await expect(page.getByLabel("Untitled section title")).toHaveValue("");
+  await expect(page.locator(".resume-sheet .resume-section-title").filter({ hasText: "Experience" })).toBeHidden();
+
+  await page.getByRole("button", { name: "Remove Education section" }).click();
+  await expect(page.locator('[data-editor-section="education"]')).toBeHidden();
+  await expect(page.getByRole("button", { name: "Add Education" })).toBeVisible();
+  await expect(page.locator('[role="status"]').filter({ hasText: "Removed Education section" })).toBeVisible();
+  await page.getByRole("button", { name: /^undo$/i }).click();
+  await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.S. in Computer Science");
+
+  await page.getByRole("button", { name: "Remove Education section" }).click();
+  await page.getByRole("button", { name: "Add Education" }).click();
+  await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("");
 });
 
 test("keeps a summary optional when the resume already has experience detail", async ({ page }) => {
