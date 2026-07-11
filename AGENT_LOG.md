@@ -1,5 +1,40 @@
 # Agent Log
 
+## 2026-07-11 01:31 PDT
+
+- Market research and reprioritization: current resume builders such as Rezi
+  and Teal make clean, selectable-text exports and transparent job-specific
+  guidance expected, while current user discussion still flags broken PDF
+  output, opaque ATS claims, slow interfaces, and hidden paywalls. This
+  product's local-first import, review, export, and tailoring paths already
+  address much of that practical friction without collecting resume data.
+- Public-launch audit: metadata, icons, manifest, error recovery, local parser
+  delivery, input validation, and dependency audit were in place, but the
+  deployed Next.js configuration did not declare response security headers.
+  For a browser workspace holding personal career details, that left avoidable
+  gaps around framing, external resource loading, referrer disclosure, MIME
+  sniffing, and unused browser capabilities.
+- Decision: shipped a response security baseline rather than another editor or
+  role-tailoring feature. This is the smallest high-impact production-hardening
+  improvement because it protects every public session and preserves the
+  product's privacy promise without changing its workflow.
+- Implementation: configured same-origin CSP directives compatible with
+  Next.js and the local PDF worker, plus anti-framing, HSTS, referrer,
+  MIME-sniffing, cross-origin opener/resource, and unused-permission headers.
+  Added end-to-end coverage for the actual response headers and corrected the
+  existing PDF-upload test selector to match the supported `.pdf` extension.
+  Documented the intentional static-CSP tradeoff: Next.js still requires
+  inline script/style support, so stronger nonce/SRI policy is a future
+  architectural decision rather than an unsupported security claim today.
+- Verification: TypeScript, Next.js lint (with its existing deprecation
+  notice), all 40 Vitest tests, optimized production build, all 42 Playwright
+  tests against the production server, and `pnpm audit --prod --audit-level=high`
+  passed. `npm audit` could not run because this pnpm repository has no npm
+  lockfile; the equivalent pnpm audit passed.
+- Provisional next step: reassess first-use import correction quality, mobile
+  edit/review density, evidence/readability guidance, and real deployment
+  configuration such as a stable public domain before selecting any follow-up.
+
 ## 2026-07-11 00:10 PDT
 
 - Market research and reprioritization: current leaders such as Teal and Rezi
