@@ -20,6 +20,7 @@ subscriptions, watermarks, or backend storage.
   graceful route-error recovery; titles and copy accurately describe the
   local-first data model without inventing a hosted domain.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
+- Four clean, printable templates (Classic, Minimal, Modern, and Compact) that keep the same ATS-readable structure.
 - Add, remove, and reorder repeatable entries, including with drag-and-drop or
   accessible move controls.
 - Rename standard section headings, add local custom sections for content such
@@ -62,7 +63,11 @@ subscriptions, watermarks, or backend storage.
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The
   importer recognizes common alternate section headings such as Career Profile,
-  Relevant Experience, Education & Training, Academic Projects, and Key Skills;
+  Qualifications Summary, Relevant Experience, Education & Training, Academic
+  Projects, and Technical Proficiencies. It preserves specialty sections such
+  as Research Experience, Leadership, Publications, Presentations, and
+  Coursework as separate editable sections, and cautiously keeps unfamiliar
+  short ALL-CAPS headings separate rather than folding them into experience;
   it also recognizes adjacent entries whose dates are on their own lines: roles
   remain separate when bulleted details make the boundary clear, and compact
   degree-and-school histories remain separate without bullets. Compact inline

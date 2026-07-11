@@ -76,25 +76,51 @@ const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/;
 const LINK_RE = /((https?:\/\/)?(www\.)?(linkedin\.com|github\.com|gitlab\.com)\/[^\s|,]+|https?:\/\/[^\s|,]+|www\.[^\s|,]+)/i;
 const CITY_RE = /\b([A-Z][a-zA-Z.]+(?:\s[A-Z][a-zA-Z.]+)*),\s*([A-Z]{2})\b/;
 const MONTH = "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\.?";
-const SINGLE_DATE = `(?:${MONTH}\\s*\\d{4}|\\d{1,2}\\/\\d{4}|\\d{4})`;
+const SINGLE_DATE = `(?:${MONTH}\\s*\\d{4}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4}|\\d{1,2}\\/\\d{4}|\\d{4})`;
 const DATE_RANGE_RE = new RegExp(
   `${SINGLE_DATE}\\s*(?:[\\u2013\\u2014\\-]|to)\\s*(?:Present|Current|Now|${SINGLE_DATE})`,
   "i",
 );
 const SECTION_MAP: Array<[RegExp, keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">]> = [
-  [/^(summary|professional\s+summary|profile|career\s+profile|about\s+me|about|objective|career\s+objective)\b/i, "summary"],
-  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+background)\b/i, "experience"],
+  [/^(summary|professional\s+summary|profile|professional\s+profile|career\s+profile|about\s+me|about|objective|career\s+objective|summary\s+of\s+qualifications|qualifications\s+(summary|profile))\b/i, "summary"],
+  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+background|internships?)\b/i, "experience"],
   [/^(education|education\s+(and|&)\s+training|academic\s+background|academics)\b/i, "education"],
-  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects|academic\s+projects|relevant\s+projects|project\s+experience)\b/i, "projects"],
-  [/^(skills|technical\s+skills|key\s+skills|core\s+(competencies|skills)|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
+  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects|academic\s+projects|relevant\s+projects|research\s+projects|project\s+experience)\b/i, "projects"],
+  [/^(skills|technical\s+skills|professional\s+skills|key\s+skills|core\s+(competencies|skills)|technical\s+proficiencies|computer\s+skills|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
 ];
 
 type ResumeSection = keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">;
 
-type SectionHeading = {
+type BuiltinSectionHeading = {
   key: ResumeSection;
   inlineContent: string;
 };
+
+type CustomSectionHeading = {
+  key: "custom";
+  title: string;
+  inlineContent: string;
+};
+
+type SectionHeading = BuiltinSectionHeading | CustomSectionHeading;
+
+const CUSTOM_SECTION_MAP: Array<[RegExp, string]> = [
+  [/^(certifications?|licenses?)\b/i, "Certifications"],
+  [/^(volunteer(ing)?|community)\s+(experience|work|service)\b/i, "Volunteer Experience"],
+  [/^publications?\b/i, "Publications"],
+  [/^(awards?|achievements?|honou?rs?|accolades)\b/i, "Achievements"],
+  [/^languages?\b/i, "Languages"],
+  [/^(training|courses?|coursework|professional\s+development)\b/i, "Training"],
+  [/^research\s+(experience|interests?|activities?)\b/i, "Research Experience"],
+  [/^teaching\s+(experience|interests?)\b/i, "Teaching Experience"],
+  [/^(leadership|campus\s+involvement|activities|extracurricular(\s+activities)?)\b/i, "Leadership & Activities"],
+  [/^(professional\s+)?(affiliations?|memberships?|associations?)\b/i, "Professional Affiliations"],
+  [/^(presentations?|conferences?|poster\s+presentations?)\b/i, "Presentations"],
+  [/^(relevant\s+)?coursework\b/i, "Relevant Coursework"],
+  [/^(interests?|additional\s+information|other\s+information)\b/i, "Additional Information"],
+  [/^references?\b/i, "References"],
+  [/^relevant\s+(expertise|qualifications?)\b/i, "Relevant Expertise"],
+];
 
 export function extractPhone(text: string) {
   const candidates = text.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [];
@@ -123,18 +149,38 @@ export function detectSection(line: string) {
 function sectionHeading(line: string): SectionHeading | null {
   const value = line.trim();
   const colonIndex = value.indexOf(":");
-  if (colonIndex < 0) {
-    const key = detectSection(value);
-    return key ? { key, inlineContent: "" } : null;
-  }
+  const headingText = colonIndex < 0 ? value : value.slice(0, colonIndex).trim();
+  const inlineContent = colonIndex < 0 ? "" : value.slice(colonIndex + 1).trim();
+  const key = detectSection(headingText);
+  if (key) return { key, inlineContent };
 
-  const key = detectSection(value.slice(0, colonIndex).trim());
-  const inlineContent = value.slice(colonIndex + 1).trim();
-  return key ? { key, inlineContent } : null;
+  const norm = headingText.replace(/[:.\s]+$/, "").trim();
+  if (norm.length > 40) return null;
+  const custom = CUSTOM_SECTION_MAP.find(([re]) => re.test(norm));
+  if (custom) return { key: "custom", title: custom[1], inlineContent };
+
+  // A PDF loses type size and bolding, but an all-caps, short, standalone line
+  // is a strong enough signal to preserve an unfamiliar section instead of
+  // appending it to the preceding experience entry. Title-case lines are not
+  // used here because they are often employers, schools, or job titles.
+  const words = norm.split(/\s+/).filter(Boolean);
+  if (
+    words.length <= 5 &&
+    /^[A-Z][A-Z\s&/]{2,39}$/.test(norm) &&
+    norm === norm.toUpperCase()
+  ) {
+    const title = norm
+      .toLocaleLowerCase()
+      .replace(/\b\w/g, (letter) => letter.toLocaleUpperCase());
+    return { key: "custom", title, inlineContent };
+  }
+  return null;
 }
 
+const BULLET_RE = /^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/;
+
 function stripBullet(line: string) {
-  return line.replace(/^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/, "").trim();
+  return line.replace(BULLET_RE, "").trim();
 }
 
 const ACTION_VERB_RE = /^(developed|led|built|designed|managed|implemented|created|spearheaded|scaled|deployed|automated|trained|executed|integrated|secured|owned|improved|launched|architected|drove|delivered)\b/i;
@@ -171,11 +217,11 @@ function splitStandaloneDateEntries(flat: string[]) {
     const previousDate = dateIndexes[index - 1];
     const nextDate = dateIndexes[index];
     const firstBullet = flat.findIndex((line, lineIndex) =>
-      lineIndex > previousDate && lineIndex < nextDate && /^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
+      lineIndex > previousDate && lineIndex < nextDate && BULLET_RE.test(line),
     );
     const nextHeader = firstBullet >= 0
       ? flat.findIndex((line, lineIndex) =>
-        lineIndex > firstBullet && lineIndex < nextDate && !/^[*.\-\u2022\u25cf\u25aa\u2023\u00b7\u2013\u2014\u25e6]\s*/.test(line),
+        lineIndex > firstBullet && lineIndex < nextDate && !BULLET_RE.test(line),
       )
       : flat.findIndex((line, lineIndex) =>
         lineIndex > previousDate && lineIndex < nextDate && looksLikeSubtitle(line),
@@ -222,6 +268,31 @@ function splitIntoChunks(blockLines: string[]) {
   return chunks;
 }
 
+/** Separates list-style project and custom-section entries that have no blank lines. */
+function splitBulletEntries(blockLines: string[]) {
+  const flat = blockLines.filter(Boolean);
+  const bulletIndexes = flat.flatMap((line, index) => (BULLET_RE.test(line) ? [index] : []));
+  if (!bulletIndexes.length || bulletIndexes[0] !== 0) return null;
+  return bulletIndexes.map((start, index) => flat.slice(start, bulletIndexes[index + 1] ?? flat.length));
+}
+
+function joinDetailLines(lines: string[]) {
+  const details: string[] = [];
+  for (const line of lines) {
+    const value = stripBullet(line);
+    if (!value) continue;
+    const previous = details[details.length - 1];
+    const isContinuation = !BULLET_RE.test(line) && previous && (
+      /[,;:]$/.test(previous) ||
+      /^[a-z(]/.test(value) ||
+      previous.split(/\s+/).length < 4
+    );
+    if (isContinuation) details[details.length - 1] = `${previous} ${value}`;
+    else details.push(value);
+  }
+  return details.join("\n");
+}
+
 function chunkToEntry(chunk: string[]) {
   let meta = "";
   let dateLineIndex = -1;
@@ -234,7 +305,8 @@ function chunkToEntry(chunk: string[]) {
     }
   });
 
-  let headerText = chunk[0] || "";
+  const startsWithBullet = BULLET_RE.test(chunk[0] || "");
+  let headerText = stripBullet(chunk[0] || "");
   if (meta) headerText = headerText.replace(meta, "").replace(/[\s|,\u2013\u2014-]+$/, "").trim();
 
   let title = headerText;
@@ -251,17 +323,20 @@ function chunkToEntry(chunk: string[]) {
     subtitleIndex = 1;
   }
 
-  const details = chunk
+  const detailLines = chunk
     .filter((line, index) => index !== 0 && index !== subtitleIndex && index !== dateLineIndex)
-    .map(stripBullet)
-    .filter((line) => line && line !== meta)
-    .join("\n");
+    .filter((line) => stripBullet(line) && stripBullet(line) !== meta);
+  const details = startsWithBullet && !meta && /\s-\s/.test(headerText)
+    ? joinDetailLines([subtitle, ...detailLines])
+    : joinDetailLines(detailLines);
+  if (startsWithBullet && !meta && /\s-\s/.test(headerText)) subtitle = "";
 
   return { title, subtitle, meta, details };
 }
 
 function parseEntries(blockLines: string[]) {
-  return splitIntoChunks(blockLines)
+  const chunks = splitBulletEntries(blockLines) ?? splitIntoChunks(blockLines);
+  return chunks
     .map(chunkToEntry)
     .filter((entry) => entry.title || entry.subtitle || entry.meta || entry.details);
 }
@@ -272,13 +347,21 @@ export function parseResume(lines: string[]) {
   result.education = [];
   result.projects = [];
 
-  const sections: Array<{ key: ResumeSection; headerIndex: number; inlineContent: string; start?: number; end?: number }> = [];
+  const sections: Array<{ heading: SectionHeading; headerIndex: number; start?: number; end?: number }> = [];
   let preambleEnd = lines.length;
   lines.forEach((line, index) => {
     const heading = sectionHeading(line);
     if (heading) {
+      // Before the first recognized section, all-caps text is more likely to
+      // be the candidate's name than an unfamiliar section heading.
+      if (
+        heading.key === "custom" &&
+        !sections.length &&
+        line.trim() === line.trim().toUpperCase() &&
+        !CUSTOM_SECTION_MAP.some(([re]) => re.test(line.trim()))
+      ) return;
       if (!sections.length) preambleEnd = index;
-      sections.push({ key: heading.key, headerIndex: index, inlineContent: heading.inlineContent });
+      sections.push({ heading, headerIndex: index });
     }
   });
   sections.forEach((section, index) => {
@@ -317,16 +400,28 @@ export function parseResume(lines: string[]) {
   if (rest.length) result.summary = rest.join(" ").trim();
 
   for (const section of sections) {
-    const block = section.inlineContent
-      ? [section.inlineContent, ...lines.slice(section.start, section.end)]
+    const block = section.heading.inlineContent
+      ? [section.heading.inlineContent, ...lines.slice(section.start, section.end)]
       : lines.slice(section.start, section.end);
-    if (section.key === "summary") {
+    if (section.heading.key === "summary") {
       result.summary = block.filter(Boolean).map(stripBullet).join(" ").trim();
-    } else if (section.key === "skills") {
+    } else if (section.heading.key === "skills") {
       result.skills = block.filter(Boolean).map(stripBullet).join("\n");
     } else {
       const entries = parseEntries(block);
-      if (entries.length) result[section.key] = result[section.key].concat(entries);
+      if (!entries.length) continue;
+      if (section.heading.key === "custom") {
+        const normalizedTitle = section.heading.title.toLocaleLowerCase();
+        const existing = result.customSections.find((custom) => custom.title.toLocaleLowerCase() === normalizedTitle);
+        if (existing) existing.entries.push(...entries);
+        else {
+          const id = `custom-${normalizedTitle.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "section"}`;
+          result.customSections.push({ id, title: section.heading.title, entries });
+          result.sectionOrder.push(id);
+        }
+      } else {
+        result[section.heading.key] = result[section.heading.key].concat(entries);
+      }
     }
   }
 

@@ -24,6 +24,15 @@ export const CUSTOM_SECTION_PRESETS = [
   "Training",
 ] as const;
 
+export const RESUME_TEMPLATES = [
+  { id: "classic", label: "Classic", description: "Traditional serif layout with ruled headings." },
+  { id: "minimal", label: "Minimal", description: "Clean sans-serif layout with understated dividers." },
+  { id: "modern", label: "Modern", description: "Contemporary hierarchy with a restrained accent." },
+  { id: "compact", label: "Compact", description: "Denser layout for resumes with more experience." },
+] as const;
+
+export type ResumeTemplateId = (typeof RESUME_TEMPLATES)[number]["id"];
+
 export type SectionId = SectionKey | `custom-${string}`;
 
 export const sectionTitlesSchema = z.object({
@@ -65,6 +74,7 @@ export const resumeSchema = z.object({
   sectionTitles: sectionTitlesSchema.catch({ ...SECTION_LABELS }),
   customSections: z.array(customSectionSchema).catch([]),
   sectionOrder: z.array(z.string()).catch([...SECTION_KEYS]),
+  template: z.enum(["classic", "minimal", "modern", "compact"]).catch("classic"),
   textScale: z.number().catch(1),
 });
 
@@ -121,6 +131,7 @@ export function emptyState(): ResumeState {
     sectionTitles: { ...SECTION_LABELS },
     customSections: [],
     sectionOrder: [...SECTION_KEYS],
+    template: "classic",
     textScale: 1,
   };
 }

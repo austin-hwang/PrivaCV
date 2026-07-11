@@ -534,7 +534,7 @@ export function useResumeEditor() {
 
   const loadSample = () => {
     saveRecoveryPoint("Before loading the sample");
-    setState(sampleState());
+    setState((current) => ({ ...sampleState(), template: current.template }));
     setImportReview(null);
     setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
