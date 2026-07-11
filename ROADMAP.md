@@ -33,8 +33,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   to their expected fields; adjacent roles whose dates appear on separate lines
   stay distinct when their bullets make the entry boundary clear, and compact
   degree-and-school entries without bullets remain separate when each date ends
-  its header. Continue to favor conservative extraction plus explicit review
-  over guesses that could merge or invent experience.
+  its header. Compact inline headings such as `Skills: ...`, `Professional
+  Summary: ...`, and `Experience: ...` also retain the content following the
+  colon. Continue to favor conservative extraction plus explicit review over
+  guesses that could merge or invent experience.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear.
