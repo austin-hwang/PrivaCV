@@ -20,10 +20,51 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
 
   await expect(page.getByText("Resume Check")).toBeVisible();
   await expect(page.getByText("Jane Doe").first()).toBeVisible();
+  await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /review text/i }).click();
   await expect(page.getByRole("dialog", { name: /review before copying/i })).toBeVisible();
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
+});
+
+test("connects editor focus with the preview and supports custom sections", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  const experienceTitle = page.getByLabel("Experience section title");
+  await experienceTitle.fill("Selected Experience");
+  await experienceTitle.focus();
+  await expect(page.locator(".resume-preview-active")).toHaveText("Selected Experience");
+
+  await page.getByRole("button", { name: /add custom section/i }).click();
+  const customTitle = page.getByLabel("New Section section title");
+  await customTitle.fill("Publications");
+  await page.locator('[id^="field-custom-"][id$="-0-title"]').fill("Reliable Interfaces");
+
+  const previewEntry = page.locator(".resume-sheet").getByText("Reliable Interfaces", { exact: true });
+  await expect(page.locator(".resume-sheet").getByText("Publications", { exact: true })).toBeVisible();
+  await previewEntry.click();
+  await expect(page.locator('[id^="field-custom-"][id$="-0-title"]')).toBeFocused();
+
+  await page.waitForTimeout(450);
+  await page.reload();
+  await expect(page.getByLabel("Selected Experience section title")).toHaveValue("Selected Experience");
+  await expect(page.getByLabel("Publications section title")).toBeVisible();
+});
+
+test("reorders resume sections by dragging their handles", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.locator('[data-arrange-section="skills"] [draggable="true"]').dragTo(page.locator('[data-arrange-section="education"]'));
+
+  const headings = page.locator(".resume-sheet .resume-section-title");
+  await expect(headings.nth(0)).toHaveText("Skills");
+  await expect(headings.nth(1)).toHaveText("Education");
 });
 
 test("keeps a summary optional when the resume already has experience detail", async ({ page }) => {
