@@ -26,6 +26,19 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
 });
 
+test("keeps a summary optional when the resume already has experience detail", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByLabel("Professional Summary").fill("");
+
+  await expect(page.getByText("Optional — experience leads")).toBeVisible();
+  await expect(page.getByRole("button", { name: /add optional summary/i })).toBeVisible();
+  await expect(page.getByText("Missing summary")).toBeHidden();
+});
+
 test("imports a pasted resume locally and requires explicit field confirmation", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

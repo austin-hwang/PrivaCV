@@ -1,5 +1,38 @@
 # Agent Log
 
+## 2026-07-10 19:32 PDT
+
+- Market research and reprioritization: current Teal, Jobscan, and other
+  tailoring tools make job-description matching and ATS-style checklists
+  familiar expectations, but recent reviews and job-seeker discussions still
+  describe score-driven edits as overwhelming and generic rewriting as
+  untrustworthy. The editor already offers a local, transparent role review;
+  another score or rewrite would amplify that fatigue. More import heuristics
+  would also be lower confidence after the recent company-first correction,
+  while DOCX export is a materially larger output-format project.
+- Decision: made summary guidance optional rather than export-blocking. A
+  missing summary previously appeared as a failure even when a resume already
+  led with concrete experience, encouraging filler merely to clear the
+  checklist. The new neutral advisory remains actionable for career pivots,
+  specialties, and direction-setting, while real readability and completeness
+  checks still require attention.
+- Implementation: extended the readiness-check model with a non-blocking
+  advisory state, presented it with distinct visual treatment, and updated the
+  summary copy and action. The README and roadmap now record that resume
+  guidance should avoid conventional filler. Added unit and browser coverage.
+- Why it matters: job seekers get a calmer, more honest export signal and can
+  spend their time strengthening truthful evidence instead of adding a generic
+  opening paragraph simply to satisfy a tool.
+- Verification: `CI=true node_modules/.bin/vitest run` (36 tests), `CI=true
+  node_modules/.bin/tsc --noEmit`, `CI=true node_modules/.bin/next lint`, a
+  production `next build`, `git diff --check`, and the full Playwright suite
+  (35 tests) passed against the production server on port 3138. The existing
+  user-owned `pnpm-workspace.yaml` remains unmodified because its `workerd`
+  build-policy choice is still unresolved.
+- Provisional next direction only: next run must reassess evidence/readability
+  cues, remaining import correction friction, and mobile edit density before
+  choosing a single improvement.
+
 ## 2026-07-10 18:31 PDT
 
 - Market research and reprioritization: Teal continues to frame a comprehensive
