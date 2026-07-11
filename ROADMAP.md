@@ -66,6 +66,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   prompt for imported resumes, and moves the full import checklist, resume checks,
   role focus, and version history into on-demand Review tools; reassess whether
   the remaining import-quality explanation or correction context needs more help.
+- Preserve an ATS-safe structure while letting people represent the parts of a
+  career that do not fit a fixed template: editable section headings, a small
+  number of custom repeatable sections, and reversible section/entry ordering
+  now cover publications, certifications, volunteer work, and similar content.
+  Reassess whether users need common section presets before adding decorative
+  templates or broader layout controls.
 
 ## Core Features
 
