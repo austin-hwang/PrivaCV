@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildResumeChecks,
+  CUSTOM_SECTION_PRESETS,
   emptyState,
   exportChangeSummary,
   normalizeResume,
@@ -29,6 +30,17 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("offers concise, ATS-readable custom section presets", () => {
+    expect(CUSTOM_SECTION_PRESETS).toEqual([
+      "Certifications",
+      "Volunteer Experience",
+      "Publications",
+      "Awards",
+      "Languages",
+      "Training",
+    ]);
+  });
+
   it("imports pasted resume text with line-ending cleanup", () => {
     const state = importResumeText(
       "Ada Lovelace\r\nPlatform Engineer\r\nada@example.com | San Francisco, CA\r\n\r\nExperience\r\nEngineer | Analytical Engines | 2022–Present\r\n• Built reliable systems.",

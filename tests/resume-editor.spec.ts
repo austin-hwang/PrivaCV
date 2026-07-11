@@ -54,6 +54,20 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await expect(page.getByLabel("Publications section title")).toBeVisible();
 });
 
+test("adds a common section with its useful heading already in place", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /^sample$/i }).click();
+
+  await page.getByRole("button", { name: /certifications/i }).click();
+
+  await expect(page.getByLabel("Certifications section title")).toHaveValue("Certifications");
+  await expect(page.locator(".resume-sheet").getByText("Certifications", { exact: true })).toBeHidden();
+  await page.locator('[id^="field-custom-"][id$="-0-title"]').fill("AWS Certified Developer – Associate");
+  await expect(page.locator(".resume-sheet").getByText("Certifications", { exact: true })).toBeVisible();
+});
+
 test("reorders resume sections by dragging their handles", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -509,7 +523,6 @@ test("shows when the resume changed after the last PDF export", async ({ page })
   await page.getByRole("button", { name: /^sample$/i }).click();
 
   await page.getByRole("button", { name: /export pdf/i }).click();
-  await page.getByRole("button", { name: /export anyway/i }).click();
 
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
   await expect(page.getByText("Current resume matches your last PDF export.")).toBeVisible();
@@ -546,7 +559,6 @@ test("expands dense change audits after export and restore", async ({ page }) =>
   await page.getByRole("button", { name: /save checkpoint/i }).click();
 
   await page.getByRole("button", { name: /export pdf/i }).click();
-  await page.getByRole("button", { name: /export anyway/i }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 
   await page.getByLabel("Full Name").fill("Ada Lovelace");
