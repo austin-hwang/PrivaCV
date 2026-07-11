@@ -12,7 +12,7 @@ import {
   RESUME_TEMPLATES,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
-import { detectSection, importResumeText, importResumeTextWithSource } from "@/lib/pdf-import";
+import { detectSection, importResumeText, importResumeTextWithSource, linesFromPositionedTextItems } from "@/lib/pdf-import";
 import {
   MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
@@ -70,6 +70,30 @@ describe("resume helpers", () => {
 
     expect(imported.sourceText).toBe("Ada Lovelace\n\nExperience\nEngineer | Example Co.");
     expect(imported.state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Example Co." });
+  });
+
+  it("keeps PDF text fragments with tiny baseline offsets on one readable line", () => {
+    const lines = linesFromPositionedTextItems([
+      { str: "Ada", transform: [1, 0, 0, 1, 72, 720] },
+      { str: "Lovelace", transform: [1, 0, 0, 1, 98, 719.1] },
+      { str: "ada@example.com", transform: [1, 0, 0, 1, 72, 700] },
+      { str: "Experience", transform: [1, 0, 0, 1, 72, 650] },
+      { str: "Engineer", transform: [1, 0, 0, 1, 72, 630] },
+      { str: "Example Co.", transform: [1, 0, 0, 1, 140, 631.2] },
+    ]);
+
+    expect(lines).toEqual([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Experience",
+      "Engineer Example Co.",
+    ]);
+    expect(importResumeText(lines.join("\n"))).toMatchObject({
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      experience: [expect.objectContaining({ title: "Engineer Example Co." })],
+    });
   });
 
   it("recognizes common alternate resume section headings before parsing content", () => {

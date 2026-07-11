@@ -127,6 +127,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   formats or tailoring automation.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
+- Keep PDF reconstruction conservative but resilient: tiny baseline differences
+  between positioned text fragments now stay on one source line before parsing,
+  preventing routine name, heading, and role fragments from being split. Do not
+  infer multi-column reading order; retain explicit field-by-field review for
+  visually complex source documents.
 - Keep manual checkpoint export/import available as a utility, without making
   backup management a central workflow.
 

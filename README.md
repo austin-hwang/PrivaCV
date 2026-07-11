@@ -72,6 +72,8 @@ subscriptions, watermarks, or backend storage.
   as Research Experience, Leadership, Publications, Presentations, and
   Coursework as separate editable sections, and cautiously keeps unfamiliar
   short ALL-CAPS headings separate rather than folding them into experience;
+  it also keeps text fragments with tiny baseline offsets on one readable line,
+  a common artifact of positioned-PDF exports;
   it also recognizes adjacent entries whose dates are on their own lines: roles
   remain separate when bulleted details make the boundary clear, and compact
   degree-and-school histories remain separate without bullets. Compact inline
