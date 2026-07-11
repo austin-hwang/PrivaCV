@@ -32,8 +32,10 @@ subscriptions, watermarks, or backend storage.
 - Click a preview heading or entry to return directly to its editor field; the
   active field is lightly highlighted in the preview while editing.
 - Resume Check panel for page count, missing contact fields, concise bullets,
-  measurable experience/project evidence, optional summary guidance, and overall density,
-  with guidance and actions that jump to the field that needs attention; each
+  measurable experience/project evidence, optional summary guidance, and overall density.
+  A two-page resume is a relevance prompt—not an export failure—while three or
+  more pages receive trimming guidance. Each check has an action that jumps to
+  the field that needs attention; each
   experience and project entry also identifies bullets that could use more
   truthful scope or outcome evidence.
 - Local-only Role Focus review that compares a pasted job description with the
