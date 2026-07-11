@@ -507,15 +507,15 @@ export function ResumeEditor() {
                     <span
                       className={cn(
                         "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
-                        check.ok ? "bg-emerald-700" : "bg-amber-700",
+                        check.advisory ? "bg-sky-700" : check.ok ? "bg-emerald-700" : "bg-amber-700",
                       )}
                     >
-                      {check.ok ? <Check className="size-3" /> : "!"}
+                      {check.advisory ? "i" : check.ok ? <Check className="size-3" /> : "!"}
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold">{check.label}</p>
                       <p className="text-xs leading-snug text-muted-foreground">{check.detail}</p>
-                      {!check.ok ? (
+                      {(!check.ok || check.advisory) ? (
                         <>
                           <p className="mt-1 text-xs leading-snug text-muted-foreground">{check.guidance}</p>
                           <Button

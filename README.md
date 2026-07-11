@@ -20,7 +20,7 @@ subscriptions, watermarks, or backend storage.
 - Add, remove, and reorder repeatable entries.
 - Reorder resume sections while keeping the preview and plain-text export in sync.
 - Resume Check panel for page count, missing contact fields, concise bullets,
-  measurable experience/project evidence, summary length, and overall density,
+  measurable experience/project evidence, optional summary guidance, and overall density,
   with guidance and actions that jump to the field that needs attention; each
   experience and project entry also identifies bullets that could use more
   truthful scope or outcome evidence.

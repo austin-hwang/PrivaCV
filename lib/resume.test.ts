@@ -304,6 +304,22 @@ describe("resume helpers", () => {
     expect(checks.every((check) => check.ok)).toBe(true);
   });
 
+  it("keeps a missing summary as an optional prompt instead of an export issue", () => {
+    const state = sampleState();
+    state.summary = "";
+
+    const summary = buildResumeChecks(state, 1).find((check) => check.id === "summary");
+
+    expect(summary).toMatchObject({
+      ok: true,
+      advisory: true,
+      detail: "Optional — experience leads",
+      actionLabel: "Add optional summary",
+      targetId: "field-summary",
+    });
+    expect(summary?.guidance).toContain("career direction");
+  });
+
   it("flags experience and project bullets that lack enough measurable evidence", () => {
     const state = sampleState();
     state.experience[0].details = "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.";

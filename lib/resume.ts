@@ -42,6 +42,8 @@ export type ResumeCheck = {
   id: "length" | "contact" | "bullets" | "evidence" | "summary" | "density";
   label: string;
   ok: boolean;
+  /** A useful prompt that should never hold up a confident export. */
+  advisory?: boolean;
   detail: string;
   guidance: string;
   actionLabel: string;
@@ -252,15 +254,21 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
     {
       id: "summary",
       label: "Summary",
-      ok: summaryWords > 0 && summaryWords <= 65,
+      // A summary can help someone frame a career change or specialization,
+      // but experienced candidates should not have to add filler just to make
+      // a generic checker turn green. Other checks still surface missing proof.
+      ok: summaryWords === 0 || summaryWords <= 65,
+      advisory: summaryWords === 0,
       detail:
         summaryWords === 0
-          ? "Missing summary"
+          ? "Optional — experience leads"
           : summaryWords > 65
             ? `${summaryWords} words`
             : "Focused opening",
-      guidance: "A tight summary frames your fit before the reader reaches the details.",
-      actionLabel: summaryWords === 0 ? "Add summary" : "Shorten summary",
+      guidance: summaryWords === 0
+        ? "Add a short summary only when it helps explain a pivot, specialty, or career direction."
+        : "A tight summary frames your fit before the reader reaches the details.",
+      actionLabel: summaryWords === 0 ? "Add optional summary" : "Shorten summary",
       targetId: "field-summary",
     },
     {
