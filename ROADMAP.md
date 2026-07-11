@@ -126,6 +126,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep the app local-first with browser storage and JSON files until accounts,
   syncing, or collaboration become clearly valuable.
 - Continue using zod normalization for imported and saved resume data.
+- Keep the dependency graph free of known production advisories. PostCSS is
+  explicitly overridden to the patched 8.5.16 release because the currently
+  supported Next.js version otherwise pins an affected transitive copy; review
+  the override when a compatible Next.js release removes that constraint.
 - Introduce react-hook-form when validation becomes field-level and user-facing,
   rather than for simple controlled inputs.
 - Expand Playwright coverage beyond the sample and text-review smoke flow to
