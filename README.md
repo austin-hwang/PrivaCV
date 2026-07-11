@@ -24,10 +24,12 @@ subscriptions, watermarks, or backend storage.
 - Four clean, printable templates (Classic, Minimal, Modern, and Compact) that keep the same ATS-readable structure.
 - Add, remove, and reorder repeatable entries, including with drag-and-drop or
   accessible move controls.
-- Rename standard section headings, add local custom sections for content such
-  as Publications or Certifications, start common sections with one click
-  (Certifications, Volunteer Experience, Publications, Awards, Languages, or
-  Training), and reorder every section while keeping the preview and plain-text
+- Rename—or intentionally omit—section headings, remove and restore default
+  sections without leaving their content in the export, add local custom
+  sections for content such as Publications or Certifications, start missing
+  default or common sections with one click (Certifications, Volunteer
+  Experience, Publications, Awards, Languages, or Training), and reorder every
+  section in a clear top-to-bottom list while keeping the preview and plain-text
   export in sync.
 - Click a preview heading or entry to return directly to its editor field; the
   active field is lightly highlighted in the preview while editing.

@@ -107,6 +107,7 @@ function FilledResumePreview({ state, activeTarget, onTargetSelect }: ResumePrev
 
 function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumePreviewProps & { section: string }) {
   const sectionActive = activeTarget === `section-title-${section}` || activeTarget?.startsWith(`field-${section}-`);
+  const title = getSectionTitle(state, section).trim();
   if (section === "skills") {
     const lines = state.skills
       .split("\n")
@@ -115,7 +116,7 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
     if (!lines.length) return null;
     return (
       <section className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active")} {...previewTargetProps("field-skills", onTargetSelect)}>
-        <h2 className="resume-section-title">{getSectionTitle(state, section)}</h2>
+        {title ? <h2 className="resume-section-title">{title}</h2> : null}
         <div>
           {lines.map((line) => {
             const index = line.indexOf(":");
@@ -143,7 +144,9 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
 
   return (
     <section className={cn("resume-section", sectionActive && "resume-preview-section-active")}>
-      <h2 className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")} {...previewTargetProps(`section-title-${section}`, onTargetSelect)}>{getSectionTitle(state, section)}</h2>
+      {title ? (
+        <h2 className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")} {...previewTargetProps(`section-title-${section}`, onTargetSelect)}>{title}</h2>
+      ) : null}
       {entries.map(({ entry, originalIndex }) => (
         <div
           className={cn("resume-entry resume-preview-target", activeTarget?.startsWith(`field-${section}-${originalIndex}-`) && "resume-preview-active")}

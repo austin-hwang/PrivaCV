@@ -144,7 +144,7 @@ export function normalizeResume(data: unknown): ResumeState {
     )
     .map((section) => ({
       ...section,
-      title: section.title.trim() || "Custom Section",
+      title: section.title.trim(),
       entries: section.entries.map((entry) => ({ ...blankEntry(), ...entry })),
     }));
   const validSectionIds = new Set<string>([...SECTION_KEYS, ...customSections.map((section) => section.id)]);
@@ -152,9 +152,8 @@ export function normalizeResume(data: unknown): ResumeState {
     (key, index, all) => validSectionIds.has(key) && all.indexOf(key) === index,
   );
 
-  SECTION_KEYS.forEach((key) => {
-    if (!order.includes(key)) order.push(key);
-  });
+  // A missing built-in section is intentional: users can remove any default
+  // section and add it back from the editor when it becomes relevant again.
   customSections.forEach(({ id }) => {
     if (!order.includes(id)) order.push(id);
   });
@@ -177,8 +176,8 @@ export function isBuiltinSection(section: string): section is SectionKey {
 }
 
 export function getSectionTitle(state: ResumeState, section: string) {
-  if (isBuiltinSection(section)) return state.sectionTitles[section] || SECTION_LABELS[section];
-  return state.customSections.find((candidate) => candidate.id === section)?.title || "Custom Section";
+  if (isBuiltinSection(section)) return state.sectionTitles[section];
+  return state.customSections.find((candidate) => candidate.id === section)?.title ?? "Custom Section";
 }
 
 export function getSectionEntries(state: ResumeState, section: string): ResumeEntry[] {
@@ -413,7 +412,7 @@ function entryPlainText(entry: ResumeEntry) {
 function sectionPlainText(state: ResumeState, label: string, section: string) {
   const entries = getSectionEntries(state, section).filter(entryHasContent);
   if (!entries.length) return [];
-  const lines = [label];
+  const lines = label ? [label] : [];
   entries.forEach((entry, index) => {
     if (index > 0) lines.push("");
     lines.push(...entryPlainText(entry));
@@ -426,7 +425,9 @@ function skillsPlainText(state: ResumeState) {
     .split("\n")
     .map(cleanTextLine)
     .filter(Boolean);
-  return lines.length ? [getSectionTitle(state, "skills"), ...lines] : [];
+  if (!lines.length) return [];
+  const title = getSectionTitle(state, "skills");
+  return title ? [title, ...lines] : lines;
 }
 
 export function resumePlainText(state: ResumeState) {
@@ -653,7 +654,7 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
     changes.push({
       id: "section-order",
       label: "Section order changed",
-      detail: current.sectionOrder.map((section) => getSectionTitle(current, section)).join(", "),
+      detail: current.sectionOrder.map((section) => getSectionTitle(current, section) || "Untitled section").join(", "),
       targetId: "section-order-controls",
     });
   }

@@ -1,5 +1,25 @@
 # Agent Log
 
+## 2026-07-11 14:42 PDT
+
+- Product and interaction audit: the section workflow had four connected
+  problems: its two-column arrangement obscured the resulting order, drag only
+  represented a tiny handle, blank headings silently reverted, and default
+  sections could not be removed. On narrow screens the sticky section navigator
+  could also compete with the workspace header, while field jumps could land
+  beneath that header.
+- Decision: treat section arrangement and section presence as durable resume
+  state, rather than merely presentation controls. This won over superficial
+  drag styling because a removed section must remain removed after reload and a
+  deliberately blank heading must remain absent in both PDF preview and text.
+- Implementation: the arrangement surface is now a numbered single-column
+  list, supplies a full named drag image, and visibly marks both the source and
+  destination. Every default section can be removed with Undo; removal clears
+  its content from the export and adds it back as a blank default section only
+  when explicitly restored. Empty headings remain empty through autosave,
+  preview, and text export. Mobile navigation now stays in flow and jumps leave
+  room for the persistent header.
+
 ## 2026-07-11 14:26 PDT
 
 - Market and product review: current resume-builder feedback values fast,
