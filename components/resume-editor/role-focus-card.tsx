@@ -53,14 +53,14 @@ export function RoleFocusCard({
   };
 
   return (
-    <Card className="mb-6 border-sky-300 bg-sky-50/70">
-      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+    <Card className="border-none bg-transparent shadow-none">
+      <CardHeader className="flex-col gap-3 space-y-0 p-0 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-sky-300 bg-background text-sky-800">
+          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
             <Target className="size-4" />
           </span>
           <div>
-            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-sky-900">Role focus</CardDescription>
+            <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em]">Role focus</CardDescription>
             <CardTitle className="text-base">Check the language you already use.</CardTitle>
             <CardDescription>
               Paste a job description to find its most repeated terms in your resume. Everything stays in this browser.
@@ -73,7 +73,7 @@ export function RoleFocusCard({
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 p-0 pt-4">
         <label className="grid gap-1.5 text-sm font-medium">
           <span>Private role label (optional)</span>
           <Input

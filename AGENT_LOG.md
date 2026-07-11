@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-11 03:30 PDT
+
+- Market research and reprioritization: Teal now frames its builder around one
+  complete source resume plus fast role-specific tailoring, while Rezi continues
+  to foreground immediate ATS checks and export-ready documents. The editor
+  already supports local import, review, role focus, and checkpoints, but those
+  secondary tools were competing with the first task—editing the resume—on
+  smaller screens and in the desktop toolbar.
+- Finding and decision: retain the existing capabilities but reorganize them
+  around the user’s immediate job. A compact header leaves PDF export visible,
+  groups less-frequent file actions in an overflow menu, adds a section jump
+  rail for long drafts, and moves checks, role focus, export context, and
+  version history into a live side drawer. This won over additional scoring or
+  templates because it makes high-frequency editing calmer without creating
+  new user data or opaque advice.
+- Accessibility polish: the new secondary-actions menu now supports keyboard
+  opening, arrow and Home/End navigation, Escape-to-close, and focus return;
+  the browser suite covers that behavior.
+- Verification: TypeScript, ESLint (apart from Next.js’s deprecation notice),
+  44 Vitest tests, optimized production build, and all 44 Playwright flows
+  passed. A direct production-server smoke test returned the expected title and
+  security headers, including the stricter production CSP without `unsafe-eval`.
+- Provisional next step: reassess import parsing/correction confidence and
+  practical export reliability before adding AI writing, marketing features, or
+  more templates.
+
 ## 2026-07-11 02:31 PDT
 
 - Market research and reprioritization: current builders such as Teal center
