@@ -24,7 +24,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   density is the next first-use friction.
 - Prioritize a clear, field-by-field import review before adding more
   role-matching heuristics: imported resumes now guide users through every
-  non-empty imported entry, keep confirmation plus nearby matching source
+  non-empty imported entry—including specialty sections such as certifications
+  and publications—keep confirmation plus nearby matching source
   context beside the editable value, and distinguish a recognizable source
   heading from an area the parser actually populated. This makes a skipped
   Education, Skills, Summary, Experience, or Projects section explicit before

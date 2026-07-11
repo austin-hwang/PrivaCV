@@ -314,7 +314,7 @@ describe("resume helpers", () => {
     });
   });
 
-  it("includes every imported repeatable entry in the review", () => {
+  it("includes every imported standard and custom entry in the review", () => {
     const state = sampleState();
     state.experience.push({
       title: "Software Engineer",
@@ -328,6 +328,17 @@ describe("resume helpers", () => {
       meta: "2014 - 2018",
       details: "",
     });
+    state.customSections = [{
+      id: "custom-certifications",
+      title: "Certifications",
+      entries: [{
+        title: "Certified Kubernetes Administrator",
+        subtitle: "Cloud Native Computing Foundation",
+        meta: "2026",
+        details: "Validated Kubernetes administration skills.",
+      }],
+    }];
+    state.sectionOrder.push("custom-certifications");
 
     const review = buildImportReview(state, "resume.pdf");
 
@@ -336,6 +347,11 @@ describe("resume helpers", () => {
       expect.objectContaining({ id: "experience-1", label: "Experience entry 2", targetId: "field-experience-1-title" }),
       expect.objectContaining({ id: "education-0", label: "Education entry 1", targetId: "field-education-0-title" }),
       expect.objectContaining({ id: "education-1", label: "Education entry 2", targetId: "field-education-1-title" }),
+      expect.objectContaining({
+        id: "custom-certifications-0",
+        label: "Certifications entry 1",
+        targetId: "field-custom-certifications-0-title",
+      }),
     ]));
     expect(importReviewProgress({ ...review, reviewedItemIds: ["experience-0"] })).toMatchObject({
       reviewedCount: 1,

@@ -351,6 +351,31 @@ test("imports common alternate section headings without losing resume content", 
   await expect(page.getByText("What the importer detected")).toBeVisible();
 });
 
+test("requires review of imported specialty-section entries", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Certifications",
+    "Certified Kubernetes Administrator | Cloud Native Computing Foundation | 2026",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByText("Certifications entry 1", { exact: true })).toBeVisible();
+  const title = page.getByLabel("Title", { exact: true });
+  await expect(title).toHaveValue("Certified Kubernetes Administrator");
+  await expect(page.getByText("Imported Certifications entry 1.")).toBeVisible();
+  await title.scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: /mark certifications entry 1 reviewed/i }).click();
+  await expect(page.getByRole("button", { name: /^confirmed$/i }).last()).toBeVisible();
+});
+
 test("preserves text written beside an inline resume heading", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
