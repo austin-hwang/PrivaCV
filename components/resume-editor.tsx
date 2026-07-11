@@ -47,6 +47,7 @@ import {
   isBuiltinSection,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
+  RESUME_TEMPLATES,
 } from "@/lib/resume";
 import { buildImportCoverage, formatCheckpointTime } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
@@ -252,6 +253,7 @@ export function ResumeEditor() {
               onLoadSample={loadSample}
               onOpenJson={() => jsonInputRef.current?.click()}
               onOpenCheckpointBackup={() => historyBackupInputRef.current?.click()}
+              onChooseTemplate={(template) => updateField("template", template)}
             />
           ) : null}
 
@@ -609,6 +611,28 @@ export function ResumeEditor() {
           ) : null}
 
           <div className="space-y-6">
+            <FieldGroup title="Resume template">
+              <p className="text-xs leading-snug text-muted-foreground">
+                Templates change the visual layout only. Every option stays clean and ATS-readable.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2" aria-label="Resume templates">
+                {RESUME_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    aria-pressed={state.template === template.id}
+                    className={cn(
+                      "rounded-md border p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      state.template === template.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-background",
+                    )}
+                    onClick={() => updateField("template", template.id)}
+                  >
+                    <span className="block text-sm font-semibold">{template.label}</span>
+                    <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
+                  </button>
+                ))}
+              </div>
+            </FieldGroup>
             <FieldGroup title="Arrange sections">
               <p className="text-xs leading-snug text-muted-foreground">
                 Drag these blocks into the order you want. The preview updates immediately.
@@ -702,28 +726,26 @@ export function ResumeEditor() {
                   onChange={(value) => updateField("phone", value)}
                 />
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <TextField
-                  id="field-location"
-                  label="Location"
-                  value={state.location}
-                  placeholder="San Francisco, CA"
-                  reviewTarget={importReviewTargets.has("field-location")}
-                  reviewItem={importReviewItemsByTarget.get("field-location")}
-                  onToggleReview={toggleImportReviewItem}
-                  onChange={(value) => updateField("location", value)}
-                />
-                <TextField
-                  id="field-website"
-                  label="Website / LinkedIn"
-                  value={state.website}
-                  placeholder="linkedin.com/in/janedoe"
-                  reviewTarget={importReviewTargets.has("field-website")}
-                  reviewItem={importReviewItemsByTarget.get("field-website")}
-                  onToggleReview={toggleImportReviewItem}
-                  onChange={(value) => updateField("website", value)}
-                />
-              </div>
+              <TextField
+                id="field-location"
+                label="Location"
+                value={state.location}
+                placeholder="San Francisco, CA"
+                reviewTarget={importReviewTargets.has("field-location")}
+                reviewItem={importReviewItemsByTarget.get("field-location")}
+                onToggleReview={toggleImportReviewItem}
+                onChange={(value) => updateField("location", value)}
+              />
+              <TextField
+                id="field-website"
+                label="Website / LinkedIn"
+                value={state.website}
+                placeholder="linkedin.com/in/janedoe"
+                reviewTarget={importReviewTargets.has("field-website")}
+                reviewItem={importReviewItemsByTarget.get("field-website")}
+                onToggleReview={toggleImportReviewItem}
+                onChange={(value) => updateField("website", value)}
+              />
             </FieldGroup>
 
             <FieldGroup title="Summary">

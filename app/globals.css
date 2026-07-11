@@ -132,6 +132,7 @@
 .resume-bullets {
   margin: 3px 0 0;
   padding-left: 16px;
+  list-style: disc outside;
 }
 
 .resume-bullets li {
@@ -140,6 +141,59 @@
 
 .resume-skill-line {
   margin-bottom: 2px;
+}
+
+.resume-template-minimal {
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+
+.resume-template-minimal .resume-name {
+  font-size: 1.75em;
+  letter-spacing: -0.02em;
+}
+
+.resume-template-minimal .resume-section-title {
+  border-bottom-color: #777;
+  font-size: 1em;
+  letter-spacing: 0.06em;
+}
+
+.resume-template-modern {
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+
+.resume-template-modern .resume-name {
+  color: #12375a;
+  font-size: 1.85em;
+}
+
+.resume-template-modern .resume-section-title {
+  border-bottom: 1.5pt solid #23618c;
+  color: #12375a;
+  letter-spacing: 0.07em;
+}
+
+.resume-template-modern .resume-entry-role,
+.resume-template-modern .resume-skill-cat {
+  color: #12375a;
+}
+
+.resume-template-compact {
+  padding: 0.35in 0.45in;
+  font-size: calc(9.35pt * var(--resume-scale, 1));
+  line-height: 1.27;
+}
+
+.resume-template-compact .resume-section {
+  margin-bottom: 6px;
+}
+
+.resume-template-compact .resume-section-title {
+  margin-bottom: 4px;
+}
+
+.resume-template-compact .resume-entry {
+  margin-bottom: 5px;
 }
 
 .resume-preview-target {

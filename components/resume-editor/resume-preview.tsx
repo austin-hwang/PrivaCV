@@ -37,7 +37,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
   return (
     <div
       ref={ref}
-      className={cn("resume-sheet", !hasContent && "resume-empty")}
+      className={cn("resume-sheet", `resume-template-${state.template}`, !hasContent && "resume-empty")}
       style={{ "--resume-scale": state.textScale } as CSSProperties}
     >
       {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}

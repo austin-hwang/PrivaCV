@@ -4,6 +4,7 @@ import { ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-reac
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RESUME_TEMPLATES, type ResumeTemplateId } from "@/lib/resume";
 
 type StartPanelProps = {
   isImporting: boolean;
@@ -12,6 +13,7 @@ type StartPanelProps = {
   onLoadSample: () => void;
   onOpenJson: () => void;
   onOpenCheckpointBackup: () => void;
+  onChooseTemplate: (template: ResumeTemplateId) => void;
 };
 
 export function StartPanel({
@@ -21,6 +23,7 @@ export function StartPanel({
   onLoadSample,
   onOpenJson,
   onOpenCheckpointBackup,
+  onChooseTemplate,
 }: StartPanelProps) {
   return (
     <Card className="mb-6">
@@ -87,6 +90,23 @@ export function StartPanel({
           <Button type="button" variant="secondary" size="sm" onClick={onLoadSample}>
             <FileText /> Use sample
           </Button>
+        </div>
+
+        <div className="border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground">Choose a starting template</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {RESUME_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => onChooseTemplate(template.id)}
+              >
+                <span className="block text-sm font-semibold">{template.label}</span>
+                <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2" aria-label="Privacy and export benefits">

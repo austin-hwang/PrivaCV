@@ -9,6 +9,7 @@ import {
   resumePlainText,
   sampleState,
   summarizeEvidence,
+  RESUME_TEMPLATES,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
 import { detectSection, importResumeText, importResumeTextWithSource } from "@/lib/pdf-import";
@@ -38,6 +39,15 @@ describe("resume helpers", () => {
       "Awards",
       "Languages",
       "Training",
+    ]);
+  });
+
+  it("offers multiple clean, ATS-readable visual templates", () => {
+    expect(RESUME_TEMPLATES.map((template) => template.id)).toEqual([
+      "classic",
+      "minimal",
+      "modern",
+      "compact",
     ]);
   });
 
@@ -102,6 +112,69 @@ describe("resume helpers", () => {
     expect(state.projects[0]).toMatchObject({ title: "Compiler", subtitle: "TypeScript" });
   });
 
+  it("keeps recognized custom PDF headings out of experience", () => {
+    const state = importResumeText([
+      "Karan Pratap Singh",
+      "San Francisco, CA | contact@example.com",
+      "",
+      "EXPERIENCE",
+      "Software Engineer | Example Co. | 2024 - Present",
+      "• Built reliable systems.",
+      "",
+      "PUBLICATIONS",
+      "• Learn Go - Published Jan 2023.",
+      "",
+      "ACHIEVEMENTS",
+      "• Published 50+ technical articles.",
+      "",
+      "PROJECTS",
+      "• ScaleETL - High-performance CLI for large CSV datasets.",
+      "",
+      "EDUCATION",
+      "Bachelors of Technology | SRM Institute | 2017 - 2021",
+    ].join("\n"));
+
+    expect(state.experience).toHaveLength(1);
+    expect(state.experience[0]).toMatchObject({ title: "Software Engineer", subtitle: "Example Co." });
+    expect(state.projects).toEqual([expect.objectContaining({ title: "ScaleETL", details: "High-performance CLI for large CSV datasets." })]);
+    expect(state.customSections).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: "Publications", entries: [expect.objectContaining({ title: "Learn Go" })] }),
+      expect.objectContaining({ title: "Achievements", entries: [expect.objectContaining({ title: "Published 50+ technical articles." })] }),
+    ]));
+  });
+
+  it("preserves common specialty sections and unfamiliar all-caps headings", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "QUALIFICATIONS SUMMARY",
+      "Engineering leader with distributed-systems experience.",
+      "",
+      "TECHNICAL PROFICIENCIES",
+      "TypeScript, Go, PostgreSQL",
+      "",
+      "RESEARCH EXPERIENCE",
+      "Research Assistant | Example Lab | 2024 - Present",
+      "• Presented findings to 50 attendees.",
+      "",
+      "LEADERSHIP EXPERIENCE",
+      "President | Engineering Society | 2023 - 2024",
+      "• Organized mentorship events.",
+      "",
+      "SELECTED HIGHLIGHTS",
+      "• Coordinated a local technology workshop.",
+    ].join("\n"));
+
+    expect(state.summary).toBe("Engineering leader with distributed-systems experience.");
+    expect(state.skills).toBe("TypeScript, Go, PostgreSQL");
+    expect(state.customSections).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: "Research Experience" }),
+      expect.objectContaining({ title: "Leadership & Activities" }),
+      expect.objectContaining({ title: "Selected Highlights" }),
+    ]));
+  });
+
   it("preserves content written inline with common resume section headings", () => {
     const state = importResumeText([
       "Ada Lovelace",
@@ -154,6 +227,25 @@ describe("resume helpers", () => {
         meta: "Jun 2018 – Dec 2021",
         details: "Improved deployment tooling.",
       }),
+    ]);
+  });
+
+  it("recognizes full numeric date ranges common in exported PDFs", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "",
+      "Experience",
+      "Software Engineer 02/05/2024 - Present",
+      "Example Co. San Francisco, CA",
+      "• Built reliable systems.",
+      "Senior Engineer 05/03/2023 - 01/26/2024",
+      "Previous Co. New York, NY",
+      "• Improved deployment tooling.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({ title: "Software Engineer", meta: "02/05/2024 - Present" }),
+      expect.objectContaining({ title: "Senior Engineer", meta: "05/03/2023 - 01/26/2024" }),
     ]);
   });
 
@@ -297,6 +389,7 @@ describe("resume helpers", () => {
     expect(state.name).toBe("Ada");
     expect(state.sectionOrder).toEqual(["skills", "education", "experience", "projects"]);
     expect(state.experience).toHaveLength(0);
+    expect(state.template).toBe("classic");
   });
 
   it("preserves editable headings and custom sections while normalizing", () => {
