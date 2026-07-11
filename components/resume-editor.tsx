@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -57,6 +57,7 @@ export function ResumeEditor() {
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [importChecklistOpen, setImportChecklistOpen] = useState(false);
+  const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
   const {
     addCustomSection,
     addEntry,
@@ -135,6 +136,23 @@ export function ResumeEditor() {
         ...state.sectionOrder.map((section) => ({ id: `edit-section-${section}`, label: getSectionTitle(state, section) })),
       ]
     : [];
+
+  useEffect(() => {
+    const updateMobilePreviewScale = () => {
+      const isNarrow = window.matchMedia("(max-width: 720px)").matches;
+      const availableWidth = window.innerWidth - 28;
+      setMobilePreviewScale(isNarrow ? Math.min(1, Math.max(0.25, availableWidth / (8.5 * 96))) : 1);
+    };
+
+    updateMobilePreviewScale();
+    window.addEventListener("resize", updateMobilePreviewScale);
+    return () => window.removeEventListener("resize", updateMobilePreviewScale);
+  }, []);
+
+  const previewFrameStyle = {
+    "--resume-preview-scale": mobilePreviewScale,
+    "--resume-preview-frame-height": `${Math.max(1, pageCount) * 11 * 96 * mobilePreviewScale}px`,
+  } as CSSProperties;
 
   return (
     <>
@@ -832,12 +850,14 @@ export function ResumeEditor() {
                 </Button>
               </div>
             </div>
-            <ResumePreview
-              state={state}
-              ref={resumeRef}
-              activeTarget={activeTarget}
-              onTargetSelect={focusEditorTarget}
-            />
+            <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
+              <ResumePreview
+                state={state}
+                ref={resumeRef}
+                activeTarget={activeTarget}
+                onTargetSelect={focusEditorTarget}
+              />
+            </div>
           </div>
         </section>
       </main>

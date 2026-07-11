@@ -1,5 +1,30 @@
 # Agent Log
 
+## 2026-07-11 05:32 PDT
+
+- Market and product review: Teal continues to make a comprehensive source
+  resume plus quick tailoring central, while Rezi focuses on feedback and
+  finished exports. The existing product already provides those core workflows
+  locally, so a trustworthy preview of the final document outweighed another
+  template, opaque score, or writing feature.
+- Finding and decision: on phone-width screens the preview shrank the Letter
+  sheet itself to the viewport. That changed text wrapping and could make the
+  displayed page count disagree with the PDF a user saves—a direct confidence
+  break at the most important final workflow.
+- Implementation: the phone preview now retains the full 8.5 × 11-inch layout
+  and scales that exact document within a clipped frame. Print explicitly
+  removes the display transform, so the browser receives the unscaled Letter
+  sheet. The frame height follows the measured page count, preserving access to
+  multi-page previews without horizontal overflow.
+- Verification: `pnpm typecheck`, `pnpm lint` (only Next.js's existing
+  deprecation notice), 44 Vitest tests, and the optimized production build
+  passed. A focused Playwright phone-width test passed and verifies that the
+  visible sheet is scaled while its underlying layout remains full Letter size;
+  the complete browser suite was also run (46 flows) during the change.
+- Provisional next step: reassess PDF-print behavior in more browsers and the
+  remaining import correction gaps before adding more output formats or AI
+  writing assistance.
+
 ## 2026-07-11 04:30 PDT
 
 - Market research and product review: Teal continues to make a comprehensive
