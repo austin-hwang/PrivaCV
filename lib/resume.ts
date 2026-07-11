@@ -11,6 +11,15 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   skills: "Skills",
 };
 
+export type SectionId = SectionKey | `custom-${string}`;
+
+export const sectionTitlesSchema = z.object({
+  education: z.string().catch(SECTION_LABELS.education),
+  experience: z.string().catch(SECTION_LABELS.experience),
+  projects: z.string().catch(SECTION_LABELS.projects),
+  skills: z.string().catch(SECTION_LABELS.skills),
+});
+
 export const entrySchema = z.object({
   title: z.string().catch(""),
   subtitle: z.string().catch(""),
@@ -19,6 +28,14 @@ export const entrySchema = z.object({
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
+
+export const customSectionSchema = z.object({
+  id: z.string(),
+  title: z.string().catch("Custom Section"),
+  entries: z.array(entrySchema).catch([]),
+});
+
+export type CustomSection = z.infer<typeof customSectionSchema>;
 
 export const resumeSchema = z.object({
   name: z.string().catch(""),
@@ -32,7 +49,9 @@ export const resumeSchema = z.object({
   experience: z.array(entrySchema).catch([]),
   education: z.array(entrySchema).catch([]),
   projects: z.array(entrySchema).catch([]),
-  sectionOrder: z.array(z.enum(SECTION_KEYS)).catch([...SECTION_KEYS]),
+  sectionTitles: sectionTitlesSchema.catch({ ...SECTION_LABELS }),
+  customSections: z.array(customSectionSchema).catch([]),
+  sectionOrder: z.array(z.string()).catch([...SECTION_KEYS]),
   textScale: z.number().catch(1),
 });
 
@@ -86,6 +105,8 @@ export function emptyState(): ResumeState {
     experience: [blankEntry()],
     education: [blankEntry()],
     projects: [],
+    sectionTitles: { ...SECTION_LABELS },
+    customSections: [],
     sectionOrder: [...SECTION_KEYS],
     textScale: 1,
   };
@@ -93,12 +114,25 @@ export function emptyState(): ResumeState {
 
 export function normalizeResume(data: unknown): ResumeState {
   const parsed = resumeSchema.catch(emptyState()).parse(data);
+  const customSections = parsed.customSections
+    .filter((section, index, all) =>
+      section.id.startsWith("custom-") && all.findIndex((candidate) => candidate.id === section.id) === index,
+    )
+    .map((section) => ({
+      ...section,
+      title: section.title.trim() || "Custom Section",
+      entries: section.entries.map((entry) => ({ ...blankEntry(), ...entry })),
+    }));
+  const validSectionIds = new Set<string>([...SECTION_KEYS, ...customSections.map((section) => section.id)]);
   const order = parsed.sectionOrder.filter(
-    (key, index, all) => SECTION_KEYS.includes(key) && all.indexOf(key) === index,
+    (key, index, all) => validSectionIds.has(key) && all.indexOf(key) === index,
   );
 
   SECTION_KEYS.forEach((key) => {
     if (!order.includes(key)) order.push(key);
+  });
+  customSections.forEach(({ id }) => {
+    if (!order.includes(id)) order.push(id);
   });
 
   return {
@@ -107,9 +141,28 @@ export function normalizeResume(data: unknown): ResumeState {
     experience: parsed.experience.map((entry) => ({ ...blankEntry(), ...entry })),
     education: parsed.education.map((entry) => ({ ...blankEntry(), ...entry })),
     projects: parsed.projects.map((entry) => ({ ...blankEntry(), ...entry })),
+    sectionTitles: { ...SECTION_LABELS, ...parsed.sectionTitles },
+    customSections,
     sectionOrder: order,
     textScale: clampTextScale(parsed.textScale),
   };
+}
+
+export function isBuiltinSection(section: string): section is SectionKey {
+  return (SECTION_KEYS as readonly string[]).includes(section);
+}
+
+export function getSectionTitle(state: ResumeState, section: string) {
+  if (isBuiltinSection(section)) return state.sectionTitles[section] || SECTION_LABELS[section];
+  return state.customSections.find((candidate) => candidate.id === section)?.title || "Custom Section";
+}
+
+export function getSectionEntries(state: ResumeState, section: string): ResumeEntry[] {
+  if (section === "experience") return state.experience;
+  if (section === "education") return state.education;
+  if (section === "projects") return state.projects;
+  if (section === "skills") return [];
+  return state.customSections.find((candidate) => candidate.id === section)?.entries ?? [];
 }
 
 export function clampTextScale(value: number) {
@@ -131,6 +184,7 @@ export function wordCount(text: string) {
 export function hasAnyContent(state: ResumeState) {
   if (state.name || state.title || state.summary || state.skills) return true;
   if (state.email || state.phone || state.location || state.website) return true;
+  if (state.customSections.some((section) => section.entries.some(entryHasContent))) return true;
   return ["experience", "education", "projects"].some((section) =>
     state[section as "experience" | "education" | "projects"].some(
       (entry) => entry.title || entry.subtitle || entry.meta || entry.details,
@@ -138,12 +192,16 @@ export function hasAnyContent(state: ResumeState) {
   );
 }
 
+export function entryHasContent(entry: ResumeEntry) {
+  return Boolean(entry.title || entry.subtitle || entry.meta || entry.details);
+}
+
 export function allBullets(state: ResumeState) {
   return ["experience", "education", "projects"].flatMap((section) =>
     state[section as "experience" | "education" | "projects"].flatMap((entry) =>
       bulletsFrom(entry.details),
     ),
-  );
+  ).concat(state.customSections.flatMap((section) => section.entries.flatMap((entry) => bulletsFrom(entry.details))));
 }
 
 export function hasMeasuredEvidence(bullet: string) {
@@ -198,8 +256,8 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
   const totalWords = wordCount(resumePlainText(state));
   const firstBulletTarget =
     state.sectionOrder
-      .filter((section): section is "experience" | "education" | "projects" => section !== "skills")
-      .map((section) => [section, state[section].findIndex((entry) => entry.title || entry.subtitle || entry.meta || entry.details)] as const)
+      .filter((section) => section !== "skills")
+      .map((section) => [section, getSectionEntries(state, section).findIndex(entryHasContent)] as const)
       .find(([, index]) => index >= 0) ?? ["experience", state.experience.length ? 0 : -1];
   const firstBulletTargetId =
     firstBulletTarget[1] >= 0
@@ -317,10 +375,8 @@ function entryPlainText(entry: ResumeEntry) {
   return lines;
 }
 
-function sectionPlainText(state: ResumeState, label: string, section: "experience" | "education" | "projects") {
-  const entries = state[section].filter(
-    (entry) => entry.title || entry.subtitle || entry.meta || entry.details,
-  );
+function sectionPlainText(state: ResumeState, label: string, section: string) {
+  const entries = getSectionEntries(state, section).filter(entryHasContent);
   if (!entries.length) return [];
   const lines = [label];
   entries.forEach((entry, index) => {
@@ -335,7 +391,7 @@ function skillsPlainText(state: ResumeState) {
     .split("\n")
     .map(cleanTextLine)
     .filter(Boolean);
-  return lines.length ? ["Skills", ...lines] : [];
+  return lines.length ? [getSectionTitle(state, "skills"), ...lines] : [];
 }
 
 export function resumePlainText(state: ResumeState) {
@@ -350,7 +406,7 @@ export function resumePlainText(state: ResumeState) {
   pushBlock(lines, state.summary ? ["Summary", cleanTextLine(state.summary)] : []);
   state.sectionOrder.forEach((key) => {
     if (key === "skills") pushBlock(lines, skillsPlainText(state));
-    else pushBlock(lines, sectionPlainText(state, SECTION_LABELS[key], key));
+    else pushBlock(lines, sectionPlainText(state, getSectionTitle(state, key), key));
   });
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -517,7 +573,7 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
     const entryCount = current[section].filter((entry) => entry.title || entry.subtitle || entry.meta || entry.details).length;
     changes.push({
       id: section,
-      label: `${SECTION_LABELS[section]} changed`,
+      label: `${getSectionTitle(current, section)} changed`,
       detail:
         sectionDetails.fieldLabels.length
           ? `${sectionDetails.fieldLabels.length} ${sectionDetails.fieldLabels.length === 1 ? "field" : "fields"} edited`
@@ -540,11 +596,29 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
     });
   }
 
+  if (JSON.stringify(previous.sectionTitles) !== JSON.stringify(current.sectionTitles)) {
+    changes.push({
+      id: "section-titles",
+      label: "Section titles changed",
+      detail: "One or more section headings were renamed",
+      targetId: "section-order-controls",
+    });
+  }
+
+  if (JSON.stringify(previous.customSections) !== JSON.stringify(current.customSections)) {
+    changes.push({
+      id: "custom-sections",
+      label: "Custom sections changed",
+      detail: `${current.customSections.length} custom ${current.customSections.length === 1 ? "section" : "sections"} now`,
+      targetId: current.customSections[0] ? `section-title-${current.customSections[0].id}` : "add-custom-section",
+    });
+  }
+
   if (JSON.stringify(previous.sectionOrder) !== JSON.stringify(current.sectionOrder)) {
     changes.push({
       id: "section-order",
       label: "Section order changed",
-      detail: current.sectionOrder.map((section) => SECTION_LABELS[section]).join(", "),
+      detail: current.sectionOrder.map((section) => getSectionTitle(current, section)).join(", "),
       targetId: "section-order-controls",
     });
   }

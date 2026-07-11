@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, Check, Eye, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, Check, Eye, GripVertical, Trash2 } from "lucide-react";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,15 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ENTRY_SCHEMA,
-  REPEATABLE_SECTIONS,
   type ImportReviewItem,
 } from "@/lib/resume-workspace";
-import { SECTION_LABELS, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
+import { isBuiltinSection, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
-export function FieldGroup({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+export function FieldGroup({ title, actions, children, className }: { title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className="border-b pb-5 last:border-b-0">
+    <section className={cn("border-b pb-5 transition-colors last:border-b-0", className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
         {actions}
@@ -130,32 +129,38 @@ function ImportReviewFieldPrompt({
 
 export function EntryList({
   section,
+  sectionLabel,
   entries,
   reviewTargets,
   reviewItemsByTarget,
   onUpdate,
   onMove,
+  onReorder,
   onRemove,
   onSwapTitleAndSubtitle,
   onToggleReview,
 }: {
-  section: (typeof REPEATABLE_SECTIONS)[number];
+  section: string;
+  sectionLabel: string;
   entries: ResumeEntry[];
   reviewTargets: Set<string>;
   reviewItemsByTarget: Map<string, ImportReviewItem & { confirmed: boolean }>;
-  onUpdate: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, key: keyof ResumeEntry, value: string) => void;
-  onMove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number, direction: -1 | 1) => void;
-  onRemove: (section: (typeof REPEATABLE_SECTIONS)[number], index: number) => void;
+  onUpdate: (section: string, index: number, key: keyof ResumeEntry, value: string) => void;
+  onMove: (section: string, index: number, direction: -1 | 1) => void;
+  onReorder: (section: string, index: number, target: number) => void;
+  onRemove: (section: string, index: number) => void;
   onSwapTitleAndSubtitle: (index: number) => void;
   onToggleReview: (itemId: string) => void;
 }) {
-  const schema = ENTRY_SCHEMA[section];
+  const schema = isBuiltinSection(section) && section !== "skills"
+    ? ENTRY_SCHEMA[section]
+    : { title: "Title", subtitle: "Organization / context", meta: "Dates / details", details: "Highlights" };
   const supportsEvidenceReview = section === "experience" || section === "projects";
 
   if (!entries.length) {
     return (
       <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-        No {SECTION_LABELS[section].toLowerCase()} entries yet.
+        No {sectionLabel.toLowerCase()} entries yet.
       </div>
     );
   }
@@ -169,10 +174,44 @@ export function EntryList({
           : null;
 
         return (
-          <Card key={index} className="bg-muted/20 shadow-none">
+          <Card
+            key={index}
+            className="bg-muted/20 shadow-none transition-colors"
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
+            }}
+            onDrop={(event) => {
+              const customData = event.dataTransfer.getData("application/x-resume-entry");
+              const plainData = event.dataTransfer.getData("text/plain");
+              const value = customData || (plainData.startsWith("entry:") ? plainData.slice(6) : "");
+              if (!value) return;
+              event.preventDefault();
+              event.stopPropagation();
+              try {
+                const dragged = JSON.parse(value) as { section: string; index: number };
+                if (dragged.section === section && dragged.index !== index) onReorder(section, dragged.index, index);
+              } catch {
+                // Ignore drag data from outside the editor.
+              }
+            }}
+          >
             <CardContent className="space-y-3 p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
+                <span
+                  draggable
+                  aria-hidden="true"
+                  title="Drag to reorder; use the move buttons for keyboard reordering"
+                  className="inline-flex size-9 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    const value = JSON.stringify({ section, index });
+                    event.dataTransfer.setData("application/x-resume-entry", value);
+                    event.dataTransfer.setData("text/plain", `entry:${value}`);
+                  }}
+                >
+                  <GripVertical className="size-4" />
+                </span>
                 <Button
                   type="button"
                   variant="outline"
