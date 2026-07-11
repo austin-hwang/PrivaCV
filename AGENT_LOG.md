@@ -1,5 +1,27 @@
 # Agent Log
 
+## 2026-07-11 08:28 PDT
+
+- Market and product review: current builders emphasize tailored content and
+  real-time checks, while user feedback repeatedly values trustworthy,
+  ATS-readable output over opaque scores. The editor's local import review is
+  a more differentiated and consequential trust surface than another template
+  or AI-writing feature.
+- Finding and decision: specialty content such as Certifications and
+  Publications was preserved by import but omitted from the checklist that
+  users must complete before clearing the import reminder. Extending the
+  existing source-backed confirmation to each imported custom entry won because
+  credentials and publications can materially affect an application and should
+  never be silently outside a claimed complete review.
+- Implementation: custom-section entries now appear in import review with a
+  field jump, matching source context, and explicit confirmation; browser and
+  unit coverage protect the behavior.
+- Verification: 44 Vitest tests, TypeScript, ESLint (aside from Next.js's
+  existing deprecation notice), the focused browser regression, the complete
+  49-flow Playwright suite, and the optimized production build passed.
+- Provisional next step: reassess browser-engine PDF fidelity and less common
+  text/PDF layouts before considering additional formats or AI writing.
+
 ## 2026-07-11 07:31 PDT
 
 - Market and product review: current ATS guidance and builder alternatives keep

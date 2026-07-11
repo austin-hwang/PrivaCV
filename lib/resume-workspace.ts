@@ -343,7 +343,7 @@ export function versionReplacementCandidate(versions: VersionHistoryItem[], fing
   return versions[versions.length - 1] ?? null;
 }
 
-export function entryTargetId(section: (typeof REPEATABLE_SECTIONS)[number], entry: ResumeEntry, index: number) {
+export function entryTargetId(section: string, entry: ResumeEntry, index: number) {
   const field = entry.title ? "title" : entry.subtitle ? "subtitle" : entry.meta ? "meta" : "details";
   return `field-${section}-${index}-${field}`;
 }
@@ -483,6 +483,26 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
           sourceExcerpt: importSourceExcerpt(sourceText, [entry.title, entry.subtitle, entry.meta, entry.details]),
         },
         SECTION_LABELS[section],
+      );
+    });
+  });
+
+  // Specialty content is often the most consequential part of an imported
+  // resume (for example, a certification or publication). Keep it in the same
+  // explicit review flow as standard sections so "finish review" never skips
+  // data the importer placed in a custom section.
+  state.customSections.forEach((custom) => {
+    custom.entries.forEach((entry, index) => {
+      if (!entryHasContent(entry)) return;
+      addItem(
+        {
+          id: `${custom.id}-${index}`,
+          label: `${custom.title || "Custom section"} entry ${index + 1}`,
+          targetId: entryTargetId(custom.id, entry, index),
+          detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
+          sourceExcerpt: importSourceExcerpt(sourceText, [entry.title, entry.subtitle, entry.meta, entry.details]),
+        },
+        custom.title || "Custom section",
       );
     });
   });
