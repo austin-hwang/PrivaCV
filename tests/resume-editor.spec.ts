@@ -670,6 +670,30 @@ test("keeps mobile editing focused while leaving review tools one tap away", asy
   await context.close();
 });
 
+test("keeps the phone preview faithful to the printed Letter layout", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await page.getByRole("button", { name: /^preview$/i }).click();
+
+  await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
+  const dimensions = await page.locator(".resume-sheet").evaluate((sheet) => ({
+    layoutWidth: sheet.scrollWidth,
+    renderedWidth: sheet.getBoundingClientRect().width,
+    renderedHeight: sheet.getBoundingClientRect().height,
+  }));
+
+  expect(dimensions.layoutWidth).toBeGreaterThan(800);
+  expect(dimensions.renderedWidth).toBeLessThan(390);
+  expect(dimensions.renderedHeight / dimensions.renderedWidth).toBeCloseTo(11 / 8.5, 1);
+
+  await context.close();
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {

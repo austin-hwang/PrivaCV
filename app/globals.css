@@ -67,6 +67,10 @@
   box-shadow: 0 1px 6px rgb(0 0 0 / 18%);
 }
 
+.resume-preview-sheet-frame {
+  width: 8.5in;
+}
+
 .resume-name {
   margin: 0 0 3px;
   font-size: 1.9em;
@@ -294,6 +298,16 @@
     box-shadow: none;
   }
 
+  .resume-preview-sheet-frame {
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .resume-preview-sheet-frame .resume-sheet {
+    transform: none !important;
+  }
+
   .resume-preview-target,
   .resume-preview-active,
   .resume-preview-section-active {
@@ -318,9 +332,16 @@
 }
 
 @media (max-width: 720px) {
-  .resume-sheet {
-    width: min(8.5in, calc(100vw - 28px));
-    min-height: auto;
-    aspect-ratio: 8.5 / 11;
+  .resume-preview-sheet-frame {
+    width: 100%;
+    height: var(--resume-preview-frame-height);
+    overflow: hidden;
+  }
+
+  .resume-preview-sheet-frame .resume-sheet {
+    width: 8.5in;
+    min-height: 11in;
+    transform: scale(var(--resume-preview-scale));
+    transform-origin: top left;
   }
 }
