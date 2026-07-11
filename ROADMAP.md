@@ -48,7 +48,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   title/company swap.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Preserve confidence around privacy, autosave, and free export.
-- Make risky actions reversible so users can experiment without fear.
+- Make risky actions reversible so users can experiment without fear. Removing
+  an entry or custom section now offers a short Undo window, so routine cleanup
+  never requires a disruptive confirmation dialog or accidental retyping.
 - Show lightweight readiness feedback before export so users can fix obvious
   resume issues without leaving the page.
 - Keep the final export moment calm by surfacing unresolved checks without

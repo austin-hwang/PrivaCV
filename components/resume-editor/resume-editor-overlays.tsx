@@ -88,6 +88,7 @@ export function ResumeEditorOverlays({
     textReviewOpen,
     textImportOpen,
     toast,
+    undoRemoval,
     versionChanges,
     versionCompareAfterLabel,
     versionCompareBeforeLabel,
@@ -580,10 +581,21 @@ export function ResumeEditorOverlays({
       {toast ? (
         <div
           key={toast.id}
-          className="app-chrome fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md bg-foreground px-4 py-2 text-sm text-background shadow-lg"
+          className="app-chrome fixed bottom-5 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 -translate-x-1/2 rounded-md bg-foreground px-4 py-2 text-sm text-background shadow-lg"
           role="status"
         >
-          {toast.message}
+          <span>{toast.message}</span>
+          {toast.action === "undo" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 border border-background/40 px-2 text-background hover:bg-background/15 hover:text-background"
+              onClick={undoRemoval}
+            >
+              <Undo2 /> Undo
+            </Button>
+          ) : null}
         </div>
       ) : null}
 

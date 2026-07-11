@@ -89,6 +89,8 @@ subscriptions, watermarks, or backend storage.
   swap for company-first source layouts.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
+- A five-second Undo for accidentally removed entries or custom sections, so
+  routine cleanup does not turn into retyping.
 - Local autosave in browser storage plus user-managed JSON files for manual
   save, open, and checkpoint export/import when needed.
 - Clean print stylesheet for browser Save as PDF.

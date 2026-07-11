@@ -16,6 +16,7 @@ import {
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
+  type CustomSection,
   type ResumeEntry,
   type ResumeState,
 } from "@/lib/resume";
@@ -74,6 +75,21 @@ function safeResumeFilename(name: string) {
   return name.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || "resume";
 }
 
+type UndoableRemoval =
+  | {
+      kind: "entry";
+      toastId: number;
+      section: string;
+      index: number;
+      entry: ResumeEntry;
+    }
+  | {
+      kind: "custom-section";
+      toastId: number;
+      section: CustomSection;
+      sectionOrderIndex: number;
+    };
+
 export function useResumeEditor() {
   const [state, setState] = useState<ResumeState>(() => emptyState());
   const [loaded, setLoaded] = useState(false);
@@ -87,6 +103,7 @@ export function useResumeEditor() {
   const [versionCompareTarget, setVersionCompareTarget] = useState<VersionCompareTarget | null>(null);
   const [draftSourceVersionId, setDraftSourceVersionId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [undoableRemoval, setUndoableRemoval] = useState<UndoableRemoval | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
   const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
@@ -196,8 +213,11 @@ export function useResumeEditor() {
     [importReview],
   );
 
-  const flash = useCallback((message: string) => {
-    setToast({ id: Date.now(), message });
+  const flash = useCallback((message: string, action?: ToastState["action"]) => {
+    const id = Date.now();
+    setToast({ id, message, action });
+    if (!action) setUndoableRemoval(null);
+    return id;
   }, []);
 
   const reportStorageIssue = useCallback(() => {
@@ -396,7 +416,12 @@ export function useResumeEditor() {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 1600);
+    const timer = window.setTimeout(() => {
+      setToast((current) => current?.id === toast.id ? null : current);
+      if (toast.action === "undo") {
+        setUndoableRemoval((current) => current?.toastId === toast.id ? null : current);
+      }
+    }, toast.action === "undo" ? 5000 : 1600);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
@@ -470,6 +495,11 @@ export function useResumeEditor() {
   };
 
   const removeEntry = (section: string, index: number) => {
+    const entry = getSectionEntries(state, section)[index];
+    if (!entry) return;
+    const sectionTitle = isBuiltinSection(section)
+      ? state.sectionTitles[section]
+      : state.customSections.find((custom) => custom.id === section)?.title ?? "Custom section";
     setState((current) => {
       if (isBuiltinSection(section) && section !== "skills") {
         return { ...current, [section]: current[section].filter((_, entryIndex) => entryIndex !== index) };
@@ -481,6 +511,8 @@ export function useResumeEditor() {
         ),
       };
     });
+    const toastId = flash(`Removed ${sectionTitle || "custom"} entry`, "undo");
+    setUndoableRemoval({ kind: "entry", toastId, section, index, entry });
   };
 
   const reorderEntry = (section: string, index: number, target: number) => {
@@ -544,11 +576,51 @@ export function useResumeEditor() {
   };
 
   const removeCustomSection = (section: string) => {
+    const removedSection = state.customSections.find((custom) => custom.id === section);
+    if (!removedSection) return;
+    const sectionOrderIndex = state.sectionOrder.indexOf(section);
     setState((current) => ({
       ...current,
       customSections: current.customSections.filter((custom) => custom.id !== section),
       sectionOrder: current.sectionOrder.filter((id) => id !== section),
     }));
+    const toastId = flash(`Removed ${removedSection.title || "custom"} section`, "undo");
+    setUndoableRemoval({ kind: "custom-section", toastId, section: removedSection, sectionOrderIndex });
+  };
+
+  const undoRemoval = () => {
+    if (!undoableRemoval) return;
+    setState((current) => {
+      if (undoableRemoval.kind === "entry") {
+        const { section, index, entry } = undoableRemoval;
+        if (isBuiltinSection(section) && section !== "skills") {
+          const entries = [...current[section]];
+          entries.splice(Math.min(index, entries.length), 0, entry);
+          return { ...current, [section]: entries };
+        }
+        const customSection = current.customSections.find((item) => item.id === section);
+        if (!customSection) return current;
+        const entries = [...customSection.entries];
+        entries.splice(Math.min(index, entries.length), 0, entry);
+        return {
+          ...current,
+          customSections: current.customSections.map((item) =>
+            item.id === section ? { ...item, entries } : item,
+          ),
+        };
+      }
+
+      if (current.customSections.some((item) => item.id === undoableRemoval.section.id)) return current;
+      const sectionOrder = [...current.sectionOrder];
+      sectionOrder.splice(Math.min(undoableRemoval.sectionOrderIndex, sectionOrder.length), 0, undoableRemoval.section.id);
+      return {
+        ...current,
+        customSections: [...current.customSections, undoableRemoval.section],
+        sectionOrder,
+      };
+    });
+    setUndoableRemoval(null);
+    flash(undoableRemoval.kind === "entry" ? "Restored entry" : "Restored section");
   };
 
   const loadSample = () => {
@@ -851,6 +923,7 @@ export function useResumeEditor() {
     toggleImportReviewItem,
     completeImportReview,
     undoDeleteVersion,
+    undoRemoval,
     updateEntry,
     updateField,
     updateSectionTitle,

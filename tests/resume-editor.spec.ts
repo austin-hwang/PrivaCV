@@ -239,6 +239,29 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await expect(page.getByLabel("Publications section title")).toBeVisible();
 });
 
+test("keeps accidental entry and custom-section removal reversible", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const experience = page.locator('[data-editor-section="experience"]');
+  await experience.getByRole("button", { name: /^remove$/i }).first().click();
+  await expect(page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" })).toBeVisible();
+  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Software Engineer");
+  await page.getByRole("button", { name: /^undo$/i }).click();
+  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Senior Software Engineer");
+
+  await page.getByRole("button", { name: /add custom section/i }).click();
+  const sectionTitle = page.getByLabel("New Section section title");
+  await sectionTitle.fill("Publications");
+  await page.getByRole("button", { name: "Remove Publications section" }).click();
+  await expect(sectionTitle).toBeHidden();
+  await expect(page.locator('[role="status"]').filter({ hasText: "Removed Publications section" })).toBeVisible();
+  await page.getByRole("button", { name: /^undo$/i }).click();
+  await expect(page.getByLabel("Publications section title")).toBeVisible();
+});
+
 test("adds a common section with its useful heading already in place", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

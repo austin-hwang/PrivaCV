@@ -752,9 +752,8 @@ export function ResumeEditor() {
                           variant="ghost"
                           size="icon"
                           aria-label={`Remove ${sectionTitle} section`}
-                          onClick={() => {
-                            if (window.confirm(`Remove the ${sectionTitle || "custom"} section and all of its entries?`)) removeCustomSection(section);
-                          }}
+                          title="Remove section (Undo available)"
+                          onClick={() => removeCustomSection(section)}
                         >
                           <Trash2 />
                         </Button>

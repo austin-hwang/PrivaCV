@@ -45,6 +45,8 @@ export const ENTRY_SCHEMA: Record<
 export type ToastState = {
   id: number;
   message: string;
+  /** Used only for short, reversible editing actions. */
+  action?: "undo";
 };
 
 export type ImportReviewItem = {
