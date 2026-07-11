@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-11 13:55 PDT
+
+- Market and product review: Teal and other builders make imports and tailored
+  variants central, while user feedback still calls out import corrections and
+  editing friction as reasons to abandon a builder. This editor already keeps
+  imported content reviewable, but a routine Remove action could immediately
+  discard a corrected entry and force the same retyping users dislike.
+- Finding and decision: reversible removal won over another parser heuristic
+  or ATS signal because it protects a frequent, high-cost editing mistake in
+  the core workflow. A brief Undo is calmer than a confirmation dialog: it
+  preserves momentum while keeping recovery obvious.
+- Implementation: removed experience, education, project, custom-entry, and
+  custom-section content can now be restored from a five-second accessible
+  Undo toast. Custom sections return with their entries and their previous
+  place in the document order. The browser regression covers both entry and
+  custom-section restoration.
+
 ## 2026-07-11 12:29 PDT
 
 - Market and product review: current resume tools differentiate on fast
