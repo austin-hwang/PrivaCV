@@ -725,6 +725,34 @@ test("shows an export checkpoint before printing an unresolved resume", async ({
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 });
 
+test("keeps import confirmation explicit in the export checkpoint", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com | San Francisco, CA",
+    "",
+    "Experience",
+    "Platform Engineer | Analytical Engines | 2022–Present",
+    "• Built reliable systems.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
+  await expect(exportDialog.getByText("Imported fields still need review")).toBeVisible();
+  await expect(exportDialog.getByText(/0\/\d+ confirmed/)).toBeVisible();
+  await expect(exportDialog.getByRole("button", { name: /review next field/i })).toBeVisible();
+  await expect(exportDialog.getByRole("button", { name: /mark reviewed/i })).toHaveCount(0);
+
+  await exportDialog.getByRole("button", { name: /review next field/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+});
+
 test("shows when the resume changed after the last PDF export", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {

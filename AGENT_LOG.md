@@ -1,5 +1,29 @@
 # Agent Log
 
+## 2026-07-11 12:50 PDT
+
+- Market and product review: current leaders such as Teal prioritize rapid
+  role-specific tailoring, while Rezi markets real-time review and export
+  checks. Community discussion continues to distinguish readable, plain-text
+  documents from untrustworthy ATS theater. This editor's local review and
+  print-ready export are therefore more valuable than another opaque score.
+- Finding and decision: the export checkpoint correctly warned when imported
+  fields had not been confirmed, but also offered a broad "Mark reviewed"
+  action that silently removed the entire checklist. That contradicted the
+  product's explicit import-review promise and made an easy accidental bypass
+  more likely. Replacing it with exact confirmation progress and a single
+  next-field route won over more parsing work because it protects the decisive
+  import-to-export handoff without blocking an informed user from exporting.
+- Implementation: the export dialog now displays confirmed-field progress,
+  sends users to the next unconfirmed field, and only exposes a finish action
+  after every suggested field is confirmed. "Export Anyway" remains available
+  as the deliberate override.
+- Verification: `pnpm typecheck`, `pnpm lint` (only Next.js's existing
+  deprecation notice), 44 Vitest tests, optimized production build, the focused
+  Playwright regression, and the complete 47-flow Playwright suite passed.
+- Provisional next step: reassess real print behavior across browser engines
+  and uncommon import layouts before adding formats or AI writing assistance.
+
 ## 2026-07-11 05:32 PDT
 
 - Market and product review: Teal continues to make a comprehensive source

@@ -60,6 +60,7 @@ export function ResumeEditorOverlays({
     historyBackupInputRef,
     historyBackupToImport,
     importReview,
+    importReviewStatus,
     importVersionHistoryBackup,
     jobDescription,
     jsonInputRef,
@@ -70,12 +71,12 @@ export function ResumeEditorOverlays({
     openVersionHistoryBackup,
     pdfInputRef,
     plainText,
+    completeImportReview,
     restoreVersion,
     roleLabel,
     saveVersion,
     setExportCheckOpen,
     setHistoryBackupToImport,
-    setImportReview,
     setTextReviewOpen,
     setTextImportOpen,
     setVersionCompareTarget,
@@ -98,6 +99,10 @@ export function ResumeEditorOverlays({
     versionSaveOpen,
     versionToReplaceOnSave,
   } = editor;
+
+  const nextImportReviewItem = importReview?.items.find(
+    (item) => !importReview.reviewedItemIds?.includes(item.id),
+  );
 
   return (
     <>
@@ -454,28 +459,34 @@ export function ResumeEditorOverlays({
               <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Imported fields still need review</p>
+                    <p className="text-sm font-semibold">
+                      {importReviewStatus?.isComplete ? "Imported fields are confirmed" : "Imported fields still need review"}
+                    </p>
                     <p className="text-xs leading-snug text-muted-foreground">
-                      Confirm the suggested fields before exporting.
+                      {importReviewStatus?.isComplete
+                        ? "Finish the review to clear this reminder before your next export."
+                        : "Confirm each suggested field, or consciously continue with Export Anyway."}
                     </p>
                   </div>
-                  <Badge variant="secondary">{importReview.items.length} fields</Badge>
+                  <Badge variant="secondary">
+                    {importReviewStatus?.reviewedCount ?? 0}/{importReview.items.length} confirmed
+                  </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {importReview.items.slice(0, 3).map((item) => (
+                  {nextImportReviewItem ? (
                     <Button
-                      key={item.id}
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => focusFromExportCheck(item.targetId)}
+                      onClick={() => focusFromExportCheck(nextImportReviewItem.targetId)}
                     >
-                      <Eye /> {item.label}
+                      <Eye /> Review next field
                     </Button>
-                  ))}
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setImportReview(null)}>
-                    <Check /> Mark reviewed
-                  </Button>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={completeImportReview}>
+                      <Check /> Finish import review
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : null}
