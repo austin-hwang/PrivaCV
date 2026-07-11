@@ -94,9 +94,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   crowded sections and low-evidence resumes; it now prompts for measurable
   scope or results without requiring every bullet to contain a number, with an
   in-context per-entry cue that identifies the bullets to reconsider. A missing
-  summary is now clearly optional rather than an export blocker, so the next
-  reassessment should focus on evidence quality and readability over requiring
-  conventional filler.
+  summary is now clearly optional rather than an export blocker, and a two-page
+  resume is a contextual advisory rather than a failure for experienced
+  candidates. The next reassessment should focus on evidence quality and
+  readability over requiring conventional filler or arbitrary compression.
 - Keep the editor and live resume preview equally reachable on a phone, while
   preserving the fast desktop split workspace and print layout. Avoid putting
   optional review dashboards ahead of the first editable field on a phone.

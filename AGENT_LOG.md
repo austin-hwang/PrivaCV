@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-11 10:30 PDT
+
+- Market and product review: Teal and Rezi continue to center imported master
+  resumes, tailored versions, and opaque match scoring. Their guidance still
+  expects users to review and personalize the result; current career guidance
+  also recognizes that two pages can be appropriate for experienced candidates.
+- Finding and decision: Resume Check labeled every two-page document as a
+  failure and pushed a one-page rule even when deeper experience made a second
+  page reasonable. Contextual length guidance won over a new matching feature
+  because it removes misleading friction at the final export decision without
+  weakening concise-resume guidance.
+- Implementation: one page remains the ideal scan-friendly state; two pages
+  now surface a non-blocking relevance advisory that asks users to keep the
+  strongest evidence near the top and follow a posting's explicit limit; three
+  or more pages still receive an actionable trimming check. Added unit coverage
+  for both boundaries and updated README and roadmap wording.
+- Verification: 46 Vitest tests, TypeScript, ESLint (with Next.js's existing
+  `next lint` deprecation notice), and optimized production build passed. The
+  full 50-flow Playwright suite completed successfully.
+- Provisional next step: reassess uncommon PDF text-extraction layouts and
+  cross-browser print/PDF fidelity before expanding output formats or adding
+  AI writing assistance.
+
 ## 2026-07-11 09:28 PDT
 
 - Market and product review: current builders make imported source resumes and

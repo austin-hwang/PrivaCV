@@ -292,9 +292,20 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
     {
       id: "length",
       label: "Length",
-      ok: pageCount <= 1,
-      detail: pageCount <= 1 ? "One-page PDF" : `${pageCount} pages in preview`,
-      guidance: "Recruiters scan quickly, so a one-page resume keeps the strongest evidence in view.",
+      ok: pageCount <= 2,
+      advisory: pageCount === 2,
+      detail:
+        pageCount <= 1
+          ? "One-page PDF"
+          : pageCount === 2
+            ? "Two pages — review relevance"
+            : `${pageCount} pages in preview`,
+      guidance:
+        pageCount <= 1
+          ? "A one-page resume keeps the strongest evidence easy to scan."
+          : pageCount === 2
+            ? "Two pages can be appropriate for deeper experience. Keep the most relevant evidence near the top and follow any application-specific limit."
+            : "Most resumes are strongest at one or two pages. Trim lower-impact details or adjust the text size so the strongest evidence stays easy to scan.",
       actionLabel: "Adjust size",
       targetId: "resume-text-scale",
     },

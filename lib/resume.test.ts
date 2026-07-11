@@ -473,6 +473,22 @@ describe("resume helpers", () => {
     expect(checks.every((check) => check.ok)).toBe(true);
   });
 
+  it("keeps a two-page resume as an advisory instead of an export failure", () => {
+    const twoPageLength = buildResumeChecks(sampleState(), 2).find((check) => check.id === "length");
+    const threePageLength = buildResumeChecks(sampleState(), 3).find((check) => check.id === "length");
+
+    expect(twoPageLength).toMatchObject({
+      ok: true,
+      advisory: true,
+      detail: "Two pages — review relevance",
+      actionLabel: "Adjust size",
+    });
+    expect(threePageLength).toMatchObject({
+      ok: false,
+      detail: "3 pages in preview",
+    });
+  });
+
   it("keeps a missing summary as an optional prompt instead of an export issue", () => {
     const state = sampleState();
     state.summary = "";
