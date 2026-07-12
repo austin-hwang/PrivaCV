@@ -57,6 +57,7 @@
 
 .resume-sheet {
   position: relative;
+  box-sizing: border-box;
   width: 8.5in;
   min-height: 11in;
   padding: 0.4in 0.5in;
@@ -344,7 +345,7 @@
   }
 
   .resume-sheet {
-    width: auto;
+    width: 8.5in;
     min-height: 11in;
     box-shadow: none;
   }
@@ -377,6 +378,17 @@
 
   .resume-section-title {
     break-after: avoid;
+  }
+
+  /* Keep a heading with its first line of evidence and avoid splitting a
+     single bullet across pages when a long entry must continue. */
+  .resume-entry-head,
+  .resume-entry-sub {
+    break-after: avoid;
+  }
+
+  .resume-bullets li {
+    break-inside: avoid;
   }
 }
 

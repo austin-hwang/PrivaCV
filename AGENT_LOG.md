@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-11 21:28 PDT
+
+- Market and product review: current Rezi guidance and recent reviews make the
+  editable PDF/DOCX artifact and a trustworthy preview central, while feedback
+  still names export speed, formatting flexibility, and UI friction as weak
+  points. The current product has strong local review and export safeguards,
+  but its CSS declared an 8.5-inch content width and then added horizontal
+  padding outside it. The resulting preview page was actually 9.5 inches wide,
+  so narrow-screen scaling and browser print fitting could disagree with the
+  stated Letter layout.
+- Finding and decision: make the document page a true Letter-sized border box,
+  then add narrow print-flow protection, rather than add another tailoring
+  feature or attempt browser-specific PDF generation. This fixes a core trust
+  promise directly, retains native browser PDF accessibility and links, and
+  reduces the chance of a heading, entry detail, or one bullet looking broken
+  at a page boundary.
+- Implementation: the resume sheet now includes its padding inside its 8.5 by
+  11 inch dimensions on both screen and print. Print styles also avoid a break
+  immediately after entry headers/subtitles and inside individual bullets when
+  space permits. Browser coverage asserts the true Letter dimensions under
+  both media modes; README and roadmap now state the guarantee.
+- Verification: TypeScript, ESLint, all 52 Vitest tests, focused Playwright
+  Letter/print regression coverage, and the optimized production build passed.
+- Provisional next step: reassess full browser-engine PDF rendering with a
+  manually saved multi-page artifact—especially very long single entries—before
+  adding more templates or writing assistance.
+
 ## 2026-07-11 20:29 PDT
 
 - Market and product review: current Teal/Rezi positioning and recent user
