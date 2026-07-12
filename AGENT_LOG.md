@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-12 — Preserve employer-first import headers
+
+- Market and product review: current resume-builder feedback continues to put
+  dependable, ATS-readable exports and low-friction editing ahead of ornate
+  templates. The local importer already made its uncertainty reviewable, but a
+  common exported layout—employer and location on one line, then role and
+  dates—could discard the role before a person reached that review.
+- Options considered: leave the correction to the field-by-field review,
+  broadly guess at two-line headers, or recover only a recognizable dated role
+  from an employer-first pattern. The narrow recovery won because it removes
+  avoidable retyping without turning ambiguous headers into silent guesses.
+- Implementation: the parser now keeps that employer-first header together,
+  maps a recognizable dated role to the title and the employer to the company,
+  removes an adjacent city/remote label, and preserves adjacent entries even
+  when the source has no blank line. Bullet-led normal dated entries retain
+  their existing boundary behavior.
+- Expected experience improvement: importing a common PDF layout now lands on
+  an immediately useful Experience card instead of asking the job seeker to
+  recover a missing role title from the source text.
+- Verification: all 62 Vitest tests, TypeScript, standalone Next lint, the
+  focused Chromium import flow, and the optimized production build passed. A
+  clean isolated Chromium full-suite run again stopped after reporting its first
+  24 passing flows without returning a final summary, so it is not counted as a
+  completed full-suite pass.
+- Provisional next step: reassess ordinary browser-PDF pagination and remaining
+  uncommon import layouts before expanding role-tailoring scope.
+
 ## 2026-07-12 — Clarify role-term evidence
 
 - Market and product review: current alternatives center tailoring on opaque

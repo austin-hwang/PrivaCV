@@ -241,6 +241,12 @@ function stripBullet(line: string) {
 }
 
 const ACTION_VERB_RE = /^(developed|led|built|designed|managed|implemented|created|spearheaded|scaled|deployed|automated|trained|executed|integrated|secured|owned|improved|launched|architected|drove|delivered)\b/i;
+// Only use the employer-first recovery when the dated line has a recognisable
+// role word. A PDF can put either an employer or a role beside dates, and
+// guessing for every two-line header would silently swap otherwise usable
+// imports. This narrow list covers the common exported-resume pattern while
+// leaving ambiguous headers available for the existing explicit review flow.
+const ROLE_TITLE_RE = /\b(engineer|developer|manager|designer|analyst|architect|scientist|consultant|specialist|director|coordinator|administrator|strategist|lead|intern|researcher|officer|associate|assistant|producer|editor|writer|advisor|representative|technician)\b/i;
 
 function looksLikeSubtitle(line: string) {
   const value = line.trim();
@@ -313,8 +319,30 @@ function splitIntoChunks(blockLines: string[]) {
 
     flat.forEach((line, index) => {
       if (index > 0 && DATE_RANGE_RE.test(line) && buffer.length) {
-        dated.push(buffer);
-        buffer = [];
+        const dateMatch = line.match(DATE_RANGE_RE)?.[0] ?? "";
+        const datedRole = stripBullet(line)
+          .replace(dateMatch, "")
+          .replace(/[\s|,\u2013\u2014-]+$/, "")
+          .trim();
+        // A role can share its dates on the second line of an employer-first
+        // header. Keep that header together so chunkToEntry can recover both
+        // fields; a normal dated role remains the boundary for the next entry.
+        const isEmployerFirstHeader = datedRole &&
+          ROLE_TITLE_RE.test(datedRole) &&
+          !BULLET_RE.test(buffer[buffer.length - 1] || "");
+        if (isEmployerFirstHeader) {
+          // With no blank line between entries, keep only the immediately
+          // preceding employer with this dated role and finish the prior
+          // entry. This preserves repeated employer-first headers instead of
+          // merging all of their bullets into one entry.
+          if (buffer.length > 1) {
+            dated.push(buffer.slice(0, -1));
+            buffer = [buffer[buffer.length - 1]];
+          }
+        } else {
+          dated.push(buffer);
+          buffer = [];
+        }
       }
       buffer.push(line);
     });
@@ -350,6 +378,32 @@ function joinDetailLines(lines: string[]) {
   return details.join("\n");
 }
 
+/**
+ * Recovers a common two-line header where an employer (often with a location)
+ * precedes a role on the line that also carries dates. Previously the parser
+ * used the employer as the title and discarded the dated role line altogether.
+ * Keep this deliberately high-confidence so unusual layouts still stay
+ * reviewable rather than being silently reinterpreted.
+ */
+function employerFirstDatedRole(chunk: string[], meta: string, dateLineIndex: number) {
+  if (dateLineIndex !== 1 || !meta || BULLET_RE.test(chunk[0] || "")) return null;
+
+  const role = stripBullet(chunk[dateLineIndex])
+    .replace(meta, "")
+    .replace(/[\s|,\u2013\u2014-]+$/, "")
+    .trim();
+  if (!role || !ROLE_TITLE_RE.test(role)) return null;
+
+  const employer = stripBullet(chunk[0])
+    .replace(CITY_RE, "")
+    .replace(/\s*(?:[|,\u2013\u2014-]\s*)?(?:remote|hybrid)\s*$/i, "")
+    .replace(/[\s|,\u2013\u2014-]+$/, "")
+    .trim();
+  if (!employer) return null;
+
+  return { title: role, subtitle: employer };
+}
+
 function chunkToEntry(chunk: string[]) {
   let meta = "";
   let dateLineIndex = -1;
@@ -378,6 +432,13 @@ function chunkToEntry(chunk: string[]) {
   if (!subtitle && chunk[1] && looksLikeSubtitle(chunk[1])) {
     subtitle = chunk[1].trim();
     subtitleIndex = 1;
+  }
+
+  const recoveredHeader = employerFirstDatedRole(chunk, meta, dateLineIndex);
+  if (recoveredHeader) {
+    title = recoveredHeader.title;
+    subtitle = recoveredHeader.subtitle;
+    subtitleIndex = -1;
   }
 
   const detailLines = chunk

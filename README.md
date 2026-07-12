@@ -111,9 +111,11 @@ subscriptions, watermarks, or backend storage.
   a common artifact of positioned-PDF exports;
   it also recognizes adjacent entries whose dates are on their own lines: roles
   remain separate when bulleted details make the boundary clear, and compact
-  degree-and-school histories remain separate without bullets. Compact inline
-  headings such as `Professional Summary: ...`, `Skills: ...`, and
-  `Experience: ...` retain the content after the colon.
+  degree-and-school histories remain separate without bullets. Employer-first
+  two-line headers retain a recognizable dated role, even when adjacent roles
+  have no blank line. Compact inline headings such as `Professional Summary:
+  ...`, `Skills: ...`, and `Experience: ...` retain the content after the
+  colon.
 - Post-import review panel that guides users through each imported contact,
   summary, experience, education, project, and skills entry, keeps explicit
   confirmation and a matching source excerpt beside the editable value, keeps

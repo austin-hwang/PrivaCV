@@ -382,6 +382,55 @@ describe("resume helpers", () => {
     ]);
   });
 
+  it("keeps a dated role when an employer-first PDF header puts the job title on its second line", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "",
+      "Experience",
+      "Northstar Labs | Seattle, WA",
+      "Senior Product Engineer | Feb 2022 – Present",
+      "• Led dependable platform work.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({
+        title: "Senior Product Engineer",
+        subtitle: "Northstar Labs",
+        meta: "Feb 2022 – Present",
+        details: "Led dependable platform work.",
+      }),
+    ]);
+  });
+
+  it("keeps adjacent employer-first headers separate when a PDF omits blank lines", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "",
+      "Experience",
+      "Northstar Labs | Seattle, WA",
+      "Senior Product Engineer | Feb 2022 – Present",
+      "• Led dependable platform work.",
+      "Example Co. | Remote",
+      "Software Engineer | Jun 2018 – Jan 2022",
+      "• Improved deployment tooling.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({
+        title: "Senior Product Engineer",
+        subtitle: "Northstar Labs",
+        meta: "Feb 2022 – Present",
+        details: "Led dependable platform work.",
+      }),
+      expect.objectContaining({
+        title: "Software Engineer",
+        subtitle: "Example Co.",
+        meta: "Jun 2018 – Jan 2022",
+        details: "Improved deployment tooling.",
+      }),
+    ]);
+  });
+
   it("keeps compact education entries separate when their standalone dates have no bullets", () => {
     const state = importResumeText([
       "Ada Lovelace",

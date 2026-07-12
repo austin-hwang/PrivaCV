@@ -684,6 +684,31 @@ test("imports concise overview and skills headings without losing their content"
   await expect(page.getByText("1 skill line detected")).toBeVisible();
 });
 
+test("keeps an employer-first dated PDF header editable as the right role and employer", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "",
+    "Experience",
+    "Northstar Labs | Seattle, WA",
+    "Senior Product Engineer | Feb 2022 – Present",
+    "• Led dependable platform work.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Senior Product Engineer");
+  await expect(page.getByLabel("Company", { exact: true }).first()).toHaveValue("Northstar Labs");
+  await expect(page.getByLabel("Dates (e.g. Jan 2020 - Present)", { exact: true }).first())
+    .toHaveValue("Feb 2022 – Present");
+  await expect(page.getByLabel("Responsibilities / achievements (one bullet per line)", { exact: true }).first())
+    .toHaveValue("Led dependable platform work.");
+});
+
 test("requires review of imported specialty-section entries", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -49,11 +49,13 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   entry boundary clear, and compact degree-and-school entries without bullets
   remain separate when each date ends its header. Compact inline headings such
   as `Skills: ...`, `Professional Summary: ...`, and `Experience: ...` also
-  retain the content following the colon. Continue to favor conservative
-  extraction plus explicit review over guesses that could merge or invent
-  experience. Company-first role headings remain deliberately reviewable
-  rather than guessed; each experience entry now has a reversible one-click
-  title/company swap.
+  retain the content following the colon. Employer-first two-line headers now
+  retain a recognizable dated role instead of dropping it, including adjacent
+  roles with no blank line. Continue to favor conservative extraction plus
+  explicit review over guesses that could merge or invent experience.
+  Company-first role headings remain deliberately reviewable rather than
+  guessed; each experience entry now has a reversible one-click title/company
+  swap.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Keep page-fit decisions intentional and reversible: when a preview crosses a
   page boundary, a small local helper can try compact spacing and then modest
