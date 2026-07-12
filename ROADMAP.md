@@ -27,10 +27,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   non-empty imported entry—including specialty sections such as certifications
   and publications—keep confirmation plus nearby matching source
   context beside the editable value, and distinguish a recognizable source
-  heading from an area the parser actually populated. This makes a skipped
-  Education, Skills, Summary, Experience, or Projects section explicit before
-  users confirm their draft. Reassess whether parsing accuracy itself is now
-  the remaining trust gap.
+  heading from an area the parser actually populated; the coverage snapshot
+  now also keeps a compact local source excerpt beside each recognized section.
+  This makes a skipped Education, Skills, Summary, Experience, or Projects
+  section explicit and quicker to recover before users confirm their draft.
+  Reassess whether parsing accuracy itself is now the remaining trust gap.
 - Improve parsing accuracy for common plain-text layouts before expanding
   output formats: alternate headings such as Career Profile, Relevant
   Experience, Education & Training, Academic Projects, and Key Skills now map
@@ -165,9 +166,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   signals and a better before/after correction flow now that every imported
   entry can be explicitly confirmed, checked against nearby local source
   context, and compared with a source-aware coverage snapshot that identifies
-  recognizable headings the parser did not populate. Reassess the remaining
-  parsing gaps, particularly uncommon header formats, before expanding output
-  formats or tailoring automation.
+  recognizable headings the parser did not populate and shows a compact source
+  excerpt for detected sections. Reassess the remaining parsing gaps,
+  particularly uncommon header formats, before expanding output formats or
+  tailoring automation.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep PDF reconstruction conservative but resilient: tiny baseline differences

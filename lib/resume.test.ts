@@ -24,6 +24,7 @@ import {
   VERSION_HISTORY_BACKUP_VERSION,
   buildImportCoverage,
   buildImportReview,
+  importSectionExcerpt,
   importSourceExcerpt,
   importReviewProgress,
   mergeVersionHistory,
@@ -472,6 +473,31 @@ describe("resume helpers", () => {
       sourceDetected: false,
       detail: "No skills detected",
     });
+  });
+
+  it("keeps a short source excerpt with a recognized section coverage card", () => {
+    const sourceText = [
+      "Ada Lovelace",
+      "Experience",
+      "Engineer | Example Co. | 2022 - Present",
+      "• Built reliable systems.",
+      "• Improved incident response.",
+      "Education",
+      "B.S. Computer Science | Example University | 2012 - 2016",
+      "Skills",
+      "TypeScript, React, accessibility",
+    ].join("\n");
+    const state = importResumeText(sourceText);
+    const coverage = buildImportCoverage(state, sourceText);
+
+    expect(importSectionExcerpt(sourceText, "experience")).toBe([
+      "Experience",
+      "Engineer | Example Co. | 2022 - Present",
+      "• Built reliable systems.",
+      "• Improved incident response.",
+    ].join("\n"));
+    expect(coverage.find((item) => item.id === "education")?.sourceExcerpt).toContain("Example University");
+    expect(coverage.find((item) => item.id === "skills")?.sourceExcerpt).toBe("Skills\nTypeScript, React, accessibility");
   });
 
   it("preserves intentionally removed default sections while normalizing legacy JSON", () => {

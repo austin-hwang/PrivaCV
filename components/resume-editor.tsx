@@ -561,6 +561,11 @@ export function ResumeEditor() {
                           {item.sourceDetected && !item.detected ? (
                             <span className="mt-1 block text-xs font-medium text-amber-950">Source section needs review</span>
                           ) : null}
+                          {item.sourceExcerpt ? (
+                            <span className="mt-2 block whitespace-pre-line rounded border border-current/15 bg-background/70 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground">
+                              <span className="font-sans font-semibold">Source excerpt: </span>{item.sourceExcerpt}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                     ))}
