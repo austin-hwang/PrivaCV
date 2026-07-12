@@ -840,7 +840,7 @@ export function ResumeEditor() {
                   })}
                 </div>
               </FieldGroup>
-              <FieldGroup id="edit-header" title="Header">
+              <FieldGroup id="edit-header" title="Header" reviewRegion>
                 <TextField
                   id="field-name"
                   label="Full Name"
@@ -911,7 +911,7 @@ export function ResumeEditor() {
                 />
               </FieldGroup>
 
-              <FieldGroup id="edit-summary" title="Summary">
+              <FieldGroup id="edit-summary" title="Summary" reviewRegion>
                 <TextAreaField
                   id="field-summary"
                   label="Professional Summary"
@@ -964,6 +964,7 @@ export function ResumeEditor() {
                   }}
                 >
                 <FieldGroup
+                  reviewRegion={section === "skills"}
                   className={cn(
                     sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200",
                     draggedSection === section && "rounded-md opacity-45",

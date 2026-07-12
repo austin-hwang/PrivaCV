@@ -18,9 +18,13 @@ function reviewFieldClass(reviewState?: ReviewState) {
   return undefined;
 }
 
-export function FieldGroup({ id, title, actions, children, className }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+export function FieldGroup({ id, title, actions, children, className, reviewRegion }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; reviewRegion?: boolean }) {
   return (
-    <section id={id} className={cn("scroll-mt-32 border-b pb-5 transition-colors last:border-b-0 lg:scroll-mt-16", className)}>
+    <section
+      id={id}
+      data-review-region={reviewRegion ? "" : undefined}
+      className={cn("scroll-mt-32 border-b pb-5 transition-colors last:border-b-0 lg:scroll-mt-16", className)}
+    >
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
         {actions}
@@ -151,6 +155,7 @@ export function EntryList({
         return (
           <Card
             key={index}
+            data-review-region=""
             className="bg-muted/20 shadow-none transition-colors"
             onDragOver={(event) => {
               if (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();

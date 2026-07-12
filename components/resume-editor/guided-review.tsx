@@ -24,6 +24,18 @@ export type GuidedReviewStep = {
 const CARD_WIDTH = 340;
 const GAP = 10;
 
+/**
+ * Highlight the whole section a step references (e.g. the full experience
+ * entry), not just the single input — clearer context and it keeps every field
+ * inside editable. Falls back to the target element itself when it isn't inside
+ * a review region (e.g. the text-size control).
+ */
+function resolveRegionEl(targetId: string): HTMLElement | null {
+  const el = document.getElementById(targetId);
+  if (!el) return null;
+  return (el.closest("[data-review-region]") as HTMLElement | null) ?? el;
+}
+
 function toneRing(tone: GuidedReviewStep["tone"]) {
   switch (tone) {
     case "warn":
@@ -65,7 +77,7 @@ export function GuidedReview({
 }) {
   const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const [cardPos, setCardPos] = useState<{ top: number; left: number; placement: "below" | "above" | "bottom" } | null>(null);
+  const [cardPos, setCardPos] = useState<{ top: number; left: number; placement: "below" | "above" | "bottom" | "right" } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const step = steps[index];
 
@@ -83,7 +95,7 @@ export function GuidedReview({
   useEffect(() => {
     if (!open || !targetId) return;
     const timer = window.setTimeout(() => {
-      document.getElementById(targetId)?.scrollIntoView({ block: "center" });
+      resolveRegionEl(targetId)?.scrollIntoView({ block: "center" });
     }, 30);
     return () => window.clearTimeout(timer);
   }, [open, targetId]);
@@ -91,7 +103,7 @@ export function GuidedReview({
   // Keep the ring + card positioned over the moving target while the tour is open.
   const reposition = useCallback(() => {
     if (!step) return;
-    const el = document.getElementById(step.targetId);
+    const el = resolveRegionEl(step.targetId);
     if (!el) {
       setRect((prev) => (prev === null ? prev : null));
       return;
@@ -105,7 +117,7 @@ export function GuidedReview({
     const vh = window.innerHeight;
     const cardH = cardRef.current?.offsetHeight ?? 200;
 
-    const setPos = (next: { top: number; left: number; placement: "below" | "above" | "bottom" }) =>
+    const setPos = (next: { top: number; left: number; placement: "below" | "above" | "bottom" | "right" }) =>
       setCardPos((prev) =>
         prev && Math.abs(prev.top - next.top) < 1 && Math.abs(prev.left - next.left) < 1 && prev.placement === next.placement
           ? prev
@@ -119,10 +131,17 @@ export function GuidedReview({
     }
 
     const width = Math.min(CARD_WIDTH, vw - 24);
-    let left = r.left;
-    if (left + width > vw - 12) left = vw - width - 12;
-    if (left < 12) left = 12;
+    const clampTop = (value: number) => Math.min(Math.max(value, 12), Math.max(12, vh - cardH - 12));
 
+    // Prefer floating to the right of the highlighted region so every field
+    // inside it stays visible and editable.
+    if (r.right + GAP + width <= vw - 12) {
+      setPos({ top: clampTop(r.top), left: r.right + GAP, placement: "right" });
+      return;
+    }
+
+    // Otherwise drop below the region, flipping above when there's no room.
+    const left = Math.min(Math.max(r.left, 12), Math.max(12, vw - width - 12));
     let top = r.bottom + GAP;
     let placement: "below" | "above" = "below";
     if (top + cardH > vh - 12) {
@@ -140,7 +159,7 @@ export function GuidedReview({
   useLayoutEffect(() => {
     if (!open || !targetId) return;
 
-    const target = document.getElementById(targetId);
+    const target = resolveRegionEl(targetId);
     let frame = 0;
     const scheduleReposition = () => {
       window.cancelAnimationFrame(frame);
