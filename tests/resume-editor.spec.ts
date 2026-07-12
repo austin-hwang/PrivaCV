@@ -152,6 +152,15 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await expect(sheet).toHaveAttribute("data-density", "compact");
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
   await expect(sheet).toHaveCSS("font-family", /Georgia/);
+
+  // Choosing a sample replaces the draft content but should not quietly reset
+  // the visual design the person is currently evaluating.
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^sample$/i }).click();
+  await expect(sheet).toHaveAttribute("data-heading", "plain");
+  await expect(sheet).toHaveAttribute("data-density", "compact");
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await expect(sheet).toHaveCSS("font-family", /Georgia/);
 });
 
 test("keeps desktop section navigation flush with the app header", async ({ page }) => {

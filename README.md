@@ -24,6 +24,9 @@ subscriptions, watermarks, or backend storage.
   local-first data model without inventing a hosted domain.
 - Sections for Header, Summary, Experience, Education, Projects, and Skills.
 - Four clean, printable templates (Classic, Minimal, Modern, and Compact) that keep the same ATS-readable structure.
+- Professional design controls for template, font, restrained accent color,
+  heading treatment, density, alignment, divider, and text scale; loading a
+  sample preserves the active design so it can be evaluated in that layout.
 - Add, remove, and reorder repeatable entries, including with drag-and-drop or
   accessible move controls.
 - Rename—or intentionally omit—section headings, remove and restore default

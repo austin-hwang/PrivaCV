@@ -695,7 +695,15 @@ export function useResumeEditor() {
 
   const loadSample = () => {
     saveRecoveryPoint("Before loading the sample");
-    setState((current) => ({ ...sampleState(), template: current.template }));
+    // Loading a sample should replace the resume content, not quietly undo the
+    // design a person just chose to evaluate it in. Keep every visual setting
+    // (including scale) aligned with the active preview and PDF.
+    setState((current) => ({
+      ...sampleState(),
+      template: current.template,
+      theme: current.theme,
+      textScale: current.textScale,
+    }));
     setImportReview(null);
     setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);

@@ -47,6 +47,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   rather than guessed; each experience entry now has a reversible one-click
   title/company swap.
 - Keep the editor dense but calm, with immediate preview feedback.
+- Treat loading a sample as a content change, not a design reset: the selected
+  template, typeface, accent, heading treatment, density, and text scale stay
+  active so people can evaluate the example in the layout they chose.
 - Preserve confidence around privacy, autosave, and free export.
 - Make risky actions reversible so users can experiment without fear. Removing
   an entry or custom section now offers a short Undo window, so routine cleanup
