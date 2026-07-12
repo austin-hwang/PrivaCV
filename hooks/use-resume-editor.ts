@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
+import { resumeDocxBlob } from "@/lib/docx-export";
 import { buildRoleFocus } from "@/lib/job-match";
 import {
   blankEntry,
@@ -858,6 +859,15 @@ export function useResumeEditor() {
     flash("Saved plain text to downloads");
   };
 
+  const downloadDocx = () => {
+    if (!hasAnyContent(state)) {
+      flash("Add resume details first");
+      return;
+    }
+    downloadFile(resumeDocxBlob(state), `${safeResumeFilename(state.name || "resume")}.docx`);
+    flash("Saved Word document to downloads");
+  };
+
   const startPrintExport = () => {
     const checkpoint: ExportCheckpoint = {
       fingerprint: exportFingerprint,
@@ -933,6 +943,7 @@ export function useResumeEditor() {
     comparedTargetVersion,
     copyPlainText,
     deleteVersion,
+    downloadDocx,
     downloadPlainText,
     deletedVersion,
     dismissRecoveryPoint,

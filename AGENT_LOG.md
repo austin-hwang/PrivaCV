@@ -1871,3 +1871,17 @@
 - Rendered valid contact values as semantic links in the preview; browser print can preserve those links in the produced PDF.
 - Added unit coverage for safe-link behavior and browser coverage for sample-preview contact links.
 - Updated README and roadmap with the export-confidence behavior and browser-engine annotation caveat.
+
+# 2026-07-11 — Local editable Word export
+
+## Product review
+
+- **Finding:** Competitors advertise Word export alongside PDF, and career-center guidance consistently says to follow the application's requested format. Resume Editor could produce an ATS-friendly PDF or plain text, but users had no local way to attach a `.docx` when a portal required it.
+- **Options considered:** Add another resume-score heuristic, expand visual templates, or support the missing attachment format. A text-first Word export won because it removes a hard application blocker while preserving the product's privacy-first and conservative ATS posture.
+- **Expected user benefit:** Users can download an editable Word version of the resume they just reviewed, without retyping, converting through a third party, or losing their data to a service.
+
+## Changes
+
+- Added a local Office Open XML (`.docx`) generator with conventional single-column text, normal headings, bullets, Letter margins, and safe email/phone/website hyperlinks.
+- Added clear download paths in **More actions** and **Review Text**, with copy that distinguishes compatibility-focused Word output from the pixel-matched PDF template.
+- Added archive-level unit coverage and browser download coverage, then documented the behavior and tradeoff in README and roadmap.

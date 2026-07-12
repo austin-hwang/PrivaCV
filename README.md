@@ -53,6 +53,10 @@ subscriptions, watermarks, or backend storage.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog, including when the familiar
   Cmd/Ctrl+P shortcut is used.
+- Local, editable `.docx` export for portals that explicitly request a Word
+  document. It keeps the current resume in a simple single-column structure
+  with normal text, headings, bullets, and usable contact links; it is designed
+  for compatibility rather than pixel-matching the PDF template.
 - Local last-export status that shows whether the current resume still matches
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what
@@ -138,6 +142,14 @@ pnpm build
 2. In the browser print dialog, choose **Save as PDF**.
 3. Leave margins at the browser default. The app supplies its own Letter-page
    resume margins and hides the editor chrome while printing.
+
+## Downloading a Word document
+
+Open **More actions** and choose **Download Word (.docx)**, or open **Review
+Text** and choose **Download .docx**. The editable Word file is generated in
+your browser and does not upload your resume. Its deliberately simple layout is
+best for application portals that ask for a Word document; use PDF when you
+need the selected visual template preserved exactly.
 
 ## Importing a PDF
 
