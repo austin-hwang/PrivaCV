@@ -283,6 +283,23 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
 });
 
+test("makes local autosave visible while an edited resume is being stored", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const autosave = page.locator("[data-autosave-status]");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
+  await expect(autosave).toHaveText("Saved locally");
+
+  await page.getByLabel("Professional Summary").fill("A local-first product engineer who ships dependable tools.");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
+  await expect(autosave).toHaveText("Saving locally");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
+  await expect(autosave).toHaveText("Saved locally");
+});
+
 test("offers copy-ready application fields without making users retype resume details", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

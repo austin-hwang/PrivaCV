@@ -121,8 +121,10 @@ subscriptions, watermarks, or backend storage.
   sample load, and clearing the resume.
 - A five-second Undo for accidentally removed entries or custom sections, so
   routine cleanup does not turn into retyping.
-- Local autosave in browser storage plus user-managed JSON files for manual
-  save, open, and checkpoint export/import when needed.
+- Local autosave in browser storage now makes its brief saving state and
+  successful completion visible in the workspace header; user-managed JSON
+  files remain available for manual save, open, and checkpoint export/import
+  when needed.
 - Clean print stylesheet for browser Save as PDF.
 
 ## Stack

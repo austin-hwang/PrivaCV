@@ -142,6 +142,7 @@ export function useResumeEditor() {
   const [roleLabel, setRoleLabel] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved">("saved");
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
@@ -402,10 +403,12 @@ export function useResumeEditor() {
 
   useEffect(() => {
     if (!loaded) return;
+    setAutosaveStatus("saving");
     const timer = window.setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         confirmStorageAvailable();
+        setAutosaveStatus("saved");
       } catch {
         reportStorageIssue();
       }
@@ -1091,6 +1094,7 @@ export function useResumeEditor() {
     addBuiltinSection,
     addEntry,
     applicationCopyOpen,
+    autosaveStatus,
     checks,
     clearResume,
     copyApplicationField,
