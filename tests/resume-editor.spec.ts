@@ -300,6 +300,28 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveText("Saved locally");
 });
 
+test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  const otherTab = await context.newPage();
+  await otherTab.goto("/");
+  await expect(otherTab.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await otherTab.getByLabel("Full Name").fill("Alex Morgan");
+  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  const conflict = page.getByText("A different resume was saved in another tab", { exact: true }).locator("..");
+  await expect(conflict).toContainText("Autosave is paused here");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "conflict");
+  await page.getByRole("button", { name: /use saved draft/i }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Alex Morgan");
+  await expect(conflict).toBeHidden();
+  await otherTab.close();
+});
+
 test("offers copy-ready application fields without making users retype resume details", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

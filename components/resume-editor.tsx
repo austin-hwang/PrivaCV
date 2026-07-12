@@ -121,6 +121,7 @@ export function ResumeEditor() {
     confirmAllImportReviewItems,
     dismissRecoveryPoint,
     exportCheckpoint,
+    externalDraft,
     exportIsCurrent,
     focusCheckTarget,
     focusFromExportCheck,
@@ -133,6 +134,7 @@ export function ResumeEditor() {
     importReviewTargets,
     isImporting,
     jsonInputRef,
+    keepCurrentDraft,
     loadSample,
     moveEntry,
     moveSection,
@@ -161,6 +163,7 @@ export function ResumeEditor() {
     updateEntry,
     updateField,
     updateSectionTitle,
+    useExternalDraft,
     toggleImportReviewItem,
     completeImportReview,
     dismissRestoredVersionSummary,
@@ -299,23 +302,29 @@ export function ResumeEditor() {
             {hasContent && !storageIssue ? (
               <span
                 data-autosave-status={autosaveStatus}
-                aria-label={`Local autosave: ${autosaveStatus === "saving" ? "saving" : "saved"}`}
+                aria-label={`Local autosave: ${autosaveStatus === "saving" ? "saving" : autosaveStatus === "conflict" ? "paused for another tab" : "saved"}`}
                 title={
                   autosaveStatus === "saving"
                     ? "Saving this resume in this browser"
+                    : autosaveStatus === "conflict"
+                      ? "Autosave is paused until you choose which tab's draft to keep."
                     : "Saved in this browser. Use Save JSON for a portable backup."
                 }
                 className={cn(
                   "inline-flex items-center gap-1.5 text-xs font-medium",
-                  autosaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-700",
+                  autosaveStatus === "saving" ? "text-muted-foreground" : autosaveStatus === "conflict" ? "text-amber-700" : "text-emerald-700",
                 )}
               >
                 {autosaveStatus === "saving" ? (
                   <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+                ) : autosaveStatus === "conflict" ? (
+                  <span className="inline-flex size-3.5 items-center justify-center rounded-full border border-current text-[10px] leading-none" aria-hidden="true">!</span>
                 ) : (
                   <Check className="size-3.5" aria-hidden="true" />
                 )}
-                <span className="hidden sm:inline">{autosaveStatus === "saving" ? "Saving locally" : "Saved locally"}</span>
+                <span className="hidden sm:inline">
+                  {autosaveStatus === "saving" ? "Saving locally" : autosaveStatus === "conflict" ? "Autosave paused" : "Saved locally"}
+                </span>
               </span>
             ) : null}
             {hasContent || versionHistory.length ? (
@@ -472,6 +481,24 @@ export function ResumeEditor() {
                 <Button type="button" variant="outline" size="sm" className="w-fit border-amber-400 bg-background" onClick={saveJson}>
                   <Download /> Save JSON copy
                 </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {externalDraft ? (
+            <Alert className="mb-6 border-sky-300 bg-sky-50/70">
+              <AlertCircle className="h-4 w-4 text-sky-900" />
+              <AlertTitle className="text-sky-950">A different resume was saved in another tab</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3 text-sky-950 sm:flex-row sm:items-center sm:justify-between">
+                <span>Autosave is paused here so this tab does not overwrite the other draft. Choose which one to keep.</span>
+                <span className="flex shrink-0 flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={useExternalDraft}>
+                    Use saved draft
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={keepCurrentDraft}>
+                    Keep this draft
+                  </Button>
+                </span>
               </AlertDescription>
             </Alert>
           ) : null}

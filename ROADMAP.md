@@ -62,8 +62,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make local persistence visible without interrupting editing: the workspace
   header now quietly distinguishes a brief in-progress save from a completed
   browser-only save, while the existing warning and JSON backup path take over
-  if storage is unavailable. Reassess cross-device backup only if it can keep
-  the same privacy posture.
+  if storage is unavailable. When another browser tab saves a different resume,
+  this tab pauses autosave and lets the person deliberately choose its draft or
+  the newer saved one, preventing silent same-browser overwrites. Reassess
+  cross-device backup only if it can keep the same privacy posture.
 - Make risky actions reversible so users can experiment without fear. Removing
   an entry or custom section now offers a short Undo window, so routine cleanup
   never requires a disruptive confirmation dialog or accidental retyping.

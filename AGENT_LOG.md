@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-12 — Prevent same-browser draft overwrites
+
+- Market and product review: current alternatives center job seekers on a
+  master resume and many tailored drafts, while public feedback describes the
+  work as time-consuming and draining. This editor already makes local
+  autosave visible, but opening that private draft in a second browser tab
+  still allowed a stale tab to overwrite newer work without warning.
+- Options considered: leave multi-tab editing as an undocumented constraint,
+  add a heavier account-backed synchronization system, or provide a local
+  conflict choice at the point of risk. The local safeguard won: it solves the
+  most likely accidental overwrite without adding an account, network service,
+  or privacy exposure.
+- Implementation: a different resume saved by another tab now pauses autosave
+  in the current tab, changes the header state to an explicit paused warning,
+  and presents clear actions to use the saved draft or keep the current one.
+  Choosing the saved draft creates the existing in-tab recovery point first.
+- Expected experience improvement: people can compare or tailor in multiple
+  tabs without discovering that one quiet autosave erased their work; the next
+  decision is visible, reversible, and local.
+- Verification: TypeScript, ESLint, all 56 Vitest tests, focused two-tab
+  Chromium coverage, and the optimized production build passed. A 69-test
+  browser-suite run was started on an isolated local server, but this task
+  environment did not return its final completion summary; it is not counted
+  as verified coverage.
+- Provisional next step: reassess real browser PDF pagination for multi-entry
+  and custom-section resumes, alongside any remaining uncommon import layouts.
+
 ## 2026-07-12 — Print-faithful page-count preview
 
 - Finding before build: competitor reviews and recent job-seeker feedback make

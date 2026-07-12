@@ -142,7 +142,8 @@ export function useResumeEditor() {
   const [roleLabel, setRoleLabel] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
-  const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved">("saved");
+  const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
+  const [externalDraft, setExternalDraft] = useState<ResumeState | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
@@ -401,8 +402,30 @@ export function useResumeEditor() {
     }
   }, [reportStorageIssue]);
 
+  // `storage` fires only in the other tab. Keep a different draft visible
+  // until the person decides, rather than silently replacing active work or
+  // letting this stale tab overwrite the newer local autosave.
+  useEffect(() => {
+    const handleExternalDraft = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage || event.key !== STORAGE_KEY || !event.newValue) return;
+      try {
+        const nextDraft = normalizeResume(JSON.parse(event.newValue));
+        if (resumeExportFingerprint(nextDraft) !== resumeExportFingerprint(state)) setExternalDraft(nextDraft);
+      } catch {
+        // Never replace the open draft with a malformed external value.
+      }
+    };
+
+    window.addEventListener("storage", handleExternalDraft);
+    return () => window.removeEventListener("storage", handleExternalDraft);
+  }, [state]);
+
   useEffect(() => {
     if (!loaded) return;
+    if (externalDraft) {
+      setAutosaveStatus("conflict");
+      return;
+    }
     setAutosaveStatus("saving");
     const timer = window.setTimeout(() => {
       try {
@@ -414,7 +437,20 @@ export function useResumeEditor() {
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [confirmStorageAvailable, loaded, reportStorageIssue, state]);
+  }, [confirmStorageAvailable, externalDraft, loaded, reportStorageIssue, state]);
+
+  const useExternalDraft = () => {
+    if (!externalDraft) return;
+    saveRecoveryPoint("Before using the draft saved in another tab");
+    setState(externalDraft);
+    setExternalDraft(null);
+    flash("Loaded the draft saved in another tab");
+  };
+
+  const keepCurrentDraft = () => {
+    setExternalDraft(null);
+    flash("Keeping this tab's draft");
+  };
 
   useEffect(() => {
     if (!loaded) return;
@@ -1109,6 +1145,7 @@ export function useResumeEditor() {
     deleteVersion,
     downloadDocx,
     downloadPlainText,
+    externalDraft,
     deletedVersion,
     dismissRecoveryPoint,
     dismissRestoredVersionSummary,
@@ -1134,6 +1171,7 @@ export function useResumeEditor() {
     isImporting,
     jobDescription,
     jsonInputRef,
+    keepCurrentDraft,
     loadSample,
     mergedHistoryBackup,
     moveEntry,
@@ -1192,6 +1230,7 @@ export function useResumeEditor() {
     updateEntry,
     updateField,
     updateSectionTitle,
+    useExternalDraft,
     versionChanges,
     versionCompareAfterLabel,
     versionCompareBeforeLabel,
