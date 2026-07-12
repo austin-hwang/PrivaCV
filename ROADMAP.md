@@ -95,11 +95,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
   still feels reviewable.
 - Keep refining mobile and narrow-window editing without compromising the print
-  layout. The phone preview now scales the same full Letter layout used for PDF
-  export instead of reflowing it to the device width, so line wraps and page
-  count remain trustworthy; screen-only page-boundary guides now make the start
-  of each additional printed page visible before export while the phone
-  workspace keeps the form first,
+  layout. The phone preview now scales the same true Letter-sized page box used
+  for PDF export instead of reflowing it to the device width, so line wraps and
+  page count remain trustworthy; screen-only page-boundary guides now make the
+  start of each additional printed page visible before export, while print
+  styles keep headings and individual bullets together when space allows; the
+  phone workspace keeps the form first,
   surfaces a compact next-field
   prompt for imported resumes, and moves the full import checklist, resume checks,
   role focus, and version history into on-demand Review tools; reassess whether

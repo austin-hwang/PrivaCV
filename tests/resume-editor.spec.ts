@@ -962,6 +962,33 @@ test("keeps the phone preview faithful to the printed Letter layout", async ({ b
   await context.close();
 });
 
+test("keeps the resume sheet to true Letter dimensions on screen and in print", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const screenDimensions = await page.locator(".resume-sheet").evaluate((element) => {
+    const sheet = element as HTMLElement;
+    return {
+      width: sheet.offsetWidth,
+      height: sheet.offsetHeight,
+      boxSizing: getComputedStyle(sheet).boxSizing,
+    };
+  });
+  expect(screenDimensions.boxSizing).toBe("border-box");
+  expect(screenDimensions.width).toBeCloseTo(8.5 * 96, 0);
+  expect(screenDimensions.height).toBeGreaterThanOrEqual(11 * 96);
+
+  await page.emulateMedia({ media: "print" });
+  const printDimensions = await page.locator(".resume-sheet").evaluate((element) => {
+    const sheet = element as HTMLElement;
+    return { width: sheet.offsetWidth, height: sheet.offsetHeight };
+  });
+  expect(printDimensions.width).toBeCloseTo(8.5 * 96, 0);
+  expect(printDimensions.height).toBeGreaterThanOrEqual(11 * 96);
+});
+
 test("shows page boundaries in the preview without printing those guides", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
