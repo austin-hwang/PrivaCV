@@ -88,6 +88,10 @@ subscriptions, watermarks, or backend storage.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying or downloading
   a portable `.txt` file for application portals.
+- Application Copy dialog for portals that split a resume into separate fields:
+  copy an individual contact detail, summary, role, employer, dates, achievement
+  list, education entry, project, skills section, or custom-section entry without
+  retyping. It mirrors the current resume and stays entirely in the browser.
 - Best-effort PDF import for text-based resumes through a locally bundled,
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The
@@ -169,6 +173,13 @@ Text** and choose **Download .docx**. The editable Word file is generated in
 your browser and does not upload your resume. Its deliberately simple layout is
 best for application portals that ask for a Word document; use PDF when you
 need the selected visual template preserved exactly.
+
+## Copying into application forms
+
+Open **More actions** and choose **Copy for applications**. The dialog keeps
+the resume in its current order and exposes small, copy-ready fields for the
+common application-form prompts. Use **Review Text** when a portal accepts one
+complete plain-text resume instead.
 
 ## Importing a PDF
 

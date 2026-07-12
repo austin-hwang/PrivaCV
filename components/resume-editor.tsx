@@ -152,6 +152,7 @@ export function ResumeEditor() {
     saveJson,
     downloadDocx,
     setTextReviewOpen,
+    setApplicationCopyOpen,
     setTextImportOpen,
     state,
     storageIssue,
@@ -351,6 +352,9 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
+                <MenuItem onSelect={() => setApplicationCopyOpen(true)} disabled={!hasContent}>
+                  <ClipboardCopy /> Copy for applications
+                </MenuItem>
                 <MenuItem onSelect={() => setTextReviewOpen(true)}>
                   <ClipboardCopy /> Review Text
                 </MenuItem>

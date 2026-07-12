@@ -2154,3 +2154,28 @@
 ## Verification
 
 - Passed `CI=true pnpm lint`, `CI=true pnpm typecheck`, `CI=true pnpm test`, `CI=true PLAYWRIGHT_PORT=4217 pnpm test:e2e` (64 tests), and `CI=true pnpm build`.
+
+# 2026-07-12 — Copy-ready fields for application portals
+
+## Product review
+
+- **Finding:** Recent user feedback around applicant tracking systems repeatedly
+  highlights the frustrating need to re-enter the same resume into many small
+  portal fields. The app already had a trustworthy full-text route, but not a
+  quick way to copy an individual employer, role, dates, or achievement list.
+- **Options considered:** Add a new visual template, build a persistent
+  application tracker, or offer local, granular copy fields. Granular copy won:
+  it removes frequent retyping immediately, needs no account or saved job data,
+  and keeps a single source of truth in the resume itself.
+- **Expected user benefit:** A person can complete structured application forms
+  faster and with fewer transcription mistakes, while still using Review Text
+  when a portal accepts one complete resume paste.
+
+## Changes
+
+- Added a local **Copy for applications** dialog from More actions.
+- Exposed copy-ready profile, summary, role, employer, date, achievements,
+  education, project, skills, and custom-section values in current resume order.
+- Added deterministic helper and browser coverage so fields do not appear for
+  empty values and custom sections remain represented.
+- Updated README and roadmap with the intended scope and workflow.
