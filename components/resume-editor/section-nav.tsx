@@ -65,11 +65,19 @@ export function SectionNav({ items, className }: { items: SectionNavItem[]; clas
     };
   }, [idsKey]);
 
+  // Keep the active chip visible by scrolling the horizontal strip ONLY. Using
+  // element.scrollIntoView here would also scroll the page vertically to reveal
+  // the chip — on mobile, where this nav sits in the document flow, that yanks
+  // the whole editor back to the top on every scroll.
   useEffect(() => {
     if (!activeId) return;
-    navRef.current
-      ?.querySelector<HTMLElement>(`[data-nav-id="${activeId}"]`)
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const strip = navRef.current?.querySelector<HTMLElement>("[data-nav-strip]");
+    const chip = strip?.querySelector<HTMLElement>(`[data-nav-id="${activeId}"]`);
+    if (!strip || !chip) return;
+    const stripRect = strip.getBoundingClientRect();
+    const chipRect = chip.getBoundingClientRect();
+    const delta = chipRect.left - stripRect.left - (strip.clientWidth - chipRect.width) / 2;
+    strip.scrollBy({ left: delta, behavior: "smooth" });
   }, [activeId]);
 
   if (!items.length) return null;
@@ -88,7 +96,7 @@ export function SectionNav({ items, className }: { items: SectionNavItem[]; clas
         className,
       )}
     >
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div data-nav-strip className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => {
           const active = item.id === activeId;
           return (
