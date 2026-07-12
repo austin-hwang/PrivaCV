@@ -124,7 +124,9 @@ subscriptions, watermarks, or backend storage.
 - Local autosave in browser storage now makes its brief saving state and
   successful completion visible in the workspace header; user-managed JSON
   files remain available for manual save, open, and checkpoint export/import
-  when needed.
+  when needed. If the same editor is open in two tabs, a different draft saved
+  in the other tab pauses autosave here and asks which draft to keep rather
+  than silently overwriting either version.
 - Clean print stylesheet for browser Save as PDF.
 
 ## Stack
