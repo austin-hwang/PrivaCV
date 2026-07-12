@@ -782,6 +782,32 @@ test("keeps mobile import review focused on the next editable field", async ({ b
   await context.close();
 });
 
+test("calls out a specialty heading when import cannot reconstruct its entries", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Experience",
+    "Engineer | Analytical Engines | 2022–Present",
+    "• Built reliable systems.",
+    "",
+    "Certifications",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  const certificationCard = page.locator("#import-review-panel").getByRole("button", { name: /certifications/i });
+  await expect(certificationCard).toContainText("Certifications heading found in source, but no entries detected");
+  await expect(certificationCard).toContainText("Source section needs review");
+  await certificationCard.click();
+  await expect(page.locator("#add-custom-section")).toBeFocused();
+});
+
 test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
