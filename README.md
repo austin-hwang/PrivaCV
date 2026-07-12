@@ -141,7 +141,9 @@ pnpm build
 
 1. Click **Export PDF**.
 2. In the browser print dialog, choose **Save as PDF**.
-3. Leave margins at the browser default. The app supplies its own Letter-page
+3. The save dialog will suggest a recognizable filename based on the name in
+   your resume, such as `Jane_Doe_Resume.pdf`; you can still rename it there.
+4. Leave margins at the browser default. The app supplies its own Letter-page
    resume margins and hides the editor chrome while printing.
 
 ## Downloading a Word document

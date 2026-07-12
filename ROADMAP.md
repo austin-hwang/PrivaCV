@@ -57,6 +57,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   trapping confident users. Import-review progress now remains explicit in
   that checkpoint: users can jump to the next unconfirmed field or knowingly
   export anyway, but cannot accidentally discard the checklist as "reviewed."
+- Make the finished PDF easy to recognize outside the browser: PDF export now
+  temporarily supplies a resume-owner filename suggestion to the native print
+  dialog, then restores the normal page title after printing. Reassess custom
+  naming only if users need application-specific file names often enough to
+  justify another decision during export.
 - Keep standard print behavior aligned with that export checkpoint: Cmd/Ctrl+P
   now opens the same local review when attention is needed instead of bypassing
   imported-field confirmation or resume checks. Reassess real browser-engine
