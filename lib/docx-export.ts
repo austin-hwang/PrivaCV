@@ -5,9 +5,15 @@ import {
   entryHasContent,
   getSectionEntries,
   getSectionTitle,
+  normalizeAccent,
+  resolveDocxFont,
   type ResumeEntry,
   type ResumeState,
 } from "@/lib/resume";
+
+function accentHex(state: ResumeState) {
+  return normalizeAccent(state.theme.accent).slice(1);
+}
 
 type DocxRelationship = {
   id: string;
@@ -82,23 +88,26 @@ function entryParagraphs(entry: ResumeEntry) {
 
 function sectionParagraphs(state: ResumeState, section: string) {
   const title = getSectionTitle(state, section).trim();
+  const heading = (text: string) =>
+    paragraph(textRun(text.toUpperCase(), { bold: true, size: 22, color: accentHex(state) }), { before: 150, after: 55 });
   if (section === "skills") {
     const skills = state.skills.split("\n").map((line) => line.trim()).filter(Boolean);
     if (!skills.length) return "";
-    return `${title ? paragraph(textRun(title.toUpperCase(), { bold: true, size: 22 }), { before: 150, after: 55 }) : ""}${skills.map((skill) => paragraph(textRun(skill), { after: 30 })).join("")}`;
+    return `${title ? heading(title) : ""}${skills.map((skill) => paragraph(textRun(skill), { after: 30 })).join("")}`;
   }
 
   const entries = getSectionEntries(state, section).filter(entryHasContent);
   if (!entries.length) return "";
-  return `${title ? paragraph(textRun(title.toUpperCase(), { bold: true, size: 22 }), { before: 150, after: 55 }) : ""}${entries.map(entryParagraphs).join("")}`;
+  return `${title ? heading(title) : ""}${entries.map(entryParagraphs).join("")}`;
 }
 
 function documentXml(state: ResumeState, relationships: DocxRelationship[]) {
   const contacts = contactRuns(state, relationships);
+  const align = state.theme.headerAlign === "center" ? "center" : undefined;
   const body = [
-    state.name ? paragraph(textRun(state.name, { bold: true, size: 32 }), { alignment: "center", after: 40 }) : "",
-    state.title ? paragraph(textRun(state.title, { size: 22 }), { alignment: "center", after: 25 }) : "",
-    contacts ? paragraph(contacts, { alignment: "center", after: 120 }) : "",
+    state.name ? paragraph(textRun(state.name, { bold: true, size: 32, color: accentHex(state) }), { alignment: align, after: 40 }) : "",
+    state.title ? paragraph(textRun(state.title, { size: 22 }), { alignment: align, after: 25 }) : "",
+    contacts ? paragraph(contacts, { alignment: align, after: 120 }) : "",
     state.summary ? paragraph(textRun(state.summary), { after: 90 }) : "",
     ...state.sectionOrder.map((section) => sectionParagraphs(state, section)),
   ].join("");
@@ -113,14 +122,18 @@ function documentXml(state: ResumeState, relationships: DocxRelationship[]) {
 export function resumeDocx(state: ResumeState) {
   const relationships: DocxRelationship[] = [];
   const document = documentXml(state, relationships);
-  const documentRelationships = relationships.length
-    ? `${XML_DECLARATION}<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">${relationships.map((relationship) => `<Relationship Id=\"${relationship.id}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"${escapeXml(relationship.target)}\" TargetMode=\"External\"/>`).join("")}</Relationships>`
-    : `${XML_DECLARATION}<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"/>`;
+  const font = resolveDocxFont(state.theme.font);
+  const stylesXml = `${XML_DECLARATION}<w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii=\"${escapeXml(font)}\" w:hAnsi=\"${escapeXml(font)}\" w:cs=\"${escapeXml(font)}\"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`;
+  const hyperlinkRelationships = relationships
+    .map((relationship) => `<Relationship Id=\"${relationship.id}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"${escapeXml(relationship.target)}\" TargetMode=\"External\"/>`)
+    .join("");
+  const documentRelationships = `${XML_DECLARATION}<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rIdStyles\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>${hyperlinkRelationships}</Relationships>`;
 
   return zipSync({
-    "[Content_Types].xml": strToU8(`${XML_DECLARATION}<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/><Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/><Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/></Types>`),
+    "[Content_Types].xml": strToU8(`${XML_DECLARATION}<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/><Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/><Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/><Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/></Types>`),
     "_rels/.rels": strToU8(`${XML_DECLARATION}<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/><Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/></Relationships>`),
     "word/document.xml": strToU8(document),
+    "word/styles.xml": strToU8(stylesXml),
     "word/_rels/document.xml.rels": strToU8(documentRelationships),
     "docProps/core.xml": strToU8(`${XML_DECLARATION}<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dc:title>${escapeXml(state.name ? `${state.name} resume` : "Resume")}</dc:title><dc:creator>Resume Editor</dc:creator><dcterms:created xsi:type=\"dcterms:W3CDTF\">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`),
     "docProps/app.xml": strToU8(`${XML_DECLARATION}<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><Application>Resume Editor</Application></Properties>`),

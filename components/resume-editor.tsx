@@ -39,19 +39,66 @@ import { StartPanel } from "@/components/resume-editor/start-panel";
 import { RestoredVersionCard } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
+  ACCENT_PRESETS,
   clampTextScale,
   CUSTOM_SECTION_PRESETS,
+  DENSITIES,
+  DENSITY_LABELS,
   getSectionEntries,
   getSectionTitle,
+  HEADING_STYLE_LABELS,
+  HEADING_STYLES,
   isBuiltinSection,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
+  normalizeAccent,
+  RESUME_FONTS,
   RESUME_TEMPLATES,
+  resolveFontStack,
   SECTION_KEYS,
   SECTION_LABELS,
+  TEMPLATE_THEMES,
+  type Density,
+  type HeadingStyle,
+  type ResumeTemplateId,
+  type ResumeTheme,
 } from "@/lib/resume";
 import { buildImportCoverage } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
+
+function ThemeSegment<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+      <div className="flex flex-wrap gap-1 rounded-md border bg-muted/40 p-1">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "flex-1 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              value === option.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function ResumeEditor() {
   const editor = useResumeEditor();
@@ -119,8 +166,15 @@ export function ResumeEditor() {
 
   const startBlankResume = (template = state.template) => {
     updateField("template", template);
+    updateField("theme", TEMPLATE_THEMES[template]);
     setBlankWorkspaceOpen(true);
     window.setTimeout(() => document.getElementById("field-name")?.focus(), 120);
+  };
+
+  const updateTheme = (patch: Partial<ResumeTheme>) => updateField("theme", { ...state.theme, ...patch });
+  const applyTemplate = (template: ResumeTemplateId) => {
+    updateField("template", template);
+    updateField("theme", TEMPLATE_THEMES[template]);
   };
 
   const clearEditor = () => {
@@ -593,9 +647,9 @@ export function ResumeEditor() {
 
           {workspaceHasStarted ? (
             <div className="space-y-6">
-              <FieldGroup id="edit-layout" title="Resume template">
+              <FieldGroup id="edit-layout" title="Design">
                 <p className="text-xs leading-snug text-muted-foreground">
-                  Templates change the visual layout only. Every option stays clean and ATS-readable.
+                  Start from a preset, then fine-tune font, color, and layout. Every option stays clean and ATS-readable.
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2" aria-label="Resume templates">
                   {RESUME_TEMPLATES.map((template) => (
@@ -607,12 +661,102 @@ export function ResumeEditor() {
                         "rounded-md border p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         state.template === template.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-background",
                       )}
-                      onClick={() => updateField("template", template.id)}
+                      onClick={() => applyTemplate(template.id)}
                     >
                       <span className="block text-sm font-semibold">{template.label}</span>
                       <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
                     </button>
                   ))}
+                </div>
+
+                <div className="grid gap-4 rounded-md border bg-muted/20 p-3">
+                  <label className="grid gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Font</span>
+                    <select
+                      value={state.theme.font}
+                      onChange={(event) => updateTheme({ font: event.target.value })}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      style={{ fontFamily: resolveFontStack(state.theme.font) }}
+                      aria-label="Resume font"
+                    >
+                      {RESUME_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label} · {font.kind}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="grid gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Accent color</span>
+                    <div className="flex flex-wrap items-center gap-1.5" aria-label="Accent color">
+                      {ACCENT_PRESETS.map((accent) => {
+                        const selected = normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
+                        return (
+                          <button
+                            key={accent.id}
+                            type="button"
+                            aria-pressed={selected}
+                            title={accent.label}
+                            onClick={() => updateTheme({ accent: accent.value })}
+                            className={cn(
+                              "size-7 rounded-full border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                              selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
+                            )}
+                            style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
+                          >
+                            <span className="sr-only">{accent.label}</span>
+                          </button>
+                        );
+                      })}
+                      <label className="ml-1 inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                        Custom
+                        <input
+                          type="color"
+                          value={normalizeAccent(state.theme.accent)}
+                          onChange={(event) => updateTheme({ accent: event.target.value })}
+                          className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                          aria-label="Custom accent color"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <ThemeSegment
+                      label="Header"
+                      value={state.theme.headerAlign}
+                      options={[
+                        { value: "left", label: "Left" },
+                        { value: "center", label: "Center" },
+                      ]}
+                      onChange={(headerAlign) => updateTheme({ headerAlign })}
+                    />
+                    <ThemeSegment
+                      label="Density"
+                      value={state.theme.density}
+                      options={DENSITIES.map((density) => ({ value: density as Density, label: DENSITY_LABELS[density] }))}
+                      onChange={(density) => updateTheme({ density })}
+                    />
+                  </div>
+
+                  <ThemeSegment
+                    label="Section headings"
+                    value={state.theme.headingStyle}
+                    options={HEADING_STYLES.map((style) => ({ value: style as HeadingStyle, label: HEADING_STYLE_LABELS[style] }))}
+                    onChange={(headingStyle) => updateTheme({ headingStyle })}
+                  />
+
+                  <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
+                    <span className="text-xs font-medium">Divider under header</span>
+                    <input
+                      type="checkbox"
+                      checked={state.theme.headerDivider}
+                      onChange={(event) => updateTheme({ headerDivider: event.target.checked })}
+                      className="size-4 accent-foreground"
+                      aria-label="Divider under header"
+                    />
+                  </label>
                 </div>
               </FieldGroup>
               <FieldGroup title="Arrange sections">
