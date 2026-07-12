@@ -392,13 +392,13 @@ test("keeps blank titles blank and lets users remove and restore default section
 
   await page.getByRole("button", { name: "Remove Education section" }).click();
   await expect(page.locator('[data-editor-section="education"]')).toBeHidden();
-  await expect(page.getByRole("button", { name: "Add Education" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Education", exact: true })).toBeVisible();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Education section" })).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.S. in Computer Science");
 
   await page.getByRole("button", { name: "Remove Education section" }).click();
-  await page.getByRole("button", { name: "Add Education" }).click();
+  await page.getByRole("button", { name: "Education", exact: true }).click();
   await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("");
 });
 
@@ -719,7 +719,7 @@ test("switches between focused editor and preview views on a narrow screen", asy
   await page.getByRole("button", { name: /^preview$/i }).click();
   await expect(previewPane).toBeVisible();
   await expect(editorPane).toBeHidden();
-  await expect(page.getByText("Live preview updates as you edit.")).toBeVisible();
+  await expect(previewPane.getByText("1 page in preview", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /export pdf/i }).click();
   await page.getByRole("dialog", { name: /review before exporting/i }).getByRole("button", { name: /fix contact/i }).click();
