@@ -136,6 +136,7 @@ export function ResumeEditor() {
     moveEntry,
     moveSection,
     pageCount,
+    pageGuides,
     passedChecks,
     pdfInputRef,
     recoveryPoint,
@@ -1166,6 +1167,7 @@ export function ResumeEditor() {
               <ResumePreview
                 state={state}
                 pageCount={pageCount}
+                pageGuides={pageGuides}
                 ref={resumeRef}
                 activeTarget={activeTarget}
                 onTargetSelect={focusEditorTarget}

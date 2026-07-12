@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type ResumePreviewProps = {
   state: ResumeState;
   pageCount?: number;
+  pageGuides?: Array<{ page: number; label?: string }>;
   activeTarget?: string | null;
   onTargetSelect?: (targetId: string) => void;
 };
@@ -33,11 +34,13 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, pageCount = 1, activeTarget, onTargetSelect },
+  { state, pageCount = 1, pageGuides = [], activeTarget, onTargetSelect },
   ref,
 ) {
   const hasContent = hasAnyContent(state);
-  const pageBreaks = Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => index + 2);
+  const pageBreaks: Array<{ page: number; label?: string }> = pageGuides.length
+    ? pageGuides
+    : Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => ({ page: index + 2 }));
 
   return (
     <div
@@ -54,14 +57,16 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
       data-density={state.theme.density}
     >
       {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
-      {pageBreaks.map((page) => (
+      {pageBreaks.map(({ page, label }) => (
         <div
           key={page}
           aria-hidden="true"
           className="resume-page-guide"
           style={{ top: `${(page - 1) * 11}in` }}
         >
-          <span>Page {page} begins</span>
+          <span>
+            Page {page} begins{label ? ` · Next: ${label}` : ""}
+          </span>
         </div>
       ))}
     </div>
@@ -122,7 +127,7 @@ function FilledResumePreview({ state, activeTarget, onTargetSelect }: ResumePrev
           ))}
         </div>
       ) : null}
-      {state.summary ? <p className={cn("resume-lead resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")} {...previewTargetProps("field-summary", onTargetSelect)}>{state.summary}</p> : null}
+      {state.summary ? <p className={cn("resume-lead resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")} data-resume-guide-label="Summary" {...previewTargetProps("field-summary", onTargetSelect)}>{state.summary}</p> : null}
       {state.sectionOrder.map((section) => (
         <ResumeSection key={section} state={state} section={section} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />
       ))}
@@ -177,7 +182,7 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
       .filter(Boolean);
     if (!lines.length) return null;
     return (
-      <section className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active")} {...previewTargetProps("field-skills", onTargetSelect)}>
+      <section className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active")} data-resume-guide-label={title ? `${title} · Skills` : "Skills"} {...previewTargetProps("field-skills", onTargetSelect)}>
         {title ? <h2 className="resume-section-title">{title}</h2> : null}
         <div>
           {lines.map((line) => {
@@ -207,7 +212,7 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
   return (
     <section className={cn("resume-section", sectionActive && "resume-preview-section-active")}>
       {title ? (
-        <h2 className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")} {...previewTargetProps(`section-title-${section}`, onTargetSelect)}>{title}</h2>
+        <h2 className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")} data-resume-guide-label={title} {...previewTargetProps(`section-title-${section}`, onTargetSelect)}>{title}</h2>
       ) : null}
       {entries.map(({ entry, originalIndex }) => (
         <div
@@ -215,6 +220,7 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
           key={`${entry.title}-${entry.subtitle}-${originalIndex}`}
           data-resume-entry-section={section}
           data-resume-entry-index={originalIndex}
+          data-resume-guide-label={[title, entry.title || entry.subtitle || `Entry ${originalIndex + 1}`].filter(Boolean).join(" · ")}
           {...previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect)}
         >
           <div className="resume-entry-head">

@@ -2,6 +2,28 @@
 
 ## 2026-07-12
 
+- Market and product review: current Rezi and Teal feedback continues to make
+  a dependable final artifact central; recent public reports specifically
+  describe paging surprises as frustrating even when an editor appears to fit
+  the resume. The product already shows true Letter boundaries, but a plain
+  “Page 2 begins” line still made a person scan around to discover which
+  section or role needed their attention.
+- Options considered: refine the PDF parser, add another writing heuristic, or
+  make the existing page-boundary cue actionable. Naming the next content won
+  because it improves the last-mile review without guessing at a person's
+  experience, changing the document, or adding export friction.
+- Implementation: live page guides now identify the next section, entry, or
+  summary at each additional Letter boundary. Labels derive from the rendered
+  local preview and truncate visually when needed; they remain absent from
+  printed and exported PDFs.
+- Verification: TypeScript, ESLint, all 55 Vitest tests, the complete 65-test
+  Chromium Playwright suite, and the optimized production build passed. A new
+  browser-generated PDF artifact was not produced in this run, so cross-engine
+  pagination remains a separate manual check.
+- Provisional next step: reassess actual Chromium PDF pagination for ordinary
+  multi-entry and custom-section resumes, then prioritize any remaining
+  preview-to-artifact mismatch over additional editor features.
+
 - Finding before build: user feedback about resume imports repeatedly calls out
   missing information that must be re-entered. The import checklist already
   exposed skipped core sections, but its coverage snapshot did not surface a

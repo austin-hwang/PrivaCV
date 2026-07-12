@@ -117,6 +117,10 @@
 }
 
 .resume-page-guide span {
+  max-width: min(72%, 390px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-left: auto;
   transform: translateY(-50%);
   border: 1px solid rgb(148 163 184 / 70%);
