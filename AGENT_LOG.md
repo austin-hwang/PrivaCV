@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-12 — Explain visual and cross-tab draft changes
+
+- Market and product review: current resume-builder feedback continues to
+  emphasize predictable export and a low-effort tailoring workflow. Direct
+  Chromium sweeps also confirmed that the existing preview matches generated
+  Letter PDFs for dense skills and custom-section cases, so another pagination
+  change was not justified. The stronger gap was explanatory: a font, layout,
+  color, header, or density edit correctly made an export stale, but the audit
+  named no changed area; the new same-browser conflict prompt had the same
+  blind spot when a tab changed only the design.
+- Options considered: add more template choices, leave design edits as an
+  unexplained stale state, or extend the existing reviewable change summary.
+  The summary won because it makes an existing high-stakes choice clear without
+  adding a new workflow, account, or opaque assessment.
+- Implementation: change audits now include a concise visual-style entry with
+  the exact settings changed and before/after output choices. The paused
+  cross-tab autosave prompt now embeds that same local comparison before its
+  keep/use actions.
+- Expected experience improvement: people can tell whether a draft differs in
+  content, appearance, or both before exporting, restoring, or replacing it.
+  That makes last-mile application decisions less uncertain while retaining the
+  local-first privacy model.
+- Verification: TypeScript, ESLint, all 57 Vitest tests, the optimized
+  production build, and all 70 Chromium flows passed. The browser coverage ran
+  against the isolated production server; its all-suite runner stopped
+  reporting after flow 57, so the final 14 flows were rerun explicitly and
+  passed. Manual Chromium PDF page-count sweeps for skills and custom sections
+  also matched the preview.
+- Provisional next step: reassess the remaining import-layout edge cases and
+  mobile editing friction before selecting the next improvement.
+
 ## 2026-07-12 — Prevent same-browser draft overwrites
 
 - Market and product review: current alternatives center job seekers on a

@@ -782,6 +782,45 @@ describe("resume helpers", () => {
     });
   });
 
+  it("explains visual changes that make a PDF export stale", () => {
+    const exported = sampleState();
+    const edited = normalizeResume({
+      ...exported,
+      template: "modern",
+      theme: {
+        ...exported.theme,
+        font: "inter",
+        accent: "#1f3a5f",
+        headerAlign: "center",
+        headerDivider: true,
+        headingStyle: "bar",
+        density: "cozy",
+      },
+    });
+
+    expect(exportChangeSummary(exported, edited)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "visual-style",
+          label: "Visual style changed",
+          detail: "7 settings edited",
+          targetId: "edit-layout",
+          fieldLabels: [
+            "Layout template",
+            "Font",
+            "Accent color",
+            "Header alignment",
+            "Header divider",
+            "Heading style",
+            "Spacing density",
+          ],
+          before: expect.stringContaining("Classic · Merriweather"),
+          after: expect.stringContaining("Modern · Inter"),
+        }),
+      ]),
+    );
+  });
+
   it("names exact fields changed inside repeatable sections", () => {
     const exported = sampleState();
     const edited = {

@@ -315,6 +315,9 @@ test("keeps a second tab from silently overwriting a newer local draft", async (
 
   const conflict = page.getByText("A different resume was saved in another tab", { exact: true }).locator("..");
   await expect(conflict).toContainText("Autosave is paused here");
+  await expect(conflict.getByText("Header changed", { exact: true })).toBeVisible();
+  await expect(conflict.getByText("This tab", { exact: true })).toBeVisible();
+  await expect(conflict.getByText("Saved tab", { exact: true })).toBeVisible();
   await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "conflict");
   await page.getByRole("button", { name: /use saved draft/i }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Alex Morgan");
@@ -1252,6 +1255,36 @@ test("shows when the resume changed after the last PDF export", async ({ page })
   await expect(summaryChange.getByText("Now", { exact: true })).toBeVisible();
   await expect(summaryChange.getByText("Edited summary for the next application.")).toBeVisible();
   await expect(page.getByRole("button", { name: /export updated pdf/i })).toBeVisible();
+});
+
+test("explains design changes after a PDF export", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.reload();
+  await page.evaluate(() => {
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await loadSample(page);
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
+
+  await page.locator('[aria-label="Resume templates"]').getByRole("button", { name: /modern/i }).click();
+  await openTools(page);
+
+  const styleChange = page.getByText("Visual style changed", { exact: true });
+  await expect(styleChange).toBeVisible();
+  await expect(styleChange.locator("..")).toContainText("Layout template");
+  await expect(styleChange.locator("..")).toContainText("Font");
+  await expect(styleChange.locator("..")).toContainText("Classic");
+  await expect(styleChange.locator("..")).toContainText("Modern");
 });
 
 test("expands dense change audits after export and restore", async ({ page }) => {

@@ -76,8 +76,10 @@ subscriptions, watermarks, or backend storage.
 - Local last-export status that shows whether the current resume still matches
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what
-  changed since their last PDF export attempt, including compact before/after
-  snippets and an expandable full audit trail for edited resume areas.
+  changed since their last PDF export attempt—including visual layout, font,
+  color, and spacing choices—with compact before/after snippets and an
+  expandable full audit trail for edited resume areas. The same comparison
+  appears before choosing between conflicting drafts in two browser tabs.
 - Local version history for naming, annotating, comparing, and restoring a few
   browser-only checkpoints while tailoring a resume for different applications.
 - Role-aware checkpoints with optional private labels, so job-specific wording

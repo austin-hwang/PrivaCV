@@ -108,7 +108,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   users can recheck edits quickly.
 - Make post-export changes easier to audit with concise before/after context
   before the next PDF export, including a full expandable audit trail for dense
-  tailoring sessions.
+  tailoring sessions. Visual output changes—layout, font, color, header, and
+  density choices—now appear beside content edits, and the same comparison
+  explains conflicting same-browser drafts before a person chooses one.
 - Let users keep lightweight browser-only checkpoints so job-specific tailoring
   feels reversible without accounts or cloud storage.
 - Make saved drafts quick to scan, compare, restore, or undo when users are
