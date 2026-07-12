@@ -1005,6 +1005,7 @@ export function ResumeEditor() {
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
               <ResumePreview
                 state={state}
+                pageCount={pageCount}
                 ref={resumeRef}
                 activeTarget={activeTarget}
                 onTargetSelect={focusEditorTarget}

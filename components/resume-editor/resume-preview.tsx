@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 type ResumePreviewProps = {
   state: ResumeState;
+  pageCount?: number;
   activeTarget?: string | null;
   onTargetSelect?: (targetId: string) => void;
 };
@@ -30,10 +31,11 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, activeTarget, onTargetSelect },
+  { state, pageCount = 1, activeTarget, onTargetSelect },
   ref,
 ) {
   const hasContent = hasAnyContent(state);
+  const pageBreaks = Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => index + 2);
 
   return (
     <div
@@ -42,6 +44,16 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
       style={{ "--resume-scale": state.textScale } as CSSProperties}
     >
       {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
+      {pageBreaks.map((page) => (
+        <div
+          key={page}
+          aria-hidden="true"
+          className="resume-page-guide"
+          style={{ top: `${(page - 1) * 11}in` }}
+        >
+          <span>Page {page} begins</span>
+        </div>
+      ))}
     </div>
   );
 });

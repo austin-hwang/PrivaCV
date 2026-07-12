@@ -900,6 +900,24 @@ test("keeps the phone preview faithful to the printed Letter layout", async ({ b
   await context.close();
 });
 
+test("shows page boundaries in the preview without printing those guides", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const details = Array.from(
+    { length: 70 },
+    (_, index) => `• Delivered a concrete, measurable outcome for initiative ${index + 1} across a complex program.`,
+  ).join("\n");
+  await page.getByLabel("Details").first().fill(details);
+
+  await expect(page.getByText("Page 2 begins")).toBeVisible();
+
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByText("Page 2 begins")).toBeHidden();
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
