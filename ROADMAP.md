@@ -181,12 +181,13 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep refining the local Role Focus review so its transparent wording cues
   stay useful without pretending to predict ATS or hiring outcomes; it now
   elevates terms from explicit qualifications-style sections, distinguishes
-  terms grounded in experience or project details from mentions that appear
-  only in a title, heading, summary, or skills, and provides direct field jumps
-  for review. Custom-section headings and entries now count as real resume
-  evidence too, so a relevant certification or volunteer entry is never
-  falsely reported as missing. Reassess phrase ranking only where it stays
-  reviewable and local-first.
+  terms backed by experience, project, or custom-entry details from matches
+  that appear only outside an entry detail, and provides direct field jumps for
+  review. Education matches are now visible and navigable as legitimate
+  credential context without being presented as achievement proof. Custom-section
+  headings and entries now count as real resume evidence too, so a relevant
+  certification or volunteer entry is never falsely reported as missing.
+  Reassess phrase ranking only where it stays reviewable and local-first.
 - Keep the reversible tailoring flow obvious at the moment users paste a role:
   Role Focus now offers a direct "Save base draft" action that opens the named
   local checkpoint flow with the pasted role context included. Reassess whether

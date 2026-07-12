@@ -1014,6 +1014,25 @@ test("shows where a matched role term is supported in the resume", async ({ page
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
+test("separates detailed role evidence from skills and education references", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  await page.getByLabel("Job description").fill([
+    "Requirements",
+    "- TypeScript",
+    "- Computer science",
+  ].join("\n"));
+
+  await expect(page.getByText("0 backed by entry details", { exact: true })).toBeVisible();
+  await expect(page.getByText(/3 matching terms appear outside entry details/i)).toBeVisible();
+  await page.getByRole("button", { name: "Education 1" }).first().click();
+  await expect(page.locator("#field-education-0-title")).toBeFocused();
+});
+
 test("counts truthful custom-section evidence in role focus and links back to it", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

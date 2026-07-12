@@ -1,5 +1,35 @@
 # Agent Log
 
+## 2026-07-12 — Clarify role-term evidence
+
+- Market and product review: current alternatives center tailoring on opaque
+  scores and generated rewrites, while feedback continues to warn that generic
+  or unsupported wording damages trust. Role Focus already found local term
+  matches and linked to the source, but its headline could make a skill-list
+  mention look equivalent to a detailed work example; relevant degrees were not
+  linked at all.
+- Options considered: add a score, generate replacement bullets, or distinguish
+  exact mentions from detailed evidence within the existing local review. The
+  evidence distinction won because it helps people tailor truthfully without
+  inventing experience, transferring resume data, or adding another workflow.
+- Implementation: Role Focus now counts selected terms backed by experience,
+  project, or custom-entry details separately from terms that only appear in
+  supporting context. It explains the distinction in-place, and education
+  matches now jump directly to the applicable credential while remaining
+  clearly separate from achievement-detail evidence.
+- Expected experience improvement: a job seeker can see where a keyword has
+  proof, where it is only a reference, and where a truthful detail would make
+  the connection clearer—without mistaking the review for an ATS score.
+- Verification: `tsc --noEmit`, all 60 Vitest tests, the focused Chromium
+  interaction test, and the optimized production build passed. A full 73-test
+  Chromium run was launched against a clean local server; its process exited
+  after reporting the first 25 passing flows, but this environment did not
+  return the final summary, so it is not counted as complete-suite verification.
+  Standalone ESLint 9 cannot load this repository's legacy `.eslintrc.json`,
+  while the production build's integrated lint/type phase completed cleanly.
+- Provisional next step: reassess unfamiliar import layouts and native
+  browser-PDF fidelity before adding further tailoring scope.
+
 ## 2026-07-12 — Reversible page-fit helper
 
 - Market and product review: current Rezi and Teal reviews still name layout

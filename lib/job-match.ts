@@ -17,6 +17,10 @@ export type RoleTerm = {
 export type RoleFocus = {
   terms: RoleTerm[];
   matchedCount: number;
+  /** Matches that occur in an experience, project, or custom-entry detail. */
+  detailEvidenceCount: number;
+  /** Matches that appear elsewhere, such as a skill list or education entry. */
+  referenceOnlyCount: number;
   totalCount: number;
   requirementCount: number;
 };
@@ -263,6 +267,10 @@ function findTermEvidence(state: ResumeState, term: string): RoleTermEvidence[] 
   return [
     ...entryEvidence("experience", "Experience", state.experience, term),
     ...entryEvidence("projects", "Project", state.projects, term),
+    // A credential can be a relevant, legitimate match even when it is not an
+    // achievement bullet. Keep it navigable, while reserving `isConcrete` for
+    // detailed experience, project, and custom-section evidence.
+    ...entryEvidence("education", "Education", state.education, term),
     ...customEvidence,
     ...evidence,
   ];
@@ -319,9 +327,14 @@ export function buildRoleFocus(resume: ResumeState | string, jobDescription: str
       isRequirement: requirements.has(term),
     }));
 
+  const matchedTerms = terms.filter((term) => term.matched);
+  const detailEvidenceCount = matchedTerms.filter((term) => term.evidence.some((item) => item.isConcrete)).length;
+
   return {
     terms,
-    matchedCount: terms.filter((term) => term.matched).length,
+    matchedCount: matchedTerms.length,
+    detailEvidenceCount,
+    referenceOnlyCount: matchedTerms.length - detailEvidenceCount,
     totalCount: terms.length,
     requirementCount: terms.filter((term) => term.isRequirement).length,
   };

@@ -115,8 +115,13 @@ export function RoleFocusCard({
           <div className="rounded-md border bg-background p-3">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
-                {roleFocus.matchedCount} of {roleFocus.totalCount} selected terms already used
+                {roleFocus.matchedCount} of {roleFocus.totalCount} selected terms appear
               </Badge>
+              {roleFocus.matchedCount ? (
+                <Badge variant="outline" className="border-sky-300 bg-sky-50 text-sky-950">
+                  {roleFocus.detailEvidenceCount} backed by entry details
+                </Badge>
+              ) : null}
               <span className="text-xs text-muted-foreground">
                 {roleFocus.requirementCount
                   ? `${roleFocus.requirementCount} listed requirement${roleFocus.requirementCount === 1 ? "" : "s"} shown first.`
@@ -166,6 +171,11 @@ export function RoleFocusCard({
             <p className="mt-3 text-xs leading-snug text-muted-foreground">
               Requirements come only from an explicit qualifications-style heading. Use any missing term only when it accurately describes your experience. This is a wording review, not an ATS score.
             </p>
+            {roleFocus.referenceOnlyCount ? (
+              <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                {roleFocus.referenceOnlyCount} {roleFocus.referenceOnlyCount === 1 ? "matching term appears" : "matching terms appear"} outside entry details. A title, skill list, or education entry can be useful context; add a term to a truthful achievement only when it gives a recruiter clearer proof.
+              </p>
+            ) : null}
             {matchedTerms.some((term) => term.evidence.length) ? (
               <div className="mt-3 border-t pt-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Where matched terms appear</p>

@@ -941,6 +941,26 @@ describe("resume helpers", () => {
     );
   });
 
+  it("distinguishes detailed role evidence from skills and education references", () => {
+    const state = sampleState();
+    state.skills = "TypeScript";
+    state.experience[0].details = "Built TypeScript services for a billing platform.";
+    state.education[0].title = "B.S. Computer Science";
+
+    const focus = buildRoleFocus(state, [
+      "Requirements",
+      "- TypeScript",
+      "- Computer science",
+    ].join("\n"));
+
+    expect(focus).toMatchObject({ detailEvidenceCount: 1, referenceOnlyCount: 2 });
+    expect(focus.terms.find((term) => term.term === "computer")?.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Education 1", targetId: "field-education-0-title", isConcrete: false }),
+      ]),
+    );
+  });
+
   it("includes custom section wording in role focus and links it to the saved entry", () => {
     const state = sampleState();
     state.customSections = [{
