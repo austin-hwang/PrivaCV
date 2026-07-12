@@ -81,6 +81,14 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   ATS-friendly text can now be copied or downloaded as a `.txt` file for
   application portals that accept text uploads. Reassess actual browser-print
   fidelity and import structure before adding new document formats.
+- Reduce the repetitive work imposed by application portals that split a
+  resume into separate inputs: a local Application Copy view now exposes the
+  current profile, summary, role, employer, dates, achievement list, education,
+  projects, skills, and custom-section entries as individually copyable values.
+  It mirrors the resume rather than creating a second profile, and keeps the
+  existing full-text route for portals that accept one complete paste. Reassess
+  whether per-portal persistence is valuable only after this lighter workflow
+  no longer covers the repeated-entry friction.
 - Meet application portals that explicitly require a Word attachment without
   compromising the local-first promise: a simple editable `.docx` now exports
   the current content, headings, bullets, and safe contact links entirely in

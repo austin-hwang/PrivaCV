@@ -34,7 +34,7 @@ import {
   VersionChangeRow,
 } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
-import { plainTextStats } from "@/lib/resume";
+import { applicationCopyGroups, plainTextStats } from "@/lib/resume";
 import { MAX_VERSION_HISTORY, formatCheckpointTime } from "@/lib/resume-workspace";
 
 export function ResumeEditorOverlays({
@@ -44,6 +44,7 @@ export function ResumeEditorOverlays({
 }) {
   const [pastedResumeText, setPastedResumeText] = useState("");
   const {
+    applicationCopyOpen,
     checks,
     comparedBaseRoleFocus,
     comparedBaseRoleLabel,
@@ -53,6 +54,7 @@ export function ResumeEditorOverlays({
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
+    copyApplicationField,
     downloadDocx,
     downloadPlainText,
     existingVersionForSave,
@@ -80,6 +82,7 @@ export function ResumeEditorOverlays({
     roleLabel,
     saveVersion,
     setExportCheckOpen,
+    setApplicationCopyOpen,
     setHistoryBackupToImport,
     setTextReviewOpen,
     setTextImportOpen,
@@ -108,6 +111,7 @@ export function ResumeEditorOverlays({
   const nextImportReviewItem = importReview?.items.find(
     (item) => !importReview.reviewedItemIds?.includes(item.id),
   );
+  const applicationCopy = applicationCopyGroups(editor.state);
 
   return (
     <>
@@ -189,6 +193,55 @@ export function ResumeEditorOverlays({
                 <ClipboardCopy /> Copy Text
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={applicationCopyOpen} onOpenChange={setApplicationCopyOpen}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Application copy</DialogDescription>
+            <DialogTitle>Copy exactly what each portal asks for</DialogTitle>
+            <DialogDescription>
+              Copy a contact field, role, achievement list, or section without retyping. Everything stays in this browser.
+            </DialogDescription>
+          </DialogHeader>
+          {applicationCopy.length ? (
+            <div className="grid min-h-0 gap-5 overflow-y-auto pr-1">
+              {applicationCopy.map((group) => (
+                <section key={group.id} aria-label={group.label} className="grid gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold">{group.label}</h3>
+                    {group.detail ? <p className="text-xs text-muted-foreground">{group.detail}</p> : null}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {group.fields.map((field) => (
+                      <div key={field.id} className="flex min-w-0 items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold">{field.label}</p>
+                          <p className="mt-1 max-h-12 overflow-hidden whitespace-pre-line text-xs leading-snug text-muted-foreground">{field.text}</p>
+                        </div>
+                        <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => copyApplicationField(field.text, field.label)}>
+                          <ClipboardCopy /> <span className="sr-only">Copy </span>{field.label}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Add resume details first</AlertTitle>
+              <AlertDescription>Copy-ready fields will appear here as you fill out the resume.</AlertDescription>
+            </Alert>
+          )}
+          <DialogFooter className="items-center border-t pt-4 sm:justify-between">
+            <span className="text-xs text-muted-foreground">Need the whole resume? Use Review Text for a complete ATS-friendly copy.</span>
+            <Button type="button" variant="outline" onClick={() => setApplicationCopyOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -283,6 +283,24 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
 });
 
+test("offers copy-ready application fields without making users retype resume details", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /copy for applications/i }).click();
+
+  const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy full name/i })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy achievements/i }).first()).toBeVisible();
+  await expect(dialog.getByText("Senior Software Engineer · Acme Corp - San Francisco, CA")).toBeVisible();
+});
+
 test("suggests a recognizable filename when exporting a PDF", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -213,6 +213,21 @@ export type ExportChange = {
   fieldLabels?: string[];
 };
 
+/** A small, portal-friendly piece of resume content that can be copied alone. */
+export type ApplicationCopyField = {
+  id: string;
+  label: string;
+  text: string;
+};
+
+/** Related application-form fields, kept in the same order as the resume. */
+export type ApplicationCopyGroup = {
+  id: string;
+  label: string;
+  detail?: string;
+  fields: ApplicationCopyField[];
+};
+
 export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
@@ -683,6 +698,71 @@ export function resumePlainText(state: ResumeState) {
     else pushBlock(lines, sectionPlainText(state, getSectionTitle(state, key), key));
   });
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function applicationCopyValue(value: string) {
+  return value.trim();
+}
+
+function entryApplicationCopyGroup(section: string, label: string, entry: ResumeEntry, index: number): ApplicationCopyGroup {
+  const title = applicationCopyValue(entry.title);
+  const subtitle = applicationCopyValue(entry.subtitle);
+  const meta = applicationCopyValue(entry.meta);
+  const details = bulletsFrom(entry.details).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
+  const entryText = entryPlainText(entry).join("\n");
+  const isExperience = section === "experience";
+  const isEducation = section === "education";
+  const isProjects = section === "projects";
+  const fields: ApplicationCopyField[] = [
+    { id: "entry", label: "Whole entry", text: entryText },
+    { id: "title", label: isExperience ? "Job title" : isEducation ? "Degree" : isProjects ? "Project name" : "Entry title", text: title },
+    { id: "subtitle", label: isExperience ? "Employer" : isEducation ? "School" : isProjects ? "Technologies / role" : "Organization / role", text: subtitle },
+    { id: "meta", label: isExperience ? "Dates" : isEducation ? "Dates / location" : isProjects ? "Dates / link" : "Dates / details", text: meta },
+    { id: "details", label: isExperience ? "Achievements" : isProjects ? "Description" : "Details", text: details },
+  ].filter((field) => Boolean(field.text));
+
+  return {
+    id: `${section}-${index}`,
+    label: `${label} ${index + 1}`,
+    detail: [title, subtitle].filter(Boolean).join(" · ") || undefined,
+    fields,
+  };
+}
+
+/**
+ * Builds copy-ready chunks for application portals that ask for resume details
+ * one field at a time. This deliberately mirrors the current resume rather
+ * than inventing a different, opaque application profile.
+ */
+export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[] {
+  const groups: ApplicationCopyGroup[] = [];
+  const profileFields: ApplicationCopyField[] = [
+    { id: "profile", label: "Full profile", text: [state.name, state.title, state.email, state.phone, state.location, state.website].map(applicationCopyValue).filter(Boolean).join("\n") },
+    { id: "name", label: "Full name", text: applicationCopyValue(state.name) },
+    { id: "title", label: "Title / role", text: applicationCopyValue(state.title) },
+    { id: "email", label: "Email", text: applicationCopyValue(state.email) },
+    { id: "phone", label: "Phone", text: applicationCopyValue(state.phone) },
+    { id: "location", label: "Location", text: applicationCopyValue(state.location) },
+    { id: "website", label: "Website", text: applicationCopyValue(state.website) },
+  ].filter((field) => Boolean(field.text));
+  if (profileFields.length) groups.push({ id: "profile", label: "Profile", fields: profileFields });
+
+  const summary = applicationCopyValue(state.summary);
+  if (summary) groups.push({ id: "summary", label: "Summary", fields: [{ id: "summary", label: "Summary", text: summary }] });
+
+  state.sectionOrder.forEach((section) => {
+    const sectionLabel = getSectionTitle(state, section).trim() || "Untitled section";
+    if (section === "skills") {
+      const skills = state.skills.split("\n").map(cleanTextLine).filter(Boolean).join("\n");
+      if (skills) groups.push({ id: "skills", label: sectionLabel, fields: [{ id: "skills", label: sectionLabel, text: skills }] });
+      return;
+    }
+    getSectionEntries(state, section)
+      .filter(entryHasContent)
+      .forEach((entry, index) => groups.push(entryApplicationCopyGroup(section, sectionLabel, entry, index)));
+  });
+
+  return groups;
 }
 
 export function resumeExportFingerprint(state: ResumeState) {

@@ -121,6 +121,7 @@ export function useResumeEditor() {
   const [printBreaks, setPrintBreaks] = useState<Array<{ targetId: string; spacer: number }>>([]);
   const [oversizedEntry, setOversizedEntry] = useState<OversizedResumeEntry | null>(null);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
+  const [applicationCopyOpen, setApplicationCopyOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
@@ -987,6 +988,19 @@ export function useResumeEditor() {
     }
   };
 
+  const copyApplicationField = async (text: string, label: string) => {
+    if (!text.trim()) {
+      flash(`Add ${label.toLocaleLowerCase()} first`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      flash(`Copied ${label.toLocaleLowerCase()}`);
+    } catch {
+      flash("Could not copy text");
+    }
+  };
+
   const downloadPlainText = () => {
     if (!plainText) {
       flash("Add resume details first");
@@ -1076,8 +1090,10 @@ export function useResumeEditor() {
     addCustomSection,
     addBuiltinSection,
     addEntry,
+    applicationCopyOpen,
     checks,
     clearResume,
+    copyApplicationField,
     comparedBaseRoleFocus,
     comparedBaseRoleLabel,
     comparedBaseVersion,
@@ -1147,6 +1163,7 @@ export function useResumeEditor() {
     saveVersionHistoryBackup,
     setDeletedVersion,
     setExportCheckOpen,
+    setApplicationCopyOpen,
     setHistoryBackupToImport,
     setImportReview,
     setJobDescription,

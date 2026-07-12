@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
 import {
+  applicationCopyGroups,
   buildResumeChecks,
   contactHref,
   contactFieldIssues,
@@ -37,6 +38,32 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("creates granular, portal-friendly copy fields without adding empty values", () => {
+    const state = sampleState();
+    state.customSections = [{
+      id: "custom-certifications",
+      title: "Certifications",
+      entries: [{ title: "AWS Certified Developer", subtitle: "Amazon", meta: "", details: "Renewed through 2028" }],
+    }];
+    state.sectionOrder = ["experience", "skills", "custom-certifications"];
+
+    const groups = applicationCopyGroups(state);
+    const experience = groups.find((group) => group.id === "experience-0");
+    const certification = groups.find((group) => group.id === "custom-certifications-0");
+
+    expect(groups.find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Full name", text: "Jane Doe" }),
+      expect.objectContaining({ label: "Email", text: "jane.doe@example.com" }),
+    ]));
+    expect(experience?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Job title" }),
+      expect.objectContaining({ label: "Employer" }),
+      expect.objectContaining({ label: "Achievements", text: expect.stringContaining("•") }),
+    ]));
+    expect(certification).toMatchObject({ label: "Certifications 1", detail: "AWS Certified Developer · Amazon" });
+    expect(certification?.fields.map((field) => field.label)).not.toContain("Dates / details");
+  });
+
   it("creates a local, editable Word document with simple resume structure", () => {
     const files = unzipSync(resumeDocx(sampleState()));
     const document = strFromU8(files["word/document.xml"]);
