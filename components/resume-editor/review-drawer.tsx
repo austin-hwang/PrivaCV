@@ -180,9 +180,11 @@ export function ReviewDrawer({
               roleLabel={roleLabel}
               roleFocus={roleFocus}
               resumeText={plainText}
+              hasContent={hasContent}
               onChange={setJobDescription}
               onRoleLabelChange={setRoleLabel}
               onClear={() => setJobDescription("")}
+              onSaveBase={openVersionSave}
               onFocus={onFocusTarget}
             />
           </section>

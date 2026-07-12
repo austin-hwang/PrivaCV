@@ -59,6 +59,9 @@ subscriptions, watermarks, or backend storage.
   title, heading, summary, or skills, jumps directly to that wording, suggests
   a small set of direct exact phrases to review, includes an opt-in exact
   phrase check for multi-word concepts, and avoids opaque ATS scoring.
+- Role Focus offers a direct local "Save base draft" checkpoint once a job
+  description is pasted, so the original resume and its private role context
+  are easy to restore after tailoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog, including when the familiar
   Cmd/Ctrl+P shortcut is used.

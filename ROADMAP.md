@@ -154,6 +154,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   evidence too, so a relevant certification or volunteer entry is never
   falsely reported as missing. Reassess phrase ranking only where it stays
   reviewable and local-first.
+- Keep the reversible tailoring flow obvious at the moment users paste a role:
+  Role Focus now offers a direct "Save base draft" action that opens the named
+  local checkpoint flow with the pasted role context included. Reassess whether
+  users need a separate application tracker only if this lightweight version
+  workflow no longer keeps repeated tailoring organized.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF and pasted-text import review with clearer confidence

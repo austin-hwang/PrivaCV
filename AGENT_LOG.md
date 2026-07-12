@@ -1,5 +1,29 @@
 # Agent Log
 
+## 2026-07-12
+
+- Finding before build: current job-seeker feedback continues to identify
+  per-application tailoring as a draining repeated task. The editor already
+  had local role context and reversible checkpoints, but the safety step lived
+  in a separate lower Review section after a user had just pasted a role.
+- Options considered: improve term-ranking heuristics, add writing automation,
+  or make the existing base-save path immediate. The direct base-save route won
+  because it prevents losing a strong master draft without guessing at a
+  person's experience, adding a service, or creating new privacy risk.
+- Expected experience improvement: people can preserve the original resume at
+  the exact point they begin tailoring, then experiment and restore confidently.
+- Implementation: Role Focus now exposes a calm, local-only base-draft callout
+  after a person pastes a role description. Its action opens the existing named
+  checkpoint dialog, where the private role label and description are already
+  confirmed for that saved draft; it adds no automated rewriting or new data
+  transfer.
+- Verification: all 54 Vitest tests, ESLint, the new focused Chromium flow,
+  the complete 64-test Playwright suite, and the optimized production build
+  passed. Fresh isolated Playwright servers were used because stale local dev
+  servers from other sessions otherwise exposed a different workspace build.
+- Provisional next step: reassess actual browser PDF pagination for ordinary
+  multi-entry and custom-section resumes before adding further tailoring scope.
+
 ## 2026-07-11 23:30 PDT
 
 - Market and product review: recent job-seeker research continues to make
