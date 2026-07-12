@@ -254,6 +254,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   explicitly overridden to the patched 8.5.16 release because the currently
   supported Next.js version otherwise pins an affected transitive copy; review
   the override when a compatible Next.js release removes that constraint.
+- Keep the release-quality commands dependable: ESLint 9 now loads the
+  repository's Next.js rules through a flat-config bridge, and `pnpm lint`
+  calls ESLint directly rather than the deprecated Next.js wrapper. The local
+  Cloudflare preview runtime is explicitly approved only for its needed
+  development postinstall step.
 - Introduce react-hook-form when validation becomes field-level and user-facing,
   rather than for simple controlled inputs.
 - Continue Playwright coverage for browser-generated PDF pagination, JSON

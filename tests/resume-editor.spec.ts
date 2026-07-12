@@ -632,6 +632,13 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
   await expect(tour.getByText("Contact details")).toBeVisible();
   await expect(tour.getByText(/Step 1 of 3/)).toBeVisible();
   await expect(tour.getByText("Ada Lovelace | ada@example.com | San Francisco, CA")).toBeVisible();
+
+  // The highlighted field remains genuinely editable: cursor keys must not
+  // advance the tour while someone is correcting imported text.
+  await page.getByLabel("Full Name").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tour.getByText(/Step 1 of 3/)).toBeVisible();
+
   await tour.getByRole("button", { name: /confirm this field/i }).click();
   await expect(tour.getByRole("button", { name: /^confirmed$/i })).toBeVisible();
   await tour.getByRole("button", { name: /^next/i }).click();

@@ -1,5 +1,34 @@
 # Agent Log
 
+## 2026-07-12 — Keep guided review calm and editable
+
+- Market and product review: job seekers report that a broken import is more
+  frustrating than a missing feature, and current alternatives often turn
+  correction into a long, opaque form. The new guided review makes correction
+  direct, but a quality pass found that it continuously redrew while idle and
+  captured arrow keys that people need to move a text cursor.
+- Options considered: leave the tour as-is, remove guided review, or retain the
+  focused workflow while making its positioning event-driven and its keyboard
+  behavior field-safe. The targeted hardening won because it preserves the
+  low-effort correction path without adding UI or compromising typing.
+- Implementation: the highlight now repositions only after a relevant resize,
+  layout, or nested-scroll change; it no longer runs a perpetual animation
+  loop. Cursor keys continue to work inside form controls, and the browser test
+  locks that behavior down. The repository now also has a supported ESLint 9
+  flat-config bridge and a direct ESLint script, restoring a dependable `pnpm
+  lint` check; Wrangler's local preview runtime is explicitly approved for its
+  required postinstall step.
+- Expected experience improvement: people can correct imported details without
+  unexpected tour navigation, while the focused help remains responsive and
+  less wasteful during a lengthy editing session.
+- Verification: `pnpm lint`, `pnpm typecheck`, all 62 Vitest tests, the two
+  affected Chromium flows, and the optimized production build passed. A clean
+  full Chromium run again stalled after reporting its first 11 passing tests
+  without emitting a failure or final summary, so it is not counted as a full
+  suite pass.
+- Provisional next step: reassess actual browser-PDF parsing fidelity and
+  uncommon source layouts before expanding tailoring or scoring features.
+
 ## 2026-07-12 — Preserve employer-first import headers
 
 - Market and product review: current resume-builder feedback continues to put

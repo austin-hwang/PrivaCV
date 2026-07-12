@@ -138,19 +138,37 @@ export function GuidedReview({
   }, [step]);
 
   useLayoutEffect(() => {
-    if (!open) return;
-    let raf = 0;
-    const loop = () => {
-      reposition();
-      raf = window.requestAnimationFrame(loop);
+    if (!open || !targetId) return;
+
+    const target = document.getElementById(targetId);
+    let frame = 0;
+    const scheduleReposition = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(reposition);
     };
-    raf = window.requestAnimationFrame(loop);
-    return () => window.cancelAnimationFrame(raf);
-  }, [open, reposition]);
+
+    scheduleReposition();
+    window.addEventListener("resize", scheduleReposition);
+    // Capture scroll events from the editor's nested scrolling container too.
+    window.addEventListener("scroll", scheduleReposition, true);
+
+    const observer = new ResizeObserver(scheduleReposition);
+    if (target) observer.observe(target);
+    if (cardRef.current) observer.observe(cardRef.current);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", scheduleReposition);
+      window.removeEventListener("scroll", scheduleReposition, true);
+      observer.disconnect();
+    };
+  }, [open, reposition, targetId]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, [contenteditable='true']")) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
