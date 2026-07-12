@@ -1,5 +1,27 @@
 # Agent Log
 
+## 2026-07-11 20:29 PDT
+
+- Market and product review: current Teal/Rezi positioning and recent user
+  feedback continue to emphasize quick tailoring plus a dependable final
+  artifact. The newly added design controls provide useful restrained choice,
+  but loading a sample retained only the template ID and reset the actual
+  theme—so the selected template could imply a design the preview no longer
+  used.
+- Finding and decision: preserve the active design when loading a sample,
+  rather than resetting it or adding another confirmation. A sample is content
+  a person uses to evaluate their current layout, so resetting their font,
+  accent, heading treatment, density, or text scale breaks that direct
+  comparison.
+- Implementation: sample loading now keeps the current template, full theme,
+  and text scale while replacing resume content. Browser coverage verifies
+  those choices persist through both reload and sample loading. README and
+  roadmap now state the intended behavior.
+- Verification: TypeScript, ESLint, all 52 Vitest tests, focused Playwright
+  design-flow coverage, and the optimized production build passed.
+- Provisional next step: reassess real cross-browser PDF pagination—especially
+  long entry and section-heading breaks—before expanding tailoring features.
+
 ## 2026-07-11 19:30 PDT
 
 - Market and product review: current Rezi/Teal feedback emphasizes a fast,
