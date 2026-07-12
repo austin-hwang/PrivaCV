@@ -763,6 +763,17 @@ export function useResumeEditor() {
     });
   };
 
+  // A person can inspect the source-backed checklist as a whole and make one
+  // deliberate acknowledgement when it is accurate. Keep the per-field path
+  // intact for corrections, but do not turn a trustworthy import into a row
+  // of repetitive confirmation clicks.
+  const confirmAllImportReviewItems = () => {
+    setImportReview((current) => {
+      if (!current) return current;
+      return { ...current, reviewedItemIds: current.items.map((item) => item.id) };
+    });
+  };
+
   const completeImportReview = () => {
     if (!importReview || !importReviewProgress(importReview).isComplete) return;
     setImportReview(null);
@@ -1066,6 +1077,7 @@ export function useResumeEditor() {
     textImportOpen,
     toast,
     toggleImportReviewItem,
+    confirmAllImportReviewItems,
     completeImportReview,
     undoDeleteVersion,
     undoRemoval,

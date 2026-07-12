@@ -32,6 +32,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   This makes a skipped Education, Skills, Summary, Experience, or Projects
   section explicit and quicker to recover before users confirm their draft.
   Reassess whether parsing accuracy itself is now the remaining trust gap.
+- Keep import review deliberately trustworthy without making a clean import
+  feel like paperwork: people can still correct and confirm individual fields,
+  while a clear source-backed checklist now offers one explicit confirmation
+  for an import they have reviewed as a whole. Reassess whether uncommon
+  source layouts, rather than confirmation effort, are the next import gap.
 - Improve parsing accuracy for common plain-text layouts before expanding
   output formats: alternate headings such as Career Profile, Relevant
   Experience, Education & Training, Academic Projects, and Key Skills now map

@@ -20,7 +20,9 @@ subscriptions, watermarks, or backend storage.
   a compact next-field prompt above the form so editing stays within reach on a
   narrow screen.
 - First-run start panel with fast paths for PDF import, pasted resume text,
-  saved JSON, or a sample resume.
+  saved JSON, or a sample resume. Imported fields retain source context for
+  correction, and an accurate import can be deliberately confirmed all at once
+  instead of requiring repetitive per-field clicks.
 - Public-facing browser metadata, a web-app manifest, custom app icons, and
   graceful route-error recovery; titles and copy accurately describe the
   local-first data model without inventing a hosted domain.

@@ -117,6 +117,7 @@ export function ResumeEditor() {
     addEntry,
     checks,
     clearResume,
+    confirmAllImportReviewItems,
     dismissRecoveryPoint,
     exportCheckpoint,
     exportIsCurrent,
@@ -573,10 +574,20 @@ export function ResumeEditor() {
                 </div>
                 {nextImportReviewItem ? (
                   <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>
-                    <Button type="button" size="sm" className="shrink-0" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
-                      <ArrowRight /> Review next field
-                    </Button>
+                    <div>
+                      <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                        If you have checked the source and every suggested field looks right, you can confirm the import at once.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button type="button" size="sm" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
+                        <ArrowRight /> Review next field
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={confirmAllImportReviewItems}>
+                        <Check /> Confirm all imported fields
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
                 <div className="grid gap-2 sm:grid-cols-2">
