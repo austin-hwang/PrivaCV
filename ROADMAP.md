@@ -65,6 +65,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   ATS-friendly text can now be copied or downloaded as a `.txt` file for
   application portals that accept text uploads. Reassess actual browser-print
   fidelity and import structure before adding new document formats.
+- Meet application portals that explicitly require a Word attachment without
+  compromising the local-first promise: a simple editable `.docx` now exports
+  the current content, headings, bullets, and safe contact links entirely in
+  the browser. It intentionally prioritizes conventional single-column text
+  over a pixel-perfect replica of the selected PDF template; reassess richer
+  Word styling only if users need it without weakening compatibility.
 - Make post-export confidence visible by showing whether the current resume has
   changed since the last PDF export attempt.
 - Show a compact field-level summary of what changed since the last export so
@@ -203,8 +209,6 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Optional static hosting workflow for a hosted version.
 
 ## Nice-to-have
-
-- DOCX export.
 - Keyboard shortcuts for adding entries and moving sections.
 - Theme controls limited to typography and spacing, not decorative templates.
 

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { strFromU8, unzipSync } from "fflate";
+import { resumeDocx } from "@/lib/docx-export";
 import {
   buildResumeChecks,
   contactHref,
@@ -33,6 +35,23 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("creates a local, editable Word document with simple resume structure", () => {
+    const files = unzipSync(resumeDocx(sampleState()));
+    const document = strFromU8(files["word/document.xml"]);
+    const relationships = strFromU8(files["word/_rels/document.xml.rels"]);
+
+    expect(Object.keys(files)).toEqual(expect.arrayContaining([
+      "[Content_Types].xml",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+    ]));
+    expect(document).toContain("Jane Doe");
+    expect(document).toContain("EXPERIENCE");
+    expect(document).toContain("•");
+    expect(relationships).toContain("mailto:jane.doe@example.com");
+    expect(relationships).toContain("https://linkedin.com/in/janedoe");
+  });
+
   it("creates safe contact links without turning invalid values into links", () => {
     expect(contactHref("email", "ada@example.com")).toBe("mailto:ada@example.com");
     expect(contactHref("phone", "+1 (415) 555-0123")).toBe("tel:+1 (415) 555-0123");

@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { strFromU8, unzipSync } from "fflate";
 
 async function openMenu(page: Page) {
   await page.getByRole("button", { name: /^more actions$/i }).click();
@@ -225,6 +227,16 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /download \.txt/i }).click();
   await expect((await download).suggestedFilename()).toBe("Jane_Doe.txt");
+
+  const wordDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: /download \.docx/i }).click();
+  const wordFile = await wordDownload;
+  await expect(wordFile.suggestedFilename()).toBe("Jane_Doe.docx");
+  expect(wordFile.suggestedFilename()).toMatch(/\.docx$/);
+  const wordPath = await wordFile.path();
+  expect(wordPath).toBeTruthy();
+  const wordContents = unzipSync(new Uint8Array(await readFile(wordPath!)));
+  expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
 });
 
 test("makes validated contact details actionable in the preview", async ({ page }) => {

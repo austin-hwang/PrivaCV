@@ -9,6 +9,7 @@ import {
   ClipboardPaste,
   Download,
   Eye,
+  FileText,
   History,
   Printer,
   Save,
@@ -52,6 +53,7 @@ export function ResumeEditorOverlays({
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
+    downloadDocx,
     downloadPlainText,
     existingVersionForSave,
     exportAnyway,
@@ -162,7 +164,7 @@ export function ResumeEditorOverlays({
             <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Plain-text export</DialogDescription>
             <DialogTitle>Review before copying</DialogTitle>
             <DialogDescription>
-              This is the exact ATS-friendly text that will be copied for job applications and recruiter portals.
+              This is the exact ATS-friendly text that will be copied for job applications and recruiter portals. You can also download the same content as a simple, editable Word document.
             </DialogDescription>
           </DialogHeader>
           {plainText ? (
@@ -177,6 +179,9 @@ export function ResumeEditorOverlays({
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">{plainText ? plainTextStats(plainText) : "0 words"}</span>
             <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={downloadDocx} disabled={!plainText}>
+                <FileText /> Download .docx
+              </Button>
               <Button type="button" variant="outline" onClick={downloadPlainText} disabled={!plainText}>
                 <Download /> Download .txt
               </Button>
