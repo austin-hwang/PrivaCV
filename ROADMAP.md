@@ -55,6 +55,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   rather than guessed; each experience entry now has a reversible one-click
   title/company swap.
 - Keep the editor dense but calm, with immediate preview feedback.
+- Keep page-fit decisions intentional and reversible: when a preview crosses a
+  page boundary, a small local helper can try compact spacing and then modest
+  2% text reductions without touching the person’s content; reassess whether
+  stronger content-trimming guidance is needed only after this direct layout
+  path proves insufficient.
 - Treat loading a sample as a content change, not a design reset: the selected
   template, typeface, accent, heading treatment, density, and text scale stay
   active so people can evaluate the example in the layout they chose.

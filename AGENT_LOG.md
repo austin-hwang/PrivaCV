@@ -1,5 +1,30 @@
 # Agent Log
 
+## 2026-07-12 — Reversible page-fit helper
+
+- Market and product review: current Rezi and Teal reviews still name layout
+  friction and difficulty tightening a resume to one page, while praising fast
+  preview and dependable export. The editor already measured print-faithful
+  page count and exposed compact density/text scale, but a multi-page preview
+  did not offer an immediate way to try those controls.
+- Options considered: add automatic content trimming, leave people to find the
+  layout settings, or offer a small reversible layout adjustment at the point
+  of need. The reversible helper won because it keeps every word intact,
+  preserves user control, and gives immediate visual feedback.
+- Implementation: multi-page previews now offer compact spacing first. Once
+  compact spacing is already active, the same helper reduces text size by 2%
+  per press. Each action has the existing five-second Undo path and restores
+  the exact previous density and text scale.
+- Verification: direct TypeScript, ESLint, and all 59 Vitest tests passed;
+  the focused new Chromium test and the full 72-test Chromium suite passed on
+  an isolated current server; the optimized production build passed. The
+  package-script wrapper itself was not usable because an unrelated uncommitted
+  `pnpm-workspace.yaml` setting contains an invalid `workerd` approval value,
+  so equivalent installed binaries were used directly.
+- Provisional next step: reassess whether actual application-specific page
+  limits need clearer guidance, versus further parsing recovery for unusual
+  imported layouts.
+
 ## 2026-07-12 — Explain visual and cross-tab draft changes
 
 - Market and product review: current resume-builder feedback continues to

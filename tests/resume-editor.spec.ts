@@ -1174,6 +1174,38 @@ test("matches preview page count when print keeps a long role intact", async ({ 
   expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
 });
 
+test("offers reversible page-fit adjustments without changing resume content", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const details = Array.from(
+    { length: 22 },
+    (_, index) => `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
+  ).join("\n");
+  const roleDetails = page.locator("#field-experience-0-details");
+  await roleDetails.fill(details);
+
+  await expect(page.getByRole("button", { name: "Try compact spacing" })).toBeVisible();
+  await page.getByRole("button", { name: "Try compact spacing" }).click();
+  await expect(page.locator(".resume-sheet")).toHaveAttribute("data-density", "compact");
+  await expect(page.locator('div[role="status"]')).toContainText("Applied compact spacing");
+  await expect(roleDetails).toHaveValue(details);
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator(".resume-sheet")).toHaveAttribute("data-density", "comfortable");
+  await expect(roleDetails).toHaveValue(details);
+
+  await page.getByRole("button", { name: "Try compact spacing" }).click();
+  await page.getByRole("button", { name: "Reduce text 2%" }).click();
+  await expect(page.getByText("98%", { exact: true })).toBeVisible();
+  await expect(page.locator('div[role="status"]')).toContainText("Reduced text size to 98%");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByText("100%", { exact: true })).toBeVisible();
+  await expect(roleDetails).toHaveValue(details);
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {

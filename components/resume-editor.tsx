@@ -161,6 +161,7 @@ export function ResumeEditor() {
     state,
     storageIssue,
     swapExperienceTitleAndCompany,
+    tightenLayout,
     updateEntry,
     updateField,
     updateSectionTitle,
@@ -219,6 +220,7 @@ export function ResumeEditor() {
 
   const checksReady = passedChecks === checks.length;
   const exportStale = Boolean(exportCheckpoint) && !exportIsCurrent;
+  const canTightenLayout = state.theme.density !== "compact" || state.textScale > MIN_TEXT_SCALE;
   const removedBuiltinSections = SECTION_KEYS.filter((section) => !state.sectionOrder.includes(section));
   const navItems: SectionNavItem[] = workspaceHasStarted
     ? [
@@ -1218,9 +1220,23 @@ export function ResumeEditor() {
                   />
                   <output className="w-10 text-right tabular-nums">{Math.round(state.textScale * 100)}%</output>
                 </label>
-                <p className="truncate text-xs text-muted-foreground">
-                  {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
-                </p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-xs text-muted-foreground">
+                    {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
+                  </p>
+                  {pageCount > 1 && canTightenLayout ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 shrink-0 px-2 text-xs"
+                      onClick={tightenLayout}
+                      title="Uses compact spacing first, then reduces text size by 2%. Your resume content stays unchanged."
+                    >
+                      {state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
               <Button type="button" variant="outline" size="sm" className="shrink-0 lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
                 <FileText /> Edit resume

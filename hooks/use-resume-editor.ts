@@ -22,6 +22,7 @@ import {
   type CustomSection,
   type ResumeEntry,
   type ResumeState,
+  type ResumeTheme,
   type OversizedResumeEntry,
 } from "@/lib/resume";
 import {
@@ -89,7 +90,7 @@ function pdfDocumentTitle(name: string) {
   return filename === "resume" ? "Resume" : `${filename}_Resume`;
 }
 
-type UndoableRemoval =
+type UndoableChange =
   | {
       kind: "entry";
       toastId: number;
@@ -111,6 +112,12 @@ type UndoableRemoval =
       entries: ResumeEntry[];
       skills: string;
       sectionOrderIndex: number;
+    }
+  | {
+      kind: "layout";
+      toastId: number;
+      density: ResumeTheme["density"];
+      textScale: number;
     };
 
 export function useResumeEditor() {
@@ -130,7 +137,7 @@ export function useResumeEditor() {
   const [versionCompareTarget, setVersionCompareTarget] = useState<VersionCompareTarget | null>(null);
   const [draftSourceVersionId, setDraftSourceVersionId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [undoableRemoval, setUndoableRemoval] = useState<UndoableRemoval | null>(null);
+  const [undoableRemoval, setUndoableRemoval] = useState<UndoableChange | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
   const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
@@ -724,6 +731,33 @@ export function useResumeEditor() {
     });
   };
 
+  // Keep page-fit help deliberately modest and reversible. It never removes or
+  // rewrites content: compact spacing comes first, followed by small text-size
+  // steps if the person has already chosen the compact layout.
+  const tightenLayout = () => {
+    const previousDensity = state.theme.density;
+    const previousTextScale = state.textScale;
+    const nextTextScale = previousDensity === "compact" ? clampTextScale(previousTextScale - 0.02) : previousTextScale;
+
+    if (previousDensity === "compact" && nextTextScale === previousTextScale) {
+      flash("The tightest layout is already active");
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      theme: { ...current.theme, density: "compact" },
+      textScale: current.theme.density === "compact" ? clampTextScale(current.textScale - 0.02) : current.textScale,
+    }));
+    const toastId = flash(
+      previousDensity === "compact"
+        ? `Reduced text size to ${Math.round(nextTextScale * 100)}%`
+        : "Applied compact spacing",
+      "undo",
+    );
+    setUndoableRemoval({ kind: "layout", toastId, density: previousDensity, textScale: previousTextScale });
+  };
+
   const updateSectionTitle = (section: string, title: string) => {
     setState((current) => {
       if (isBuiltinSection(section)) {
@@ -796,6 +830,14 @@ export function useResumeEditor() {
   const undoRemoval = () => {
     if (!undoableRemoval) return;
     setState((current) => {
+      if (undoableRemoval.kind === "layout") {
+        return {
+          ...current,
+          theme: { ...current.theme, density: undoableRemoval.density },
+          textScale: undoableRemoval.textScale,
+        };
+      }
+
       if (undoableRemoval.kind === "entry") {
         const { section, index, entry } = undoableRemoval;
         if (isBuiltinSection(section) && section !== "skills") {
@@ -838,7 +880,13 @@ export function useResumeEditor() {
       return { ...next, [undoableRemoval.section]: undoableRemoval.entries };
     });
     setUndoableRemoval(null);
-    flash(undoableRemoval.kind === "entry" ? "Restored entry" : "Restored section");
+    flash(
+      undoableRemoval.kind === "layout"
+        ? "Restored layout"
+        : undoableRemoval.kind === "entry"
+          ? "Restored entry"
+          : "Restored section",
+    );
   };
 
   const loadSample = () => {
@@ -1221,6 +1269,7 @@ export function useResumeEditor() {
     swapExperienceTitleAndCompany,
     textReviewOpen,
     textImportOpen,
+    tightenLayout,
     toast,
     toggleImportReviewItem,
     confirmAllImportReviewItems,

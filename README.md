@@ -89,7 +89,9 @@ subscriptions, watermarks, or backend storage.
   resume or exported PDF.
 - Glanceable version summaries, suggested comparisons, reversible deletion, and
   post-restore change review for safer tailoring decisions.
-- Text size slider that scales the resume preview and printed PDF.
+- Text size slider that scales the resume preview and printed PDF. When a
+  preview runs beyond one page, a reversible helper can try compact spacing
+  first, then reduce text size in small 2% steps without changing any content.
 - Review Text dialog for the exact ATS-friendly copy before copying or downloading
   a portable `.txt` file for application portals.
 - Application Copy dialog for portals that split a resume into separate fields:
