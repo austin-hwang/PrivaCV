@@ -1056,6 +1056,7 @@ test("shows page boundaries in the preview without printing those guides", async
   await page.getByLabel("Details").first().fill(details);
 
   await expect(page.getByText("Page 2 begins")).toBeVisible();
+  await expect(page.locator(".resume-page-guide span").filter({ hasText: "Page 2 begins" }).first()).toContainText("Next:");
 
   await page.emulateMedia({ media: "print" });
   await expect(page.getByText("Page 2 begins")).toBeHidden();

@@ -10,9 +10,9 @@ subscriptions, watermarks, or backend storage.
 - Next.js App Router app built with TypeScript, React, Tailwind CSS, and local
   shadcn/ui-style components.
 - Live two-pane editor with a true Letter-size printable resume preview;
-  screen-only page-boundary guides make additional PDF pages visible before
-  export, while print rules keep headings and individual bullets together when
-  space allows.
+  screen-only page-boundary guides identify the content that comes next on
+  each additional PDF page before export, while print rules keep headings and
+  individual bullets together when space allows.
 - Valid email, phone, and website details remain clickable in the preview and browser-produced PDF, while malformed values stay as plain text for correction.
 - Focused mobile editor and preview views that keep the printed Letter layout
   intact while scaling it to the screen, plus an on-demand Review tools strip

@@ -106,8 +106,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   layout. The phone preview now scales the same true Letter-sized page box used
   for PDF export instead of reflowing it to the device width, so line wraps and
   page count remain trustworthy; screen-only page-boundary guides now make the
-  start of each additional printed page visible before export, while print
-  styles keep headings and individual bullets together when space allows; the
+  start of each additional printed page visible and name the next section or
+  entry before export, while print styles keep headings and individual bullets
+  together when space allows; the
   phone workspace keeps the form first,
   surfaces a compact next-field
   prompt for imported resumes, and moves the full import checklist, resume checks,

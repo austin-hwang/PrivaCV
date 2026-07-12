@@ -117,6 +117,7 @@ export function useResumeEditor() {
   const [state, setState] = useState<ResumeState>(() => emptyState());
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
+  const [pageGuides, setPageGuides] = useState<Array<{ page: number; label?: string }>>([]);
   const [oversizedEntry, setOversizedEntry] = useState<OversizedResumeEntry | null>(null);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
@@ -456,7 +457,27 @@ export function useResumeEditor() {
       if (!sheet) return;
       const pageHeightPx = 11 * 96;
       const roundingTolerancePx = 2;
-      setPageCount(Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx)));
+      const nextPageCount = Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx));
+      setPageCount(nextPageCount);
+
+      // A page boundary is most useful when it tells a person what will be
+      // encountered next. Use the live preview geometry so this remains true
+      // as text, font, density, or section order changes; the guides remain
+      // screen-only and do not affect the exported document.
+      const guideTargets = Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-guide-label]"));
+      const nextPageGuides = Array.from({ length: Math.max(0, nextPageCount - 1) }, (_, index) => {
+        const page = index + 2;
+        const boundary = (page - 1) * pageHeightPx;
+        const nextTarget = guideTargets.find((target) => target.offsetTop + target.offsetHeight > boundary + roundingTolerancePx);
+        return { page, label: nextTarget?.dataset.resumeGuideLabel };
+      });
+      setPageGuides((current) =>
+        current.length === nextPageGuides.length && current.every((guide, index) =>
+          guide.page === nextPageGuides[index].page && guide.label === nextPageGuides[index].label,
+        )
+          ? current
+          : nextPageGuides,
+      );
 
       // Entries normally stay together in print. If an entry is taller than a
       // printable content area, though, every browser must split it. Surface
@@ -1039,6 +1060,7 @@ export function useResumeEditor() {
     openVersionHistoryBackup,
     openVersionSave,
     pageCount,
+    pageGuides,
     passedChecks,
     pdfInputRef,
     plainText,
