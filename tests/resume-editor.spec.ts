@@ -46,14 +46,14 @@ function makeTextPdf(text: string) {
 test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle("Resume Editor — private, ATS-friendly PDFs");
+  await expect(page).toHaveTitle("PrivaCV — private, ATS-friendly resumes");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
     /Build, tailor, and export a clean resume locally/i,
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     "content",
-    "Resume Editor — private, ATS-friendly PDFs",
+    "PrivaCV — private, ATS-friendly resumes",
   );
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest\.webmanifest$/);
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg(?:\?.*)?$/);
@@ -69,7 +69,7 @@ test("presents credible browser metadata and public launch assets", async ({ pag
     request.get(appleIconHref!),
   ]);
   expect(manifest.ok()).toBeTruthy();
-  expect(await manifest.json()).toMatchObject({ short_name: "Resume Editor", display: "standalone" });
+  expect(await manifest.json()).toMatchObject({ short_name: "PrivaCV", display: "standalone" });
   expect(robots.ok()).toBeTruthy();
   expect(await robots.text()).toContain("User-Agent: *");
   expect(icon.ok()).toBeTruthy();
@@ -86,6 +86,9 @@ test("protects the local workspace with production response security headers", a
   expect(headers["content-security-policy"]).toContain("default-src 'self'");
   expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
   expect(headers["content-security-policy"]).toContain("worker-src 'self' blob:");
+  // The Ko-fi support widget is the one allowed third-party origin.
+  expect(headers["content-security-policy"]).toContain("script-src 'self' 'unsafe-inline' https://storage.ko-fi.com");
+  expect(headers["content-security-policy"]).toContain("frame-src 'self' https://ko-fi.com https://*.ko-fi.com");
   expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
   expect(headers["cross-origin-resource-policy"]).toBe("same-origin");
   expect(headers["permissions-policy"]).toContain("camera=()");
@@ -378,7 +381,7 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
 
   await page.getByRole("button", { name: /^export pdf$/i }).click();
   await expect(page.locator("html")).toHaveAttribute("data-print-title", "Jane_Doe_Resume");
-  await expect(page).toHaveTitle("Resume Editor — private, ATS-friendly PDFs");
+  await expect(page).toHaveTitle("PrivaCV — private, ATS-friendly resumes");
 });
 
 test("flags a single resume entry that would continue onto another printed page", async ({ page }) => {

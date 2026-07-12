@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const developmentScriptSource = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
 
+// Ko-fi's floating support widget loads its script/iframe/images from these
+// hosts. This is the one third-party the editor talks to; resume content still
+// never leaves the browser.
+const kofi = "https://ko-fi.com https://*.ko-fi.com";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -10,11 +15,12 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   // Next.js evaluates its development client bundle. Keep that allowance out
   // of production, where the editor's static bundle does not need it.
-  `script-src 'self' 'unsafe-inline'${developmentScriptSource}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
-  "font-src 'self'",
-  "connect-src 'self'",
+  `script-src 'self' 'unsafe-inline' https://storage.ko-fi.com${developmentScriptSource}`,
+  "style-src 'self' 'unsafe-inline' https://storage.ko-fi.com",
+  `img-src 'self' blob: data: ${kofi}`,
+  "font-src 'self' https://storage.ko-fi.com",
+  `connect-src 'self' ${kofi}`,
+  `frame-src 'self' ${kofi}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "upgrade-insecure-requests",

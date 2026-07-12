@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
+import { KofiWidget } from "@/components/kofi-widget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,7 +50,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${merriweather.variable}`}>{children}</body>
+      <body className={`${inter.variable} ${merriweather.variable}`}>
+        {children}
+        <KofiWidget />
+      </body>
     </html>
   );
 }
