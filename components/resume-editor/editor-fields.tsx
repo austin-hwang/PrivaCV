@@ -1,17 +1,22 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, Check, Eye, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, GripVertical, Trash2 } from "lucide-react";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  ENTRY_SCHEMA,
-  type ImportReviewItem,
-} from "@/lib/resume-workspace";
+import { ENTRY_SCHEMA } from "@/lib/resume-workspace";
 import { isBuiltinSection, summarizeBulletOpenings, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
+
+export type ReviewState = "pending" | "confirmed";
+
+function reviewFieldClass(reviewState?: ReviewState) {
+  if (reviewState === "confirmed") return "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-200";
+  if (reviewState === "pending") return "border-amber-500 bg-amber-50 ring-2 ring-amber-200";
+  return undefined;
+}
 
 export function FieldGroup({ id, title, actions, children, className }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
@@ -29,9 +34,7 @@ export function TextField({
   label,
   value,
   placeholder,
-  reviewTarget,
-  reviewItem,
-  onToggleReview,
+  reviewState,
   onChange,
   type = "text",
   autoComplete,
@@ -42,9 +45,7 @@ export function TextField({
   label: string;
   value: string;
   placeholder?: string;
-  reviewTarget?: boolean;
-  reviewItem?: ImportReviewItem & { confirmed: boolean };
-  onToggleReview?: (itemId: string) => void;
+  reviewState?: ReviewState;
   onChange: (value: string) => void;
   type?: TextInputType;
   autoComplete?: string;
@@ -62,10 +63,9 @@ export function TextField({
         autoComplete={autoComplete}
         inputMode={inputMode}
         spellCheck={spellCheck}
-        className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
+        className={cn(reviewFieldClass(reviewState))}
         onChange={(event) => onChange(event.target.value)}
       />
-      <ImportReviewFieldPrompt item={reviewItem} onToggleReview={onToggleReview} />
     </div>
   );
 }
@@ -75,9 +75,7 @@ export function TextAreaField({
   label,
   value,
   placeholder,
-  reviewTarget,
-  reviewItem,
-  onToggleReview,
+  reviewState,
   onChange,
   spellCheck = true,
 }: {
@@ -85,9 +83,7 @@ export function TextAreaField({
   label: string;
   value: string;
   placeholder?: string;
-  reviewTarget?: boolean;
-  reviewItem?: ImportReviewItem & { confirmed: boolean };
-  onToggleReview?: (itemId: string) => void;
+  reviewState?: ReviewState;
   onChange: (value: string) => void;
   spellCheck?: boolean;
 }) {
@@ -99,47 +95,9 @@ export function TextAreaField({
         value={value}
         placeholder={placeholder}
         spellCheck={spellCheck}
-        className={cn(reviewTarget && "border-amber-500 bg-amber-50 ring-2 ring-amber-200")}
+        className={cn(reviewFieldClass(reviewState))}
         onChange={(event) => onChange(event.target.value)}
       />
-      <ImportReviewFieldPrompt item={reviewItem} onToggleReview={onToggleReview} />
-    </div>
-  );
-}
-
-function ImportReviewFieldPrompt({
-  item,
-  onToggleReview,
-}: {
-  item?: ImportReviewItem & { confirmed: boolean };
-  onToggleReview?: (itemId: string) => void;
-}) {
-  if (!item || !onToggleReview) return null;
-
-  return (
-    <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-xs leading-snug", item.confirmed ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-amber-300 bg-amber-50 text-amber-950")}>
-      <div className="flex min-w-0 items-center gap-1.5">
-        {item.confirmed ? <Check className="size-3.5 shrink-0" /> : <Eye className="size-3.5 shrink-0" />}
-        <p>
-          <span className="font-semibold">Imported {item.label}.</span>{" "}
-          {item.confirmed ? "Confirmed for this import review." : "Edit if needed, then confirm it here."}
-        </p>
-      </div>
-      {item.sourceExcerpt ? (
-        <p className="w-full whitespace-pre-line rounded border border-current/15 bg-background/70 px-2 py-1 font-mono text-[11px] leading-relaxed text-foreground">
-          <span className="font-sans font-semibold">Matching source context: </span>{item.sourceExcerpt}
-        </p>
-      ) : null}
-      <Button
-        type="button"
-        variant={item.confirmed ? "secondary" : "outline"}
-        size="sm"
-        className="h-7 shrink-0 px-2"
-        aria-pressed={item.confirmed}
-        onClick={() => onToggleReview(item.id)}
-      >
-        <Check /> {item.confirmed ? "Confirmed" : `Mark ${item.label} reviewed`}
-      </Button>
     </div>
   );
 }
@@ -148,26 +106,22 @@ export function EntryList({
   section,
   sectionLabel,
   entries,
-  reviewTargets,
-  reviewItemsByTarget,
+  reviewStateByTarget,
   onUpdate,
   onMove,
   onReorder,
   onRemove,
   onSwapTitleAndSubtitle,
-  onToggleReview,
 }: {
   section: string;
   sectionLabel: string;
   entries: ResumeEntry[];
-  reviewTargets: Set<string>;
-  reviewItemsByTarget: Map<string, ImportReviewItem & { confirmed: boolean }>;
+  reviewStateByTarget: Map<string, ReviewState>;
   onUpdate: (section: string, index: number, key: keyof ResumeEntry, value: string) => void;
   onMove: (section: string, index: number, direction: -1 | 1) => void;
   onReorder: (section: string, index: number, target: number) => void;
   onRemove: (section: string, index: number) => void;
   onSwapTitleAndSubtitle: (index: number) => void;
-  onToggleReview: (itemId: string) => void;
 }) {
   const schema = isBuiltinSection(section) && section !== "skills"
     ? ENTRY_SCHEMA[section]
@@ -281,36 +235,28 @@ export function EntryList({
               id={`field-${section}-${index}-title`}
               label={schema.title}
               value={entry.title}
-              reviewTarget={reviewTargets.has(`field-${section}-${index}-title`)}
-              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-title`)}
-              onToggleReview={onToggleReview}
+              reviewState={reviewStateByTarget.get(`field-${section}-${index}-title`)}
               onChange={(value) => onUpdate(section, index, "title", value)}
             />
             <TextField
               id={`field-${section}-${index}-subtitle`}
               label={schema.subtitle}
               value={entry.subtitle}
-              reviewTarget={reviewTargets.has(`field-${section}-${index}-subtitle`)}
-              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-subtitle`)}
-              onToggleReview={onToggleReview}
+              reviewState={reviewStateByTarget.get(`field-${section}-${index}-subtitle`)}
               onChange={(value) => onUpdate(section, index, "subtitle", value)}
             />
             <TextField
               id={`field-${section}-${index}-meta`}
               label={schema.meta}
               value={entry.meta}
-              reviewTarget={reviewTargets.has(`field-${section}-${index}-meta`)}
-              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-meta`)}
-              onToggleReview={onToggleReview}
+              reviewState={reviewStateByTarget.get(`field-${section}-${index}-meta`)}
               onChange={(value) => onUpdate(section, index, "meta", value)}
             />
             <TextAreaField
               id={`field-${section}-${index}-details`}
               label={schema.details}
               value={entry.details}
-              reviewTarget={reviewTargets.has(`field-${section}-${index}-details`)}
-              reviewItem={reviewItemsByTarget.get(`field-${section}-${index}-details`)}
-              onToggleReview={onToggleReview}
+              reviewState={reviewStateByTarget.get(`field-${section}-${index}-details`)}
               onChange={(value) => onUpdate(section, index, "details", value)}
             />
             {evidence?.bulletCount ? (

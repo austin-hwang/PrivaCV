@@ -28,12 +28,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
+import { EntryList, FieldGroup, TextAreaField, TextField, type ReviewState } from "@/components/resume-editor/editor-fields";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
+import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
 import { ChangeSummaryGrid, RestoredVersionCard } from "@/components/resume-editor/version-changes";
@@ -106,7 +106,7 @@ export function ResumeEditor() {
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [importChecklistOpen, setImportChecklistOpen] = useState(false);
+  const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
   const [previewScale, setPreviewScale] = useState(1);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
@@ -119,7 +119,6 @@ export function ResumeEditor() {
     autosaveStatus,
     checks,
     clearResume,
-    confirmAllImportReviewItems,
     dismissRecoveryPoint,
     exportCheckpoint,
     externalDraft,
@@ -130,9 +129,7 @@ export function ResumeEditor() {
     hasContent,
     historyBackupInputRef,
     importReview,
-    importReviewItemsByTarget,
     importReviewStatus,
-    importReviewTargets,
     isImporting,
     jsonInputRef,
     keepCurrentDraft,
@@ -213,10 +210,86 @@ export function ResumeEditor() {
     focusFromVersionCompare(targetId);
   };
 
-  const nextImportReviewItem = importReview?.items.find(
-    (item) => !importReview.reviewedItemIds?.includes(item.id),
-  );
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
+  const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
+
+  // Per-field review highlight: amber while an imported field is unconfirmed,
+  // green once it has been confirmed in the walkthrough.
+  const reviewStateByTarget = useMemo(() => {
+    const map = new Map<string, ReviewState>();
+    if (importReview) {
+      const reviewed = new Set(importReview.reviewedItemIds ?? []);
+      for (const item of importReview.items) {
+        map.set(item.targetId, reviewed.has(item.id) ? "confirmed" : "pending");
+      }
+    }
+    return map;
+  }, [importReview]);
+
+  // Guided-review tour steps. Import: confirm each imported field, then flag any
+  // source section the importer skipped. Checks: walk each readiness check.
+  const importTourSteps: GuidedReviewStep[] = importReview
+    ? [
+        ...importReview.items.map((item, itemIndex) => {
+          const confirmed = Boolean(importReview.reviewedItemIds?.includes(item.id));
+          return {
+            id: `item-${item.id}`,
+            targetId: item.targetId,
+            eyebrow: `Imported field ${itemIndex + 1} of ${importReview.items.length}`,
+            title: item.label,
+            description: item.detail,
+            excerpt: item.sourceExcerpt,
+            tone: (confirmed ? "ok" : "warn") as GuidedReviewStep["tone"],
+            done: confirmed,
+            action: {
+              label: confirmed ? "Confirmed" : "Confirm this field",
+              run: () => toggleImportReviewItem(item.id),
+            },
+          } satisfies GuidedReviewStep;
+        }),
+        ...importSkippedCoverage.map((item) => ({
+          id: `coverage-${item.id}`,
+          targetId: item.targetId,
+          eyebrow: "Possible skipped section",
+          title: item.label,
+          description: item.detail,
+          excerpt: item.sourceExcerpt,
+          tone: "warn" as GuidedReviewStep["tone"],
+          action: {
+            label: "Go to this section",
+            run: () => {
+              setReviewTour(null);
+              focusEditorTarget(item.targetId);
+            },
+          },
+        } satisfies GuidedReviewStep)),
+      ]
+    : [];
+
+  const checksTourSteps: GuidedReviewStep[] = checks.map((check) => ({
+    id: check.id,
+    targetId: check.targetId,
+    eyebrow: "Resume check",
+    title: check.label,
+    description: check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
+    tone: (check.advisory ? "info" : check.ok ? "ok" : "warn") as GuidedReviewStep["tone"],
+    done: check.ok,
+    action: check.ok && !check.advisory ? undefined : { label: check.actionLabel, run: () => focusEditorTarget(check.targetId) },
+  } satisfies GuidedReviewStep));
+
+  const startImportTour = () => {
+    if (!importReview) return;
+    const firstUnconfirmed = importReview.items.findIndex((item) => !importReview.reviewedItemIds?.includes(item.id));
+    setToolsOpen(false);
+    setMobileWorkspaceView("editor");
+    setReviewTour({ kind: "import", index: firstUnconfirmed >= 0 ? firstUnconfirmed : 0 });
+  };
+  const startChecksTour = () => {
+    setToolsOpen(false);
+    setMobileWorkspaceView("editor");
+    setReviewTour({ kind: "checks", index: 0 });
+  };
+  const tourSteps = reviewTour?.kind === "import" ? importTourSteps : reviewTour?.kind === "checks" ? checksTourSteps : [];
 
   const checksReady = passedChecks === checks.length;
   const exportStale = Boolean(exportCheckpoint) && !exportIsCurrent;
@@ -538,181 +611,35 @@ export function ResumeEditor() {
           ) : null}
 
           {importReview ? (
-            <Card className="mb-5 border-amber-200 bg-amber-50/60 lg:hidden">
+            <Card id="import-review-panel" className="mb-6 border-amber-200 bg-amber-50/60">
               <CardHeader className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900">
-                      Imported resume
+                      Import review
                     </CardDescription>
-                    <CardTitle className="text-base">Keep editing; confirm each imported field.</CardTitle>
+                    <CardTitle className="text-base">Review the imported fields</CardTitle>
+                    <CardDescription>
+                      Imported from {importReview.fileName}. Step through each suggested field, edit anything that looks off, and confirm it.
+                    </CardDescription>
                   </div>
                   <Badge variant="outline" className="shrink-0 border-amber-300 bg-background tabular-nums text-amber-950">
                     {importReviewStatus?.reviewedCount ?? 0}/{importReview.items.length}
                   </Badge>
                 </div>
-                <CardDescription>
-                  {nextImportReviewItem
-                    ? `Next: ${nextImportReviewItem.label}. Edit it if needed, then confirm it beside the field.`
-                    : "Every suggested field is confirmed. Open the checklist to finish this review."}
-                </CardDescription>
+                {importSkippedCoverage.length ? (
+                  <CardDescription className="text-amber-900">
+                    {importSkippedCoverage.length} source {importSkippedCoverage.length === 1 ? "section was" : "sections were"} found but not imported — the walkthrough flags {importSkippedCoverage.length === 1 ? "it" : "them"} so you can add {importSkippedCoverage.length === 1 ? "it" : "them"} back.
+                  </CardDescription>
+                ) : null}
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {nextImportReviewItem ? (
-                  <Button type="button" size="sm" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
-                    <ArrowRight /> Review next imported field
-                  </Button>
-                ) : null}
-                <Button type="button" variant="outline" size="sm" onClick={() => setImportChecklistOpen(true)}>
-                  {nextImportReviewItem ? "Open checklist" : "Finish checklist"}
+              <CardContent className="flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" onClick={() => startImportTour()}>
+                  <ArrowRight /> {(importReviewStatus?.reviewedCount ?? 0) > 0 ? "Continue walkthrough" : "Start walkthrough"}
                 </Button>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {importReview ? (
-            <Card
-              id="import-review-panel"
-              className={cn("mb-6 border-amber-200 bg-amber-50/60", !importChecklistOpen && "hidden", "lg:block")}
-            >
-              <CardHeader className="space-y-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900">
-                      Import review
-                    </CardDescription>
-                    <CardTitle className="text-base">Confirm the fields the importer can misread.</CardTitle>
-                    <CardDescription>
-                      Imported from {importReview.fileName}. Review each suggested field, then explicitly confirm it before exporting.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="w-fit border-amber-300 bg-background tabular-nums text-amber-950">
-                    {importReviewStatus?.reviewedCount ?? 0} of {importReview.items.length} confirmed
-                  </Badge>
-                </div>
-                <Button type="button" variant="ghost" size="sm" className="w-fit lg:hidden" onClick={() => setImportChecklistOpen(false)}>
-                  Back to editing
+                <Button type="button" variant="outline" size="sm" onClick={completeImportReview} disabled={!importReviewStatus?.isComplete}>
+                  <Check /> Finish review
                 </Button>
-                <div className="flex flex-wrap gap-2">
-                  {importReview.sections.map((section) => (
-                    <Badge key={section} variant="secondary">
-                      {section}
-                    </Badge>
-                  ))}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-md border border-amber-200 bg-background p-3">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                    <p className="text-sm font-semibold text-amber-950">What the importer detected</p>
-                    <p className="text-xs text-muted-foreground">A quick coverage check before you confirm.</p>
-                  </div>
-                  <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                    “Not detected” means the importer did not place content there. When a source heading is found, it is called out so you can correct a skipped section quickly.
-                  </p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    {importCoverage.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={cn(
-                          "flex min-h-16 items-start gap-2 rounded-md border p-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                          item.detected ? "border-emerald-200 bg-emerald-50/50" : "border-amber-200 bg-amber-50/50",
-                        )}
-                        onClick={() => focusEditorTarget(item.targetId)}
-                      >
-                        {item.detected ? <Check className="mt-0.5 size-4 shrink-0 text-emerald-800" /> : <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />}
-                        <span>
-                          <span className="block text-sm font-medium text-foreground">{item.label}</span>
-                          <span className="block text-xs leading-snug text-muted-foreground">{item.detail}</span>
-                          {item.sourceDetected && !item.detected ? (
-                            <span className="mt-1 block text-xs font-medium text-amber-950">Source section needs review</span>
-                          ) : null}
-                          {item.sourceExcerpt ? (
-                            <span className="mt-2 block whitespace-pre-line rounded border border-current/15 bg-background/70 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground">
-                              <span className="font-sans font-semibold">Source excerpt: </span>{item.sourceExcerpt}
-                            </span>
-                          ) : null}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {nextImportReviewItem ? (
-                  <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>
-                      <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                        If you have checked the source and every suggested field looks right, you can confirm the import at once.
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                      <Button type="button" size="sm" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
-                        <ArrowRight /> Review next field
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={confirmAllImportReviewItems}>
-                        <Check /> Confirm all imported fields
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {importReview.items.map((item) => {
-                    const confirmed = Boolean(importReview.reviewedItemIds?.includes(item.id));
-                    return (
-                      <div key={item.id} className={cn("min-h-24 rounded-md border bg-background p-3", confirmed && "border-emerald-200 bg-emerald-50/50")}>
-                        <div className="flex gap-2">
-                          {confirmed ? <Check className="mt-0.5 size-4 shrink-0 text-emerald-800" /> : <Eye className="mt-0.5 size-4 shrink-0 text-amber-800" />}
-                          <span className="min-w-0">
-                            <span className="block text-sm font-semibold text-foreground">{item.label}</span>
-                            <span className="block truncate text-xs text-muted-foreground">{item.detail}</span>
-                          </span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button type="button" variant="outline" size="sm" className="h-7 px-2" onClick={() => focusEditorTarget(item.targetId)}>
-                            <ArrowRight /> Review field
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={confirmed ? "secondary" : "outline"}
-                            size="sm"
-                            className="h-7 px-2"
-                            aria-pressed={confirmed}
-                            onClick={() => toggleImportReviewItem(item.id)}
-                          >
-                            <Check /> {confirmed ? "Confirmed" : "Mark reviewed"}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {importReview.sourceText ? (
-                  <details className="rounded-md border border-amber-200 bg-background p-3">
-                    <summary className="cursor-pointer text-sm font-medium text-amber-950 marker:text-amber-800">
-                      View the text used for this import
-                    </summary>
-                    <p className="mt-2 text-xs leading-snug text-muted-foreground">
-                      Compare this extracted text with the editable fields above as you correct them. It stays in this browser during this review.
-                    </p>
-                    <Textarea
-                      className="mt-3 min-h-40 resize-y font-mono text-xs leading-relaxed"
-                      value={importReview.sourceText}
-                      readOnly
-                      aria-label="Imported source text"
-                    />
-                  </details>
-                ) : null}
-                <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    {importReviewStatus?.isComplete
-                      ? "All suggested fields are confirmed. Finish this review to clear the export reminder."
-                      : `${importReviewStatus?.remainingCount ?? importReview.items.length} suggested ${importReviewStatus?.remainingCount === 1 ? "field still needs" : "fields still need"} your confirmation.`}
-                  </p>
-                  <Button type="button" variant="outline" size="sm" onClick={completeImportReview} disabled={!importReviewStatus?.isComplete}>
-                    <Check /> Finish review
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           ) : null}
@@ -915,9 +842,7 @@ export function ResumeEditor() {
                   placeholder="Jane Doe"
                   autoComplete="name"
                   spellCheck={false}
-                  reviewTarget={importReviewTargets.has("field-name")}
-                  reviewItem={importReviewItemsByTarget.get("field-name")}
-                  onToggleReview={toggleImportReviewItem}
+                  reviewState={reviewStateByTarget.get("field-name")}
                   onChange={(value) => updateField("name", value)}
                 />
                 <TextField
@@ -927,9 +852,7 @@ export function ResumeEditor() {
                   placeholder="Senior Software Engineer"
                   autoComplete="organization-title"
                   spellCheck
-                  reviewTarget={importReviewTargets.has("field-title")}
-                  reviewItem={importReviewItemsByTarget.get("field-title")}
-                  onToggleReview={toggleImportReviewItem}
+                  reviewState={reviewStateByTarget.get("field-title")}
                   onChange={(value) => updateField("title", value)}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -942,9 +865,7 @@ export function ResumeEditor() {
                     autoComplete="email"
                     inputMode="email"
                     spellCheck={false}
-                    reviewTarget={importReviewTargets.has("field-email")}
-                    reviewItem={importReviewItemsByTarget.get("field-email")}
-                    onToggleReview={toggleImportReviewItem}
+                    reviewState={reviewStateByTarget.get("field-email")}
                     onChange={(value) => updateField("email", value)}
                   />
                   <TextField
@@ -956,9 +877,7 @@ export function ResumeEditor() {
                     autoComplete="tel"
                     inputMode="tel"
                     spellCheck={false}
-                    reviewTarget={importReviewTargets.has("field-phone")}
-                    reviewItem={importReviewItemsByTarget.get("field-phone")}
-                    onToggleReview={toggleImportReviewItem}
+                    reviewState={reviewStateByTarget.get("field-phone")}
                     onChange={(value) => updateField("phone", value)}
                   />
                 </div>
@@ -969,9 +888,7 @@ export function ResumeEditor() {
                   placeholder="San Francisco, CA"
                   autoComplete="address-level2"
                   spellCheck={false}
-                  reviewTarget={importReviewTargets.has("field-location")}
-                  reviewItem={importReviewItemsByTarget.get("field-location")}
-                  onToggleReview={toggleImportReviewItem}
+                  reviewState={reviewStateByTarget.get("field-location")}
                   onChange={(value) => updateField("location", value)}
                 />
                 <TextField
@@ -983,9 +900,7 @@ export function ResumeEditor() {
                   autoComplete="url"
                   inputMode="url"
                   spellCheck={false}
-                  reviewTarget={importReviewTargets.has("field-website")}
-                  reviewItem={importReviewItemsByTarget.get("field-website")}
-                  onToggleReview={toggleImportReviewItem}
+                  reviewState={reviewStateByTarget.get("field-website")}
                   onChange={(value) => updateField("website", value)}
                 />
               </FieldGroup>
@@ -996,9 +911,7 @@ export function ResumeEditor() {
                   label="Professional Summary"
                   value={state.summary}
                   placeholder="Brief overview of your experience and strengths."
-                  reviewTarget={importReviewTargets.has("field-summary")}
-                  reviewItem={importReviewItemsByTarget.get("field-summary")}
-                  onToggleReview={toggleImportReviewItem}
+                  reviewState={reviewStateByTarget.get("field-summary")}
                   onChange={(value) => updateField("summary", value)}
                 />
               </FieldGroup>
@@ -1120,7 +1033,7 @@ export function ResumeEditor() {
                       label={'Skills (one group per line, e.g. "Languages: Python, Go")'}
                       value={state.skills}
                       placeholder={"Languages: Python, JavaScript, Go\nTools: Docker, Kubernetes, AWS"}
-                      reviewTarget={importReviewTargets.has("field-skills")}
+                      reviewState={reviewStateByTarget.get("field-skills")}
                       onChange={(value) => updateField("skills", value)}
                     />
                   ) : (
@@ -1128,14 +1041,12 @@ export function ResumeEditor() {
                       section={section}
                       sectionLabel={sectionTitle}
                       entries={entries}
-                      reviewTargets={importReviewTargets}
-                      reviewItemsByTarget={importReviewItemsByTarget}
+                      reviewStateByTarget={reviewStateByTarget}
                       onUpdate={updateEntry}
                       onMove={moveEntry}
                       onReorder={reorderEntry}
                       onRemove={removeEntry}
                       onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
-                      onToggleReview={toggleImportReviewItem}
                     />
                   )}
                 </FieldGroup>
@@ -1261,6 +1172,22 @@ export function ResumeEditor() {
         open={toolsOpen}
         onOpenChange={setToolsOpen}
         onFocusTarget={focusEditorTarget}
+        onStartChecksReview={startChecksTour}
+      />
+
+      <GuidedReview
+        open={Boolean(reviewTour) && tourSteps.length > 0}
+        title={reviewTour?.kind === "import" ? "Import review" : "Resume check"}
+        steps={tourSteps}
+        index={reviewTour?.index ?? 0}
+        onIndexChange={(nextIndex) => setReviewTour((current) => (current ? { ...current, index: nextIndex } : current))}
+        onClose={() => setReviewTour(null)}
+        onFinish={() => {
+          if (reviewTour?.kind === "import") completeImportReview();
+          setReviewTour(null);
+        }}
+        finishLabel={reviewTour?.kind === "import" ? "Finish review" : "Done"}
+        finishDisabled={reviewTour?.kind === "import" && !importReviewStatus?.isComplete}
       />
 
       <ResumeEditorOverlays

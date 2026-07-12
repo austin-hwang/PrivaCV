@@ -22,11 +22,13 @@ export function ReviewDrawer({
   open,
   onOpenChange,
   onFocusTarget,
+  onStartChecksReview,
 }: {
   editor: ReturnType<typeof useResumeEditor>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onFocusTarget: (targetId: string) => void;
+  onStartChecksReview: () => void;
 }) {
   const {
     checks,
@@ -91,6 +93,11 @@ export function ReviewDrawer({
                 {passedChecks}/{checks.length}
               </Badge>
             </div>
+            {checks.length ? (
+              <Button type="button" variant="outline" size="sm" className="mb-3 w-full" onClick={onStartChecksReview}>
+                <ArrowRight /> Walk through checks
+              </Button>
+            ) : null}
             <div className="grid gap-2">
               {checks.map((check) => (
                 <div key={check.id} className="flex gap-2.5 rounded-lg border bg-muted/30 p-3">

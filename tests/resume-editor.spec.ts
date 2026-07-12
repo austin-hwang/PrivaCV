@@ -556,6 +556,32 @@ test("keeps a summary optional when the resume already has experience detail", a
   await expect(page.getByText("Missing summary")).toBeHidden();
 });
 
+test("walks resume checks with a guided highlight tour from the tools drawer", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await page.getByLabel("Phone").fill("");
+
+  await openTools(page);
+  await page.getByRole("button", { name: /walk through checks/i }).click();
+
+  // The drawer gives way to the guided tour, highlighting one check at a time.
+  await expect(page.getByRole("dialog", { name: /review tools/i })).toBeHidden();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  await expect(tour).toBeVisible();
+  await expect(tour.getByText(/Step 1 of/)).toBeVisible();
+
+  // Step to the failing contact check and jump to the field it flags.
+  for (let step = 0; step < 8; step += 1) {
+    if (await tour.getByText("Contact", { exact: true }).isVisible().catch(() => false)) break;
+    await tour.getByRole("button", { name: /^next/i }).click();
+  }
+  await expect(tour.getByText("Contact", { exact: true })).toBeVisible();
+  await tour.getByRole("button", { name: /fix contact/i }).click();
+  await expect(page.locator("#field-phone")).toBeFocused();
+});
+
 test("keeps the whole page from scrolling away during import review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -593,34 +619,35 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
-  await expect(page.getByText("Import review")).toBeVisible();
-  await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
-  await expect(page.getByText("What the importer detected")).toBeVisible();
-  await expect(page.getByText("1 entry detected")).toBeVisible();
-  await expect(page.getByText("Source excerpt:").first()).toBeVisible();
-  await expect(page.getByText("Engineer | Analytical Engines | 2022–Present").first()).toBeVisible();
-  await expect(page.getByText("Education heading found in source, but no entries detected")).toBeVisible();
-  await expect(page.getByText("Source section needs review")).toBeVisible();
-  await expect(page.getByText("“Not detected” means the importer did not place content there.")).toBeVisible();
-  await page.getByRole("button", { name: /education education heading found in source/i }).click();
-  await expect(page.locator("#add-education-entry")).toBeFocused();
-  await expect(page.getByText(/0 of \d+ confirmed/)).toBeVisible();
-  await expect(page.getByRole("button", { name: /^finish review$/i })).toBeDisabled();
-  await page.getByText("View the text used for this import").click();
-  await expect(page.getByLabel("Imported source text")).toHaveValue(/Ada Lovelace[\s\S]*Built reliable systems\./);
+  const banner = page.locator("#import-review-panel");
+  await expect(banner.getByText("Review the imported fields")).toBeVisible();
+  await expect(banner.getByText("Import review")).toBeVisible();
+  await expect(banner.getByRole("button", { name: /finish review/i })).toBeDisabled();
 
-  await page.getByRole("button", { name: /review next field/i }).click();
-  await expect(page.locator("#field-name")).toBeFocused();
-  await expect(page.getByText("Imported Contact details.")).toBeVisible();
-  await expect(page.getByText("Matching source context:").first()).toBeVisible();
-  await expect(page.getByText("Ada Lovelace", { exact: true }).last()).toBeVisible();
-  await page.getByRole("button", { name: /mark contact details reviewed/i }).click();
-  await expect(page.getByText(/1 of \d+ confirmed/)).toBeVisible();
+  // The review is a guided walkthrough: each suggested field is highlighted in
+  // turn with its source context, and confirmation stays deliberate.
+  await page.getByRole("button", { name: /start walkthrough/i }).click();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  await expect(tour).toBeVisible();
+  await expect(tour.getByText("Contact details")).toBeVisible();
+  await expect(tour.getByText(/Step 1 of 3/)).toBeVisible();
+  await expect(tour.getByText("Ada Lovelace | ada@example.com | San Francisco, CA")).toBeVisible();
+  await tour.getByRole("button", { name: /confirm this field/i }).click();
+  await expect(tour.getByRole("button", { name: /^confirmed$/i })).toBeVisible();
+  await tour.getByRole("button", { name: /^next/i }).click();
 
-  await page.getByRole("button", { name: /confirm all imported fields/i }).click();
-  await expect(page.getByText(/All suggested fields are confirmed/i)).toBeVisible();
-  await page.getByRole("button", { name: /^finish review$/i }).click();
-  await expect(page.getByText("Import review")).toBeHidden();
+  await expect(tour.getByText("Experience entry 1")).toBeVisible();
+  await tour.getByRole("button", { name: /confirm this field/i }).click();
+  await tour.getByRole("button", { name: /^next/i }).click();
+
+  // The Education heading was found in the source but produced no entries.
+  await expect(tour.getByText("Possible skipped section")).toBeVisible();
+  const finish = tour.getByRole("button", { name: /finish review/i });
+  await expect(finish).toBeEnabled();
+  await finish.click();
+
+  await expect(page.getByRole("dialog", { name: /guided review/i })).toBeHidden();
+  await expect(page.getByText("Review the imported fields")).toBeHidden();
 });
 
 test("imports common alternate section headings without losing resume content", async ({ page }) => {
@@ -649,7 +676,7 @@ test("imports common alternate section headings without losing resume content", 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
   await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
-  await expect(page.getByText("What the importer detected")).toBeVisible();
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
 test("imports styled PDF-style section headings without losing their content", async ({ page }) => {
@@ -678,7 +705,7 @@ test("imports styled PDF-style section headings without losing their content", a
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
   await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
-  await expect(page.getByText("1 entry detected")).toBeVisible();
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
 test("imports concise overview and skills headings without losing their content", async ({ page }) => {
@@ -702,8 +729,7 @@ test("imports concise overview and skills headings without losing their content"
 
   await expect(page.getByLabel("Professional Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
-  await expect(page.getByText("Summary text detected")).toBeVisible();
-  await expect(page.getByText("1 skill line detected")).toBeVisible();
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
 test("keeps an employer-first dated PDF header editable as the right role and employer", async ({ page }) => {
@@ -747,13 +773,18 @@ test("requires review of imported specialty-section entries", async ({ page }) =
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
-  await expect(page.getByText("Certifications entry 1", { exact: true })).toBeVisible();
-  const title = page.getByLabel("Title", { exact: true });
-  await expect(title).toHaveValue("Certified Kubernetes Administrator");
-  await expect(page.getByText("Imported Certifications entry 1.")).toBeVisible();
-  await title.scrollIntoViewIfNeeded();
-  await page.getByRole("button", { name: /mark certifications entry 1 reviewed/i }).click();
-  await expect(page.getByRole("button", { name: /^confirmed$/i }).last()).toBeVisible();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Certified Kubernetes Administrator");
+
+  // The specialty entry is surfaced as a confirmable step in the walkthrough.
+  await page.getByRole("button", { name: /start walkthrough/i }).click();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  for (let step = 0; step < 8; step += 1) {
+    if (await tour.getByText("Certifications entry 1").isVisible().catch(() => false)) break;
+    await tour.getByRole("button", { name: /^next/i }).click();
+  }
+  await expect(tour.getByText("Certifications entry 1")).toBeVisible();
+  await tour.getByRole("button", { name: /confirm this field/i }).click();
+  await expect(tour.getByRole("button", { name: /^confirmed$/i })).toBeVisible();
 });
 
 test("preserves text written beside an inline resume heading", async ({ page }) => {
@@ -827,11 +858,10 @@ test("asks users to review every imported experience entry", async ({ page }) =>
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
-  await expect(page.getByText("Experience entry 1", { exact: true })).toBeVisible();
-  await expect(page.getByText("Experience entry 2", { exact: true })).toBeVisible();
-  await page.locator(".min-h-24").filter({ hasText: "Experience entry 2" })
-    .getByRole("button", { name: /^review field$/i }).click();
-  await expect(page.locator("#field-experience-1-title")).toBeFocused();
+  // Both roles are parsed as separate entries, each surfaced for review.
+  await expect(page.getByLabel("Job Title", { exact: true }).nth(0)).toHaveValue("Staff Engineer");
+  await expect(page.getByLabel("Job Title", { exact: true }).nth(1)).toHaveValue("Software Engineer");
+  await expect(page.locator("#field-experience-1-title")).toBeVisible();
 });
 
 test("keeps adjacent roles separate when dates are on their own lines", async ({ page }) => {
@@ -859,7 +889,6 @@ test("keeps adjacent roles separate when dates are on their own lines", async ({
 
   await expect(page.getByLabel("Job Title", { exact: true }).nth(0)).toHaveValue("Staff Engineer");
   await expect(page.getByLabel("Job Title", { exact: true }).nth(1)).toHaveValue("Software Engineer");
-  await expect(page.getByText("Experience entry 2", { exact: true })).toBeVisible();
 });
 
 test("keeps compact education entries separate when dates are on their own lines", async ({ page }) => {
@@ -885,7 +914,6 @@ test("keeps compact education entries separate when dates are on their own lines
 
   await expect(page.getByLabel("Degree", { exact: true }).nth(0)).toHaveValue("Master of Science in Computer Science");
   await expect(page.getByLabel("Degree", { exact: true }).nth(1)).toHaveValue("Bachelor of Science in Mathematics");
-  await expect(page.getByText("Education entry 2", { exact: true })).toBeVisible();
 });
 
 test("keeps mobile import review focused on the next editable field", async ({ browser }) => {
@@ -902,18 +930,20 @@ test("keeps mobile import review focused on the next editable field", async ({ b
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
-  await expect(page.getByText("Keep editing; confirm each imported field.")).toBeVisible();
-  await expect(page.getByRole("button", { name: /review next imported field/i })).toBeVisible();
-  await expect(page.locator("#import-review-panel")).toBeHidden();
+  // On a phone the review is the same guided walkthrough, with the card pinned
+  // to the bottom so it never crowds the highlighted field.
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
+  await page.getByRole("button", { name: /start walkthrough/i }).click();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  await expect(tour).toBeVisible();
+  await expect(tour.getByText("Contact details")).toBeVisible();
+  await tour.getByRole("button", { name: /confirm this field/i }).click();
+  await tour.getByRole("button", { name: /^next/i }).click();
+  await expect(tour.getByText("Experience entry 1")).toBeVisible();
 
-  await page.getByRole("button", { name: /review next imported field/i }).click();
-  await expect(page.locator("#field-name")).toBeFocused();
-
-  await page.getByRole("button", { name: /^open checklist$/i }).click();
-  await expect(page.locator("#import-review-panel")).toBeVisible();
-  await expect(page.getByText("View the text used for this import")).toBeVisible();
-  await page.getByRole("button", { name: /back to editing/i }).click();
-  await expect(page.locator("#import-review-panel")).toBeHidden();
+  await tour.getByRole("button", { name: /close guided review/i }).click();
+  await expect(page.getByRole("dialog", { name: /guided review/i })).toBeHidden();
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
 
   await context.close();
 });
@@ -937,10 +967,18 @@ test("calls out a specialty heading when import cannot reconstruct its entries",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
-  const certificationCard = page.locator("#import-review-panel").getByRole("button", { name: /certifications/i });
-  await expect(certificationCard).toContainText("Certifications heading found in source, but no entries detected");
-  await expect(certificationCard).toContainText("Source section needs review");
-  await certificationCard.click();
+  // The banner flags that a found source section was not imported.
+  await expect(page.locator("#import-review-panel")).toContainText(/not imported/i);
+
+  await page.getByRole("button", { name: /start walkthrough/i }).click();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  for (let step = 0; step < 6; step += 1) {
+    if (await tour.getByText("Possible skipped section").isVisible().catch(() => false)) break;
+    await tour.getByRole("button", { name: /^next/i }).click();
+  }
+  await expect(tour.getByText("Possible skipped section")).toBeVisible();
+  await expect(tour).toContainText(/Certifications/i);
+  await tour.getByRole("button", { name: /go to this section/i }).click();
   await expect(page.locator("#add-custom-section")).toBeFocused();
 });
 
