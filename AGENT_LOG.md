@@ -2,6 +2,28 @@
 
 ## 2026-07-12
 
+- Finding before build: current competitor reviews and job-seeker feedback
+  continue to identify incomplete imports and exhausting tailoring workflows as
+  costly friction. The editor's source-backed import checklist protects trust,
+  but an accurate import still required a separate acknowledgement click for
+  every detected field, creating paperwork without adding review quality.
+- Options considered: improve parser heuristics, add opaque matching scores, or
+  make the existing explicit review easier to finish. A single deliberate
+  whole-import confirmation won because it removes repetitive clicks while
+  preserving the local source context, individual correction controls, and
+  export checkpoint.
+- Implementation: the import checklist now offers “Confirm all imported
+  fields” beside the next-field guidance. It marks the current suggested items
+  reviewed only after a user chooses it; each item can still be reviewed and
+  toggled individually before completing the checklist.
+- Verification: ESLint, TypeScript, all 55 Vitest tests, the focused Chromium
+  flow, the complete 64-test Playwright suite on a fresh isolated server, and
+  the optimized production build passed. The first focused browser attempt
+  reused an unrelated stale dev server and was not counted; the fresh rerun
+  passed.
+- Provisional next step: reassess parsing accuracy for uncommon or
+  multi-column source layouts before expanding matching or writing assistance.
+
 - Finding before build: current job-seeker feedback continues to identify
   per-application tailoring as a draining repeated task. The editor already
   had local role context and reversible checkpoints, but the safety step lived

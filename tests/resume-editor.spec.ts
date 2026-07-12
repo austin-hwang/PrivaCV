@@ -496,7 +496,7 @@ test("keeps a summary optional when the resume already has experience detail", a
   await expect(page.getByText("Missing summary")).toBeHidden();
 });
 
-test("imports a pasted resume locally and requires explicit field confirmation", async ({ page }) => {
+test("imports a pasted resume locally and keeps confirmation deliberate without repetitive clicks", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -535,10 +535,7 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await page.getByRole("button", { name: /mark contact details reviewed/i }).click();
   await expect(page.getByText(/1 of \d+ confirmed/)).toBeVisible();
 
-  const confirmationButtons = page.getByRole("button", { name: /^mark reviewed$/i });
-  while (await confirmationButtons.count()) {
-    await confirmationButtons.first().click();
-  }
+  await page.getByRole("button", { name: /confirm all imported fields/i }).click();
   await expect(page.getByText(/All suggested fields are confirmed/i)).toBeVisible();
   await page.getByRole("button", { name: /^finish review$/i }).click();
   await expect(page.getByText("Import review")).toBeHidden();
