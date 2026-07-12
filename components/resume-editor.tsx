@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -59,7 +59,8 @@ export function ResumeEditor() {
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [importChecklistOpen, setImportChecklistOpen] = useState(false);
-  const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
@@ -70,6 +71,8 @@ export function ResumeEditor() {
     checks,
     clearResume,
     dismissRecoveryPoint,
+    exportCheckpoint,
+    exportIsCurrent,
     focusCheckTarget,
     focusFromExportCheck,
     focusFromVersionCompare,
@@ -148,6 +151,7 @@ export function ResumeEditor() {
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
 
   const checksReady = passedChecks === checks.length;
+  const exportStale = Boolean(exportCheckpoint) && !exportIsCurrent;
   const removedBuiltinSections = SECTION_KEYS.filter((section) => !state.sectionOrder.includes(section));
   const navItems: SectionNavItem[] = workspaceHasStarted
     ? [
@@ -195,21 +199,31 @@ export function ResumeEditor() {
     setDropTargetSection(null);
   };
 
+  // Scale the 8.5in sheet to fit whatever width the preview column actually has,
+  // on every breakpoint. Keeps the resume fully visible instead of clipping the
+  // left/right edges on narrower desktop splits, and unifies the mobile path.
+  const SHEET_WIDTH_PX = 8.5 * 96;
+  const [sheetHeight, setSheetHeight] = useState(11 * 96);
   useEffect(() => {
-    const updateMobilePreviewScale = () => {
-      const isNarrow = window.matchMedia("(max-width: 720px)").matches;
-      const availableWidth = window.innerWidth - 28;
-      setMobilePreviewScale(isNarrow ? Math.min(1, Math.max(0.25, availableWidth / (8.5 * 96))) : 1);
+    const wrap = previewWrapRef.current;
+    if (!wrap) return;
+    const measure = () => {
+      const available = wrap.clientWidth;
+      if (available > 0) setPreviewScale(Math.min(1, Math.max(0.2, available / SHEET_WIDTH_PX)));
+      const sheet = resumeRef.current;
+      if (sheet) setSheetHeight(sheet.offsetHeight);
     };
-
-    updateMobilePreviewScale();
-    window.addEventListener("resize", updateMobilePreviewScale);
-    return () => window.removeEventListener("resize", updateMobilePreviewScale);
-  }, []);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
+    if (resumeRef.current) observer.observe(resumeRef.current);
+    return () => observer.disconnect();
+  }, [SHEET_WIDTH_PX, resumeRef]);
 
   const previewFrameStyle = {
-    "--resume-preview-scale": mobilePreviewScale,
-    "--resume-preview-frame-height": `${Math.max(1, pageCount) * 11 * 96 * mobilePreviewScale}px`,
+    "--resume-preview-scale": previewScale,
+    "--resume-preview-frame-width": `${Math.round(SHEET_WIDTH_PX * previewScale)}px`,
+    "--resume-preview-frame-height": `${Math.round(sheetHeight * previewScale)}px`,
   } as CSSProperties;
 
   return (
@@ -248,14 +262,21 @@ export function ResumeEditor() {
             <Button
               type="button"
               onClick={requestExport}
-              aria-label="Export PDF"
-              title="Export PDF (Cmd/Ctrl+P)"
+              aria-label={exportStale ? "Export PDF (resume changed since last export)" : "Export PDF"}
+              title={exportStale ? "Resume changed since your last export — export again" : "Export PDF (Cmd/Ctrl+P)"}
+              className="relative"
             >
               <Printer /> <span className="hidden sm:inline">Export PDF</span>
               <span className="sm:hidden">Export</span>
               <kbd className="hidden rounded border border-primary-foreground/35 px-1 py-px text-[10px] font-medium leading-none opacity-80 2xl:inline">
                 Cmd/Ctrl P
               </kbd>
+              {exportStale ? (
+                <span
+                  className="absolute -right-1 -top-1 size-2.5 rounded-full bg-amber-400 ring-2 ring-card"
+                  aria-hidden="true"
+                />
+              ) : null}
             </Button>
             <Menu>
               <MenuTrigger>
@@ -912,7 +933,7 @@ export function ResumeEditor() {
                         focusEditorTarget(`section-title-${section}`);
                       }}
                     >
-                      <Plus /> Add {SECTION_LABELS[section]}
+                      <Plus /> {SECTION_LABELS[section]}
                     </Button>
                   ))}
                   {CUSTOM_SECTION_PRESETS.map((title) => (
@@ -955,7 +976,7 @@ export function ResumeEditor() {
           )}
           aria-label="Resume preview"
         >
-          <div className="mx-auto flex w-full max-w-[8.5in] flex-col items-center gap-3">
+          <div ref={previewWrapRef} className="mx-auto flex w-full max-w-[8.5in] flex-col items-center gap-3">
             <div className="app-chrome flex w-full items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <label className="hidden items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground sm:flex">
@@ -977,12 +998,9 @@ export function ResumeEditor() {
                   {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
                 </p>
               </div>
-              <div className="flex min-w-0 items-center gap-2 lg:hidden">
-                <span className="truncate text-xs text-muted-foreground">Live preview updates as you edit.</span>
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setMobileWorkspaceView("editor")}>
-                  <FileText /> Edit resume
-                </Button>
-              </div>
+              <Button type="button" variant="outline" size="sm" className="shrink-0 lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
+                <FileText /> Edit resume
+              </Button>
             </div>
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
               <ResumePreview
