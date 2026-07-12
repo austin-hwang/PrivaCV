@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-11 23:30 PDT
+
+- Market and product review: recent job-seeker research continues to make
+  per-application tailoring and a dependable final artifact the highest-value
+  workflow; it also reinforces that a clean, truthful export matters more than
+  opaque ATS claims. Manual Chromium PDF inspection confirmed the true
+  Letter-size preview and its page counter match browser-generated PDFs, and
+  that even a deliberately oversized entry is not clipped. However, its
+  unavoidable continuation began on a later page without the entry heading,
+  which gives a recruiter a poorer scanning experience.
+- Finding and decision: warn about that exact oversized entry before export,
+  rather than changing sensible print keep-together rules globally or adding a
+  generic word-count limit. The check is based on the rendered entry height
+  versus the active printable content area, so it works with the chosen density,
+  font, and text scale and points directly to the relevant bullet field.
+- Implementation: preview entries now expose only local measurement metadata;
+  the editor detects the first entry that cannot fit inside one printable page
+  body and adds an export-check item with clear split-or-trim guidance. Unit and
+  browser coverage verify both the targeted check and its direct focus action.
+- Verification: manual Chromium PDF run produced a Letter PDF whose page count
+  matched the preview and retained the first and last bullet of a 55-bullet
+  entry; TypeScript, ESLint, all 54 Vitest tests, the full 63-test Playwright
+  suite, and the optimized production build passed.
+- Provisional next step: reassess actual browser-engine PDF rendering for
+  ordinary multi-entry resumes and custom sections, especially whether keeping
+  whole short entries together leaves any undesirable blank space near a page
+  boundary.
+
 ## 2026-07-11 21:28 PDT
 
 - Market and product review: current Rezi guidance and recent reviews make the
