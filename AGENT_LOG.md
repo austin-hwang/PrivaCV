@@ -2,6 +2,27 @@
 
 ## 2026-07-12
 
+- Finding before build: user feedback about resume imports repeatedly calls out
+  missing information that must be re-entered. The import checklist already
+  exposed skipped core sections, but its coverage snapshot did not surface a
+  recognizable specialty heading—such as Certifications or Publications—when
+  the parser could not reconstruct an entry, leaving a high-value omission
+  easy to miss.
+- Options considered: add more aggressive specialty parsing, introduce an
+  opaque import-confidence score, or make the existing review signal complete.
+  Specialty coverage won because it makes the omission visible and recoverable
+  without guessing at a person's credentials or changing a conservative parser.
+- Implementation: import coverage now recognizes familiar specialty headings,
+  shows their local source excerpt, reports when no entry was reconstructed,
+  and takes the user to the relevant add-section control. Imported specialty
+  sections also receive the same detected-entry coverage treatment.
+- Verification: ESLint, TypeScript, all 55 Vitest tests, the focused Chromium
+  specialty-coverage flow, the complete 65-test Playwright suite, and the
+  optimized production build passed. The first complete-suite attempt found a
+  stale local server on port 3100 and did not execute; a clean rerun passed.
+- Provisional next step: reassess conservative parsing for uncommon or
+  multi-column source layouts before expanding tailoring or writing assistance.
+
 - Finding before build: current competitor reviews and job-seeker feedback
   continue to identify incomplete imports and exhausting tailoring workflows as
   costly friction. The editor's source-backed import checklist protects trust,

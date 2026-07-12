@@ -5,7 +5,7 @@ import {
   type ResumeEntry,
   type ResumeState,
 } from "@/lib/resume";
-import { detectSection } from "@/lib/pdf-import";
+import { detectSection, detectSpecialtySection } from "@/lib/pdf-import";
 
 export const STORAGE_KEY = "resume-editor-data-v2";
 export const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
@@ -58,7 +58,7 @@ export type ImportReviewItem = {
 };
 
 export type ImportCoverageItem = {
-  id: "header" | "summary" | "experience" | "education" | "projects" | "skills";
+  id: string;
   label: string;
   detected: boolean;
   detail: string;
@@ -183,24 +183,24 @@ export function importSourceExcerpt(sourceText: string | undefined, values: stri
  * source stays local and the excerpt deliberately stops at the next known
  * heading rather than trying to infer document structure.
  */
-export function importSectionExcerpt(
-  sourceText: string | undefined,
-  section: Exclude<ReturnType<typeof detectSection>, null>,
-) {
+export function importSectionExcerpt(sourceText: string | undefined, section: string) {
   if (!sourceText?.trim()) return undefined;
 
   const lines = sourceText.split("\n").map((line) => line.trim());
-  const headingIndex = lines.findIndex((line) => detectSection(line) === section);
+  const isMatchingHeading = (line: string) =>
+    detectSection(line) === section || detectSpecialtySection(line) === section;
+  const isRecognizedHeading = (line: string) => Boolean(detectSection(line) || detectSpecialtySection(line));
+  const headingIndex = lines.findIndex(isMatchingHeading);
   if (headingIndex < 0) return undefined;
 
   const excerpt: string[] = [];
   for (let index = headingIndex; index < lines.length && excerpt.length < 5; index += 1) {
     const line = lines[index];
-    if (index > headingIndex && detectSection(line)) break;
+    if (index > headingIndex && isRecognizedHeading(line)) break;
     if (line) excerpt.push(line);
   }
 
-  return excerpt.length > 1 ? excerpt.join("\n") : undefined;
+  return excerpt.join("\n") || undefined;
 }
 
 export function roleFocusFingerprint(value: string | undefined) {
@@ -411,6 +411,38 @@ function entryCoverage(
   };
 }
 
+function customCoverageId(title: string) {
+  return `custom-${title.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "section"}`;
+}
+
+function specialtyCoverage(
+  title: string,
+  state: ResumeState,
+  sourceDetected: boolean,
+  sourceText?: string,
+): ImportCoverageItem {
+  const section = state.customSections.find((candidate) => candidate.title.toLocaleLowerCase() === title.toLocaleLowerCase());
+  const entries = section?.entries.filter(entryHasContent) ?? [];
+  const firstEntry = entries[0];
+  const firstEntryIndex = firstEntry && section ? section.entries.indexOf(firstEntry) : -1;
+
+  return {
+    id: customCoverageId(title),
+    label: title,
+    detected: entries.length > 0,
+    detail: entries.length
+      ? `${entries.length} ${entries.length === 1 ? "entry" : "entries"} detected`
+      : sourceDetected
+        ? `${title} heading found in source, but no entries detected`
+        : `No ${title.toLocaleLowerCase()} entries detected`,
+    targetId: section && firstEntry && firstEntryIndex >= 0
+      ? entryTargetId(section.id, firstEntry, firstEntryIndex)
+      : "add-custom-section",
+    sourceDetected,
+    sourceExcerpt: sourceDetected ? importSectionExcerpt(sourceText, title) : undefined,
+  };
+}
+
 /**
  * Gives import review a truthful coverage snapshot. When source text is
  * available, a recognizable heading is kept separate from the parser's draft
@@ -427,8 +459,24 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
       .map((line) => detectSection(line))
       .filter((section): section is Exclude<ReturnType<typeof detectSection>, null> => Boolean(section)),
   );
+  const sourceSpecialtySections = new Set(
+    (sourceText ?? "")
+      .split(/\r?\n/)
+      .map((line) => detectSpecialtySection(line))
+      .filter((section): section is string => Boolean(section)),
+  );
+  const importedSpecialtySections = state.customSections.flatMap((section) => {
+    const title = detectSpecialtySection(section.title);
+    return title ? [title] : [];
+  });
+  const specialtySections = [...sourceSpecialtySections];
+  importedSpecialtySections.forEach((title) => {
+    if (!specialtySections.some((candidate) => candidate.toLocaleLowerCase() === title.toLocaleLowerCase())) {
+      specialtySections.push(title);
+    }
+  });
 
-  return [
+  const coverage: ImportCoverageItem[] = [
     {
       id: "header",
       label: "Header",
@@ -469,6 +517,11 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
       sourceDetected: sourceSections.has("skills"),
       sourceExcerpt: importSectionExcerpt(sourceText, "skills"),
     },
+  ];
+
+  return [
+    ...coverage,
+    ...specialtySections.map((title) => specialtyCoverage(title, state, sourceSpecialtySections.has(title), sourceText)),
   ];
 }
 

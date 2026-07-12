@@ -106,8 +106,8 @@ subscriptions, watermarks, or backend storage.
   summary, experience, education, project, and skills entry, keeps explicit
   confirmation and a matching source excerpt beside the editable value, keeps
   the extracted source text available for local fact-checking, shows a
-  source-aware coverage snapshot that identifies recognizable source headings
-  the parser did not populate and keeps a short source excerpt beside each
+  source-aware coverage snapshot that identifies recognizable core and familiar
+  specialty source headings the parser did not populate and keeps a short source excerpt beside each
   recognized section, and keeps the export reminder visible until the review
   is finished. Experience entries include a one-click title/company swap for
   company-first source layouts.

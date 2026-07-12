@@ -451,7 +451,7 @@ describe("resume helpers", () => {
     ]));
   });
 
-  it("calls out a recognizable source section that produced no draft content", () => {
+  it("calls out recognizable core and specialty source sections that produced no draft content", () => {
     const state = emptyState();
     state.name = "Ada Lovelace";
     state.experience = [{ title: "Engineer", subtitle: "Example Co.", meta: "2022 - Present", details: "Built reliable systems." }];
@@ -461,6 +461,7 @@ describe("resume helpers", () => {
       "Experience",
       "Engineer | Example Co. | 2022 - Present",
       "Education",
+      "Certifications",
     ].join("\n"));
 
     expect(coverage.find((item) => item.id === "education")).toMatchObject({
@@ -472,6 +473,14 @@ describe("resume helpers", () => {
       detected: false,
       sourceDetected: false,
       detail: "No skills detected",
+    });
+    expect(coverage.find((item) => item.id === "custom-certifications")).toMatchObject({
+      label: "Certifications",
+      detected: false,
+      sourceDetected: true,
+      detail: "Certifications heading found in source, but no entries detected",
+      targetId: "add-custom-section",
+      sourceExcerpt: "Certifications",
     });
   });
 
@@ -486,6 +495,8 @@ describe("resume helpers", () => {
       "B.S. Computer Science | Example University | 2012 - 2016",
       "Skills",
       "TypeScript, React, accessibility",
+      "Certifications",
+      "AWS Certified Developer",
     ].join("\n");
     const state = importResumeText(sourceText);
     const coverage = buildImportCoverage(state, sourceText);
@@ -498,6 +509,7 @@ describe("resume helpers", () => {
     ].join("\n"));
     expect(coverage.find((item) => item.id === "education")?.sourceExcerpt).toContain("Example University");
     expect(coverage.find((item) => item.id === "skills")?.sourceExcerpt).toBe("Skills\nTypeScript, React, accessibility");
+    expect(coverage.find((item) => item.id === "custom-certifications")?.sourceExcerpt).toBe("Certifications\nAWS Certified Developer");
   });
 
   it("preserves intentionally removed default sections while normalizing legacy JSON", () => {
