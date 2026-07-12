@@ -515,6 +515,8 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
   await expect(page.getByText("What the importer detected")).toBeVisible();
   await expect(page.getByText("1 entry detected")).toBeVisible();
+  await expect(page.getByText("Source excerpt:").first()).toBeVisible();
+  await expect(page.getByText("Engineer | Analytical Engines | 2022–Present").first()).toBeVisible();
   await expect(page.getByText("Education heading found in source, but no entries detected")).toBeVisible();
   await expect(page.getByText("Source section needs review")).toBeVisible();
   await expect(page.getByText("“Not detected” means the importer did not place content there.")).toBeVisible();

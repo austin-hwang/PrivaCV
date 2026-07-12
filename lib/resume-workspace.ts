@@ -65,6 +65,8 @@ export type ImportCoverageItem = {
   targetId: string;
   /** Whether the imported source contained a recognizable heading for this area. */
   sourceDetected?: boolean;
+  /** Short local excerpt from the matching source section, when available. */
+  sourceExcerpt?: string;
 };
 
 export type ImportReviewState = {
@@ -172,6 +174,33 @@ export function importSourceExcerpt(sourceText: string | undefined, values: stri
     .filter(Boolean)
     .join("\n");
   return excerpt || undefined;
+}
+
+/**
+ * Keeps a small, self-contained view of a recognized source section beside
+ * the import coverage summary. This makes a skipped section recoverable
+ * without asking someone to search through the complete extracted text. The
+ * source stays local and the excerpt deliberately stops at the next known
+ * heading rather than trying to infer document structure.
+ */
+export function importSectionExcerpt(
+  sourceText: string | undefined,
+  section: Exclude<ReturnType<typeof detectSection>, null>,
+) {
+  if (!sourceText?.trim()) return undefined;
+
+  const lines = sourceText.split("\n").map((line) => line.trim());
+  const headingIndex = lines.findIndex((line) => detectSection(line) === section);
+  if (headingIndex < 0) return undefined;
+
+  const excerpt: string[] = [];
+  for (let index = headingIndex; index < lines.length && excerpt.length < 5; index += 1) {
+    const line = lines[index];
+    if (index > headingIndex && detectSection(line)) break;
+    if (line) excerpt.push(line);
+  }
+
+  return excerpt.length > 1 ? excerpt.join("\n") : undefined;
 }
 
 export function roleFocusFingerprint(value: string | undefined) {
@@ -358,6 +387,7 @@ function entryCoverage(
   section: Exclude<(typeof REPEATABLE_SECTIONS)[number], "skills">,
   state: ResumeState,
   sourceSections: Set<Exclude<ReturnType<typeof detectSection>, null>>,
+  sourceText?: string,
 ): ImportCoverageItem {
   const count = populatedEntryCount(state[section]);
   const label = SECTION_LABELS[section];
@@ -377,6 +407,7 @@ function entryCoverage(
       ? entryTargetId(section, firstEntry, firstEntryIndex)
       : `add-${section}-entry`,
     sourceDetected: sourceSections.has(section),
+    sourceExcerpt: importSectionExcerpt(sourceText, section),
   };
 }
 
@@ -420,10 +451,11 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
           : "No summary detected",
       targetId: "field-summary",
       sourceDetected: sourceSections.has("summary"),
+      sourceExcerpt: importSectionExcerpt(sourceText, "summary"),
     },
-    entryCoverage("experience", state, sourceSections),
-    entryCoverage("education", state, sourceSections),
-    entryCoverage("projects", state, sourceSections),
+    entryCoverage("experience", state, sourceSections, sourceText),
+    entryCoverage("education", state, sourceSections, sourceText),
+    entryCoverage("projects", state, sourceSections, sourceText),
     {
       id: "skills",
       label: "Skills",
@@ -435,6 +467,7 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
           : "No skills detected",
       targetId: "field-skills",
       sourceDetected: sourceSections.has("skills"),
+      sourceExcerpt: importSectionExcerpt(sourceText, "skills"),
     },
   ];
 }

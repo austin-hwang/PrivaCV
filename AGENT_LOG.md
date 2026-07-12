@@ -2048,3 +2048,21 @@
 - Added a local, deterministic review for only a small set of clearly vague bullet openings, including "Responsible for" and "Worked on."
 - Showed the affected bullet numbers alongside the existing evidence cue for experience and project entries, with explicit copy that asks users to keep their description truthful.
 - Added unit and browser coverage, then documented the intentionally narrow guidance in the README and roadmap.
+
+# 2026-07-12 — Faster recovery from imported resume sections
+
+## Product review
+
+- **Finding:** Competitor research and job-seeker feedback continue to point to incomplete imports as a trust-breaking failure. The editor already made skipped recognized headings explicit, but people still had to search the complete extracted-text view to compare the section content.
+- **Options considered:** Add another opaque ATS score, broaden parser guesses, or make import recovery more direct. Compact source excerpts won because they reduce correction effort without inventing content or weakening the explicit field-confirmation safeguard.
+- **Expected user benefit:** People can compare a recognized Experience, Education, Projects, Summary, or Skills section against the draft at a glance, then jump directly to the relevant field or add action.
+
+## Changes
+
+- Added local, heading-bounded source excerpts to the import coverage snapshot.
+- Rendered each excerpt beside its recognized section, while retaining the existing full-source view and explicit confirmation workflow.
+- Added focused Vitest and Playwright assertions and updated README and roadmap guidance.
+
+## Verification
+
+- Passed `CI=true pnpm lint`, `CI=true pnpm typecheck`, `CI=true pnpm test`, `CI=true PLAYWRIGHT_PORT=4217 pnpm test:e2e` (64 tests), and `CI=true pnpm build`.
