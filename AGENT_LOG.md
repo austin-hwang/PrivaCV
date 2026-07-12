@@ -1,5 +1,30 @@
 # Agent Log
 
+## 2026-07-11 18:28 PDT
+
+- Market and product review: current Teal/Rezi feedback values quick tailoring
+  and dependable PDF/DOCX output, while recent builder feedback specifically
+  calls out a preview that says one page but exports to two as a severe trust
+  failure. The existing editor measured page count and guarded export, but its
+  continuous preview did not show *where* another printed page began.
+- Finding and decision: visible, screen-only Letter page boundaries won over
+  adding another score or intrusive pre-export dialog. They keep a clean
+  one-click export path while giving users an immediate, concrete cue to review
+  the content that moves to page two; the guides are deliberately excluded from
+  print.
+- Implementation: the preview now renders a subtle "Page N begins" guide at
+  each measured Letter boundary, scaled with the same preview sheet. README and
+  roadmap document the fidelity aid; the browser regression asserts the guide
+  appears for overflowing content and disappears in print media.
+- Verification: 52 Vitest tests, ESLint, optimized production build, and the
+  focused Playwright print-media regression passed. An accidental first
+  Playwright invocation used an extra argument separator and began the full
+  suite; its output showed 23 passing flows before the runner exited without a
+  final summary, so it is not counted as a complete-suite pass.
+- Provisional next step: reassess true cross-browser PDF pagination (especially
+  page breaks around long entries) before adding more export formats or writing
+  assistance.
+
 ## 2026-07-11 15:31 PDT
 
 - Market and product review: Rezi and Teal continue to make existing-resume

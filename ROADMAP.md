@@ -89,7 +89,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep refining mobile and narrow-window editing without compromising the print
   layout. The phone preview now scales the same full Letter layout used for PDF
   export instead of reflowing it to the device width, so line wraps and page
-  count remain trustworthy while the phone workspace keeps the form first,
+  count remain trustworthy; screen-only page-boundary guides now make the start
+  of each additional printed page visible before export while the phone
+  workspace keeps the form first,
   surfaces a compact next-field
   prompt for imported resumes, and moves the full import checklist, resume checks,
   role focus, and version history into on-demand Review tools; reassess whether
