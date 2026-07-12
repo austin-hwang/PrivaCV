@@ -105,10 +105,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep refining mobile and narrow-window editing without compromising the print
   layout. The phone preview now scales the same true Letter-sized page box used
   for PDF export instead of reflowing it to the device width, so line wraps and
-  page count remain trustworthy; screen-only page-boundary guides now make the
-  start of each additional printed page visible and name the next section or
-  entry before export, while print styles keep headings and individual bullets
-  together when space allows; the
+  page count remain trustworthy; when browser pagination moves an intact role
+  to a fresh page, the live preview now reserves the same whitespace before
+  counting pages; screen-only page-boundary guides make the start of each
+  additional printed page visible and name the next section or entry before
+  export, while print styles keep headings and individual bullets together when
+  space allows; the
   phone workspace keeps the form first,
   surfaces a compact next-field
   prompt for imported resumes, and moves the full import checklist, resume checks,
@@ -223,8 +225,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   the override when a compatible Next.js release removes that constraint.
 - Introduce react-hook-form when validation becomes field-level and user-facing,
   rather than for simple controlled inputs.
-- Expand Playwright coverage beyond the sample and text-review smoke flow to
-  include PDF export, JSON import/export, and mobile layout checks.
+- Continue Playwright coverage for browser-generated PDF pagination, JSON
+  import/export, and mobile layout checks.
 - Avoid database, auth, and server-side persistence until the product needs
   durable cross-device workflows.
 

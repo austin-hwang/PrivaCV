@@ -1,5 +1,28 @@
 # Agent Log
 
+## 2026-07-12 — Print-faithful page-count preview
+
+- Finding before build: competitor reviews and recent job-seeker feedback make
+  final PDF formatting a trust-critical moment. Direct Chromium testing found
+  a concrete mismatch: a long but valid role could show as two continuous
+  preview pages, then produce three pages because print correctly kept the role
+  intact and moved it to the next Letter page.
+- Options considered: accept the browser-only difference, weaken the print
+  keep-together behavior, or make the live preview model that known pagination
+  rule. Preview reservation won because it preserves readable PDF output while
+  showing the honest result before the export dialog.
+- Implementation: the preview now detects roles that would cross a printable
+  Letter boundary, reserves the equivalent screen-only whitespace, and applies
+  the matching print page break. Its page count and next-content guide now
+  reflect the resulting browser PDF rather than uninterrupted scroll height.
+- Verification: added Chromium coverage that creates the edge case and counts
+  the browser-generated Letter PDF pages. A focused local sweep of 20, 22, 24,
+  28, and 40-bullet roles matched preview and PDF page counts. `pnpm lint`,
+  `pnpm typecheck`, all 55 Vitest tests, the complete 66-test Chromium suite,
+  and `pnpm build` passed.
+- Provisional next step: reassess multi-entry and custom-section pagination in
+  real browser PDFs before adding more editing features.
+
 ## 2026-07-12
 
 - Market and product review: current Rezi and Teal feedback continues to make

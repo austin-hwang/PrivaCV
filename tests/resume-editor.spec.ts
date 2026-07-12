@@ -1062,6 +1062,29 @@ test("shows page boundaries in the preview without printing those guides", async
   await expect(page.getByText("Page 2 begins")).toBeHidden();
 });
 
+test("matches preview page count when print keeps a long role intact", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const details = Array.from(
+    { length: 22 },
+    (_, index) =>
+      `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
+  ).join("\n");
+  await page.locator("#field-experience-0-details").fill(details);
+
+  // Chromium moves this complete role to a fresh Letter page. The live sheet
+  // should reserve that whitespace too, rather than understating the export.
+  await expect(page.getByText("3 pages in preview", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-resume-print-section="experience"]')).toHaveClass(/resume-print-break-before/);
+
+  await page.emulateMedia({ media: "print" });
+  const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
+  expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
+});
+
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
