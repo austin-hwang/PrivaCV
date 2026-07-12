@@ -213,6 +213,8 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
         <div
           className={cn("resume-entry resume-preview-target", activeTarget?.startsWith(`field-${section}-${originalIndex}-`) && "resume-preview-active")}
           key={`${entry.title}-${entry.subtitle}-${originalIndex}`}
+          data-resume-entry-section={section}
+          data-resume-entry-index={originalIndex}
           {...previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect)}
         >
           <div className="resume-entry-head">

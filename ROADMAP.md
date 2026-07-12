@@ -135,8 +135,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   can make their own contribution clearer without an AI rewrite. A missing
   summary is now clearly optional rather than an export blocker, and a two-page
   resume is a contextual advisory rather than a failure for experienced
-  candidates. The next reassessment should focus on evidence quality and
-  readability over requiring conventional filler or arbitrary compression.
+  candidates. It also detects the rare single entry that is taller than one
+  printable content area and jumps directly to it before browser printing,
+  avoiding a continuation that starts without its role heading. The next
+  reassessment should focus on evidence quality and readability over requiring
+  conventional filler or arbitrary compression.
 - Keep the editor and live resume preview equally reachable on a phone, while
   preserving the fast desktop split workspace and print layout. Avoid putting
   optional review dashboards ahead of the first editable field on a phone.

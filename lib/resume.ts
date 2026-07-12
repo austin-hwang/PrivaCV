@@ -167,7 +167,7 @@ export const resumeSchema = z.object({
 export type ResumeState = z.infer<typeof resumeSchema>;
 
 export type ResumeCheck = {
-  id: "length" | "contact" | "bullets" | "evidence" | "summary" | "density";
+  id: "length" | "contact" | "bullets" | "entry-length" | "evidence" | "summary" | "density";
   label: string;
   ok: boolean;
   /** A useful prompt that should never hold up a confident export. */
@@ -176,6 +176,12 @@ export type ResumeCheck = {
   guidance: string;
   actionLabel: string;
   targetId: string;
+};
+
+/** A preview entry that is taller than one printable content area. */
+export type OversizedResumeEntry = {
+  section: string;
+  index: number;
 };
 
 type ContactField = "name" | "email" | "phone" | "location" | "website";
@@ -468,7 +474,11 @@ function evidenceBullets(state: ResumeState) {
   );
 }
 
-export function buildResumeChecks(state: ResumeState, pageCount: number): ResumeCheck[] {
+export function buildResumeChecks(
+  state: ResumeState,
+  pageCount: number,
+  oversizedEntry: OversizedResumeEntry | null = null,
+): ResumeCheck[] {
   const contactIssues = contactFieldIssues(state);
   const missingContact = contactIssues.filter((issue) => issue.detail.startsWith("Missing"));
   const invalidContact = contactIssues.filter((issue) => issue.detail.startsWith("Invalid"));
@@ -496,6 +506,9 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
     firstBulletTarget[1] >= 0
       ? `field-${firstBulletTarget[0]}-${firstBulletTarget[1]}-details`
       : "add-experience-entry";
+  const oversizedEntryLabel = oversizedEntry
+    ? `${getSectionTitle(state, oversizedEntry.section).trim() || "Untitled section"} entry ${oversizedEntry.index + 1}`
+    : "";
 
   return [
     {
@@ -541,6 +554,19 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
       guidance: "Short bullets are easier to skim and make measurable results stand out.",
       actionLabel: bullets.length ? "Tighten bullets" : "Add bullets",
       targetId: firstBulletTargetId,
+    },
+    {
+      id: "entry-length",
+      label: "Entry length",
+      ok: !oversizedEntry,
+      detail: oversizedEntry
+        ? `${oversizedEntryLabel} exceeds one printable page`
+        : "Each entry fits on one printable page",
+      guidance: "Split this role into a second entry or trim lower-impact bullets so a recruiter can scan the role without losing its heading on a later page.",
+      actionLabel: "Shorten entry",
+      targetId: oversizedEntry
+        ? `field-${oversizedEntry.section}-${oversizedEntry.index}-details`
+        : firstBulletTargetId,
     },
     {
       id: "evidence",
