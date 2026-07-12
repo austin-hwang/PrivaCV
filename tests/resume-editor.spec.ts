@@ -1305,6 +1305,28 @@ test("restores the local role focus saved with a tailored checkpoint", async ({ 
   await expect(description).toHaveValue("Lead design systems for a consumer product team.");
 });
 
+test("offers a base checkpoint where users start a local role review", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  await page.getByLabel("Private role label (optional)").fill("Acme — Senior Product Engineer");
+  await page.getByLabel("Job description").fill("Build reliable product experiences for growing teams.");
+  await expect(page.getByText("Save your base before tailoring")).toBeVisible();
+
+  await page.getByRole("button", { name: /save base draft/i }).click();
+  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
+  await expect(saveDialog).toBeVisible();
+  await expect(saveDialog.getByText("Role focus included")).toBeVisible();
+  await page.getByLabel("Checkpoint name").fill("Acme base resume");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await expect(page.getByText("Acme base resume")).toBeVisible();
+  await expect(page.getByText(/Role label · Acme — Senior Product Engineer/)).toBeVisible();
+});
+
 test("keeps same-resume checkpoints separate for different private role labels", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
