@@ -33,6 +33,91 @@ export const RESUME_TEMPLATES = [
 
 export type ResumeTemplateId = (typeof RESUME_TEMPLATES)[number]["id"];
 
+/**
+ * Curated, professional typefaces. Each maps to a browser font stack for the
+ * live preview/PDF and a Word-safe family for the .docx export. No decorative
+ * or novelty faces — every option reads cleanly and stays ATS-friendly.
+ */
+export const RESUME_FONTS = [
+  { id: "merriweather", label: "Merriweather", kind: "Serif", stack: "var(--font-serif), Georgia, 'Times New Roman', serif", docx: "Georgia" },
+  { id: "georgia", label: "Georgia", kind: "Serif", stack: "Georgia, 'Times New Roman', serif", docx: "Georgia" },
+  { id: "times", label: "Times", kind: "Serif", stack: "'Times New Roman', Times, serif", docx: "Times New Roman" },
+  { id: "inter", label: "Inter", kind: "Sans", stack: "var(--font-sans), Arial, sans-serif", docx: "Calibri" },
+  { id: "arial", label: "Arial", kind: "Sans", stack: "Arial, Helvetica, sans-serif", docx: "Arial" },
+  { id: "calibri", label: "Calibri", kind: "Sans", stack: "Calibri, 'Segoe UI', Arial, sans-serif", docx: "Calibri" },
+] as const;
+
+export type ResumeFontId = (typeof RESUME_FONTS)[number]["id"];
+
+/** Professional accent presets; users can also enter a custom hex. */
+export const ACCENT_PRESETS = [
+  { id: "ink", label: "Ink", value: "#111827" },
+  { id: "navy", label: "Navy", value: "#1f3a5f" },
+  { id: "slate", label: "Slate", value: "#334155" },
+  { id: "burgundy", label: "Burgundy", value: "#7f1d3a" },
+  { id: "forest", label: "Forest", value: "#14532d" },
+  { id: "teal", label: "Teal", value: "#0f5f5c" },
+] as const;
+
+export const HEADING_STYLES = ["ruled", "underline", "plain", "bar"] as const;
+export type HeadingStyle = (typeof HEADING_STYLES)[number];
+export const HEADING_STYLE_LABELS: Record<HeadingStyle, string> = {
+  ruled: "Ruled",
+  underline: "Underline",
+  plain: "Plain",
+  bar: "Accent bar",
+};
+
+export const HEADER_ALIGNS = ["left", "center"] as const;
+export type HeaderAlign = (typeof HEADER_ALIGNS)[number];
+
+export const DENSITIES = ["comfortable", "cozy", "compact"] as const;
+export type Density = (typeof DENSITIES)[number];
+export const DENSITY_LABELS: Record<Density, string> = {
+  comfortable: "Comfortable",
+  cozy: "Cozy",
+  compact: "Compact",
+};
+
+const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+export const themeSchema = z.object({
+  font: z.string().catch("merriweather"),
+  accent: z.string().catch("#111827"),
+  headerAlign: z.enum(HEADER_ALIGNS).catch("left"),
+  headerDivider: z.boolean().catch(false),
+  headingStyle: z.enum(HEADING_STYLES).catch("ruled"),
+  density: z.enum(DENSITIES).catch("comfortable"),
+});
+
+export type ResumeTheme = z.infer<typeof themeSchema>;
+
+/** Each template preset is simply a professional starting point for the theme. */
+export const TEMPLATE_THEMES: Record<ResumeTemplateId, ResumeTheme> = {
+  classic: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "comfortable" },
+  minimal: { font: "inter", accent: "#334155", headerAlign: "left", headerDivider: false, headingStyle: "underline", density: "comfortable" },
+  modern: { font: "inter", accent: "#1f3a5f", headerAlign: "left", headerDivider: true, headingStyle: "bar", density: "comfortable" },
+  compact: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "compact" },
+};
+
+export function defaultTheme(): ResumeTheme {
+  return { ...TEMPLATE_THEMES.classic };
+}
+
+export function resolveFontStack(fontId: string): string {
+  return RESUME_FONTS.find((font) => font.id === fontId)?.stack ?? RESUME_FONTS[0].stack;
+}
+
+export function resolveDocxFont(fontId: string): string {
+  return RESUME_FONTS.find((font) => font.id === fontId)?.docx ?? RESUME_FONTS[0].docx;
+}
+
+/** Normalizes a user-entered accent to a safe hex, falling back to Ink. */
+export function normalizeAccent(value: string): string {
+  const trimmed = value.trim();
+  return HEX_COLOR.test(trimmed) ? trimmed : "#111827";
+}
+
 export type SectionId = SectionKey | `custom-${string}`;
 
 export const sectionTitlesSchema = z.object({
@@ -75,6 +160,7 @@ export const resumeSchema = z.object({
   customSections: z.array(customSectionSchema).catch([]),
   sectionOrder: z.array(z.string()).catch([...SECTION_KEYS]),
   template: z.enum(["classic", "minimal", "modern", "compact"]).catch("classic"),
+  theme: themeSchema.catch(() => defaultTheme()),
   textScale: z.number().catch(1),
 });
 
@@ -140,6 +226,7 @@ export function emptyState(): ResumeState {
     customSections: [],
     sectionOrder: [...SECTION_KEYS],
     template: "classic",
+    theme: defaultTheme(),
     textScale: 1,
   };
 }
@@ -166,6 +253,16 @@ export function normalizeResume(data: unknown): ResumeState {
     if (!order.includes(id)) order.push(id);
   });
 
+  // Resumes saved before the theme editor existed only carry `template`; map
+  // that to the matching preset so they keep looking the way they did.
+  const hasStoredTheme = Boolean(data && typeof data === "object" && "theme" in (data as Record<string, unknown>));
+  const baseTheme = hasStoredTheme ? parsed.theme : TEMPLATE_THEMES[parsed.template];
+  const theme: ResumeTheme = {
+    ...baseTheme,
+    accent: normalizeAccent(baseTheme.accent),
+    font: RESUME_FONTS.some((font) => font.id === baseTheme.font) ? baseTheme.font : TEMPLATE_THEMES[parsed.template].font,
+  };
+
   return {
     ...emptyState(),
     ...parsed,
@@ -175,6 +272,7 @@ export function normalizeResume(data: unknown): ResumeState {
     sectionTitles: { ...SECTION_LABELS, ...parsed.sectionTitles },
     customSections,
     sectionOrder: order,
+    theme,
     textScale: clampTextScale(parsed.textScale),
   };
 }

@@ -119,6 +119,41 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Modern/);
 });
 
+test("customizes and persists a professional resume theme", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const sheet = page.locator(".resume-sheet");
+  const templates = page.locator('[aria-label="Resume templates"]');
+
+  // A preset is a professional starting point that sets every theme axis.
+  await templates.getByRole("button", { name: /modern/i }).click();
+  await expect(sheet).toHaveAttribute("data-heading", "bar");
+  await expect(sheet).toHaveAttribute("data-divider", "on");
+  await expect(sheet).toHaveCSS("font-family", /Inter/);
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(31, 58, 95)");
+
+  // Individual controls layer on top of the preset.
+  await page.getByRole("button", { name: "Burgundy" }).click();
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await page.getByLabel("Resume font").selectOption("georgia");
+  await expect(sheet).toHaveCSS("font-family", /Georgia/);
+  await page.getByRole("button", { name: "Plain", exact: true }).click();
+  await expect(sheet).toHaveAttribute("data-heading", "plain");
+  await page.getByRole("button", { name: "Compact", exact: true }).click();
+  await expect(sheet).toHaveAttribute("data-density", "compact");
+
+  // The theme is saved locally and restored on reload.
+  await page.waitForTimeout(450);
+  await page.reload();
+  await expect(sheet).toHaveAttribute("data-heading", "plain");
+  await expect(sheet).toHaveAttribute("data-density", "compact");
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await expect(sheet).toHaveCSS("font-family", /Georgia/);
+});
+
 test("keeps desktop section navigation flush with the app header", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -1371,8 +1406,14 @@ test("imports a checkpoint history backup without replacing the current resume",
     checkpoints: JSON.parse(checkpoints ?? "[]"),
   });
 
+  // Let the debounced autosave flush before clearing, otherwise a pending
+  // write can re-persist the sample in the gap between clear and navigation.
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2")))
+    .not.toBeNull();
   await page.evaluate(() => localStorage.clear());
-  await page.reload();
+  await page.goto("/");
+  await expect(page.getByText("Start from a resume you have—or a clean page.")).toBeVisible();
   await page.locator("#history-backup-input").setInputFiles({
     name: "resume-checkpoints.json",
     mimeType: "application/json",

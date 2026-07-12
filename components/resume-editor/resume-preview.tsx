@@ -6,6 +6,8 @@ import {
   getSectionEntries,
   getSectionTitle,
   hasAnyContent,
+  normalizeAccent,
+  resolveFontStack,
   type ResumeState,
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
@@ -41,7 +43,15 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
     <div
       ref={ref}
       className={cn("resume-sheet", `resume-template-${state.template}`, !hasContent && "resume-empty")}
-      style={{ "--resume-scale": state.textScale } as CSSProperties}
+      style={{
+        "--resume-scale": state.textScale,
+        "--resume-font-family": resolveFontStack(state.theme.font),
+        "--resume-accent": normalizeAccent(state.theme.accent),
+      } as CSSProperties}
+      data-heading={state.theme.headingStyle}
+      data-header-align={state.theme.headerAlign}
+      data-divider={state.theme.headerDivider ? "on" : "off"}
+      data-density={state.theme.density}
     >
       {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
       {pageBreaks.map((page) => (
