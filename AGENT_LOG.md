@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-11 23:30 PDT
+
+- Market and product review: recent job-seeker research continues to make
+  per-application tailoring and a dependable final artifact the highest-value
+  workflow; it also reinforces that a clean, truthful export matters more than
+  opaque ATS claims. Manual Chromium PDF inspection confirmed the true
+  Letter-size preview and its page counter match browser-generated PDFs, and
+  that even a deliberately oversized entry is not clipped. However, its
+  unavoidable continuation began on a later page without the entry heading,
+  which gives a recruiter a poorer scanning experience.
+- Finding and decision: warn about that exact oversized entry before export,
+  rather than changing sensible print keep-together rules globally or adding a
+  generic word-count limit. The check is based on the rendered entry height
+  versus the active printable content area, so it works with the chosen density,
+  font, and text scale and points directly to the relevant bullet field.
+- Implementation: preview entries now expose only local measurement metadata;
+  the editor detects the first entry that cannot fit inside one printable page
+  body and adds an export-check item with clear split-or-trim guidance. Unit and
+  browser coverage verify both the targeted check and its direct focus action.
+- Verification: manual Chromium PDF run produced a Letter PDF whose page count
+  matched the preview and retained the first and last bullet of a 55-bullet
+  entry; TypeScript, ESLint, all 54 Vitest tests, the full 63-test Playwright
+  suite, and the optimized production build passed.
+- Provisional next step: reassess actual browser-engine PDF rendering for
+  ordinary multi-entry resumes and custom sections, especially whether keeping
+  whole short entries together leaves any undesirable blank space near a page
+  boundary.
+
 ## 2026-07-11 21:28 PDT
 
 - Market and product review: current Rezi guidance and recent reviews make the
@@ -1983,3 +2011,16 @@
 - Added a local Office Open XML (`.docx`) generator with conventional single-column text, normal headings, bullets, Letter margins, and safe email/phone/website hyperlinks.
 - Added clear download paths in **More actions** and **Review Text**, with copy that distinguishes compatibility-focused Word output from the pixel-matched PDF template.
 - Added archive-level unit coverage and browser download coverage, then documented the behavior and tradeoff in README and roadmap.
+# 2026-07-11 — Clearer, truthful achievement bullets
+
+## Product review
+
+- **Finding:** Current resume guidance and recurring job-seeker feedback consistently call out action-led, outcome-focused bullets. The editor already showed whether bullets had measurable proof, but a user could still leave generic openings such as "Responsible for" without a small, in-context cue.
+- **Options considered:** Add an opaque overall ATS score, add an automatic bullet rewrite, or surface a narrow wording prompt beside the affected entry. The prompt won because it improves a repeated editing task while keeping the user in control of the facts and voice.
+- **Expected user benefit:** People can spot a handful of generic openings precisely when editing, make the work easier to scan if appropriate, and retain complete control over whether any wording changes.
+
+## Changes
+
+- Added a local, deterministic review for only a small set of clearly vague bullet openings, including "Responsible for" and "Worked on."
+- Showed the affected bullet numbers alongside the existing evidence cue for experience and project entries, with explicit copy that asks users to keep their description truthful.
+- Added unit and browser coverage, then documented the intentionally narrow guidance in the README and roadmap.

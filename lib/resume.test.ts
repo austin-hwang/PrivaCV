@@ -12,6 +12,7 @@ import {
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
+  summarizeBulletOpenings,
   summarizeEvidence,
   RESUME_TEMPLATES,
 } from "@/lib/resume";
@@ -534,7 +535,7 @@ describe("resume helpers", () => {
     const state = sampleState();
     const checks = buildResumeChecks(state, 1);
 
-    expect(checks).toHaveLength(6);
+    expect(checks).toHaveLength(7);
     expect(checks.every((check) => check.ok)).toBe(true);
   });
 
@@ -551,6 +552,18 @@ describe("resume helpers", () => {
     expect(threePageLength).toMatchObject({
       ok: false,
       detail: "3 pages in preview",
+    });
+  });
+
+  it("points to the one entry that cannot fit within a printable page", () => {
+    const oversized = buildResumeChecks(sampleState(), 2, { section: "experience", index: 0 })
+      .find((check) => check.id === "entry-length");
+
+    expect(oversized).toMatchObject({
+      ok: false,
+      detail: "Experience entry 1 exceeds one printable page",
+      actionLabel: "Shorten entry",
+      targetId: "field-experience-0-details",
     });
   });
 
@@ -591,6 +604,15 @@ describe("resume helpers", () => {
       bulletCount: 3,
       measuredCount: 2,
       unmeasuredIndexes: [1],
+    });
+  });
+
+  it("flags only clearly vague bullet openings without judging the achievement", () => {
+    expect(
+      summarizeBulletOpenings("Responsible for release planning.\nWorked on a migration for 3 teams.\nBuilt a new billing flow.\nAssisted in customer interviews."),
+    ).toEqual({
+      bulletCount: 4,
+      vagueOpeningIndexes: [0, 1, 3],
     });
   });
 

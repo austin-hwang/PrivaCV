@@ -167,7 +167,7 @@ export const resumeSchema = z.object({
 export type ResumeState = z.infer<typeof resumeSchema>;
 
 export type ResumeCheck = {
-  id: "length" | "contact" | "bullets" | "evidence" | "summary" | "density";
+  id: "length" | "contact" | "bullets" | "entry-length" | "evidence" | "summary" | "density";
   label: string;
   ok: boolean;
   /** A useful prompt that should never hold up a confident export. */
@@ -176,6 +176,12 @@ export type ResumeCheck = {
   guidance: string;
   actionLabel: string;
   targetId: string;
+};
+
+/** A preview entry that is taller than one printable content area. */
+export type OversizedResumeEntry = {
+  section: string;
+  index: number;
 };
 
 type ContactField = "name" | "email" | "phone" | "location" | "website";
@@ -190,6 +196,11 @@ export type EvidenceSummary = {
   bulletCount: number;
   measuredCount: number;
   unmeasuredIndexes: number[];
+};
+
+export type BulletOpeningSummary = {
+  bulletCount: number;
+  vagueOpeningIndexes: number[];
 };
 
 export type ExportChange = {
@@ -428,6 +439,33 @@ export function summarizeEvidence(details: string): EvidenceSummary {
   };
 }
 
+const VAGUE_BULLET_OPENINGS = [
+  /^responsib(?:le|ilities)\s+(?:for|included)\b/i,
+  /^worked\s+on\b/i,
+  /^helped\s+(?:with|to)\b/i,
+  /^assisted\s+(?:with|in)\b/i,
+  /^participated\s+in\b/i,
+  /^tasked\s+with\b/i,
+  /^duties\s+included\b/i,
+  /^was\s+responsible\s+for\b/i,
+];
+
+/**
+ * Finds a deliberately small set of generic openings that can obscure the
+ * contribution in an otherwise truthful bullet. This is a prompt to clarify
+ * wording, never a claim that the described work is weak or inaccurate.
+ */
+export function summarizeBulletOpenings(details: string): BulletOpeningSummary {
+  const bullets = bulletsFrom(details);
+
+  return {
+    bulletCount: bullets.length,
+    vagueOpeningIndexes: bullets
+      .map((bullet, index) => (VAGUE_BULLET_OPENINGS.some((pattern) => pattern.test(bullet.trim())) ? index : -1))
+      .filter((index) => index >= 0),
+  };
+}
+
 function evidenceBullets(state: ResumeState) {
   return (["experience", "projects"] as const).flatMap((section) =>
     state[section].flatMap((entry, index) =>
@@ -436,7 +474,11 @@ function evidenceBullets(state: ResumeState) {
   );
 }
 
-export function buildResumeChecks(state: ResumeState, pageCount: number): ResumeCheck[] {
+export function buildResumeChecks(
+  state: ResumeState,
+  pageCount: number,
+  oversizedEntry: OversizedResumeEntry | null = null,
+): ResumeCheck[] {
   const contactIssues = contactFieldIssues(state);
   const missingContact = contactIssues.filter((issue) => issue.detail.startsWith("Missing"));
   const invalidContact = contactIssues.filter((issue) => issue.detail.startsWith("Invalid"));
@@ -464,6 +506,9 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
     firstBulletTarget[1] >= 0
       ? `field-${firstBulletTarget[0]}-${firstBulletTarget[1]}-details`
       : "add-experience-entry";
+  const oversizedEntryLabel = oversizedEntry
+    ? `${getSectionTitle(state, oversizedEntry.section).trim() || "Untitled section"} entry ${oversizedEntry.index + 1}`
+    : "";
 
   return [
     {
@@ -509,6 +554,19 @@ export function buildResumeChecks(state: ResumeState, pageCount: number): Resume
       guidance: "Short bullets are easier to skim and make measurable results stand out.",
       actionLabel: bullets.length ? "Tighten bullets" : "Add bullets",
       targetId: firstBulletTargetId,
+    },
+    {
+      id: "entry-length",
+      label: "Entry length",
+      ok: !oversizedEntry,
+      detail: oversizedEntry
+        ? `${oversizedEntryLabel} exceeds one printable page`
+        : "Each entry fits on one printable page",
+      guidance: "Split this role into a second entry or trim lower-impact bullets so a recruiter can scan the role without losing its heading on a later page.",
+      actionLabel: "Shorten entry",
+      targetId: oversizedEntry
+        ? `field-${oversizedEntry.section}-${oversizedEntry.index}-details`
+        : firstBulletTargetId,
     },
     {
       id: "evidence",

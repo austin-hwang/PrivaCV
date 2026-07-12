@@ -22,6 +22,7 @@ import {
   type CustomSection,
   type ResumeEntry,
   type ResumeState,
+  type OversizedResumeEntry,
 } from "@/lib/resume";
 import {
   EXPORT_CHECKPOINT_KEY,
@@ -116,6 +117,7 @@ export function useResumeEditor() {
   const [state, setState] = useState<ResumeState>(() => emptyState());
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
+  const [oversizedEntry, setOversizedEntry] = useState<OversizedResumeEntry | null>(null);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
@@ -144,7 +146,7 @@ export function useResumeEditor() {
   const requestExportRef = useRef<() => void>(() => undefined);
 
   const hasContent = hasAnyContent(state);
-  const checks = useMemo(() => buildResumeChecks(state, pageCount), [state, pageCount]);
+  const checks = useMemo(() => buildResumeChecks(state, pageCount, oversizedEntry), [oversizedEntry, pageCount, state]);
   const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
@@ -455,6 +457,27 @@ export function useResumeEditor() {
       const pageHeightPx = 11 * 96;
       const roundingTolerancePx = 2;
       setPageCount(Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx)));
+
+      // Entries normally stay together in print. If an entry is taller than a
+      // printable content area, though, every browser must split it. Surface
+      // that specific role before export instead of leaving its continuation
+      // to appear without a heading on a later page.
+      const sheetStyle = window.getComputedStyle(sheet);
+      const printableContentHeight = pageHeightPx -
+        Number.parseFloat(sheetStyle.paddingTop) -
+        Number.parseFloat(sheetStyle.paddingBottom);
+      const nextOversizedEntry = Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-entry-section]")).find((entry) =>
+        entry.offsetHeight > printableContentHeight + roundingTolerancePx,
+      );
+      const next = nextOversizedEntry
+        ? {
+            section: nextOversizedEntry.dataset.resumeEntrySection ?? "experience",
+            index: Number(nextOversizedEntry.dataset.resumeEntryIndex ?? 0),
+          }
+        : null;
+      setOversizedEntry((current) =>
+        current?.section === next?.section && current?.index === next?.index ? current : next,
+      );
     };
     measure();
     document.fonts?.ready.then(measure).catch(() => undefined);

@@ -301,6 +301,24 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
   await expect(page).toHaveTitle("Resume Editor — private, ATS-friendly PDFs");
 });
 
+test("flags a single resume entry that would continue onto another printed page", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const longEntry = Array.from(
+    { length: 55 },
+    (_, index) => `Delivered measurable platform improvement ${index + 1} for customers, reducing deployment risk and making critical workflows easier for distributed teams.`,
+  ).join("\n");
+  await page.locator("#field-experience-0-details").fill(longEntry);
+
+  await openTools(page);
+  await expect(page.getByText("Experience entry 1 exceeds one printable page")).toBeVisible();
+  await page.getByRole("button", { name: /shorten entry/i }).click();
+  await expect(page.locator("#field-experience-0-details")).toBeFocused();
+});
+
 test("makes validated contact details actionable in the preview", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -836,6 +854,17 @@ test("shows an in-context evidence cue for the bullets being edited", async ({ p
 
   await expect(page.getByText("2 of 3 bullets show measurable scope or results.")).toBeVisible();
   await expect(page.getByText("Review bullet 2. Add a truthful scale or outcome where you know it; not every bullet needs a number.")).toBeVisible();
+});
+
+test("gently prompts for specific action openings while preserving truthful bullet writing", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await page.locator("#field-experience-0-details").fill("Responsible for release planning.\nBuilt a deployment workflow for 3 teams.\nWorked on incident response.");
+
+  await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Starting with what you did can make the contribution easier to scan; keep the wording truthful.")).toBeVisible();
 });
 
 test("suggests exact role phrases for a local wording review", async ({ page }) => {

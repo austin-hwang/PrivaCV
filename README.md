@@ -42,12 +42,15 @@ subscriptions, watermarks, or backend storage.
   active field is lightly highlighted in the preview while editing.
 - Resume Check panel for page count, usable contact details (including obvious
   malformed email, phone, and link mistakes), concise bullets,
-  measurable experience/project evidence, optional summary guidance, and overall density.
+  oversized single entries that would continue without their heading on a later
+  printed page, measurable experience/project evidence, optional summary
+  guidance, and overall density.
   A two-page resume is a relevance prompt—not an export failure—while three or
   more pages receive trimming guidance. Each check has an action that jumps to
   the field that needs attention; each
   experience and project entry also identifies bullets that could use more
-  truthful scope or outcome evidence.
+  truthful scope or outcome evidence, plus a few clearly generic openings that
+  could more directly name the work done.
 - Local-only Role Focus review that compares a pasted job description with the
   current resume's wording, surfaces terms from explicit qualifications-style
   sections before repeated general wording, clearly separates terms already
