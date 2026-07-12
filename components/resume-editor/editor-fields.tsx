@@ -8,7 +8,7 @@ import {
   ENTRY_SCHEMA,
   type ImportReviewItem,
 } from "@/lib/resume-workspace";
-import { isBuiltinSection, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
+import { isBuiltinSection, summarizeBulletOpenings, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
@@ -186,8 +186,12 @@ export function EntryList({
     <div className="space-y-3">
       {entries.map((entry, index) => {
         const evidence = supportsEvidenceReview ? summarizeEvidence(entry.details) : null;
+        const openings = supportsEvidenceReview ? summarizeBulletOpenings(entry.details) : null;
         const reviewLabel = evidence?.unmeasuredIndexes.length
           ? `Review ${evidence.unmeasuredIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
+          : null;
+        const openingReviewLabel = openings?.vagueOpeningIndexes.length
+          ? `Consider a more specific opening for ${openings.vagueOpeningIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
           : null;
 
         return (
@@ -330,6 +334,11 @@ export function EntryList({
                 ) : (
                   <p className="mt-1 text-muted-foreground">Each bullet includes a concrete scope or result.</p>
                 )}
+                {openingReviewLabel ? (
+                  <p className="mt-1 text-muted-foreground">
+                    {openingReviewLabel}. Starting with what you did can make the contribution easier to scan; keep the wording truthful.
+                  </p>
+                ) : null}
               </div>
             ) : null}
             </CardContent>

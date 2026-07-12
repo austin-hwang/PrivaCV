@@ -1983,3 +1983,16 @@
 - Added a local Office Open XML (`.docx`) generator with conventional single-column text, normal headings, bullets, Letter margins, and safe email/phone/website hyperlinks.
 - Added clear download paths in **More actions** and **Review Text**, with copy that distinguishes compatibility-focused Word output from the pixel-matched PDF template.
 - Added archive-level unit coverage and browser download coverage, then documented the behavior and tradeoff in README and roadmap.
+# 2026-07-11 — Clearer, truthful achievement bullets
+
+## Product review
+
+- **Finding:** Current resume guidance and recurring job-seeker feedback consistently call out action-led, outcome-focused bullets. The editor already showed whether bullets had measurable proof, but a user could still leave generic openings such as "Responsible for" without a small, in-context cue.
+- **Options considered:** Add an opaque overall ATS score, add an automatic bullet rewrite, or surface a narrow wording prompt beside the affected entry. The prompt won because it improves a repeated editing task while keeping the user in control of the facts and voice.
+- **Expected user benefit:** People can spot a handful of generic openings precisely when editing, make the work easier to scan if appropriate, and retain complete control over whether any wording changes.
+
+## Changes
+
+- Added a local, deterministic review for only a small set of clearly vague bullet openings, including "Responsible for" and "Worked on."
+- Showed the affected bullet numbers alongside the existing evidence cue for experience and project entries, with explicit copy that asks users to keep their description truthful.
+- Added unit and browser coverage, then documented the intentionally narrow guidance in the README and roadmap.
