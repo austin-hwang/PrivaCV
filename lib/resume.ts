@@ -844,6 +844,34 @@ function skillsSnapshot(state: ResumeState) {
     .join(" / ");
 }
 
+function visualStyleSnapshot(state: ResumeState) {
+  const template = RESUME_TEMPLATES.find((candidate) => candidate.id === state.template)?.label ?? "Custom";
+  const font = RESUME_FONTS.find((candidate) => candidate.id === state.theme.font)?.label ?? "Custom";
+  const heading = HEADING_STYLE_LABELS[state.theme.headingStyle];
+  const density = DENSITY_LABELS[state.theme.density];
+  return [
+    template,
+    font,
+    state.theme.accent.toUpperCase(),
+    `${state.theme.headerAlign === "center" ? "Centered" : "Left-aligned"} header`,
+    state.theme.headerDivider ? "Header divider" : "No header divider",
+    heading,
+    density,
+  ].join(" · ");
+}
+
+function visualStyleChangeLabels(previous: ResumeState, current: ResumeState) {
+  const labels: string[] = [];
+  if (previous.template !== current.template) labels.push("Layout template");
+  if (previous.theme.font !== current.theme.font) labels.push("Font");
+  if (previous.theme.accent !== current.theme.accent) labels.push("Accent color");
+  if (previous.theme.headerAlign !== current.theme.headerAlign) labels.push("Header alignment");
+  if (previous.theme.headerDivider !== current.theme.headerDivider) labels.push("Header divider");
+  if (previous.theme.headingStyle !== current.theme.headingStyle) labels.push("Heading style");
+  if (previous.theme.density !== current.theme.density) labels.push("Spacing density");
+  return labels;
+}
+
 function entryIsEmpty(entry: ResumeEntry) {
   return !entry.title && !entry.subtitle && !entry.meta && !entry.details;
 }
@@ -974,6 +1002,19 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       label: "Section order changed",
       detail: current.sectionOrder.map((section) => getSectionTitle(current, section) || "Untitled section").join(", "),
       targetId: "section-order-controls",
+    });
+  }
+
+  const visualStyleChanges = visualStyleChangeLabels(previous, current);
+  if (visualStyleChanges.length) {
+    changes.push({
+      id: "visual-style",
+      label: "Visual style changed",
+      detail: `${visualStyleChanges.length} ${visualStyleChanges.length === 1 ? "setting" : "settings"} edited`,
+      targetId: "edit-layout",
+      before: visualStyleSnapshot(previous),
+      after: visualStyleSnapshot(current),
+      fieldLabels: visualStyleChanges,
     });
   }
 

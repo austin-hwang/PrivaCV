@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -36,7 +36,7 @@ import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
-import { RestoredVersionCard } from "@/components/resume-editor/version-changes";
+import { ChangeSummaryGrid, RestoredVersionCard } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   ACCENT_PRESETS,
@@ -44,6 +44,7 @@ import {
   CUSTOM_SECTION_PRESETS,
   DENSITIES,
   DENSITY_LABELS,
+  exportChangeSummary,
   getSectionEntries,
   getSectionTitle,
   HEADING_STYLE_LABELS,
@@ -171,6 +172,10 @@ export function ResumeEditor() {
     visibleRestoredVersionSummary,
   } = editor;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
+  const externalDraftChanges = useMemo(
+    () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
+    [externalDraft, state],
+  );
 
   const startBlankResume = (template = state.template) => {
     updateField("template", template);
@@ -489,8 +494,11 @@ export function ResumeEditor() {
             <Alert className="mb-6 border-sky-300 bg-sky-50/70">
               <AlertCircle className="h-4 w-4 text-sky-900" />
               <AlertTitle className="text-sky-950">A different resume was saved in another tab</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3 text-sky-950 sm:flex-row sm:items-center sm:justify-between">
-                <span>Autosave is paused here so this tab does not overwrite the other draft. Choose which one to keep.</span>
+              <AlertDescription className="grid gap-3 text-sky-950">
+                <span>Autosave is paused here so this tab does not overwrite the other draft. Review the changed areas, then choose which one to keep.</span>
+                {externalDraftChanges.length ? (
+                  <ChangeSummaryGrid changes={externalDraftChanges} beforeLabel="This tab" afterLabel="Saved tab" />
+                ) : null}
                 <span className="flex shrink-0 flex-wrap gap-2">
                   <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={useExternalDraft}>
                     Use saved draft
