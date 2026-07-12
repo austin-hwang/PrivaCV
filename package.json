@@ -2,7 +2,7 @@
   "name": "resume-editor",
   "version": "0.1.0",
   "private": true,
-  "description": "A privacy-first resume editor for clean ATS-friendly PDFs and plain-text exports.",
+  "description": "PrivaCV — a privacy-first resume editor for clean ATS-friendly PDFs and plain-text exports.",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

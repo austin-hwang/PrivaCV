@@ -378,7 +378,7 @@ export function ResumeEditor() {
             <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:block">
               Private workspace
             </p>
-            <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">Resume Editor</h1>
+            <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {hasContent && !storageIssue ? (

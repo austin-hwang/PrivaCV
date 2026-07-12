@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">Resume Editor</title>
+  <title id="title">PrivaCV</title>
   <desc id="desc">A dark document with a check mark</desc>
   <rect width="64" height="64" rx="14" fill="#28303d"/>
   <path d="M19 13.5h19.5L46 21v29.5H19z" fill="#fff"/>

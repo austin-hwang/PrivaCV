@@ -138,7 +138,7 @@ export function VersionHistoryCard({
               <p className="text-xs text-muted-foreground">
                 {remainingSlots === 0 && oldestVersion
                   ? `${oldestVersion.label} is the oldest checkpoint and will be replaced first by a new unique save.`
-                  : `${remainingSlots} ${remainingSlots === 1 ? "slot" : "slots"} left before Resume Editor starts replacing the oldest checkpoint.`}
+                  : `${remainingSlots} ${remainingSlots === 1 ? "slot" : "slots"} left before PrivaCV starts replacing the oldest checkpoint.`}
               </p>
             </div>
             {remainingSlots === 0 ? (

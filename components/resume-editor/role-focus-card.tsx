@@ -225,7 +225,7 @@ export function RoleFocusCard({
             <AlertCircle />
             <AlertTitle>Add a little more role detail</AlertTitle>
             <AlertDescription>
-              Try pasting the responsibilities and requirements so Resume Editor can surface useful terms to review.
+              Try pasting the responsibilities and requirements so PrivaCV can surface useful terms to review.
             </AlertDescription>
           </Alert>
         ) : null}

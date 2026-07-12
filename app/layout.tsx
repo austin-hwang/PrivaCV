@@ -16,26 +16,26 @@ const merriweather = Merriweather({
 
 export const metadata: Metadata = {
   title: {
-    default: "Resume Editor — private, ATS-friendly PDFs",
-    template: "%s | Resume Editor",
+    default: "PrivaCV — private, ATS-friendly resumes",
+    template: "%s | PrivaCV",
   },
   description:
-    "Build, tailor, and export a clean resume locally in your browser. No account, subscription, watermark, or uploaded resume required.",
-  applicationName: "Resume Editor",
+    "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",
+  applicationName: "PrivaCV",
   category: "Productivity",
-  keywords: ["resume editor", "resume builder", "ATS-friendly resume", "private resume editor", "PDF resume"],
+  keywords: ["PrivaCV", "resume editor", "resume builder", "ATS-friendly resume", "private resume editor", "PDF resume"],
   openGraph: {
     type: "website",
-    siteName: "Resume Editor",
-    title: "Resume Editor — private, ATS-friendly PDFs",
+    siteName: "PrivaCV",
+    title: "PrivaCV — private, ATS-friendly resumes",
     description:
-      "Build, tailor, and export a clean resume locally in your browser. No account, subscription, watermark, or uploaded resume required.",
+      "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",
   },
   twitter: {
     card: "summary",
-    title: "Resume Editor — private, ATS-friendly PDFs",
+    title: "PrivaCV — private, ATS-friendly resumes",
     description:
-      "Build, tailor, and export a clean resume locally in your browser. No account, subscription, watermark, or uploaded resume required.",
+      "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",
   },
 };
 

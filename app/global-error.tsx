@@ -9,7 +9,7 @@ type GlobalErrorPageProps = {
 
 export default function GlobalErrorPage({ error, reset }: GlobalErrorPageProps) {
   useEffect(() => {
-    console.error("Resume Editor global error", error);
+    console.error("PrivaCV global error", error);
   }, [error]);
 
   return (
@@ -17,7 +17,7 @@ export default function GlobalErrorPage({ error, reset }: GlobalErrorPageProps) 
       <body style={{ margin: 0, background: "#f4f5f7", color: "#20242a", fontFamily: "system-ui, sans-serif" }}>
         <main style={{ display: "grid", minHeight: "100vh", placeItems: "center", padding: "24px" }}>
           <section style={{ width: "100%", maxWidth: "448px", border: "1px solid #d6d9de", borderRadius: "12px", background: "#fff", padding: "32px", boxShadow: "0 1px 4px rgb(0 0 0 / 12%)" }} aria-labelledby="global-error-title">
-            <p style={{ margin: 0, color: "#5e6670", fontSize: "12px", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase" }}>Resume Editor</p>
+            <p style={{ margin: 0, color: "#5e6670", fontSize: "12px", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase" }}>PrivaCV</p>
             <h1 id="global-error-title" style={{ margin: "12px 0 0", fontSize: "24px" }}>The editor needs a refresh.</h1>
             <p style={{ margin: "12px 0 0", color: "#5e6670", fontSize: "14px", lineHeight: 1.55 }}>
               Something unexpected interrupted this page. Your saved resume data stays in this browser. Try again to continue.

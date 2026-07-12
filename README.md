@@ -1,6 +1,6 @@
-# Resume Editor
+# PrivaCV
 
-A privacy-first resume editor for clean, text-only resumes. It helps job
+PrivaCV is a privacy-first resume editor for clean, text-only resumes. It helps job
 seekers edit a structured resume, preview a Letter-sized PDF, review an
 ATS-friendly plain-text version, and save everything locally without accounts,
 subscriptions, watermarks, or backend storage.

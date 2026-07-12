@@ -129,7 +129,7 @@ export function ResumeEditorOverlays({
             <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Local text import</DialogDescription>
             <DialogTitle>Paste the resume you already have</DialogTitle>
             <DialogDescription>
-              Paste text copied from a document, LinkedIn, or an OCR&apos;d scanned PDF. Resume Editor structures it in this browser, then asks you to review the suggested fields.
+              Paste text copied from a document, LinkedIn, or an OCR&apos;d scanned PDF. PrivaCV structures it in this browser, then asks you to review the suggested fields.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -317,7 +317,7 @@ export function ResumeEditorOverlays({
                 <History className="h-4 w-4" />
                 <AlertTitle>{MAX_VERSION_HISTORY - versionHistory.length} local slots available</AlertTitle>
                 <AlertDescription>
-                  Resume Editor keeps the newest {MAX_VERSION_HISTORY} checkpoints in this browser.
+                  PrivaCV keeps the newest {MAX_VERSION_HISTORY} checkpoints in this browser.
                 </AlertDescription>
               </Alert>
             )}
@@ -355,7 +355,7 @@ export function ResumeEditorOverlays({
                     : "No new checkpoints to add"}
                 </AlertTitle>
                 <AlertDescription>
-                  Resume Editor keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.checkpoints.length} will remain in this browser.
+                  PrivaCV keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.checkpoints.length} will remain in this browser.
                 </AlertDescription>
               </Alert>
               <div className="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md border bg-muted/30 p-3">

@@ -135,8 +135,8 @@ export function resumeDocx(state: ResumeState) {
     "word/document.xml": strToU8(document),
     "word/styles.xml": strToU8(stylesXml),
     "word/_rels/document.xml.rels": strToU8(documentRelationships),
-    "docProps/core.xml": strToU8(`${XML_DECLARATION}<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dc:title>${escapeXml(state.name ? `${state.name} resume` : "Resume")}</dc:title><dc:creator>Resume Editor</dc:creator><dcterms:created xsi:type=\"dcterms:W3CDTF\">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`),
-    "docProps/app.xml": strToU8(`${XML_DECLARATION}<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><Application>Resume Editor</Application></Properties>`),
+    "docProps/core.xml": strToU8(`${XML_DECLARATION}<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dc:title>${escapeXml(state.name ? `${state.name} resume` : "Resume")}</dc:title><dc:creator>PrivaCV</dc:creator><dcterms:created xsi:type=\"dcterms:W3CDTF\">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`),
+    "docProps/app.xml": strToU8(`${XML_DECLARATION}<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><Application>PrivaCV</Application></Properties>`),
   });
 }
 
