@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -36,7 +36,7 @@ import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
-import { RestoredVersionCard } from "@/components/resume-editor/version-changes";
+import { ChangeSummaryGrid, RestoredVersionCard } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   ACCENT_PRESETS,
@@ -44,6 +44,7 @@ import {
   CUSTOM_SECTION_PRESETS,
   DENSITIES,
   DENSITY_LABELS,
+  exportChangeSummary,
   getSectionEntries,
   getSectionTitle,
   HEADING_STYLE_LABELS,
@@ -115,10 +116,13 @@ export function ResumeEditor() {
     addCustomSection,
     addBuiltinSection,
     addEntry,
+    autosaveStatus,
     checks,
     clearResume,
+    confirmAllImportReviewItems,
     dismissRecoveryPoint,
     exportCheckpoint,
+    externalDraft,
     exportIsCurrent,
     focusCheckTarget,
     focusFromExportCheck,
@@ -131,10 +135,13 @@ export function ResumeEditor() {
     importReviewTargets,
     isImporting,
     jsonInputRef,
+    keepCurrentDraft,
     loadSample,
     moveEntry,
     moveSection,
     pageCount,
+    pageGuides,
+    printBreaks,
     passedChecks,
     pdfInputRef,
     recoveryPoint,
@@ -149,6 +156,7 @@ export function ResumeEditor() {
     saveJson,
     downloadDocx,
     setTextReviewOpen,
+    setApplicationCopyOpen,
     setTextImportOpen,
     state,
     storageIssue,
@@ -156,6 +164,7 @@ export function ResumeEditor() {
     updateEntry,
     updateField,
     updateSectionTitle,
+    useExternalDraft,
     toggleImportReviewItem,
     completeImportReview,
     dismissRestoredVersionSummary,
@@ -163,6 +172,10 @@ export function ResumeEditor() {
     visibleRestoredVersionSummary,
   } = editor;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
+  const externalDraftChanges = useMemo(
+    () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
+    [externalDraft, state],
+  );
 
   const startBlankResume = (template = state.template) => {
     updateField("template", template);
@@ -291,6 +304,34 @@ export function ResumeEditor() {
             <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">Resume Editor</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {hasContent && !storageIssue ? (
+              <span
+                data-autosave-status={autosaveStatus}
+                aria-label={`Local autosave: ${autosaveStatus === "saving" ? "saving" : autosaveStatus === "conflict" ? "paused for another tab" : "saved"}`}
+                title={
+                  autosaveStatus === "saving"
+                    ? "Saving this resume in this browser"
+                    : autosaveStatus === "conflict"
+                      ? "Autosave is paused until you choose which tab's draft to keep."
+                    : "Saved in this browser. Use Save JSON for a portable backup."
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-xs font-medium",
+                  autosaveStatus === "saving" ? "text-muted-foreground" : autosaveStatus === "conflict" ? "text-amber-700" : "text-emerald-700",
+                )}
+              >
+                {autosaveStatus === "saving" ? (
+                  <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+                ) : autosaveStatus === "conflict" ? (
+                  <span className="inline-flex size-3.5 items-center justify-center rounded-full border border-current text-[10px] leading-none" aria-hidden="true">!</span>
+                ) : (
+                  <Check className="size-3.5" aria-hidden="true" />
+                )}
+                <span className="hidden sm:inline">
+                  {autosaveStatus === "saving" ? "Saving locally" : autosaveStatus === "conflict" ? "Autosave paused" : "Saved locally"}
+                </span>
+              </span>
+            ) : null}
             {hasContent || versionHistory.length ? (
               <Button
                 type="button"
@@ -348,6 +389,9 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
+                <MenuItem onSelect={() => setApplicationCopyOpen(true)} disabled={!hasContent}>
+                  <ClipboardCopy /> Copy for applications
+                </MenuItem>
                 <MenuItem onSelect={() => setTextReviewOpen(true)}>
                   <ClipboardCopy /> Review Text
                 </MenuItem>
@@ -442,6 +486,27 @@ export function ResumeEditor() {
                 <Button type="button" variant="outline" size="sm" className="w-fit border-amber-400 bg-background" onClick={saveJson}>
                   <Download /> Save JSON copy
                 </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {externalDraft ? (
+            <Alert className="mb-6 border-sky-300 bg-sky-50/70">
+              <AlertCircle className="h-4 w-4 text-sky-900" />
+              <AlertTitle className="text-sky-950">A different resume was saved in another tab</AlertTitle>
+              <AlertDescription className="grid gap-3 text-sky-950">
+                <span>Autosave is paused here so this tab does not overwrite the other draft. Review the changed areas, then choose which one to keep.</span>
+                {externalDraftChanges.length ? (
+                  <ChangeSummaryGrid changes={externalDraftChanges} beforeLabel="This tab" afterLabel="Saved tab" />
+                ) : null}
+                <span className="flex shrink-0 flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={useExternalDraft}>
+                    Use saved draft
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={keepCurrentDraft}>
+                    Keep this draft
+                  </Button>
+                </span>
               </AlertDescription>
             </Alert>
           ) : null}
@@ -561,6 +626,11 @@ export function ResumeEditor() {
                           {item.sourceDetected && !item.detected ? (
                             <span className="mt-1 block text-xs font-medium text-amber-950">Source section needs review</span>
                           ) : null}
+                          {item.sourceExcerpt ? (
+                            <span className="mt-2 block whitespace-pre-line rounded border border-current/15 bg-background/70 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground">
+                              <span className="font-sans font-semibold">Source excerpt: </span>{item.sourceExcerpt}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                     ))}
@@ -568,10 +638,20 @@ export function ResumeEditor() {
                 </div>
                 {nextImportReviewItem ? (
                   <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>
-                    <Button type="button" size="sm" className="shrink-0" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
-                      <ArrowRight /> Review next field
-                    </Button>
+                    <div>
+                      <p className="text-sm font-medium">Next: review {nextImportReviewItem.label.toLocaleLowerCase()} where it appears in the editor.</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                        If you have checked the source and every suggested field looks right, you can confirm the import at once.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button type="button" size="sm" onClick={() => focusEditorTarget(nextImportReviewItem.targetId)}>
+                        <ArrowRight /> Review next field
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={confirmAllImportReviewItems}>
+                        <Check /> Confirm all imported fields
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -1150,6 +1230,8 @@ export function ResumeEditor() {
               <ResumePreview
                 state={state}
                 pageCount={pageCount}
+                pageGuides={pageGuides}
+                printBreaks={printBreaks}
                 ref={resumeRef}
                 activeTarget={activeTarget}
                 onTargetSelect={focusEditorTarget}

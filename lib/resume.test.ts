@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
 import {
+  applicationCopyGroups,
   buildResumeChecks,
   contactHref,
   contactFieldIssues,
@@ -24,6 +25,7 @@ import {
   VERSION_HISTORY_BACKUP_VERSION,
   buildImportCoverage,
   buildImportReview,
+  importSectionExcerpt,
   importSourceExcerpt,
   importReviewProgress,
   mergeVersionHistory,
@@ -36,6 +38,32 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("creates granular, portal-friendly copy fields without adding empty values", () => {
+    const state = sampleState();
+    state.customSections = [{
+      id: "custom-certifications",
+      title: "Certifications",
+      entries: [{ title: "AWS Certified Developer", subtitle: "Amazon", meta: "", details: "Renewed through 2028" }],
+    }];
+    state.sectionOrder = ["experience", "skills", "custom-certifications"];
+
+    const groups = applicationCopyGroups(state);
+    const experience = groups.find((group) => group.id === "experience-0");
+    const certification = groups.find((group) => group.id === "custom-certifications-0");
+
+    expect(groups.find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Full name", text: "Jane Doe" }),
+      expect.objectContaining({ label: "Email", text: "jane.doe@example.com" }),
+    ]));
+    expect(experience?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Job title" }),
+      expect.objectContaining({ label: "Employer" }),
+      expect.objectContaining({ label: "Achievements", text: expect.stringContaining("•") }),
+    ]));
+    expect(certification).toMatchObject({ label: "Certifications 1", detail: "AWS Certified Developer · Amazon" });
+    expect(certification?.fields.map((field) => field.label)).not.toContain("Dates / details");
+  });
+
   it("creates a local, editable Word document with simple resume structure", () => {
     const files = unzipSync(resumeDocx(sampleState()));
     const document = strFromU8(files["word/document.xml"]);
@@ -450,7 +478,7 @@ describe("resume helpers", () => {
     ]));
   });
 
-  it("calls out a recognizable source section that produced no draft content", () => {
+  it("calls out recognizable core and specialty source sections that produced no draft content", () => {
     const state = emptyState();
     state.name = "Ada Lovelace";
     state.experience = [{ title: "Engineer", subtitle: "Example Co.", meta: "2022 - Present", details: "Built reliable systems." }];
@@ -460,6 +488,7 @@ describe("resume helpers", () => {
       "Experience",
       "Engineer | Example Co. | 2022 - Present",
       "Education",
+      "Certifications",
     ].join("\n"));
 
     expect(coverage.find((item) => item.id === "education")).toMatchObject({
@@ -472,6 +501,42 @@ describe("resume helpers", () => {
       sourceDetected: false,
       detail: "No skills detected",
     });
+    expect(coverage.find((item) => item.id === "custom-certifications")).toMatchObject({
+      label: "Certifications",
+      detected: false,
+      sourceDetected: true,
+      detail: "Certifications heading found in source, but no entries detected",
+      targetId: "add-custom-section",
+      sourceExcerpt: "Certifications",
+    });
+  });
+
+  it("keeps a short source excerpt with a recognized section coverage card", () => {
+    const sourceText = [
+      "Ada Lovelace",
+      "Experience",
+      "Engineer | Example Co. | 2022 - Present",
+      "• Built reliable systems.",
+      "• Improved incident response.",
+      "Education",
+      "B.S. Computer Science | Example University | 2012 - 2016",
+      "Skills",
+      "TypeScript, React, accessibility",
+      "Certifications",
+      "AWS Certified Developer",
+    ].join("\n");
+    const state = importResumeText(sourceText);
+    const coverage = buildImportCoverage(state, sourceText);
+
+    expect(importSectionExcerpt(sourceText, "experience")).toBe([
+      "Experience",
+      "Engineer | Example Co. | 2022 - Present",
+      "• Built reliable systems.",
+      "• Improved incident response.",
+    ].join("\n"));
+    expect(coverage.find((item) => item.id === "education")?.sourceExcerpt).toContain("Example University");
+    expect(coverage.find((item) => item.id === "skills")?.sourceExcerpt).toBe("Skills\nTypeScript, React, accessibility");
+    expect(coverage.find((item) => item.id === "custom-certifications")?.sourceExcerpt).toBe("Certifications\nAWS Certified Developer");
   });
 
   it("preserves intentionally removed default sections while normalizing legacy JSON", () => {
@@ -715,6 +780,45 @@ describe("resume helpers", () => {
       before: expect.stringContaining("Languages: JavaScript"),
       after: "Languages: TypeScript, Go / Tools: Docker, AWS",
     });
+  });
+
+  it("explains visual changes that make a PDF export stale", () => {
+    const exported = sampleState();
+    const edited = normalizeResume({
+      ...exported,
+      template: "modern",
+      theme: {
+        ...exported.theme,
+        font: "inter",
+        accent: "#1f3a5f",
+        headerAlign: "center",
+        headerDivider: true,
+        headingStyle: "bar",
+        density: "cozy",
+      },
+    });
+
+    expect(exportChangeSummary(exported, edited)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "visual-style",
+          label: "Visual style changed",
+          detail: "7 settings edited",
+          targetId: "edit-layout",
+          fieldLabels: [
+            "Layout template",
+            "Font",
+            "Accent color",
+            "Header alignment",
+            "Header divider",
+            "Heading style",
+            "Spacing density",
+          ],
+          before: expect.stringContaining("Classic · Merriweather"),
+          after: expect.stringContaining("Modern · Inter"),
+        }),
+      ]),
+    );
   });
 
   it("names exact fields changed inside repeatable sections", () => {

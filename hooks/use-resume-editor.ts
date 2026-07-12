@@ -117,8 +117,11 @@ export function useResumeEditor() {
   const [state, setState] = useState<ResumeState>(() => emptyState());
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
+  const [pageGuides, setPageGuides] = useState<Array<{ page: number; label?: string }>>([]);
+  const [printBreaks, setPrintBreaks] = useState<Array<{ targetId: string; spacer: number }>>([]);
   const [oversizedEntry, setOversizedEntry] = useState<OversizedResumeEntry | null>(null);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
+  const [applicationCopyOpen, setApplicationCopyOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
@@ -139,6 +142,8 @@ export function useResumeEditor() {
   const [roleLabel, setRoleLabel] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
+  const [externalDraft, setExternalDraft] = useState<ResumeState | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
@@ -397,18 +402,55 @@ export function useResumeEditor() {
     }
   }, [reportStorageIssue]);
 
+  // `storage` fires only in the other tab. Keep a different draft visible
+  // until the person decides, rather than silently replacing active work or
+  // letting this stale tab overwrite the newer local autosave.
+  useEffect(() => {
+    const handleExternalDraft = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage || event.key !== STORAGE_KEY || !event.newValue) return;
+      try {
+        const nextDraft = normalizeResume(JSON.parse(event.newValue));
+        if (resumeExportFingerprint(nextDraft) !== resumeExportFingerprint(state)) setExternalDraft(nextDraft);
+      } catch {
+        // Never replace the open draft with a malformed external value.
+      }
+    };
+
+    window.addEventListener("storage", handleExternalDraft);
+    return () => window.removeEventListener("storage", handleExternalDraft);
+  }, [state]);
+
   useEffect(() => {
     if (!loaded) return;
+    if (externalDraft) {
+      setAutosaveStatus("conflict");
+      return;
+    }
+    setAutosaveStatus("saving");
     const timer = window.setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         confirmStorageAvailable();
+        setAutosaveStatus("saved");
       } catch {
         reportStorageIssue();
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [confirmStorageAvailable, loaded, reportStorageIssue, state]);
+  }, [confirmStorageAvailable, externalDraft, loaded, reportStorageIssue, state]);
+
+  const useExternalDraft = () => {
+    if (!externalDraft) return;
+    saveRecoveryPoint("Before using the draft saved in another tab");
+    setState(externalDraft);
+    setExternalDraft(null);
+    flash("Loaded the draft saved in another tab");
+  };
+
+  const keepCurrentDraft = () => {
+    setExternalDraft(null);
+    flash("Keeping this tab's draft");
+  };
 
   useEffect(() => {
     if (!loaded) return;
@@ -456,7 +498,27 @@ export function useResumeEditor() {
       if (!sheet) return;
       const pageHeightPx = 11 * 96;
       const roundingTolerancePx = 2;
-      setPageCount(Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx)));
+      const nextPageCount = Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx));
+      setPageCount(nextPageCount);
+
+      // A page boundary is most useful when it tells a person what will be
+      // encountered next. Use the live preview geometry so this remains true
+      // as text, font, density, or section order changes; the guides remain
+      // screen-only and do not affect the exported document.
+      const guideTargets = Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-guide-label]"));
+      const nextPageGuides = Array.from({ length: Math.max(0, nextPageCount - 1) }, (_, index) => {
+        const page = index + 2;
+        const boundary = (page - 1) * pageHeightPx;
+        const nextTarget = guideTargets.find((target) => target.offsetTop + target.offsetHeight > boundary + roundingTolerancePx);
+        return { page, label: nextTarget?.dataset.resumeGuideLabel };
+      });
+      setPageGuides((current) =>
+        current.length === nextPageGuides.length && current.every((guide, index) =>
+          guide.page === nextPageGuides[index].page && guide.label === nextPageGuides[index].label,
+        )
+          ? current
+          : nextPageGuides,
+      );
 
       // Entries normally stay together in print. If an entry is taller than a
       // printable content area, though, every browser must split it. Surface
@@ -478,12 +540,75 @@ export function useResumeEditor() {
       setOversizedEntry((current) =>
         current?.section === next?.section && current?.index === next?.index ? current : next,
       );
+
+      // Browser print engines keep role entries intact. When an otherwise
+      // printable entry would straddle a Letter boundary, Chromium moves it to
+      // the next page. Reserve that same space in the live sheet, so the
+      // visible page count and page guides describe the PDF a person will save.
+      const existingBreaks = new Map(printBreaks.map((item) => [item.targetId, item.spacer]));
+      const printableUnits: Array<{ targetId: string; element: HTMLElement; end: number }> = [];
+      Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-print-section]")).forEach((section) => {
+        const sectionId = section.dataset.resumePrintSection;
+        if (!sectionId) return;
+        const entries = Array.from(section.querySelectorAll<HTMLElement>("[data-resume-print-entry]"));
+        if (!entries.length) return;
+
+        const startsWithHeading = section.dataset.resumeSectionHasHeading === "true";
+        const firstEntry = entries[0];
+        if (startsWithHeading) {
+          printableUnits.push({
+            targetId: `section:${sectionId}`,
+            element: section,
+            end: firstEntry.offsetTop + firstEntry.offsetHeight,
+          });
+        } else {
+          printableUnits.push({
+            targetId: `entry:${firstEntry.dataset.resumePrintEntry}`,
+            element: firstEntry,
+            end: firstEntry.offsetTop + firstEntry.offsetHeight,
+          });
+        }
+
+        entries.slice(1).forEach((entry) => {
+          printableUnits.push({
+            targetId: `entry:${entry.dataset.resumePrintEntry}`,
+            element: entry,
+            end: entry.offsetTop + entry.offsetHeight,
+          });
+        });
+      });
+
+      const desiredBreaks: Array<{ targetId: string; spacer: number }> = [];
+      let existingSpacerBeforeUnit = 0;
+      let simulatedSpacer = 0;
+      printableUnits.forEach((unit) => {
+        const existingSpacerAtUnit = existingBreaks.get(unit.targetId) ?? 0;
+        const baseStart = unit.element.offsetTop - existingSpacerBeforeUnit;
+        const baseEnd = unit.end - existingSpacerBeforeUnit - existingSpacerAtUnit;
+        const start = baseStart + simulatedSpacer;
+        const end = baseEnd + simulatedSpacer;
+        const currentPage = Math.max(0, Math.floor(start / pageHeightPx));
+        const pageContentEnd = (currentPage + 1) * pageHeightPx - Number.parseFloat(sheetStyle.paddingBottom);
+        if (end > pageContentEnd + roundingTolerancePx) {
+          const spacer = (currentPage + 1) * pageHeightPx + Number.parseFloat(sheetStyle.paddingTop) - start;
+          desiredBreaks.push({ targetId: unit.targetId, spacer });
+          simulatedSpacer += spacer;
+        }
+        existingSpacerBeforeUnit += existingSpacerAtUnit;
+      });
+      setPrintBreaks((current) =>
+        current.length === desiredBreaks.length && current.every((item, index) =>
+          item.targetId === desiredBreaks[index].targetId && Math.abs(item.spacer - desiredBreaks[index].spacer) < 0.5,
+        )
+          ? current
+          : desiredBreaks,
+      );
     };
     measure();
     document.fonts?.ready.then(measure).catch(() => undefined);
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [state]);
+  }, [printBreaks, state]);
 
   const updateField = <K extends keyof ResumeState>(key: K, value: ResumeState[K]) => {
     setState((current) => ({ ...current, [key]: value }));
@@ -763,6 +888,17 @@ export function useResumeEditor() {
     });
   };
 
+  // A person can inspect the source-backed checklist as a whole and make one
+  // deliberate acknowledgement when it is accurate. Keep the per-field path
+  // intact for corrections, but do not turn a trustworthy import into a row
+  // of repetitive confirmation clicks.
+  const confirmAllImportReviewItems = () => {
+    setImportReview((current) => {
+      if (!current) return current;
+      return { ...current, reviewedItemIds: current.items.map((item) => item.id) };
+    });
+  };
+
   const completeImportReview = () => {
     if (!importReview || !importReviewProgress(importReview).isComplete) return;
     setImportReview(null);
@@ -891,6 +1027,19 @@ export function useResumeEditor() {
     }
   };
 
+  const copyApplicationField = async (text: string, label: string) => {
+    if (!text.trim()) {
+      flash(`Add ${label.toLocaleLowerCase()} first`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      flash(`Copied ${label.toLocaleLowerCase()}`);
+    } catch {
+      flash("Could not copy text");
+    }
+  };
+
   const downloadPlainText = () => {
     if (!plainText) {
       flash("Add resume details first");
@@ -980,8 +1129,11 @@ export function useResumeEditor() {
     addCustomSection,
     addBuiltinSection,
     addEntry,
+    applicationCopyOpen,
+    autosaveStatus,
     checks,
     clearResume,
+    copyApplicationField,
     comparedBaseRoleFocus,
     comparedBaseRoleLabel,
     comparedBaseVersion,
@@ -993,6 +1145,7 @@ export function useResumeEditor() {
     deleteVersion,
     downloadDocx,
     downloadPlainText,
+    externalDraft,
     deletedVersion,
     dismissRecoveryPoint,
     dismissRestoredVersionSummary,
@@ -1018,6 +1171,7 @@ export function useResumeEditor() {
     isImporting,
     jobDescription,
     jsonInputRef,
+    keepCurrentDraft,
     loadSample,
     mergedHistoryBackup,
     moveEntry,
@@ -1028,6 +1182,8 @@ export function useResumeEditor() {
     openVersionHistoryBackup,
     openVersionSave,
     pageCount,
+    pageGuides,
+    printBreaks,
     passedChecks,
     pdfInputRef,
     plainText,
@@ -1049,6 +1205,7 @@ export function useResumeEditor() {
     saveVersionHistoryBackup,
     setDeletedVersion,
     setExportCheckOpen,
+    setApplicationCopyOpen,
     setHistoryBackupToImport,
     setImportReview,
     setJobDescription,
@@ -1066,12 +1223,14 @@ export function useResumeEditor() {
     textImportOpen,
     toast,
     toggleImportReviewItem,
+    confirmAllImportReviewItems,
     completeImportReview,
     undoDeleteVersion,
     undoRemoval,
     updateEntry,
     updateField,
     updateSectionTitle,
+    useExternalDraft,
     versionChanges,
     versionCompareAfterLabel,
     versionCompareBeforeLabel,

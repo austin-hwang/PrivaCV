@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowRight, Check, Target } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Save, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -16,18 +16,22 @@ export function RoleFocusCard({
   roleLabel,
   roleFocus,
   resumeText,
+  hasContent,
   onChange,
   onRoleLabelChange,
   onClear,
+  onSaveBase,
   onFocus,
 }: {
   jobDescription: string;
   roleLabel: string;
   roleFocus: ReturnType<typeof buildRoleFocus>;
   resumeText: string;
+  hasContent: boolean;
   onChange: (value: string) => void;
   onRoleLabelChange: (value: string) => void;
   onClear: () => void;
+  onSaveBase: () => void;
   onFocus: (targetId: string) => void;
 }) {
   const [phrase, setPhrase] = useState("");
@@ -94,6 +98,19 @@ export function RoleFocusCard({
             className="min-h-24 resize-y bg-background"
           />
         </label>
+        {hasDescription && hasContent ? (
+          <div className="flex flex-col gap-3 rounded-md border border-sky-300 bg-sky-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-sky-950">Save your base before tailoring</p>
+              <p className="text-xs leading-snug text-sky-900/80">
+                Keep this draft and its local role context easy to restore after you try wording changes.
+              </p>
+            </div>
+            <Button type="button" variant="outline" size="sm" className="shrink-0 border-sky-300 bg-background" onClick={onSaveBase}>
+              <Save /> Save base draft
+            </Button>
+          </div>
+        ) : null}
         {hasDescription && roleFocus.totalCount ? (
           <div className="rounded-md border bg-background p-3">
             <div className="mb-3 flex flex-wrap items-center gap-2">

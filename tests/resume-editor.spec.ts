@@ -283,6 +283,66 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
 });
 
+test("makes local autosave visible while an edited resume is being stored", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const autosave = page.locator("[data-autosave-status]");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
+  await expect(autosave).toHaveText("Saved locally");
+
+  await page.getByLabel("Professional Summary").fill("A local-first product engineer who ships dependable tools.");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
+  await expect(autosave).toHaveText("Saving locally");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
+  await expect(autosave).toHaveText("Saved locally");
+});
+
+test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  const otherTab = await context.newPage();
+  await otherTab.goto("/");
+  await expect(otherTab.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await otherTab.getByLabel("Full Name").fill("Alex Morgan");
+  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  const conflict = page.getByText("A different resume was saved in another tab", { exact: true }).locator("..");
+  await expect(conflict).toContainText("Autosave is paused here");
+  await expect(conflict.getByText("Header changed", { exact: true })).toBeVisible();
+  await expect(conflict.getByText("This tab", { exact: true })).toBeVisible();
+  await expect(conflict.getByText("Saved tab", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "conflict");
+  await page.getByRole("button", { name: /use saved draft/i }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Alex Morgan");
+  await expect(conflict).toBeHidden();
+  await otherTab.close();
+});
+
+test("offers copy-ready application fields without making users retype resume details", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /copy for applications/i }).click();
+
+  const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy full name/i })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /copy achievements/i }).first()).toBeVisible();
+  await expect(dialog.getByText("Senior Software Engineer · Acme Corp - San Francisco, CA")).toBeVisible();
+});
+
 test("suggests a recognizable filename when exporting a PDF", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -496,7 +556,7 @@ test("keeps a summary optional when the resume already has experience detail", a
   await expect(page.getByText("Missing summary")).toBeHidden();
 });
 
-test("imports a pasted resume locally and requires explicit field confirmation", async ({ page }) => {
+test("imports a pasted resume locally and keeps confirmation deliberate without repetitive clicks", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -515,6 +575,8 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await expect(page.getByText("Imported pasted text - please review")).toBeVisible();
   await expect(page.getByText("What the importer detected")).toBeVisible();
   await expect(page.getByText("1 entry detected")).toBeVisible();
+  await expect(page.getByText("Source excerpt:").first()).toBeVisible();
+  await expect(page.getByText("Engineer | Analytical Engines | 2022–Present").first()).toBeVisible();
   await expect(page.getByText("Education heading found in source, but no entries detected")).toBeVisible();
   await expect(page.getByText("Source section needs review")).toBeVisible();
   await expect(page.getByText("“Not detected” means the importer did not place content there.")).toBeVisible();
@@ -533,10 +595,7 @@ test("imports a pasted resume locally and requires explicit field confirmation",
   await page.getByRole("button", { name: /mark contact details reviewed/i }).click();
   await expect(page.getByText(/1 of \d+ confirmed/)).toBeVisible();
 
-  const confirmationButtons = page.getByRole("button", { name: /^mark reviewed$/i });
-  while (await confirmationButtons.count()) {
-    await confirmationButtons.first().click();
-  }
+  await page.getByRole("button", { name: /confirm all imported fields/i }).click();
   await expect(page.getByText(/All suggested fields are confirmed/i)).toBeVisible();
   await page.getByRole("button", { name: /^finish review$/i }).click();
   await expect(page.getByText("Import review")).toBeHidden();
@@ -781,6 +840,32 @@ test("keeps mobile import review focused on the next editable field", async ({ b
   await expect(page.locator("#import-review-panel")).toBeHidden();
 
   await context.close();
+});
+
+test("calls out a specialty heading when import cannot reconstruct its entries", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Experience",
+    "Engineer | Analytical Engines | 2022–Present",
+    "• Built reliable systems.",
+    "",
+    "Certifications",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  const certificationCard = page.locator("#import-review-panel").getByRole("button", { name: /certifications/i });
+  await expect(certificationCard).toContainText("Certifications heading found in source, but no entries detected");
+  await expect(certificationCard).toContainText("Source section needs review");
+  await certificationCard.click();
+  await expect(page.locator("#add-custom-section")).toBeFocused();
 });
 
 test("switches between focused editor and preview views on a narrow screen", async ({ page }) => {
@@ -1031,9 +1116,33 @@ test("shows page boundaries in the preview without printing those guides", async
   await page.getByLabel("Details").first().fill(details);
 
   await expect(page.getByText("Page 2 begins")).toBeVisible();
+  await expect(page.locator(".resume-page-guide span").filter({ hasText: "Page 2 begins" }).first()).toContainText("Next:");
 
   await page.emulateMedia({ media: "print" });
   await expect(page.getByText("Page 2 begins")).toBeHidden();
+});
+
+test("matches preview page count when print keeps a long role intact", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const details = Array.from(
+    { length: 22 },
+    (_, index) =>
+      `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
+  ).join("\n");
+  await page.locator("#field-experience-0-details").fill(details);
+
+  // Chromium moves this complete role to a fresh Letter page. The live sheet
+  // should reserve that whitespace too, rather than understating the export.
+  await expect(page.getByText("3 pages in preview", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-resume-print-section="experience"]')).toHaveClass(/resume-print-break-before/);
+
+  await page.emulateMedia({ media: "print" });
+  const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
+  expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
 });
 
 test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
@@ -1146,6 +1255,36 @@ test("shows when the resume changed after the last PDF export", async ({ page })
   await expect(summaryChange.getByText("Now", { exact: true })).toBeVisible();
   await expect(summaryChange.getByText("Edited summary for the next application.")).toBeVisible();
   await expect(page.getByRole("button", { name: /export updated pdf/i })).toBeVisible();
+});
+
+test("explains design changes after a PDF export", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await page.reload();
+  await page.evaluate(() => {
+    window.print = () => {
+      window.localStorage.setItem("print-called", "true");
+    };
+  });
+  await loadSample(page);
+
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
+
+  await page.locator('[aria-label="Resume templates"]').getByRole("button", { name: /modern/i }).click();
+  await openTools(page);
+
+  const styleChange = page.getByText("Visual style changed", { exact: true });
+  await expect(styleChange).toBeVisible();
+  await expect(styleChange.locator("..")).toContainText("Layout template");
+  await expect(styleChange.locator("..")).toContainText("Font");
+  await expect(styleChange.locator("..")).toContainText("Classic");
+  await expect(styleChange.locator("..")).toContainText("Modern");
 });
 
 test("expands dense change audits after export and restore", async ({ page }) => {
@@ -1303,6 +1442,28 @@ test("restores the local role focus saved with a tailored checkpoint", async ({ 
   await expect(description).toHaveValue("Build TypeScript services for product teams and improve release reliability.");
   await page.getByRole("button", { name: /restore previous/i }).click();
   await expect(description).toHaveValue("Lead design systems for a consumer product team.");
+});
+
+test("offers a base checkpoint where users start a local role review", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  await page.getByLabel("Private role label (optional)").fill("Acme — Senior Product Engineer");
+  await page.getByLabel("Job description").fill("Build reliable product experiences for growing teams.");
+  await expect(page.getByText("Save your base before tailoring")).toBeVisible();
+
+  await page.getByRole("button", { name: /save base draft/i }).click();
+  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
+  await expect(saveDialog).toBeVisible();
+  await expect(saveDialog.getByText("Role focus included")).toBeVisible();
+  await page.getByLabel("Checkpoint name").fill("Acme base resume");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await expect(page.getByText("Acme base resume")).toBeVisible();
+  await expect(page.getByText(/Role label · Acme — Senior Product Engineer/)).toBeVisible();
 });
 
 test("keeps same-resume checkpoints separate for different private role labels", async ({ page }) => {

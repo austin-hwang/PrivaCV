@@ -1,5 +1,175 @@
 # Agent Log
 
+## 2026-07-12 — Explain visual and cross-tab draft changes
+
+- Market and product review: current resume-builder feedback continues to
+  emphasize predictable export and a low-effort tailoring workflow. Direct
+  Chromium sweeps also confirmed that the existing preview matches generated
+  Letter PDFs for dense skills and custom-section cases, so another pagination
+  change was not justified. The stronger gap was explanatory: a font, layout,
+  color, header, or density edit correctly made an export stale, but the audit
+  named no changed area; the new same-browser conflict prompt had the same
+  blind spot when a tab changed only the design.
+- Options considered: add more template choices, leave design edits as an
+  unexplained stale state, or extend the existing reviewable change summary.
+  The summary won because it makes an existing high-stakes choice clear without
+  adding a new workflow, account, or opaque assessment.
+- Implementation: change audits now include a concise visual-style entry with
+  the exact settings changed and before/after output choices. The paused
+  cross-tab autosave prompt now embeds that same local comparison before its
+  keep/use actions.
+- Expected experience improvement: people can tell whether a draft differs in
+  content, appearance, or both before exporting, restoring, or replacing it.
+  That makes last-mile application decisions less uncertain while retaining the
+  local-first privacy model.
+- Verification: TypeScript, ESLint, all 57 Vitest tests, the optimized
+  production build, and all 70 Chromium flows passed. The browser coverage ran
+  against the isolated production server; its all-suite runner stopped
+  reporting after flow 57, so the final 14 flows were rerun explicitly and
+  passed. Manual Chromium PDF page-count sweeps for skills and custom sections
+  also matched the preview.
+- Provisional next step: reassess the remaining import-layout edge cases and
+  mobile editing friction before selecting the next improvement.
+
+## 2026-07-12 — Prevent same-browser draft overwrites
+
+- Market and product review: current alternatives center job seekers on a
+  master resume and many tailored drafts, while public feedback describes the
+  work as time-consuming and draining. This editor already makes local
+  autosave visible, but opening that private draft in a second browser tab
+  still allowed a stale tab to overwrite newer work without warning.
+- Options considered: leave multi-tab editing as an undocumented constraint,
+  add a heavier account-backed synchronization system, or provide a local
+  conflict choice at the point of risk. The local safeguard won: it solves the
+  most likely accidental overwrite without adding an account, network service,
+  or privacy exposure.
+- Implementation: a different resume saved by another tab now pauses autosave
+  in the current tab, changes the header state to an explicit paused warning,
+  and presents clear actions to use the saved draft or keep the current one.
+  Choosing the saved draft creates the existing in-tab recovery point first.
+- Expected experience improvement: people can compare or tailor in multiple
+  tabs without discovering that one quiet autosave erased their work; the next
+  decision is visible, reversible, and local.
+- Verification: TypeScript, ESLint, all 56 Vitest tests, focused two-tab
+  Chromium coverage, and the optimized production build passed. A 69-test
+  browser-suite run was started on an isolated local server, but this task
+  environment did not return its final completion summary; it is not counted
+  as verified coverage.
+- Provisional next step: reassess real browser PDF pagination for multi-entry
+  and custom-section resumes, alongside any remaining uncommon import layouts.
+
+## 2026-07-12 — Print-faithful page-count preview
+
+- Finding before build: competitor reviews and recent job-seeker feedback make
+  final PDF formatting a trust-critical moment. Direct Chromium testing found
+  a concrete mismatch: a long but valid role could show as two continuous
+  preview pages, then produce three pages because print correctly kept the role
+  intact and moved it to the next Letter page.
+- Options considered: accept the browser-only difference, weaken the print
+  keep-together behavior, or make the live preview model that known pagination
+  rule. Preview reservation won because it preserves readable PDF output while
+  showing the honest result before the export dialog.
+- Implementation: the preview now detects roles that would cross a printable
+  Letter boundary, reserves the equivalent screen-only whitespace, and applies
+  the matching print page break. Its page count and next-content guide now
+  reflect the resulting browser PDF rather than uninterrupted scroll height.
+- Verification: added Chromium coverage that creates the edge case and counts
+  the browser-generated Letter PDF pages. A focused local sweep of 20, 22, 24,
+  28, and 40-bullet roles matched preview and PDF page counts. `pnpm lint`,
+  `pnpm typecheck`, all 55 Vitest tests, the complete 66-test Chromium suite,
+  and `pnpm build` passed.
+- Provisional next step: reassess multi-entry and custom-section pagination in
+  real browser PDFs before adding more editing features.
+
+## 2026-07-12
+
+- Market and product review: current Rezi and Teal feedback continues to make
+  a dependable final artifact central; recent public reports specifically
+  describe paging surprises as frustrating even when an editor appears to fit
+  the resume. The product already shows true Letter boundaries, but a plain
+  “Page 2 begins” line still made a person scan around to discover which
+  section or role needed their attention.
+- Options considered: refine the PDF parser, add another writing heuristic, or
+  make the existing page-boundary cue actionable. Naming the next content won
+  because it improves the last-mile review without guessing at a person's
+  experience, changing the document, or adding export friction.
+- Implementation: live page guides now identify the next section, entry, or
+  summary at each additional Letter boundary. Labels derive from the rendered
+  local preview and truncate visually when needed; they remain absent from
+  printed and exported PDFs.
+- Verification: TypeScript, ESLint, all 55 Vitest tests, the complete 65-test
+  Chromium Playwright suite, and the optimized production build passed. A new
+  browser-generated PDF artifact was not produced in this run, so cross-engine
+  pagination remains a separate manual check.
+- Provisional next step: reassess actual Chromium PDF pagination for ordinary
+  multi-entry and custom-section resumes, then prioritize any remaining
+  preview-to-artifact mismatch over additional editor features.
+
+- Finding before build: user feedback about resume imports repeatedly calls out
+  missing information that must be re-entered. The import checklist already
+  exposed skipped core sections, but its coverage snapshot did not surface a
+  recognizable specialty heading—such as Certifications or Publications—when
+  the parser could not reconstruct an entry, leaving a high-value omission
+  easy to miss.
+- Options considered: add more aggressive specialty parsing, introduce an
+  opaque import-confidence score, or make the existing review signal complete.
+  Specialty coverage won because it makes the omission visible and recoverable
+  without guessing at a person's credentials or changing a conservative parser.
+- Implementation: import coverage now recognizes familiar specialty headings,
+  shows their local source excerpt, reports when no entry was reconstructed,
+  and takes the user to the relevant add-section control. Imported specialty
+  sections also receive the same detected-entry coverage treatment.
+- Verification: ESLint, TypeScript, all 55 Vitest tests, the focused Chromium
+  specialty-coverage flow, the complete 65-test Playwright suite, and the
+  optimized production build passed. The first complete-suite attempt found a
+  stale local server on port 3100 and did not execute; a clean rerun passed.
+- Provisional next step: reassess conservative parsing for uncommon or
+  multi-column source layouts before expanding tailoring or writing assistance.
+
+- Finding before build: current competitor reviews and job-seeker feedback
+  continue to identify incomplete imports and exhausting tailoring workflows as
+  costly friction. The editor's source-backed import checklist protects trust,
+  but an accurate import still required a separate acknowledgement click for
+  every detected field, creating paperwork without adding review quality.
+- Options considered: improve parser heuristics, add opaque matching scores, or
+  make the existing explicit review easier to finish. A single deliberate
+  whole-import confirmation won because it removes repetitive clicks while
+  preserving the local source context, individual correction controls, and
+  export checkpoint.
+- Implementation: the import checklist now offers “Confirm all imported
+  fields” beside the next-field guidance. It marks the current suggested items
+  reviewed only after a user chooses it; each item can still be reviewed and
+  toggled individually before completing the checklist.
+- Verification: ESLint, TypeScript, all 55 Vitest tests, the focused Chromium
+  flow, the complete 64-test Playwright suite on a fresh isolated server, and
+  the optimized production build passed. The first focused browser attempt
+  reused an unrelated stale dev server and was not counted; the fresh rerun
+  passed.
+- Provisional next step: reassess parsing accuracy for uncommon or
+  multi-column source layouts before expanding matching or writing assistance.
+
+- Finding before build: current job-seeker feedback continues to identify
+  per-application tailoring as a draining repeated task. The editor already
+  had local role context and reversible checkpoints, but the safety step lived
+  in a separate lower Review section after a user had just pasted a role.
+- Options considered: improve term-ranking heuristics, add writing automation,
+  or make the existing base-save path immediate. The direct base-save route won
+  because it prevents losing a strong master draft without guessing at a
+  person's experience, adding a service, or creating new privacy risk.
+- Expected experience improvement: people can preserve the original resume at
+  the exact point they begin tailoring, then experiment and restore confidently.
+- Implementation: Role Focus now exposes a calm, local-only base-draft callout
+  after a person pastes a role description. Its action opens the existing named
+  checkpoint dialog, where the private role label and description are already
+  confirmed for that saved draft; it adds no automated rewriting or new data
+  transfer.
+- Verification: all 54 Vitest tests, ESLint, the new focused Chromium flow,
+  the complete 64-test Playwright suite, and the optimized production build
+  passed. Fresh isolated Playwright servers were used because stale local dev
+  servers from other sessions otherwise exposed a different workspace build.
+- Provisional next step: reassess actual browser PDF pagination for ordinary
+  multi-entry and custom-section resumes before adding further tailoring scope.
+
 ## 2026-07-11 23:30 PDT
 
 - Market and product review: recent job-seeker research continues to make
@@ -2024,3 +2194,71 @@
 - Added a local, deterministic review for only a small set of clearly vague bullet openings, including "Responsible for" and "Worked on."
 - Showed the affected bullet numbers alongside the existing evidence cue for experience and project entries, with explicit copy that asks users to keep their description truthful.
 - Added unit and browser coverage, then documented the intentionally narrow guidance in the README and roadmap.
+
+# 2026-07-12 — Faster recovery from imported resume sections
+
+## Product review
+
+- **Finding:** Competitor research and job-seeker feedback continue to point to incomplete imports as a trust-breaking failure. The editor already made skipped recognized headings explicit, but people still had to search the complete extracted-text view to compare the section content.
+- **Options considered:** Add another opaque ATS score, broaden parser guesses, or make import recovery more direct. Compact source excerpts won because they reduce correction effort without inventing content or weakening the explicit field-confirmation safeguard.
+- **Expected user benefit:** People can compare a recognized Experience, Education, Projects, Summary, or Skills section against the draft at a glance, then jump directly to the relevant field or add action.
+
+## Changes
+
+- Added local, heading-bounded source excerpts to the import coverage snapshot.
+- Rendered each excerpt beside its recognized section, while retaining the existing full-source view and explicit confirmation workflow.
+- Added focused Vitest and Playwright assertions and updated README and roadmap guidance.
+
+## Verification
+
+- Passed `CI=true pnpm lint`, `CI=true pnpm typecheck`, `CI=true pnpm test`, `CI=true PLAYWRIGHT_PORT=4217 pnpm test:e2e` (64 tests), and `CI=true pnpm build`.
+
+# 2026-07-12 — Copy-ready fields for application portals
+
+## Product review
+
+- **Finding:** Recent user feedback around applicant tracking systems repeatedly
+  highlights the frustrating need to re-enter the same resume into many small
+  portal fields. The app already had a trustworthy full-text route, but not a
+  quick way to copy an individual employer, role, dates, or achievement list.
+- **Options considered:** Add a new visual template, build a persistent
+  application tracker, or offer local, granular copy fields. Granular copy won:
+  it removes frequent retyping immediately, needs no account or saved job data,
+  and keeps a single source of truth in the resume itself.
+- **Expected user benefit:** A person can complete structured application forms
+  faster and with fewer transcription mistakes, while still using Review Text
+  when a portal accepts one complete resume paste.
+
+## Changes
+
+- Added a local **Copy for applications** dialog from More actions.
+- Exposed copy-ready profile, summary, role, employer, date, achievements,
+  education, project, skills, and custom-section values in current resume order.
+- Added deterministic helper and browser coverage so fields do not appear for
+  empty values and custom sections remain represented.
+- Updated README and roadmap with the intended scope and workflow.
+
+# 2026-07-12 — Visible local autosave confidence
+
+## Product review
+
+- **Finding:** Current resume-builder guidance centers on fast tailoring and
+  reuse, but a local-first editor earns trust only when people can tell that
+  their latest work is actually retained. The app handled storage failures with
+  a JSON-backup warning, yet normal successful autosaves were invisible.
+- **Options considered:** Add an opaque ATS score, expand into an application
+  tracker, or make the existing persistence feedback explicit. The small,
+  visible save state won because it addresses a high-anxiety moment in every
+  edit without adding accounts, data collection, or workflow clutter.
+- **Expected user benefit:** People see a calm "Saving locally" transition and
+  a clear "Saved locally" confirmation in the workspace header, so they can
+  keep tailoring without second-guessing whether a refresh would lose work.
+
+## Changes
+
+- Added a debounced autosave status to the editor hook and exposed it in the
+  header only while a resume has content and browser storage is available.
+- Kept the existing storage-failure warning and JSON-backup escape hatch as the
+  authoritative fallback instead of showing a misleading success state.
+- Added browser coverage for the saving-to-saved transition and documented the
+  local-persistence behavior in the README and roadmap.

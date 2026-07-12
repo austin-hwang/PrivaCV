@@ -213,6 +213,21 @@ export type ExportChange = {
   fieldLabels?: string[];
 };
 
+/** A small, portal-friendly piece of resume content that can be copied alone. */
+export type ApplicationCopyField = {
+  id: string;
+  label: string;
+  text: string;
+};
+
+/** Related application-form fields, kept in the same order as the resume. */
+export type ApplicationCopyGroup = {
+  id: string;
+  label: string;
+  detail?: string;
+  fields: ApplicationCopyField[];
+};
+
 export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
@@ -685,6 +700,71 @@ export function resumePlainText(state: ResumeState) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function applicationCopyValue(value: string) {
+  return value.trim();
+}
+
+function entryApplicationCopyGroup(section: string, label: string, entry: ResumeEntry, index: number): ApplicationCopyGroup {
+  const title = applicationCopyValue(entry.title);
+  const subtitle = applicationCopyValue(entry.subtitle);
+  const meta = applicationCopyValue(entry.meta);
+  const details = bulletsFrom(entry.details).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
+  const entryText = entryPlainText(entry).join("\n");
+  const isExperience = section === "experience";
+  const isEducation = section === "education";
+  const isProjects = section === "projects";
+  const fields: ApplicationCopyField[] = [
+    { id: "entry", label: "Whole entry", text: entryText },
+    { id: "title", label: isExperience ? "Job title" : isEducation ? "Degree" : isProjects ? "Project name" : "Entry title", text: title },
+    { id: "subtitle", label: isExperience ? "Employer" : isEducation ? "School" : isProjects ? "Technologies / role" : "Organization / role", text: subtitle },
+    { id: "meta", label: isExperience ? "Dates" : isEducation ? "Dates / location" : isProjects ? "Dates / link" : "Dates / details", text: meta },
+    { id: "details", label: isExperience ? "Achievements" : isProjects ? "Description" : "Details", text: details },
+  ].filter((field) => Boolean(field.text));
+
+  return {
+    id: `${section}-${index}`,
+    label: `${label} ${index + 1}`,
+    detail: [title, subtitle].filter(Boolean).join(" · ") || undefined,
+    fields,
+  };
+}
+
+/**
+ * Builds copy-ready chunks for application portals that ask for resume details
+ * one field at a time. This deliberately mirrors the current resume rather
+ * than inventing a different, opaque application profile.
+ */
+export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[] {
+  const groups: ApplicationCopyGroup[] = [];
+  const profileFields: ApplicationCopyField[] = [
+    { id: "profile", label: "Full profile", text: [state.name, state.title, state.email, state.phone, state.location, state.website].map(applicationCopyValue).filter(Boolean).join("\n") },
+    { id: "name", label: "Full name", text: applicationCopyValue(state.name) },
+    { id: "title", label: "Title / role", text: applicationCopyValue(state.title) },
+    { id: "email", label: "Email", text: applicationCopyValue(state.email) },
+    { id: "phone", label: "Phone", text: applicationCopyValue(state.phone) },
+    { id: "location", label: "Location", text: applicationCopyValue(state.location) },
+    { id: "website", label: "Website", text: applicationCopyValue(state.website) },
+  ].filter((field) => Boolean(field.text));
+  if (profileFields.length) groups.push({ id: "profile", label: "Profile", fields: profileFields });
+
+  const summary = applicationCopyValue(state.summary);
+  if (summary) groups.push({ id: "summary", label: "Summary", fields: [{ id: "summary", label: "Summary", text: summary }] });
+
+  state.sectionOrder.forEach((section) => {
+    const sectionLabel = getSectionTitle(state, section).trim() || "Untitled section";
+    if (section === "skills") {
+      const skills = state.skills.split("\n").map(cleanTextLine).filter(Boolean).join("\n");
+      if (skills) groups.push({ id: "skills", label: sectionLabel, fields: [{ id: "skills", label: sectionLabel, text: skills }] });
+      return;
+    }
+    getSectionEntries(state, section)
+      .filter(entryHasContent)
+      .forEach((entry, index) => groups.push(entryApplicationCopyGroup(section, sectionLabel, entry, index)));
+  });
+
+  return groups;
+}
+
 export function resumeExportFingerprint(state: ResumeState) {
   return JSON.stringify(normalizeResume(state));
 }
@@ -762,6 +842,34 @@ function skillsSnapshot(state: ResumeState) {
     .map(cleanTextLine)
     .filter(Boolean)
     .join(" / ");
+}
+
+function visualStyleSnapshot(state: ResumeState) {
+  const template = RESUME_TEMPLATES.find((candidate) => candidate.id === state.template)?.label ?? "Custom";
+  const font = RESUME_FONTS.find((candidate) => candidate.id === state.theme.font)?.label ?? "Custom";
+  const heading = HEADING_STYLE_LABELS[state.theme.headingStyle];
+  const density = DENSITY_LABELS[state.theme.density];
+  return [
+    template,
+    font,
+    state.theme.accent.toUpperCase(),
+    `${state.theme.headerAlign === "center" ? "Centered" : "Left-aligned"} header`,
+    state.theme.headerDivider ? "Header divider" : "No header divider",
+    heading,
+    density,
+  ].join(" · ");
+}
+
+function visualStyleChangeLabels(previous: ResumeState, current: ResumeState) {
+  const labels: string[] = [];
+  if (previous.template !== current.template) labels.push("Layout template");
+  if (previous.theme.font !== current.theme.font) labels.push("Font");
+  if (previous.theme.accent !== current.theme.accent) labels.push("Accent color");
+  if (previous.theme.headerAlign !== current.theme.headerAlign) labels.push("Header alignment");
+  if (previous.theme.headerDivider !== current.theme.headerDivider) labels.push("Header divider");
+  if (previous.theme.headingStyle !== current.theme.headingStyle) labels.push("Heading style");
+  if (previous.theme.density !== current.theme.density) labels.push("Spacing density");
+  return labels;
 }
 
 function entryIsEmpty(entry: ResumeEntry) {
@@ -894,6 +1002,19 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
       label: "Section order changed",
       detail: current.sectionOrder.map((section) => getSectionTitle(current, section) || "Untitled section").join(", "),
       targetId: "section-order-controls",
+    });
+  }
+
+  const visualStyleChanges = visualStyleChangeLabels(previous, current);
+  if (visualStyleChanges.length) {
+    changes.push({
+      id: "visual-style",
+      label: "Visual style changed",
+      detail: `${visualStyleChanges.length} ${visualStyleChanges.length === 1 ? "setting" : "settings"} edited`,
+      targetId: "edit-layout",
+      before: visualStyleSnapshot(previous),
+      after: visualStyleSnapshot(current),
+      fieldLabels: visualStyleChanges,
     });
   }
 

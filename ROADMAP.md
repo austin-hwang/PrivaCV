@@ -27,10 +27,18 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   non-empty imported entry—including specialty sections such as certifications
   and publications—keep confirmation plus nearby matching source
   context beside the editable value, and distinguish a recognizable source
-  heading from an area the parser actually populated. This makes a skipped
-  Education, Skills, Summary, Experience, or Projects section explicit before
-  users confirm their draft. Reassess whether parsing accuracy itself is now
-  the remaining trust gap.
+  heading from an area the parser actually populated; the coverage snapshot
+  now also keeps a compact local source excerpt beside each recognized core or
+  familiar specialty section (such as Certifications or Publications), so an
+  omitted credential is explicit before a person assumes it was imported.
+  This makes a skipped Education, Skills, Summary, Experience, or Projects
+  section explicit and quicker to recover before users confirm their draft.
+  Reassess whether parsing accuracy itself is now the remaining trust gap.
+- Keep import review deliberately trustworthy without making a clean import
+  feel like paperwork: people can still correct and confirm individual fields,
+  while a clear source-backed checklist now offers one explicit confirmation
+  for an import they have reviewed as a whole. Reassess whether uncommon
+  source layouts, rather than confirmation effort, are the next import gap.
 - Improve parsing accuracy for common plain-text layouts before expanding
   output formats: alternate headings such as Career Profile, Relevant
   Experience, Education & Training, Academic Projects, and Key Skills now map
@@ -51,6 +59,13 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   template, typeface, accent, heading treatment, density, and text scale stay
   active so people can evaluate the example in the layout they chose.
 - Preserve confidence around privacy, autosave, and free export.
+- Make local persistence visible without interrupting editing: the workspace
+  header now quietly distinguishes a brief in-progress save from a completed
+  browser-only save, while the existing warning and JSON backup path take over
+  if storage is unavailable. When another browser tab saves a different resume,
+  this tab pauses autosave and lets the person deliberately choose its draft or
+  the newer saved one, preventing silent same-browser overwrites. Reassess
+  cross-device backup only if it can keep the same privacy posture.
 - Make risky actions reversible so users can experiment without fear. Removing
   an entry or custom section now offers a short Undo window, so routine cleanup
   never requires a disruptive confirmation dialog or accidental retyping.
@@ -73,6 +88,14 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   ATS-friendly text can now be copied or downloaded as a `.txt` file for
   application portals that accept text uploads. Reassess actual browser-print
   fidelity and import structure before adding new document formats.
+- Reduce the repetitive work imposed by application portals that split a
+  resume into separate inputs: a local Application Copy view now exposes the
+  current profile, summary, role, employer, dates, achievement list, education,
+  projects, skills, and custom-section entries as individually copyable values.
+  It mirrors the resume rather than creating a second profile, and keeps the
+  existing full-text route for portals that accept one complete paste. Reassess
+  whether per-portal persistence is valuable only after this lighter workflow
+  no longer covers the repeated-entry friction.
 - Meet application portals that explicitly require a Word attachment without
   compromising the local-first promise: a simple editable `.docx` now exports
   the current content, headings, bullets, and safe contact links entirely in
@@ -85,7 +108,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   users can recheck edits quickly.
 - Make post-export changes easier to audit with concise before/after context
   before the next PDF export, including a full expandable audit trail for dense
-  tailoring sessions.
+  tailoring sessions. Visual output changes—layout, font, color, header, and
+  density choices—now appear beside content edits, and the same comparison
+  explains conflicting same-browser drafts before a person chooses one.
 - Let users keep lightweight browser-only checkpoints so job-specific tailoring
   feels reversible without accounts or cloud storage.
 - Make saved drafts quick to scan, compare, restore, or undo when users are
@@ -97,9 +122,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep refining mobile and narrow-window editing without compromising the print
   layout. The phone preview now scales the same true Letter-sized page box used
   for PDF export instead of reflowing it to the device width, so line wraps and
-  page count remain trustworthy; screen-only page-boundary guides now make the
-  start of each additional printed page visible before export, while print
-  styles keep headings and individual bullets together when space allows; the
+  page count remain trustworthy; when browser pagination moves an intact role
+  to a fresh page, the live preview now reserves the same whitespace before
+  counting pages; screen-only page-boundary guides make the start of each
+  additional printed page visible and name the next section or entry before
+  export, while print styles keep headings and individual bullets together when
+  space allows; the
   phone workspace keeps the form first,
   surfaces a compact next-field
   prompt for imported resumes, and moves the full import checklist, resume checks,
@@ -154,15 +182,21 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   evidence too, so a relevant certification or volunteer entry is never
   falsely reported as missing. Reassess phrase ranking only where it stays
   reviewable and local-first.
+- Keep the reversible tailoring flow obvious at the moment users paste a role:
+  Role Focus now offers a direct "Save base draft" action that opens the named
+  local checkpoint flow with the pasted role context included. Reassess whether
+  users need a separate application tracker only if this lightweight version
+  workflow no longer keeps repeated tailoring organized.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF and pasted-text import review with clearer confidence
   signals and a better before/after correction flow now that every imported
   entry can be explicitly confirmed, checked against nearby local source
   context, and compared with a source-aware coverage snapshot that identifies
-  recognizable headings the parser did not populate. Reassess the remaining
-  parsing gaps, particularly uncommon header formats, before expanding output
-  formats or tailoring automation.
+  recognizable core and familiar specialty headings the parser did not populate
+  and shows a compact source excerpt for detected sections. Reassess the remaining parsing gaps,
+  particularly uncommon header formats, before expanding output formats or
+  tailoring automation.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep PDF reconstruction conservative but resilient: tiny baseline differences
@@ -208,8 +242,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   the override when a compatible Next.js release removes that constraint.
 - Introduce react-hook-form when validation becomes field-level and user-facing,
   rather than for simple controlled inputs.
-- Expand Playwright coverage beyond the sample and text-review smoke flow to
-  include PDF export, JSON import/export, and mobile layout checks.
+- Continue Playwright coverage for browser-generated PDF pagination, JSON
+  import/export, and mobile layout checks.
 - Avoid database, auth, and server-side persistence until the product needs
   durable cross-device workflows.
 

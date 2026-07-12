@@ -157,6 +157,18 @@ const CUSTOM_SECTION_MAP: Array<[RegExp, string]> = [
   [/^relevant\s+(expertise|qualifications?)\b/i, "Relevant Expertise"],
 ];
 
+/**
+ * Identifies a familiar specialty heading without treating arbitrary title-case
+ * text as a section. Import review uses this to call out a section whose
+ * content could not be reconstructed, rather than making a person discover
+ * the omission later in the editor.
+ */
+export function detectSpecialtySection(line: string) {
+  const norm = line.replace(/[:.\s]+$/, "").trim();
+  if (norm.length > 40) return null;
+  return CUSTOM_SECTION_MAP.find(([re]) => re.test(norm))?.[1] ?? null;
+}
+
 export function extractPhone(text: string) {
   const candidates = text.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [];
   for (const candidate of candidates) {
@@ -191,8 +203,8 @@ function sectionHeading(line: string): SectionHeading | null {
 
   const norm = headingText.replace(/[:.\s]+$/, "").trim();
   if (norm.length > 40) return null;
-  const custom = CUSTOM_SECTION_MAP.find(([re]) => re.test(norm));
-  if (custom) return { key: "custom", title: custom[1], inlineContent };
+  const custom = detectSpecialtySection(headingText);
+  if (custom) return { key: "custom", title: custom, inlineContent };
 
   // A PDF loses type size and bolding, but an all-caps, short, standalone line
   // is a strong enough signal to preserve an unfamiliar section instead of

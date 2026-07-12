@@ -10,9 +10,11 @@ subscriptions, watermarks, or backend storage.
 - Next.js App Router app built with TypeScript, React, Tailwind CSS, and local
   shadcn/ui-style components.
 - Live two-pane editor with a true Letter-size printable resume preview;
-  screen-only page-boundary guides make additional PDF pages visible before
-  export, while print rules keep headings and individual bullets together when
-  space allows.
+  screen-only page-boundary guides identify the content that comes next on
+  each additional PDF page before export. When browser print keeps a role
+  intact and moves it to a fresh page, the preview reserves that same space so
+  its page count matches the exported PDF; print rules also keep headings and
+  individual bullets together when space allows.
 - Valid email, phone, and website details remain clickable in the preview and browser-produced PDF, while malformed values stay as plain text for correction.
 - Focused mobile editor and preview views that keep the printed Letter layout
   intact while scaling it to the screen, plus an on-demand Review tools strip
@@ -20,7 +22,9 @@ subscriptions, watermarks, or backend storage.
   a compact next-field prompt above the form so editing stays within reach on a
   narrow screen.
 - First-run start panel with fast paths for PDF import, pasted resume text,
-  saved JSON, or a sample resume.
+  saved JSON, or a sample resume. Imported fields retain source context for
+  correction, and an accurate import can be deliberately confirmed all at once
+  instead of requiring repetitive per-field clicks.
 - Public-facing browser metadata, a web-app manifest, custom app icons, and
   graceful route-error recovery; titles and copy accurately describe the
   local-first data model without inventing a hosted domain.
@@ -59,6 +63,9 @@ subscriptions, watermarks, or backend storage.
   title, heading, summary, or skills, jumps directly to that wording, suggests
   a small set of direct exact phrases to review, includes an opt-in exact
   phrase check for multi-word concepts, and avoids opaque ATS scoring.
+- Role Focus offers a direct local "Save base draft" checkpoint once a job
+  description is pasted, so the original resume and its private role context
+  are easy to restore after tailoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog, including when the familiar
   Cmd/Ctrl+P shortcut is used.
@@ -69,8 +76,10 @@ subscriptions, watermarks, or backend storage.
 - Local last-export status that shows whether the current resume still matches
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what
-  changed since their last PDF export attempt, including compact before/after
-  snippets and an expandable full audit trail for edited resume areas.
+  changed since their last PDF export attempt—including visual layout, font,
+  color, and spacing choices—with compact before/after snippets and an
+  expandable full audit trail for edited resume areas. The same comparison
+  appears before choosing between conflicting drafts in two browser tabs.
 - Local version history for naming, annotating, comparing, and restoring a few
   browser-only checkpoints while tailoring a resume for different applications.
 - Role-aware checkpoints with optional private labels, so job-specific wording
@@ -81,6 +90,10 @@ subscriptions, watermarks, or backend storage.
 - Text size slider that scales the resume preview and printed PDF.
 - Review Text dialog for the exact ATS-friendly copy before copying or downloading
   a portable `.txt` file for application portals.
+- Application Copy dialog for portals that split a resume into separate fields:
+  copy an individual contact detail, summary, role, employer, dates, achievement
+  list, education entry, project, skills section, or custom-section entry without
+  retyping. It mirrors the current resume and stays entirely in the browser.
 - Best-effort PDF import for text-based resumes through a locally bundled,
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The
@@ -101,16 +114,21 @@ subscriptions, watermarks, or backend storage.
   summary, experience, education, project, and skills entry, keeps explicit
   confirmation and a matching source excerpt beside the editable value, keeps
   the extracted source text available for local fact-checking, shows a
-  source-aware coverage snapshot that identifies recognizable source headings
-  the parser did not populate, and keeps the export reminder visible until the
-  review is finished. Experience entries include a one-click title/company
-  swap for company-first source layouts.
+  source-aware coverage snapshot that identifies recognizable core and familiar
+  specialty source headings the parser did not populate and keeps a short source excerpt beside each
+  recognized section, and keeps the export reminder visible until the review
+  is finished. Experience entries include a one-click title/company swap for
+  company-first source layouts.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
 - A five-second Undo for accidentally removed entries or custom sections, so
   routine cleanup does not turn into retyping.
-- Local autosave in browser storage plus user-managed JSON files for manual
-  save, open, and checkpoint export/import when needed.
+- Local autosave in browser storage now makes its brief saving state and
+  successful completion visible in the workspace header; user-managed JSON
+  files remain available for manual save, open, and checkpoint export/import
+  when needed. If the same editor is open in two tabs, a different draft saved
+  in the other tab pauses autosave here and asks which draft to keep rather
+  than silently overwriting either version.
 - Clean print stylesheet for browser Save as PDF.
 
 ## Stack
@@ -161,6 +179,13 @@ Text** and choose **Download .docx**. The editable Word file is generated in
 your browser and does not upload your resume. Its deliberately simple layout is
 best for application portals that ask for a Word document; use PDF when you
 need the selected visual template preserved exactly.
+
+## Copying into application forms
+
+Open **More actions** and choose **Copy for applications**. The dialog keeps
+the resume in its current order and exposes small, copy-ready fields for the
+common application-form prompts. Use **Review Text** when a portal accepts one
+complete plain-text resume instead.
 
 ## Importing a PDF
 

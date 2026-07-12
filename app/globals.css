@@ -117,12 +117,23 @@
 }
 
 .resume-page-guide span {
+  max-width: min(72%, 390px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-left: auto;
   transform: translateY(-50%);
   border: 1px solid rgb(148 163 184 / 70%);
   border-radius: 999px;
   background: rgb(255 255 255 / 96%);
   padding: 3px 7px;
+}
+
+/* The live preview reserves the same whitespace that browser print uses when
+   it moves a complete role to the next Letter page. Padding avoids collapsed
+   margins and leaves the visible page guides aligned with the exported PDF. */
+.resume-print-break-before {
+  padding-top: var(--resume-print-break-space, 0);
 }
 
 .resume-preview-sheet-frame {
@@ -374,6 +385,11 @@
 
   .resume-entry {
     break-inside: avoid;
+  }
+
+  .resume-print-break-before {
+    padding-top: 0 !important;
+    break-before: page;
   }
 
   .resume-section-title {
