@@ -1,5 +1,29 @@
 # Agent Log
 
+## 2026-07-11 19:30 PDT
+
+- Market and product review: current Rezi/Teal feedback emphasizes a fast,
+  dependable final artifact, while recent recruiter feedback specifically
+  warns that applicants lose time fixing or renaming files from resume
+  builders. The local editor already made PDF export free and reviewable, but
+  browser print dialogs could still offer the generic public page title as a
+  filename.
+- Finding and decision: give the native Save as PDF dialog a useful default
+  name instead of adding another export screen or a speculative ATS score. A
+  temporary document title such as `Jane_Doe_Resume` preserves a one-click
+  export, leaves the user free to rename it, and restores the public browser
+  title when printing ends.
+- Implementation: PDF export now derives a safe owner-based title immediately
+  before the native print dialog and restores the normal site title on
+  `afterprint`. README and roadmap now explain the resulting filename cue, and
+  Playwright verifies both the suggested title and restoration behavior.
+- Verification: TypeScript, ESLint, 52 Vitest tests, the focused Playwright
+  export-name regression, and the optimized production build passed. A full
+  59-test Playwright run reported its first 23 flows passing but ended without
+  the runner's final summary, so it is not counted as a complete-suite pass.
+- Provisional next step: reassess cross-browser/browser-to-PDF pagination,
+  especially long-entry breaks, before expanding export features.
+
 ## 2026-07-11 18:28 PDT
 
 - Market and product review: current Teal/Rezi feedback values quick tailoring

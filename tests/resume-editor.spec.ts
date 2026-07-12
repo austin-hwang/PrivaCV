@@ -239,6 +239,24 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
 });
 
+test("suggests a recognizable filename when exporting a PDF", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await page.evaluate(() => {
+    window.print = () => {
+      document.documentElement.dataset.printTitle = document.title;
+      window.dispatchEvent(new Event("afterprint"));
+    };
+  });
+
+  await page.getByRole("button", { name: /^export pdf$/i }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-print-title", "Jane_Doe_Resume");
+  await expect(page).toHaveTitle("Resume Editor — private, ATS-friendly PDFs");
+});
+
 test("makes validated contact details actionable in the preview", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

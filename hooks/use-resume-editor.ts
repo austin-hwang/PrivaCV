@@ -78,6 +78,16 @@ function safeResumeFilename(name: string) {
   return name.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || "resume";
 }
 
+/**
+ * Browsers commonly use document.title as the initial Save as PDF filename.
+ * Keep that transient title descriptive, but restore the public page title as
+ * soon as printing finishes.
+ */
+function pdfDocumentTitle(name: string) {
+  const filename = safeResumeFilename(name);
+  return filename === "resume" ? "Resume" : `${filename}_Resume`;
+}
+
 type UndoableRemoval =
   | {
       kind: "entry";
@@ -882,6 +892,13 @@ export function useResumeEditor() {
     } catch {
       reportStorageIssue();
     }
+
+    const previousTitle = document.title;
+    const restoreTitle = () => {
+      document.title = previousTitle;
+    };
+    document.title = pdfDocumentTitle(state.name);
+    window.addEventListener("afterprint", restoreTitle, { once: true });
     window.print();
   };
 
