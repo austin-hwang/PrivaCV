@@ -59,6 +59,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   template, typeface, accent, heading treatment, density, and text scale stay
   active so people can evaluate the example in the layout they chose.
 - Preserve confidence around privacy, autosave, and free export.
+- Make local persistence visible without interrupting editing: the workspace
+  header now quietly distinguishes a brief in-progress save from a completed
+  browser-only save, while the existing warning and JSON backup path take over
+  if storage is unavailable. Reassess cross-device backup only if it can keep
+  the same privacy posture.
 - Make risky actions reversible so users can experiment without fear. Removing
   an entry or custom section now offers a short Undo window, so routine cleanup
   never requires a disruptive confirmation dialog or accidental retyping.

@@ -2179,3 +2179,28 @@
 - Added deterministic helper and browser coverage so fields do not appear for
   empty values and custom sections remain represented.
 - Updated README and roadmap with the intended scope and workflow.
+
+# 2026-07-12 — Visible local autosave confidence
+
+## Product review
+
+- **Finding:** Current resume-builder guidance centers on fast tailoring and
+  reuse, but a local-first editor earns trust only when people can tell that
+  their latest work is actually retained. The app handled storage failures with
+  a JSON-backup warning, yet normal successful autosaves were invisible.
+- **Options considered:** Add an opaque ATS score, expand into an application
+  tracker, or make the existing persistence feedback explicit. The small,
+  visible save state won because it addresses a high-anxiety moment in every
+  edit without adding accounts, data collection, or workflow clutter.
+- **Expected user benefit:** People see a calm "Saving locally" transition and
+  a clear "Saved locally" confirmation in the workspace header, so they can
+  keep tailoring without second-guessing whether a refresh would lose work.
+
+## Changes
+
+- Added a debounced autosave status to the editor hook and exposed it in the
+  header only while a resume has content and browser storage is available.
+- Kept the existing storage-failure warning and JSON-backup escape hatch as the
+  authoritative fallback instead of showing a misleading success state.
+- Added browser coverage for the saving-to-saved transition and documented the
+  local-persistence behavior in the README and roadmap.

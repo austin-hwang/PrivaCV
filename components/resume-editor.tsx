@@ -115,6 +115,7 @@ export function ResumeEditor() {
     addCustomSection,
     addBuiltinSection,
     addEntry,
+    autosaveStatus,
     checks,
     clearResume,
     confirmAllImportReviewItems,
@@ -295,6 +296,28 @@ export function ResumeEditor() {
             <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">Resume Editor</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {hasContent && !storageIssue ? (
+              <span
+                data-autosave-status={autosaveStatus}
+                aria-label={`Local autosave: ${autosaveStatus === "saving" ? "saving" : "saved"}`}
+                title={
+                  autosaveStatus === "saving"
+                    ? "Saving this resume in this browser"
+                    : "Saved in this browser. Use Save JSON for a portable backup."
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-xs font-medium",
+                  autosaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-700",
+                )}
+              >
+                {autosaveStatus === "saving" ? (
+                  <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+                ) : (
+                  <Check className="size-3.5" aria-hidden="true" />
+                )}
+                <span className="hidden sm:inline">{autosaveStatus === "saving" ? "Saving locally" : "Saved locally"}</span>
+              </span>
+            ) : null}
             {hasContent || versionHistory.length ? (
               <Button
                 type="button"
