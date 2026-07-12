@@ -192,6 +192,11 @@ export type EvidenceSummary = {
   unmeasuredIndexes: number[];
 };
 
+export type BulletOpeningSummary = {
+  bulletCount: number;
+  vagueOpeningIndexes: number[];
+};
+
 export type ExportChange = {
   id: string;
   label: string;
@@ -425,6 +430,33 @@ export function summarizeEvidence(details: string): EvidenceSummary {
     bulletCount: bullets.length,
     measuredCount: bullets.length - unmeasuredIndexes.length,
     unmeasuredIndexes,
+  };
+}
+
+const VAGUE_BULLET_OPENINGS = [
+  /^responsib(?:le|ilities)\s+(?:for|included)\b/i,
+  /^worked\s+on\b/i,
+  /^helped\s+(?:with|to)\b/i,
+  /^assisted\s+(?:with|in)\b/i,
+  /^participated\s+in\b/i,
+  /^tasked\s+with\b/i,
+  /^duties\s+included\b/i,
+  /^was\s+responsible\s+for\b/i,
+];
+
+/**
+ * Finds a deliberately small set of generic openings that can obscure the
+ * contribution in an otherwise truthful bullet. This is a prompt to clarify
+ * wording, never a claim that the described work is weak or inaccurate.
+ */
+export function summarizeBulletOpenings(details: string): BulletOpeningSummary {
+  const bullets = bulletsFrom(details);
+
+  return {
+    bulletCount: bullets.length,
+    vagueOpeningIndexes: bullets
+      .map((bullet, index) => (VAGUE_BULLET_OPENINGS.some((pattern) => pattern.test(bullet.trim())) ? index : -1))
+      .filter((index) => index >= 0),
   };
 }
 

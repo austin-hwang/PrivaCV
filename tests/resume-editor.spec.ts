@@ -838,6 +838,17 @@ test("shows an in-context evidence cue for the bullets being edited", async ({ p
   await expect(page.getByText("Review bullet 2. Add a truthful scale or outcome where you know it; not every bullet needs a number.")).toBeVisible();
 });
 
+test("gently prompts for specific action openings while preserving truthful bullet writing", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await page.locator("#field-experience-0-details").fill("Responsible for release planning.\nBuilt a deployment workflow for 3 teams.\nWorked on incident response.");
+
+  await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Starting with what you did can make the contribution easier to scan; keep the wording truthful.")).toBeVisible();
+});
+
 test("suggests exact role phrases for a local wording review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -12,6 +12,7 @@ import {
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
+  summarizeBulletOpenings,
   summarizeEvidence,
   RESUME_TEMPLATES,
 } from "@/lib/resume";
@@ -591,6 +592,15 @@ describe("resume helpers", () => {
       bulletCount: 3,
       measuredCount: 2,
       unmeasuredIndexes: [1],
+    });
+  });
+
+  it("flags only clearly vague bullet openings without judging the achievement", () => {
+    expect(
+      summarizeBulletOpenings("Responsible for release planning.\nWorked on a migration for 3 teams.\nBuilt a new billing flow.\nAssisted in customer interviews."),
+    ).toEqual({
+      bulletCount: 4,
+      vagueOpeningIndexes: [0, 1, 3],
     });
   });
 

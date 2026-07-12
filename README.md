@@ -47,7 +47,8 @@ subscriptions, watermarks, or backend storage.
   more pages receive trimming guidance. Each check has an action that jumps to
   the field that needs attention; each
   experience and project entry also identifies bullets that could use more
-  truthful scope or outcome evidence.
+  truthful scope or outcome evidence, plus a few clearly generic openings that
+  could more directly name the work done.
 - Local-only Role Focus review that compares a pasted job description with the
   current resume's wording, surfaces terms from explicit qualifications-style
   sections before repeated general wording, clearly separates terms already
