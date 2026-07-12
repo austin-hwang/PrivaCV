@@ -24,7 +24,9 @@ subscriptions, watermarks, or backend storage.
 - First-run start panel with fast paths for PDF import, pasted resume text,
   saved JSON, or a sample resume. Imported fields retain source context for
   correction, and an accurate import can be deliberately confirmed all at once
-  instead of requiring repetitive per-field clicks.
+  instead of requiring repetitive per-field clicks. Common qualification-style
+  headings and visually decorated PDF headings (for example, `— EXPERIENCE —`)
+  are recognized locally before that review.
 - Public-facing browser metadata, a web-app manifest, custom app icons, and
   graceful route-error recovery; titles and copy accurately describe the
   local-first data model without inventing a hosted domain.

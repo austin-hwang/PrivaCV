@@ -167,6 +167,36 @@ describe("resume helpers", () => {
     expect(detectSection("Technology Stack")).toBe("skills");
   });
 
+  it("recognizes styled and qualification-style headings before parsing content", () => {
+    expect(detectSection("— CAREER HIGHLIGHTS —")).toBe("summary");
+    expect(detectSection("• Professional Roles •")).toBe("experience");
+    expect(detectSection("— SELECTED WORK —")).toBe("projects");
+    expect(detectSection("| Technical Expertise |")).toBe("skills");
+  });
+
+  it("imports content beneath styled headings without treating the decorations as resume text", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "— CAREER HIGHLIGHTS —",
+      "Platform engineer building dependable developer tools.",
+      "",
+      "• PROFESSIONAL ROLES •",
+      "Staff Engineer | Analytical Engines | 2022–Present",
+      "• Built reliable systems.",
+      "",
+      "| TECHNICAL EXPERTISE |",
+      "TypeScript, React, systems design",
+    ].join("\n"));
+
+    expect(state).toMatchObject({
+      summary: "Platform engineer building dependable developer tools.",
+      skills: "TypeScript, React, systems design",
+    });
+    expect(state.experience[0]).toMatchObject({ title: "Staff Engineer", subtitle: "Analytical Engines" });
+  });
+
   it("imports content under common alternate resume section headings", () => {
     const state = importResumeText([
       "Ada Lovelace",

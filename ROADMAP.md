@@ -197,6 +197,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   and shows a compact source excerpt for detected sections. Reassess the remaining parsing gaps,
   particularly uncommon header formats, before expanding output formats or
   tailoring automation.
+- Make conservative import more forgiving of common visual export styles:
+  qualification-style aliases and decorative heading edges (such as em dashes,
+  bullets, or rules around a heading) now resolve before parsing, so ordinary
+  PDF styling does not turn a whole section into unstructured text. Keep the
+  explicit field-by-field review as the safety net; do not infer multi-column
+  reading order or arbitrary title-case headings.
 - Improve local version history just enough to support tailoring: clear labels,
   role context, simple comparisons, undo paths, and readable restore summaries.
 - Keep PDF reconstruction conservative but resilient: tiny baseline differences

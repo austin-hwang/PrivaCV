@@ -117,12 +117,22 @@ const DATE_RANGE_RE = new RegExp(
   "i",
 );
 const SECTION_MAP: Array<[RegExp, keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">]> = [
-  [/^(summary|professional\s+summary|professional\s+overview|executive\s+summary|career\s+summary|profile|professional\s+profile|career\s+profile|about\s+me|about|objective|career\s+objective|summary\s+of\s+qualifications|qualifications\s+(summary|profile))\b/i, "summary"],
-  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+(background|history)|internships?)\b/i, "experience"],
+  [/^(summary|professional\s+summary|professional\s+overview|executive\s+(summary|profile)|career\s+(summary|profile|highlights)|professional\s+(profile|highlights|qualifications)|profile|key\s+qualifications|core\s+qualifications|about\s+me|about|objective|career\s+objective|summary\s+of\s+(qualifications|experience)|qualifications\s+(summary|profile))\b/i, "summary"],
+  [/^(experience|work\s+experience|professional\s+experience|relevant\s+experience|selected\s+experience|career\s+experience|professional\s+roles|employment(\s+(history|experience))?|work\s+history|career\s+history|professional\s+(background|history)|internships?)\b/i, "experience"],
   [/^(education|education\s+(and|&)\s+(training|credentials)|academic\s+background|academics)\b/i, "education"],
-  [/^(projects|personal\s+projects|selected\s+projects|notable\s+projects|academic\s+projects|relevant\s+projects|research\s+projects|project\s+experience|portfolio\s+projects)\b/i, "projects"],
-  [/^(skills|relevant\s+skills|technical\s+skills|professional\s+skills|key\s+skills|core\s+(competencies|skills)|technical\s+proficiencies|computer\s+skills|skills\s*(?:&|and)\s*(?:tools|technologies)|tools\s*(?:&|and)\s*technologies|technology\s+stack|tech\s+stack|technical\s+toolkit|programming\s+languages|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
+  [/^(projects|personal\s+projects|selected\s+(projects|work)|notable\s+projects|academic\s+projects|relevant\s+projects|research\s+projects|project\s+experience|portfolio\s+projects|work\s+samples)\b/i, "projects"],
+  [/^(skills|relevant\s+skills|technical\s+(skills|proficiencies|expertise|toolkit)|professional\s+(skills|competencies)|key\s+(skills|competencies)|skills\s+summary|core\s+(competencies|skills|strengths)|technical\s+areas|computer\s+skills|skills\s*(?:&|and)\s*(?:tools|technologies)|tools\s*(?:&|and)\s*technologies|technology\s+stack|tech\s+stack|programming\s+languages|technologies|areas?\s+of\s+expertise|expertise|competencies)\b/i, "skills"],
 ];
+
+// Some exported PDFs retain purely decorative characters around a section
+// heading (for example, "— EXPERIENCE —" or "• Skills:"). Strip only those
+// characters at the edges, never within the heading, so parsing stays
+// conservative while preserving the content people most often have to retype.
+const HEADING_DECORATION_RE = /^[\s*\u2022\u25cf\u25aa\u25e6|/\\\-\u2013\u2014\u00b7]+|[\s*\u2022\u25cf\u25aa\u25e6|/\\\-\u2013\u2014\u00b7]+$/g;
+
+function normalizedHeadingText(line: string) {
+  return line.replace(HEADING_DECORATION_RE, "").replace(/[:.\s]+$/, "").trim();
+}
 
 type ResumeSection = keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">;
 
@@ -164,7 +174,7 @@ const CUSTOM_SECTION_MAP: Array<[RegExp, string]> = [
  * the omission later in the editor.
  */
 export function detectSpecialtySection(line: string) {
-  const norm = line.replace(/[:.\s]+$/, "").trim();
+  const norm = normalizedHeadingText(line);
   if (norm.length > 40) return null;
   return CUSTOM_SECTION_MAP.find(([re]) => re.test(norm))?.[1] ?? null;
 }
@@ -179,7 +189,7 @@ export function extractPhone(text: string) {
 }
 
 export function detectSection(line: string) {
-  const norm = line.replace(/[:.\s]+$/, "").trim();
+  const norm = normalizedHeadingText(line);
   if (norm.length > 40) return null;
   for (const [re, key] of SECTION_MAP) {
     if (re.test(norm)) return key;
@@ -201,7 +211,7 @@ function sectionHeading(line: string): SectionHeading | null {
   const key = detectSection(headingText);
   if (key) return { key, inlineContent };
 
-  const norm = headingText.replace(/[:.\s]+$/, "").trim();
+  const norm = normalizedHeadingText(headingText);
   if (norm.length > 40) return null;
   const custom = detectSpecialtySection(headingText);
   if (custom) return { key: "custom", title: custom, inlineContent };
