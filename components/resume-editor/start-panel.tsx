@@ -10,6 +10,7 @@ type StartPanelProps = {
   isImporting: boolean;
   storageIssue: boolean;
   onImportPdf: () => void;
+  onImportDocx: () => void;
   onImportText: () => void;
   onLoadSample: () => void;
   onOpenJson: () => void;
@@ -22,6 +23,7 @@ export function StartPanel({
   isImporting,
   storageIssue,
   onImportPdf,
+  onImportDocx,
   onImportText,
   onLoadSample,
   onOpenJson,
@@ -39,7 +41,7 @@ export function StartPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <button
             type="button"
             className="group rounded-lg border-2 border-primary bg-primary p-4 text-left text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -71,6 +73,24 @@ export function StartPanel({
                 <span className="block text-sm font-semibold">{isImporting ? "Importing PDF" : "Import a PDF"}</span>
                 <span className="mt-1 block text-sm leading-snug text-muted-foreground">
                   Best for selectable-text PDFs. Read locally; scanned PDFs need OCR text first.
+                </span>
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="group rounded-lg border bg-background p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            onClick={onImportDocx}
+            disabled={isImporting}
+          >
+            <span className="flex items-start gap-3">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
+                <FileText className="size-4" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">Import a Word file</span>
+                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                  Best for editable .docx resumes. Read locally, then review every field.
                 </span>
               </span>
             </span>

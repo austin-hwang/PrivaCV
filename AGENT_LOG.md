@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-12 — Import editable Word resumes locally
+
+- Market and product review: Rezi and Teal both make uploading an existing
+  resume central to their workflows, while recent job-seeker feedback calls
+  broken parsing and subsequent retyping especially frustrating. This editor
+  already handled pasted text and text-based PDFs conservatively, but an
+  ordinary editable `.docx` file still required manual copying before review.
+- Options considered: keep Word users on copy/paste, add an AI document
+  converter, or extract ordinary Word paragraphs locally and reuse the proven
+  text-import review. The local extraction path won because it removes a common
+  first-use hurdle without uploading a resume, inventing content, or promising
+  a pixel-perfect layout conversion.
+- Implementation: the start panel and More actions menu now offer **Import a
+  Word file**. The browser validates a bounded `.docx` archive, extracts
+  readable document paragraphs, then sends that text through the existing
+  conservative parser and mandatory source-backed review. Clear local errors
+  cover invalid, oversize, or textless documents. Layout, tables, comments, and
+  tracked changes remain explicitly out of scope rather than being silently
+  guessed at.
+- Expected experience improvement: people with a normal editable resume can
+  start from their own work in one step, correct only the fields that need it,
+  and retain the product's local-first privacy and deliberate import review.
+- Verification: `pnpm test` (64 tests), `pnpm lint`, `pnpm typecheck`, the
+  focused Chromium Word-import flow, and `pnpm build` passed. A full 77-test
+  Playwright rerun was attempted, but overlapping local Playwright processes
+  left the shared dev server unavailable and caused unrelated
+  `ERR_CONNECTION_REFUSED` failures; it is not counted as a full-suite pass.
+- Provisional next step: reassess real-world Word documents with tables or
+  uncommon structures against import-review feedback before broadening parser
+  behavior or adding opaque tailoring features.
+
 ## 2026-07-12 — Keep guided review calm and editable
 
 - Market and product review: job seekers report that a broken import is more

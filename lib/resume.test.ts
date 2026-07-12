@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
+import { docxParagraphsFromXml, extractDocxText } from "@/lib/docx-import";
 import {
   applicationCopyGroups,
   buildResumeChecks,
@@ -79,6 +80,33 @@ describe("resume helpers", () => {
     expect(document).toContain("•");
     expect(relationships).toContain("mailto:jane.doe@example.com");
     expect(relationships).toContain("https://linkedin.com/in/janedoe");
+  });
+
+  it("extracts Word paragraphs locally before using the normal resume parser", () => {
+    const state = sampleState();
+    state.title = "Senior Product Engineer";
+    const files = unzipSync(resumeDocx(state));
+    const document = strFromU8(files["word/document.xml"]);
+    const text = extractDocxText(resumeDocx(state).buffer);
+
+    expect(docxParagraphsFromXml(document)).toEqual(expect.arrayContaining([
+      "Jane Doe",
+      "Senior Product Engineer",
+      "EXPERIENCE",
+    ]));
+    expect(text).toContain("Jane Doe");
+    const imported = importResumeText(text);
+    expect(imported).toMatchObject({
+      name: "Jane Doe",
+      title: "Senior Product Engineer",
+    });
+    expect(imported.experience).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: "Senior Software Engineer", subtitle: "Acme Corp - San Francisco, CA" }),
+    ]));
+  });
+
+  it("keeps Word import failures specific when the archive has no document XML", () => {
+    expect(() => extractDocxText(new Uint8Array([80, 75, 3, 4]).buffer)).toThrow(/readable Word/i);
   });
 
   it("creates safe contact links without turning invalid values into links", () => {

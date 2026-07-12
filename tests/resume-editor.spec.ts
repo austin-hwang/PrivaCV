@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { strFromU8, unzipSync } from "fflate";
+import { resumeDocx } from "@/lib/docx-export";
+import { sampleState } from "@/lib/resume";
 
 async function openMenu(page: Page) {
   await page.getByRole("button", { name: /^more actions$/i }).click();
@@ -249,6 +251,24 @@ test("imports a PDF with parser code served from the app", async ({ page }) => {
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByText("Imported PDF - please review")).toBeVisible();
   expect(thirdPartyRequests).toEqual([]);
+});
+
+test("imports an editable Word resume locally and keeps its review deliberate", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
+    name: "jane-resume.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: Buffer.from(resumeDocx(sampleState())),
+  });
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByText("Imported Word document - please review")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /review the imported fields/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /start walkthrough/i })).toBeVisible();
 });
 
 test("loads the sample resume and reviews plain text", async ({ page }) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { importResumeDocxWithSource } from "@/lib/docx-import";
 import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
 import { resumeDocxBlob } from "@/lib/docx-export";
 import { buildRoleFocus } from "@/lib/job-match";
@@ -151,6 +152,7 @@ export function useResumeEditor() {
   const [storageIssue, setStorageIssue] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
   const [externalDraft, setExternalDraft] = useState<ResumeState | null>(null);
+  const docxInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
@@ -1045,6 +1047,26 @@ export function useResumeEditor() {
     }
   };
 
+  const openDocx = async (file: File | undefined) => {
+    if (!file) return;
+    const previousState = state;
+    const previousImportReview = importReview;
+    setIsImporting(true);
+    try {
+      const imported = await importResumeDocxWithSource(file);
+      saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
+      setState(imported.state);
+      setImportReview(buildImportReview(imported.state, file.name, imported.sourceText));
+      setRestoredVersionSummary(null);
+      setDraftSourceVersionId(null);
+      flash("Imported Word document - please review");
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "Could not import this Word document");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const openTextImport = (text: string) => {
     try {
       const imported = importResumeTextWithSource(text);
@@ -1190,6 +1212,7 @@ export function useResumeEditor() {
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
+    docxInputRef,
     deleteVersion,
     downloadDocx,
     downloadPlainText,
@@ -1225,6 +1248,7 @@ export function useResumeEditor() {
     moveEntry,
     moveSection,
     openJson,
+    openDocx,
     openPdf,
     openTextImport,
     openVersionHistoryBackup,

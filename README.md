@@ -21,7 +21,7 @@ subscriptions, watermarks, or backend storage.
   for import checklists, checks, role focus, and versions; imported resumes keep
   a compact next-field prompt above the form so editing stays within reach on a
   narrow screen.
-- First-run start panel with fast paths for PDF import, pasted resume text,
+- First-run start panel with fast paths for Word and PDF import, pasted resume text,
   saved JSON, or a sample resume. Imported fields retain source context for
   correction, and an accurate import can be deliberately confirmed all at once
   instead of requiring repetitive per-field clicks. Common qualification-style
@@ -98,7 +98,7 @@ subscriptions, watermarks, or backend storage.
   copy an individual contact detail, summary, role, employer, dates, achievement
   list, education entry, project, skills section, or custom-section entry without
   retyping. It mirrors the current resume and stays entirely in the browser.
-- Best-effort PDF import for text-based resumes through a locally bundled,
+- Best-effort Word import for editable `.docx` resumes and PDF import for text-based resumes through a locally bundled,
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The
   importer recognizes common alternate section headings such as Career Profile,
@@ -207,6 +207,14 @@ Notes:
 - PDF import loads its parser and worker from this app on demand. Your selected
   PDF and its extracted text stay in the browser; importing does not send the
   document to a third party.
+
+## Importing a Word document
+
+Click **Import a Word file** and choose an editable `.docx` resume. The app
+reads ordinary paragraph text locally, then uses the same conservative parser
+and required review used for pasted text and PDFs. Visual layout, tables,
+comments, and tracked changes are not reconstructed; use this route for the
+resume text you want to edit, not as a pixel-perfect Word converter.
 
 ## Importing pasted text
 

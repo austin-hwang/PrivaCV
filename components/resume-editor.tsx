@@ -120,6 +120,7 @@ export function ResumeEditor() {
     checks,
     clearResume,
     dismissRecoveryPoint,
+    docxInputRef,
     exportCheckpoint,
     externalDraft,
     exportIsCurrent,
@@ -136,6 +137,7 @@ export function ResumeEditor() {
     loadSample,
     moveEntry,
     moveSection,
+    openDocx,
     pageCount,
     pageGuides,
     printBreaks,
@@ -462,6 +464,9 @@ export function ResumeEditor() {
                 <MenuItem onSelect={() => pdfInputRef.current?.click()} disabled={isImporting}>
                   <Upload /> {isImporting ? "Importing" : "Import PDF"}
                 </MenuItem>
+                <MenuItem onSelect={() => docxInputRef.current?.click()} disabled={isImporting}>
+                  <FileText /> {isImporting ? "Importing" : "Import Word (.docx)"}
+                </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
                 <MenuItem onSelect={() => setApplicationCopyOpen(true)} disabled={!hasContent}>
@@ -542,6 +547,7 @@ export function ResumeEditor() {
             <StartPanel
               isImporting={isImporting}
               storageIssue={storageIssue}
+              onImportDocx={() => docxInputRef.current?.click()}
               onImportPdf={() => pdfInputRef.current?.click()}
               onImportText={() => setTextImportOpen(true)}
               onLoadSample={loadSample}

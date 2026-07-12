@@ -54,6 +54,7 @@ export function ResumeEditorOverlays({
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
+    docxInputRef,
     copyApplicationField,
     downloadDocx,
     downloadPlainText,
@@ -72,6 +73,7 @@ export function ResumeEditorOverlays({
     jsonInputRef,
     mergedHistoryBackup,
     openJson,
+    openDocx,
     openPdf,
     openTextImport,
     openVersionHistoryBackup,
@@ -604,6 +606,16 @@ export function ResumeEditorOverlays({
         </DialogContent>
       </Dialog>
 
+      <input
+        ref={docxInputRef}
+        type="file"
+        accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+        hidden
+        onChange={(event) => {
+          void openDocx(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
       <input
         ref={pdfInputRef}
         type="file"
