@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
 import { sampleState } from "@/lib/resume";
 
@@ -41,6 +41,23 @@ function makeTextPdf(text: string) {
   pdf += offsets.map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
   return Buffer.from(pdf, "ascii");
+}
+
+function makeDocxWithLabelOnlyLink() {
+  const document = [
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>',
+    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdLinkedIn"><w:r><w:t>LinkedIn</w:t></w:r></w:hyperlink></w:p>',
+    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
+    '</w:body></w:document>',
+  ].join("");
+  const relationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdLinkedIn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://www.linkedin.com/in/ada" TargetMode="External"/></Relationships>';
+  return Buffer.from(zipSync({
+    "word/document.xml": strToU8(document),
+    "word/_rels/document.xml.rels": strToU8(relationships),
+  }));
 }
 
 test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
@@ -272,6 +289,22 @@ test("imports an editable Word resume locally and keeps its review deliberate", 
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
   await expect(page.getByRole("heading", { name: /review the imported fields/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /start walkthrough/i })).toBeVisible();
+});
+
+test("recovers a label-only external contact link from a Word resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
+    name: "ada-resume.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: makeDocxWithLabelOnlyLink(),
+  });
+
+  await expect(page.getByLabel("Website")).toHaveValue("https://www.linkedin.com/in/ada");
+  await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 
 test("loads the sample resume and reviews plain text", async ({ page }) => {

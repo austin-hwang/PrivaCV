@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
-import { docxParagraphsFromXml, extractDocxText } from "@/lib/docx-import";
+import { docxHyperlinkTargetsFromXml, docxParagraphsFromXml, extractDocxText } from "@/lib/docx-import";
 import {
   applicationCopyGroups,
   buildResumeChecks,
@@ -103,6 +103,44 @@ describe("resume helpers", () => {
     expect(imported.experience).toEqual(expect.arrayContaining([
       expect.objectContaining({ title: "Senior Software Engineer", subtitle: "Acme Corp - San Francisco, CA" }),
     ]));
+  });
+
+  it("keeps simple Word table cell text in document order", () => {
+    const document = '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>ada@example.com</w:t></w:r></w:p></w:tc></w:tr></w:tbl>';
+
+    expect(docxParagraphsFromXml(document)).toEqual(["Ada Lovelace", "ada@example.com"]);
+  });
+
+  it("recovers label-only external Word contact links without duplicating visible URLs", () => {
+    const document = [
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>',
+      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdLinkedIn"><w:r><w:t>LinkedIn</w:t></w:r></w:hyperlink></w:p>',
+      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
+      '</w:body></w:document>',
+    ].join("");
+    const relationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdLinkedIn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://www.linkedin.com/in/ada?trk=resume&amp;source=word" TargetMode="External"/><Relationship Id="rIdUnsafe" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="javascript:alert(1)" TargetMode="External"/></Relationships>';
+    const archive = zipSync({
+      "word/document.xml": strToU8(document),
+      "word/_rels/document.xml.rels": strToU8(relationships),
+    });
+
+    expect(docxHyperlinkTargetsFromXml(relationships)).toEqual(new Map([
+      ["rIdLinkedIn", "https://www.linkedin.com/in/ada?trk=resume&source=word"],
+    ]));
+    expect(docxParagraphsFromXml(document, docxHyperlinkTargetsFromXml(relationships))).toContain(
+      "ada@example.com | LinkedIn — https://www.linkedin.com/in/ada?trk=resume&source=word",
+    );
+
+    const imported = importResumeText(extractDocxText(archive.buffer));
+    expect(imported).toMatchObject({
+      name: "Ada Lovelace",
+      title: "Platform Engineer",
+      email: "ada@example.com",
+      website: "https://www.linkedin.com/in/ada?trk=resume&source=word",
+    });
   });
 
   it("keeps Word import failures specific when the archive has no document XML", () => {

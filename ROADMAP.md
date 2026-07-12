@@ -57,11 +57,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   guessed; each experience entry now has a reversible one-click title/company
   swap.
 - Make it easier to reuse an editable resume before asking anyone to retype it:
-  `.docx` import now reads ordinary Word paragraphs entirely in the browser and
-  feeds the same conservative parser and explicit review used by pasted text
-  and PDFs. It intentionally does not claim to recreate Word layout, tables,
-  comments, or tracked changes; reassess uncommon Word structures only after
-  real import review shows a gap.
+  `.docx` import now reads ordinary Word paragraphs—including simple table-cell
+  text—entirely in the browser, preserves safe external contact-link targets
+  when Word displays only a label, and feeds the same conservative parser and
+  explicit review used by pasted text and PDFs. It intentionally does not claim
+  to recreate Word layout, table structure, comments, or tracked changes;
+  reassess uncommon Word structures only after real import review shows a gap.
 - Keep the editor dense but calm, with immediate preview feedback.
 - Keep page-fit decisions intentional and reversible: when a preview crosses a
   page boundary, a small local helper can try compact spacing and then modest

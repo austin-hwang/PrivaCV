@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-12 — Preserve hidden Word contact links locally
+
+- Market and product review: Teal and Rezi both treat importing an existing
+  resume as a primary starting path, and their own guidance still tells people
+  to inspect imported fields because document formatting varies. The local Word
+  route already retained normal paragraph text, but a common Word convention—
+  displaying “LinkedIn” while storing its destination in a relationship—left
+  a useful contact field blank even though the information was in the selected
+  document.
+- Options considered: leave the link for manual entry, add broad Word-layout
+  reconstruction, or recover only safe external hyperlink targets and keep the
+  existing source-backed review. The narrow recovery won because it removes a
+  high-value retyping step without making layout guesses, uploading data, or
+  trusting unsafe link schemes.
+- Implementation: Word import now reads external `http(s)`, `mailto:`, and
+  `tel:` hyperlink targets from the document relationship file when a visible
+  hyperlink label does not already show its destination. Those local targets
+  are fed through the existing conservative text parser; unsafe schemes are
+  ignored. The importer continues to keep simple table-cell text in document
+  order but does not claim to reconstruct table layout. README and roadmap now
+  state those boundaries.
+- Expected experience improvement: a person can import a normal Word resume
+  with a label-only LinkedIn or portfolio link and find the editable Website
+  field already filled, then verify it in the familiar mandatory review rather
+  than looking up and retyping the address.
+- Verification: `pnpm test` (66 tests), `pnpm typecheck`, `pnpm lint`, and
+  `pnpm build` passed. A focused Chromium flow imported a generated label-only
+  LinkedIn link and confirmed the Website field plus import-review state.
+- Provisional next step: reassess real-world Word documents that use fields,
+  text boxes, or complex tables before extending extraction beyond document
+  order and explicit safe links.
+
 ## 2026-07-12 — Import editable Word resumes locally
 
 - Market and product review: Rezi and Teal both make uploading an existing

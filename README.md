@@ -211,8 +211,10 @@ Notes:
 ## Importing a Word document
 
 Click **Import a Word file** and choose an editable `.docx` resume. The app
-reads ordinary paragraph text locally, then uses the same conservative parser
-and required review used for pasted text and PDFs. Visual layout, tables,
+reads ordinary paragraph text locally (including text in simple table cells)
+and recovers safe external contact-link destinations when Word displays only a
+label such as “LinkedIn.” It then uses the same conservative parser and
+required review used for pasted text and PDFs. Visual layout, table structure,
 comments, and tracked changes are not reconstructed; use this route for the
 resume text you want to edit, not as a pixel-perfect Word converter.
 
