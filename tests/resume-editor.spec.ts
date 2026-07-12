@@ -556,6 +556,28 @@ test("keeps a summary optional when the resume already has experience detail", a
   await expect(page.getByText("Missing summary")).toBeHidden();
 });
 
+test("keeps the whole page from scrolling away during import review", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation\nB.S. Mathematics | Cambridge | 2018",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expect(page.getByText("Import review")).toBeVisible();
+
+  // The editor pane scrolls internally; the document itself must stay pinned to
+  // the viewport. A regression here let absolutely-positioned children escape
+  // the pane's overflow and stretch the page into blank space.
+  const pageOverflow = await page.evaluate(
+    () => document.documentElement.scrollHeight - document.documentElement.clientHeight,
+  );
+  expect(pageOverflow).toBeLessThanOrEqual(2);
+});
+
 test("imports a pasted resume locally and keeps confirmation deliberate without repetitive clicks", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -1900,7 +1922,7 @@ test("reviews role language locally without presenting an ATS score", async ({ p
     "Build TypeScript services for product teams. Partner with platform teams to improve TypeScript reliability.",
   );
 
-  await expect(page.getByText(/selected terms already used/i)).toBeVisible();
+  await expect(page.getByText(/selected terms appear/i)).toBeVisible();
   await expect(page.getByText("typescript", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("partner", { exact: true })).toBeVisible();
   await expect(page.getByText("This is a wording review, not an ATS score.")).toBeVisible();

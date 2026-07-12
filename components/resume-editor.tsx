@@ -461,7 +461,7 @@ export function ResumeEditor() {
             if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
           }}
           className={cn(
-            "editor-pane overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:px-6 lg:pb-6 lg:pt-0",
+            "editor-pane relative overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:px-6 lg:pb-6 lg:pt-0",
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
           )}
         >
@@ -779,6 +779,7 @@ export function ResumeEditor() {
                             key={accent.id}
                             type="button"
                             aria-pressed={selected}
+                            aria-label={accent.label}
                             title={accent.label}
                             onClick={() => updateTheme({ accent: accent.value })}
                             className={cn(
@@ -786,9 +787,7 @@ export function ResumeEditor() {
                               selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
                             )}
                             style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
-                          >
-                            <span className="sr-only">{accent.label}</span>
-                          </button>
+                          />
                         );
                       })}
                       <label className="ml-1 inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
