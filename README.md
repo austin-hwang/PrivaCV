@@ -11,7 +11,9 @@ subscriptions, watermarks, or backend storage.
   shadcn/ui-style components.
 - Live two-pane editor with a true Letter-size printable resume preview;
   screen-only page-boundary guides identify the content that comes next on
-  each additional PDF page before export, while print rules keep headings and
+  each additional PDF page before export. When browser print keeps a role
+  intact and moves it to a fresh page, the preview reserves that same space so
+  its page count matches the exported PDF; print rules also keep headings and
   individual bullets together when space allows.
 - Valid email, phone, and website details remain clickable in the preview and browser-produced PDF, while malformed values stay as plain text for correction.
 - Focused mobile editor and preview views that keep the printed Letter layout

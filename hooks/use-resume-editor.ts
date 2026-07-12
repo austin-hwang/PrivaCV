@@ -118,6 +118,7 @@ export function useResumeEditor() {
   const [loaded, setLoaded] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [pageGuides, setPageGuides] = useState<Array<{ page: number; label?: string }>>([]);
+  const [printBreaks, setPrintBreaks] = useState<Array<{ targetId: string; spacer: number }>>([]);
   const [oversizedEntry, setOversizedEntry] = useState<OversizedResumeEntry | null>(null);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
@@ -499,12 +500,75 @@ export function useResumeEditor() {
       setOversizedEntry((current) =>
         current?.section === next?.section && current?.index === next?.index ? current : next,
       );
+
+      // Browser print engines keep role entries intact. When an otherwise
+      // printable entry would straddle a Letter boundary, Chromium moves it to
+      // the next page. Reserve that same space in the live sheet, so the
+      // visible page count and page guides describe the PDF a person will save.
+      const existingBreaks = new Map(printBreaks.map((item) => [item.targetId, item.spacer]));
+      const printableUnits: Array<{ targetId: string; element: HTMLElement; end: number }> = [];
+      Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-print-section]")).forEach((section) => {
+        const sectionId = section.dataset.resumePrintSection;
+        if (!sectionId) return;
+        const entries = Array.from(section.querySelectorAll<HTMLElement>("[data-resume-print-entry]"));
+        if (!entries.length) return;
+
+        const startsWithHeading = section.dataset.resumeSectionHasHeading === "true";
+        const firstEntry = entries[0];
+        if (startsWithHeading) {
+          printableUnits.push({
+            targetId: `section:${sectionId}`,
+            element: section,
+            end: firstEntry.offsetTop + firstEntry.offsetHeight,
+          });
+        } else {
+          printableUnits.push({
+            targetId: `entry:${firstEntry.dataset.resumePrintEntry}`,
+            element: firstEntry,
+            end: firstEntry.offsetTop + firstEntry.offsetHeight,
+          });
+        }
+
+        entries.slice(1).forEach((entry) => {
+          printableUnits.push({
+            targetId: `entry:${entry.dataset.resumePrintEntry}`,
+            element: entry,
+            end: entry.offsetTop + entry.offsetHeight,
+          });
+        });
+      });
+
+      const desiredBreaks: Array<{ targetId: string; spacer: number }> = [];
+      let existingSpacerBeforeUnit = 0;
+      let simulatedSpacer = 0;
+      printableUnits.forEach((unit) => {
+        const existingSpacerAtUnit = existingBreaks.get(unit.targetId) ?? 0;
+        const baseStart = unit.element.offsetTop - existingSpacerBeforeUnit;
+        const baseEnd = unit.end - existingSpacerBeforeUnit - existingSpacerAtUnit;
+        const start = baseStart + simulatedSpacer;
+        const end = baseEnd + simulatedSpacer;
+        const currentPage = Math.max(0, Math.floor(start / pageHeightPx));
+        const pageContentEnd = (currentPage + 1) * pageHeightPx - Number.parseFloat(sheetStyle.paddingBottom);
+        if (end > pageContentEnd + roundingTolerancePx) {
+          const spacer = (currentPage + 1) * pageHeightPx + Number.parseFloat(sheetStyle.paddingTop) - start;
+          desiredBreaks.push({ targetId: unit.targetId, spacer });
+          simulatedSpacer += spacer;
+        }
+        existingSpacerBeforeUnit += existingSpacerAtUnit;
+      });
+      setPrintBreaks((current) =>
+        current.length === desiredBreaks.length && current.every((item, index) =>
+          item.targetId === desiredBreaks[index].targetId && Math.abs(item.spacer - desiredBreaks[index].spacer) < 0.5,
+        )
+          ? current
+          : desiredBreaks,
+      );
     };
     measure();
     document.fonts?.ready.then(measure).catch(() => undefined);
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [state]);
+  }, [printBreaks, state]);
 
   const updateField = <K extends keyof ResumeState>(key: K, value: ResumeState[K]) => {
     setState((current) => ({ ...current, [key]: value }));
@@ -1061,6 +1125,7 @@ export function useResumeEditor() {
     openVersionSave,
     pageCount,
     pageGuides,
+    printBreaks,
     passedChecks,
     pdfInputRef,
     plainText,

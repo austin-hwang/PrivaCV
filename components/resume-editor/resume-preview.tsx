@@ -16,9 +16,19 @@ type ResumePreviewProps = {
   state: ResumeState;
   pageCount?: number;
   pageGuides?: Array<{ page: number; label?: string }>;
+  printBreaks?: Array<{ targetId: string; spacer: number }>;
   activeTarget?: string | null;
   onTargetSelect?: (targetId: string) => void;
 };
+
+function printBreakStyle(targetId: string, printBreaks: ResumePreviewProps["printBreaks"]) {
+  const spacer = printBreaks?.find((item) => item.targetId === targetId)?.spacer;
+  return spacer ? { "--resume-print-break-space": `${spacer}px` } as CSSProperties : undefined;
+}
+
+function hasPrintBreak(targetId: string, printBreaks: ResumePreviewProps["printBreaks"]) {
+  return Boolean(printBreaks?.some((item) => item.targetId === targetId));
+}
 
 function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string) => void) {
   return {
@@ -34,7 +44,7 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, pageCount = 1, pageGuides = [], activeTarget, onTargetSelect },
+  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect },
   ref,
 ) {
   const hasContent = hasAnyContent(state);
@@ -56,7 +66,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
       data-divider={state.theme.headerDivider ? "on" : "off"}
       data-density={state.theme.density}
     >
-      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
+      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
       {pageBreaks.map(({ page, label }) => (
         <div
           key={page}
@@ -102,7 +112,7 @@ function EmptyResumePreview() {
   );
 }
 
-function FilledResumePreview({ state, activeTarget, onTargetSelect }: ResumePreviewProps) {
+function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect }: ResumePreviewProps) {
   const contactParts = [
     ["email", state.email],
     ["phone", state.phone],
@@ -129,7 +139,7 @@ function FilledResumePreview({ state, activeTarget, onTargetSelect }: ResumePrev
       ) : null}
       {state.summary ? <p className={cn("resume-lead resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")} data-resume-guide-label="Summary" {...previewTargetProps("field-summary", onTargetSelect)}>{state.summary}</p> : null}
       {state.sectionOrder.map((section) => (
-        <ResumeSection key={section} state={state} section={section} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />
+        <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />
       ))}
     </>
   );
@@ -169,20 +179,27 @@ function ContactPart({
   );
 }
 
-function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumePreviewProps & { section: string }) {
+function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSelect }: ResumePreviewProps & { section: string }) {
   const sectionActive =
     activeTarget === `section-title-${section}` ||
     activeTarget === `field-${section}` ||
     activeTarget?.startsWith(`field-${section}-`);
   const title = getSectionTitle(state, section).trim();
   if (section === "skills") {
+    const printBreakTarget = `section:${section}`;
     const lines = state.skills
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
     if (!lines.length) return null;
     return (
-      <section className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active")} data-resume-guide-label={title ? `${title} · Skills` : "Skills"} {...previewTargetProps("field-skills", onTargetSelect)}>
+      <section
+        className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+        data-resume-guide-label={title ? `${title} · Skills` : "Skills"}
+        data-resume-print-section={section}
+        style={printBreakStyle(printBreakTarget, printBreaks)}
+        {...previewTargetProps("field-skills", onTargetSelect)}
+      >
         {title ? <h2 className="resume-section-title">{title}</h2> : null}
         <div>
           {lines.map((line) => {
@@ -209,18 +226,27 @@ function ResumeSection({ state, section, activeTarget, onTargetSelect }: ResumeP
     .filter(({ entry }) => entryHasContent(entry));
   if (!entries.length) return null;
 
+  const printBreakTarget = `section:${section}`;
+
   return (
-    <section className={cn("resume-section", sectionActive && "resume-preview-section-active")}>
+    <section
+      className={cn("resume-section", sectionActive && "resume-preview-section-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+      data-resume-print-section={section}
+      data-resume-section-has-heading={title ? "true" : "false"}
+      style={printBreakStyle(printBreakTarget, printBreaks)}
+    >
       {title ? (
         <h2 className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")} data-resume-guide-label={title} {...previewTargetProps(`section-title-${section}`, onTargetSelect)}>{title}</h2>
       ) : null}
       {entries.map(({ entry, originalIndex }) => (
         <div
-          className={cn("resume-entry resume-preview-target", activeTarget?.startsWith(`field-${section}-${originalIndex}-`) && "resume-preview-active")}
+          className={cn("resume-entry resume-preview-target", activeTarget?.startsWith(`field-${section}-${originalIndex}-`) && "resume-preview-active", hasPrintBreak(`entry:${section}:${originalIndex}`, printBreaks) && "resume-print-break-before")}
           key={`${entry.title}-${entry.subtitle}-${originalIndex}`}
           data-resume-entry-section={section}
           data-resume-entry-index={originalIndex}
+          data-resume-print-entry={`${section}:${originalIndex}`}
           data-resume-guide-label={[title, entry.title || entry.subtitle || `Entry ${originalIndex + 1}`].filter(Boolean).join(" · ")}
+          style={printBreakStyle(`entry:${section}:${originalIndex}`, printBreaks)}
           {...previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect)}
         >
           <div className="resume-entry-head">

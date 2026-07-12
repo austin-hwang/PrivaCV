@@ -129,6 +129,13 @@
   padding: 3px 7px;
 }
 
+/* The live preview reserves the same whitespace that browser print uses when
+   it moves a complete role to the next Letter page. Padding avoids collapsed
+   margins and leaves the visible page guides aligned with the exported PDF. */
+.resume-print-break-before {
+  padding-top: var(--resume-print-break-space, 0);
+}
+
 .resume-preview-sheet-frame {
   width: var(--resume-preview-frame-width, 8.5in);
   height: var(--resume-preview-frame-height, auto);
@@ -378,6 +385,11 @@
 
   .resume-entry {
     break-inside: avoid;
+  }
+
+  .resume-print-break-before {
+    padding-top: 0 !important;
+    break-before: page;
   }
 
   .resume-section-title {

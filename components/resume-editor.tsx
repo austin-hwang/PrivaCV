@@ -137,6 +137,7 @@ export function ResumeEditor() {
     moveSection,
     pageCount,
     pageGuides,
+    printBreaks,
     passedChecks,
     pdfInputRef,
     recoveryPoint,
@@ -1168,6 +1169,7 @@ export function ResumeEditor() {
                 state={state}
                 pageCount={pageCount}
                 pageGuides={pageGuides}
+                printBreaks={printBreaks}
                 ref={resumeRef}
                 activeTarget={activeTarget}
                 onTargetSelect={focusEditorTarget}
