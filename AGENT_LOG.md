@@ -1,5 +1,34 @@
 # Agent Log
 
+## 2026-07-12 — Remove repetitive clicks from clean import review
+
+- Market and product review: Teal and Rezi make resume import a primary start
+  path and both advise reviewing every imported section; recent user feedback
+  still identifies misplaced import content as a trust-breaking problem. In
+  PrivaCV, the safety checklist already supported a single deliberate
+  whole-draft acknowledgment, but the visible interface only exposed
+  per-field confirmations. A long, clean import therefore required needless
+  repetitive clicking after the person had inspected it.
+- Options considered: weaken the import checkpoint, add more parser guesses,
+  or surface the existing whole-draft confirmation beside the walkthrough. The
+  explicit acknowledgement won because it removes routine friction while
+  retaining field-level edits, source excerpts, the export reminder, and a
+  conscious decision by the person reviewing their own facts.
+- Implementation: added an **I reviewed all imported fields** action to the
+  import-review banner. It marks the existing checklist complete only after a
+  person chooses it, enables the separate **Finish review** action, and stays
+  unavailable once all fields are already confirmed.
+- Expected experience improvement: people with a clean, longer resume can
+  inspect it in the editor and close the review in two deliberate actions
+  instead of repeating the same confirmation for every field; uncertain or
+  incorrect fields still have the guided, source-backed correction path.
+- Verification: `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests),
+  `CI=true PLAYWRIGHT_PORT=4218 pnpm test:e2e` (84 Chromium tests),
+  `CI=true pnpm build`, and `git diff --check` passed.
+- Provisional next step: reassess actual import-review behavior across browser
+  tabs and uncommon document structures before expanding parser heuristics or
+  tailoring automation.
+
 ## 2026-07-13 — Keep import review intact across refreshes
 
 - Market and product review: Teal and Rezi both present import as a primary

@@ -872,6 +872,27 @@ test("keeps an unfinished import review after a browser refresh", async ({ page 
   await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
 });
 
+test("lets someone deliberately confirm a clean imported draft without repetitive clicks", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nada@example.com\n\nExperience\nPlatform Engineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  const banner = page.locator("#import-review-panel");
+  const confirmAll = banner.getByRole("button", { name: /i reviewed all imported fields/i });
+  await expect(confirmAll).toBeEnabled();
+  await confirmAll.click();
+  await expect(banner.getByText("2/2")).toBeVisible();
+  await expect(confirmAll).toBeDisabled();
+  await expect(banner.getByRole("button", { name: /finish review/i })).toBeEnabled();
+});
+
 test("imports common alternate section headings without losing resume content", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

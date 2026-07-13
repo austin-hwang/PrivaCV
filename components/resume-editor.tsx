@@ -167,6 +167,7 @@ export function ResumeEditor() {
     useExternalDraft,
     toggleImportReviewItem,
     completeImportReview,
+    confirmAllImportReviewItems,
     dismissRestoredVersionSummary,
     versionHistory,
     visibleRestoredVersionSummary,
@@ -640,6 +641,15 @@ export function ResumeEditor() {
               <CardContent className="flex flex-wrap items-center gap-2">
                 <Button type="button" size="sm" onClick={() => startImportTour()}>
                   <ArrowRight /> {(importReviewStatus?.reviewedCount ?? 0) > 0 ? "Continue walkthrough" : "Start walkthrough"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={confirmAllImportReviewItems}
+                  disabled={importReviewStatus?.isComplete}
+                >
+                  <Check /> I reviewed all imported fields
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={completeImportReview} disabled={!importReviewStatus?.isComplete}>
                   <Check /> Finish review

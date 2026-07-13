@@ -24,6 +24,7 @@ subscriptions, watermarks, or backend storage.
 - First-run start panel with fast paths for Word and PDF import, pasted resume text,
   saved JSON, or a sample resume. Imported fields retain source context for
   correction, and an accurate import can be deliberately confirmed all at once
+  from the import-review banner
   instead of requiring repetitive per-field clicks. Common qualification-style
   headings and visually decorated PDF headings (for example, `— EXPERIENCE —`)
   are recognized locally before that review.
