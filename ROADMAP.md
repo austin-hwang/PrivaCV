@@ -138,7 +138,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make saved drafts quick to scan, compare, restore, or undo when users are
   deciding which tailored version to continue.
 - Keep role-focus context attached to the right saved draft without making
-  version management dominate the editor.
+  version management dominate the editor. A private role label now also makes
+  intentional PDF, Word, plain-text, and JSON export filenames distinct, so
+  tailored attachments are less likely to be mixed up without changing resume
+  content; reassess application-specific naming only if users need a separate
+  filename from their saved role label.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
   still feels reviewable.
 - Keep refining mobile and narrow-window editing without compromising the print

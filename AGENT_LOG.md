@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-13 — Distinct filenames for tailored applications
+
+- Market and product review: Teal and similar builders center the repeated
+  master-resume-to-job-specific-draft workflow. PrivaCV already stored an
+  optional private role label locally, but every PDF, Word, plain-text, and
+  JSON export still used only the candidate's name. A job seeker tailoring
+  several applications could therefore attach the wrong otherwise-identical
+  download.
+- Options considered: add application tracking, add more role-matching
+  heuristics, or make the existing role context useful at the export handoff.
+  Role-aware filenames won because it prevents a real application mistake with
+  no account, new data collection, or added workflow.
+- Implementation: PDF print-title suggestions and downloaded Word, plain-text,
+  and JSON filenames now append a sanitized private role label when present.
+  The label remains absent from the resume markup, preview, and PDF page.
+- Expected experience improvement: tailored files are recognizable in the
+  downloads folder and upload dialog, while a resume's visible content remains
+  clean and role-neutral where intended.
+- Verification: `pnpm typecheck`, `pnpm lint`, and `pnpm test` (73 tests)
+  passed. The complete `pnpm test:e2e` suite began successfully (83 Chromium
+  tests; its output channel stopped after reporting 19 passing tests), and the
+  new focused Chromium scenario passed. `NEXT_DIST_DIR=.next-codex-build pnpm
+  build` and `git diff --check` passed.
+- Provisional next step: reassess whether export checkpoint guidance or
+  import-quality recovery is the bigger remaining source of application risk.
+
 ## 2026-07-13 — Restore deliberate role-tailoring checkpoints
 
 - Market and product review: Rezi and Teal position imported resumes and

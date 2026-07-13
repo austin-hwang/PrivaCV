@@ -581,6 +581,41 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
   await expect(page).toHaveTitle("PrivaCV — private, ATS-friendly resumes");
 });
 
+test("adds the private role label to tailored download names without changing resume content", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  await drawer.getByLabel(/private role label/i).fill("Acme — Platform Engineer");
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /review text/i }).click();
+  const textReview = page.getByRole("dialog", { name: /review before copying/i });
+  await expect(textReview).toContainText("Jane Doe");
+
+  const textDownload = page.waitForEvent("download");
+  await textReview.getByRole("button", { name: /download \.txt/i }).click();
+  await expect((await textDownload).suggestedFilename()).toBe("Jane_Doe_Acme_Platform_Engineer.txt");
+
+  const wordDownload = page.waitForEvent("download");
+  await textReview.getByRole("button", { name: /download \.docx/i }).click();
+  await expect((await wordDownload).suggestedFilename()).toBe("Jane_Doe_Acme_Platform_Engineer.docx");
+
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => {
+    window.print = () => {
+      document.documentElement.dataset.printTitle = document.title;
+      window.dispatchEvent(new Event("afterprint"));
+    };
+  });
+  await page.getByRole("button", { name: /^export pdf$/i }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-print-title", "Jane_Doe_Acme_Platform_Engineer_Resume");
+  await expect(page.locator(".resume-name").first()).toHaveText("Jane Doe");
+});
+
 test("flags a single resume entry that would continue onto another printed page", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

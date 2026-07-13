@@ -90,7 +90,7 @@ export function RoleFocusCard({
             aria-describedby="role-label-help"
           />
           <span id="role-label-help" className="font-normal leading-snug">
-            Helps identify saved drafts. It never appears in your resume or PDF.
+            Helps identify saved drafts and downloads. It never appears in your resume content or on the PDF page.
           </span>
         </label>
         <Textarea

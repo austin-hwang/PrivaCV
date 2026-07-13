@@ -90,8 +90,10 @@ subscriptions, watermarks, or backend storage.
 - Local version history for naming, annotating, comparing, and restoring a few
   browser-only checkpoints while tailoring a resume for different applications.
 - Role-aware checkpoints with optional private labels, so job-specific wording
-  context stays attached to the right local draft without appearing in the
-  resume or exported PDF.
+  context stays attached to the right local draft; intentional PDF, Word,
+  plain-text, and JSON exports include that label in their filename to prevent
+  application mix-ups, while the label never appears in resume content or on a
+  PDF page.
 - Glanceable version summaries, suggested comparisons, reversible deletion, and
   post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF. When a

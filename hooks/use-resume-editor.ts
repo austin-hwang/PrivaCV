@@ -86,6 +86,16 @@ function safeResumeFilename(name: string) {
 }
 
 /**
+ * A private role label is useful at the moment a tailored file leaves the
+ * browser: it prevents a stack of otherwise identical "Jane_Doe" downloads
+ * from being confused at upload time. It never changes the resume content.
+ */
+function resumeFileStem(name: string, roleLabel: string) {
+  const roleSegment = roleLabel.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
+  return roleSegment ? `${safeResumeFilename(name)}_${roleSegment}` : safeResumeFilename(name);
+}
+
+/**
  * Browsers commonly use document.title as the initial Save as PDF filename.
  * Keep that transient title descriptive, but restore the public page title as
  * soon as printing finishes.
@@ -1004,7 +1014,7 @@ export function useResumeEditor() {
   };
 
   const saveJson = () => {
-    downloadJsonFile(state, `${safeResumeFilename(state.name || "resume")}.json`);
+    downloadJsonFile(state, `${resumeFileStem(state.name || "resume", roleLabel)}.json`);
     flash("Saved JSON to downloads");
   };
 
@@ -1163,7 +1173,7 @@ export function useResumeEditor() {
       flash("Add resume details first");
       return;
     }
-    downloadTextFile(plainText, `${safeResumeFilename(state.name || "resume")}.txt`);
+    downloadTextFile(plainText, `${resumeFileStem(state.name || "resume", roleLabel)}.txt`);
     flash("Saved plain text to downloads");
   };
 
@@ -1172,7 +1182,7 @@ export function useResumeEditor() {
       flash("Add resume details first");
       return;
     }
-    downloadFile(resumeDocxBlob(state), `${safeResumeFilename(state.name || "resume")}.docx`);
+    downloadFile(resumeDocxBlob(state), `${resumeFileStem(state.name || "resume", roleLabel)}.docx`);
     flash("Saved Word document to downloads");
   };
 
@@ -1195,7 +1205,7 @@ export function useResumeEditor() {
     const restoreTitle = () => {
       document.title = previousTitle;
     };
-    document.title = pdfDocumentTitle(state.name);
+    document.title = pdfDocumentTitle(resumeFileStem(state.name || "resume", roleLabel));
     window.addEventListener("afterprint", restoreTitle, { once: true });
     window.print();
   };
