@@ -43,6 +43,7 @@ export function ResumeEditorOverlays({
   editor: ReturnType<typeof useResumeEditor>;
 }) {
   const [pastedResumeText, setPastedResumeText] = useState("");
+  const [expandedApplicationFields, setExpandedApplicationFields] = useState<Set<string>>(() => new Set());
   const {
     applicationCopyOpen,
     checks,
@@ -114,6 +115,14 @@ export function ResumeEditorOverlays({
     (item) => !importReview.reviewedItemIds?.includes(item.id),
   );
   const applicationCopy = applicationCopyGroups(editor.state);
+  const toggleApplicationField = (fieldId: string) => {
+    setExpandedApplicationFields((current) => {
+      const next = new Set(current);
+      if (next.has(fieldId)) next.delete(fieldId);
+      else next.add(fieldId);
+      return next;
+    });
+  };
 
   return (
     <>
@@ -199,7 +208,13 @@ export function ResumeEditorOverlays({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={applicationCopyOpen} onOpenChange={setApplicationCopyOpen}>
+      <Dialog
+        open={applicationCopyOpen}
+        onOpenChange={(open) => {
+          setApplicationCopyOpen(open);
+          if (!open) setExpandedApplicationFields(new Set());
+        }}
+      >
         <DialogContent className="max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
           <DialogHeader>
             <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Application copy</DialogDescription>
@@ -217,17 +232,39 @@ export function ResumeEditorOverlays({
                     {group.detail ? <p className="text-xs text-muted-foreground">{group.detail}</p> : null}
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {group.fields.map((field) => (
-                      <div key={field.id} className="flex min-w-0 items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold">{field.label}</p>
-                          <p className="mt-1 max-h-12 overflow-hidden whitespace-pre-line text-xs leading-snug text-muted-foreground">{field.text}</p>
+                    {group.fields.map((field) => {
+                      const applicationFieldId = `${group.id}-${field.id}`;
+                      const isExpanded = expandedApplicationFields.has(applicationFieldId);
+                      const canExpand = field.text.length > 80 || field.text.split(/\r?\n/).length > 1;
+
+                      return (
+                        <div key={field.id} className="flex min-w-0 items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold">{field.label}</p>
+                            <p
+                              id={`application-copy-${applicationFieldId}`}
+                              className={`mt-1 whitespace-pre-line text-xs leading-snug text-muted-foreground ${canExpand && !isExpanded ? "max-h-12 overflow-hidden" : ""}`}
+                            >
+                              {field.text}
+                            </p>
+                            {canExpand ? (
+                              <button
+                                type="button"
+                                className="mt-1 text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-expanded={isExpanded}
+                                aria-controls={`application-copy-${applicationFieldId}`}
+                                onClick={() => toggleApplicationField(applicationFieldId)}
+                              >
+                                {isExpanded ? "Show less" : "Show full value"}
+                              </button>
+                            ) : null}
+                          </div>
+                          <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => copyApplicationField(field.text, field.label)}>
+                            <ClipboardCopy /> <span className="sr-only">Copy </span>{field.label}
+                          </Button>
                         </div>
-                        <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => copyApplicationField(field.text, field.label)}>
-                          <ClipboardCopy /> <span className="sr-only">Copy </span>{field.label}
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               ))}

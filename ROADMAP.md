@@ -120,7 +120,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   resume into separate inputs: a local Application Copy view now exposes the
   current profile, summary, role, employer, dates, achievement list, education,
   projects, skills, and custom-section entries as individually copyable values.
-  It mirrors the resume rather than creating a second profile, and keeps the
+  Long values expand in place before copying, so the compact view never leaves
+  a person uncertain about which achievement text will go to a portal. It
+  mirrors the resume rather than creating a second profile, and keeps the
   existing full-text route for portals that accept one complete paste. Reassess
   whether per-portal persistence is valuable only after this lighter workflow
   no longer covers the repeated-entry friction.

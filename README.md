@@ -114,7 +114,9 @@ subscriptions, watermarks, or backend storage.
 - Application Copy dialog for portals that split a resume into separate fields:
   copy an individual contact detail, summary, role, employer, dates, achievement
   list, education entry, project, skills section, or custom-section entry without
-  retyping. It mirrors the current resume and stays entirely in the browser.
+  retyping. Long values can be expanded before copying, so the dialog stays
+  compact without hiding the exact content. It mirrors the current resume and
+  stays entirely in the browser.
 - Best-effort Word import for editable `.docx` resumes and PDF import for text-based resumes through a locally bundled,
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The

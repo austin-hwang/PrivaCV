@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-13 — Inspect full application-copy values before copying
+
+## Product review
+
+- **Finding:** Application portals often ask for a long achievement list or
+  complete entry. PrivaCV's copy view truncated those values visually to keep
+  the dialog compact, which made it hard to confirm the exact value before
+  placing it in a portal.
+- **Options considered:** Build per-portal state, make every copy card tall,
+  or let long values expand on demand. In-place expansion won because it makes
+  a high-frequency copy action trustworthy without adding another data model
+  or making short fields harder to scan.
+- **Expected user benefit:** A person can verify a complete achievement list
+  before copying it, then collapse it again to continue through an application
+  quickly.
+
+## Changes
+
+- Added an accessible **Show full value** / **Show less** control for long or
+  multiline application-copy values.
+- Kept concise fields fully visible and the dialog compact by default.
+- Reset expanded values when the dialog closes, so each new copy session starts
+  easy to scan.
+- Added a Chromium regression test and updated the README and roadmap.
+
+## Verification
+
+- Passed `pnpm test` (74 tests), `pnpm lint`, `pnpm typecheck`, focused and
+  full Chromium coverage (84 tests), an isolated production build, and
+  `git diff --check`.
+
 ## 2026-07-13 — Catch writing mistakes in the primary editor
 
 ## Product review

@@ -578,6 +578,15 @@ test("offers copy-ready application fields without making users retype resume de
   await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy achievements/i }).first()).toBeVisible();
   await expect(dialog.getByText("Senior Software Engineer · Acme Corp - San Francisco, CA")).toBeVisible();
+
+  const firstExperience = dialog.locator('section[aria-label="Experience 1"]');
+  const achievements = firstExperience.locator("#application-copy-experience-0-details");
+  const expand = firstExperience.locator('button[aria-controls="application-copy-experience-0-details"]');
+  await expect(achievements).toHaveClass(/max-h-12/);
+  await expect(expand).toHaveAttribute("aria-expanded", "false");
+  await expand.click();
+  await expect(achievements).not.toHaveClass(/max-h-12/);
+  await expect(firstExperience.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
 });
 
 test("suggests a recognizable filename when exporting a PDF", async ({ page }) => {
