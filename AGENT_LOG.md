@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-13 — Give saved resumes their own visual workspace
+
+## Product review
+
+- **Finding:** Saved versions were buried beneath Resume Check in a side drawer
+  and presented mainly as labels and timestamps. That makes it hard to trust a
+  restore when several tailored drafts have similar names.
+- **Options considered:** Keep the compact list in Review tools, add a larger
+  comparison dialog, or make Versions a dedicated screen with a visual card
+  per checkpoint. The dedicated screen won because it separates retrospective
+  version decisions from immediate editing and lets people recognize the
+  actual resume before acting.
+- **Expected user benefit:** People can scan saved resumes visually, then
+  compare, restore, delete, or back them up without losing their place in the
+  editor or treating timestamps as the only identity signal.
+
+## Changes
+
+- Added a header-level **Versions** workspace outside Review tools.
+- Rebuilt the checkpoint list as visual cards with faithful first-page resume
+  thumbnails, labels, notes, recency, and direct Compare/Restore/Delete
+  controls.
+- Kept saved checkpoint backup/import and current-version badges available in
+  the new workspace; restoring a card returns to the editor and preserves the
+  existing restore-summary flow.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, and `pnpm test` (67 tests).
+- Passed focused Chromium coverage and the full 82-test Chromium suite.
+- Passed an optimized production build and `git diff --check`.
+
 ## 2026-07-13 — Remove Role Focus to keep tailoring direct
 
 ## Product review

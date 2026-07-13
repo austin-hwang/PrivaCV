@@ -147,7 +147,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   complete current history before replacing its oldest checkpoint, so a base
   draft is not lost merely because the browser-only convenience limit is met.
 - Make saved drafts quick to scan, compare, restore, or undo when users are
-  deciding which tailored version to continue.
+  deciding which tailored version to continue. Version history now opens in a
+  dedicated visual workspace with a first-page thumbnail for each checkpoint,
+  so people can recognize a draft before restoring it; reassess full multi-page
+  checkpoint previews only if first-page recognition proves insufficient.
 - Make the master-resume approach practical without turning it into a second
   product: experience and project bullets can now be included or omitted per
   tailored draft without deleting the retained wording. The selected copy is

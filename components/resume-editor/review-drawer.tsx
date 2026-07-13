@@ -4,7 +4,6 @@ import { ArrowRight, Check, FileCheck2, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
 import type { useResumeEditor } from "@/hooks/use-resume-editor";
 import { formatCheckpointTime } from "@/lib/resume-workspace";
@@ -12,7 +11,6 @@ import { cn } from "@/lib/utils";
 
 const JUMP_TARGETS = [
   { id: "tool-checks", label: "Checks" },
-  { id: "tool-versions", label: "Versions" },
 ];
 
 export function ReviewDrawer({
@@ -35,18 +33,6 @@ export function ReviewDrawer({
     exportIsCurrent,
     exportChanges,
     requestExport,
-    exportFingerprint,
-    deletedVersion,
-    versionHistory,
-    hasContent,
-    openVersionSave,
-    saveVersionHistoryBackup,
-    historyBackupInputRef,
-    setVersionCompareTarget,
-    restoreVersion,
-    deleteVersion,
-    undoDeleteVersion,
-    setDeletedVersion,
   } = editor;
 
   const checksReady = passedChecks === checks.length;
@@ -172,22 +158,6 @@ export function ReviewDrawer({
             ) : null}
           </section>
 
-          <section id="tool-versions" aria-label="Version history" className="scroll-mt-4 border-t pt-6">
-            <VersionHistoryCard
-              hasContent={hasContent}
-              versions={versionHistory}
-              currentFingerprint={exportFingerprint}
-              deletedVersion={deletedVersion}
-              onSave={openVersionSave}
-              onSaveBackup={saveVersionHistoryBackup}
-              onOpenBackup={() => historyBackupInputRef.current?.click()}
-              onCompareCurrent={(item) => setVersionCompareTarget({ baseId: item.id, targetId: "current" })}
-              onRestore={restoreVersion}
-              onDelete={deleteVersion}
-              onUndoDelete={undoDeleteVersion}
-              onDismissDeleted={() => setDeletedVersion(null)}
-            />
-          </section>
         </div>
 
         <p className="border-t px-4 py-3 text-xs leading-snug text-muted-foreground">Everything here stays in this browser.</p>

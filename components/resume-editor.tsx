@@ -16,6 +16,7 @@ import {
   FileJson,
   FileText,
   GripVertical,
+  History,
   Keyboard,
   MoreHorizontal,
   PanelLeftClose,
@@ -40,6 +41,7 @@ import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/re
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
+import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
@@ -113,6 +115,7 @@ export function ResumeEditor() {
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
   // Inline editing on the resume sheet is the primary way to edit; the left
   // form stays available as a fallback (and can be collapsed for a focused
@@ -547,6 +550,23 @@ export function ResumeEditor() {
                     )}
                   >
                     {passedChecks}/{checks.length}
+                  </span>
+                ) : null}
+              </Button>
+            ) : null}
+            {hasContent || versionHistory.length ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setVersionsOpen(true)}
+                aria-label="Open version history"
+                className="gap-2"
+              >
+                <History />
+                <span className="hidden sm:inline">Versions</span>
+                {versionHistory.length ? (
+                  <span className="hidden min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums sm:inline">
+                    {versionHistory.length}
                   </span>
                 ) : null}
               </Button>
@@ -1408,6 +1428,29 @@ export function ResumeEditor() {
         onOpenChange={setToolsOpen}
         onFocusTarget={focusEditorTarget}
         onStartChecksReview={startChecksTour}
+      />
+
+      <VersionHistoryCard
+        open={versionsOpen}
+        onOpenChange={setVersionsOpen}
+        hasContent={hasContent}
+        versions={editor.versionHistory}
+        currentFingerprint={editor.exportFingerprint}
+        deletedVersion={editor.deletedVersion}
+        onSave={editor.openVersionSave}
+        onSaveBackup={editor.saveVersionHistoryBackup}
+        onOpenBackup={() => editor.historyBackupInputRef.current?.click()}
+        onCompareCurrent={(item) => {
+          setVersionsOpen(false);
+          editor.setVersionCompareTarget({ baseId: item.id, targetId: "current" });
+        }}
+        onRestore={(item) => {
+          editor.restoreVersion(item);
+          setVersionsOpen(false);
+        }}
+        onDelete={editor.deleteVersion}
+        onUndoDelete={editor.undoDeleteVersion}
+        onDismissDeleted={() => editor.setDeletedVersion(null)}
       />
 
       <GuidedReview

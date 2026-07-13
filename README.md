@@ -85,7 +85,10 @@ subscriptions, watermarks, or backend storage.
 - Local version history for naming, annotating, comparing, and restoring a few
   browser-only checkpoints while tailoring a resume for different applications.
   When that short local history is full, the recommended save path downloads a
-  complete checkpoint backup before replacing its oldest draft.
+  complete checkpoint backup before replacing its oldest draft. A dedicated
+  Versions workspace keeps the editor and review tools focused while showing a
+  first-page visual thumbnail of every saved resume before it is compared,
+  restored, or deleted.
 - Per-bullet tailoring for experience and projects: temporarily omit lower-
   relevance bullets from the current role-specific version without deleting
   them from the browser-only master draft. Preview, PDF printing, Word, plain

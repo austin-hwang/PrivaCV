@@ -23,6 +23,27 @@ async function openTools(page: Page) {
   }
 }
 
+async function openVersions(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /see each saved resume before changing course/i });
+  if (!(await dialog.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: /open version history/i }).click();
+    await expect(dialog).toBeVisible();
+  }
+  return dialog;
+}
+
+async function closeVersions(page: Page) {
+  await page.getByRole("dialog", { name: /see each saved resume before changing course/i }).getByRole("button", { name: "Close" }).click();
+}
+
+async function saveVersion(page: Page, label: string) {
+  const versions = await openVersions(page);
+  await versions.getByRole("button", { name: /save current version/i }).click();
+  await page.getByLabel("Checkpoint name").fill(label);
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await closeVersions(page);
+}
+
 function makeTextPdf(text: string) {
   const stream = `BT\n/F1 14 Tf\n72 720 Td\n(${text.replace(/[\\()]/g, "\\$&")}) Tj\nET\n`;
   const objects = [
@@ -1914,11 +1935,7 @@ test("expands dense change audits after export and restore", async ({ page }) =>
     };
   });
   await loadSample(page);
-  await openTools(page);
-
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Clean baseline");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await saveVersion(page, "Clean baseline");
 
   await page.getByRole("button", { name: /export pdf/i }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
@@ -1930,6 +1947,7 @@ test("expands dense change audits after export and restore", async ({ page }) =>
   await page.getByLabel("Project Name").fill("Launch Review Hub");
   await page.getByLabel('Skills (one group per line, e.g. "Languages: Python, Go")').fill("Languages: TypeScript, Python\nTools: Playwright, AWS");
 
+  await openTools(page);
   await expect(page.getByText("2 more changed areas")).toBeVisible();
   await expect(page.getByText("Projects changed")).toBeHidden();
   await page.getByRole("button", { name: /show all changes/i }).click();
@@ -1937,7 +1955,8 @@ test("expands dense change audits after export and restore", async ({ page }) =>
   await expect(page.getByText("Projects changed")).toBeVisible();
   await expect(page.getByText("Skills changed")).toBeVisible();
 
-  await page.getByRole("button", { name: /restore clean baseline/i }).click();
+  await openVersions(page);
+  await page.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
   await expect(page.getByText("Checkpoint restored")).toBeVisible();
   await expect(page.getByText("2 more changed areas")).toBeVisible();
   await page.getByRole("button", { name: /show all changes/i }).click();
@@ -1969,22 +1988,25 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await openTools(page);
+  const versions = await openVersions(page);
 
-  await page.getByRole("button", { name: /save version/i }).click();
+  await versions.getByRole("button", { name: /save current version/i }).click();
   await expect(page.getByRole("dialog", { name: /name this checkpoint/i })).toBeVisible();
   await page.getByLabel("Checkpoint name").fill("Original software resume");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect(page.getByText("Version saved locally")).toBeVisible();
-  await expect(page.getByText("Original software resume")).toBeVisible();
-  await expect(page.getByText("Current", { exact: true })).toBeVisible();
-  await expect(page.getByText("Jane Doe").first()).toBeVisible();
+  await expect(versions.getByText("Original software resume")).toBeVisible();
+  await expect(versions.getByText("Current", { exact: true })).toBeVisible();
+  await expect(versions.getByText("Jane Doe").first()).toBeVisible();
+  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(1);
+  await closeVersions(page);
 
   await page.getByLabel("Full Name").fill("Grace Hopper");
   await page.getByLabel("Job Title").first().fill("Principal Software Engineer");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
 
-  await page.getByRole("button", { name: /compare original software resume with current resume/i }).click();
+  await openVersions(page);
+  await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Compare" }).click();
   const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
   await expect(compareDialog).toBeVisible();
   const headerChange = compareDialog.getByRole("button", { name: /header changed/i });
@@ -2001,8 +2023,8 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(compareDialog).toBeHidden();
 
-  await openTools(page);
-  await page.getByRole("button", { name: /restore original software resume/i }).click();
+  await openVersions(page);
+  await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
   await expect(page.getByText("Checkpoint restored")).toBeVisible();
   const restoredChange = page.getByRole("button", { name: /header changed/i }).first();
@@ -2012,7 +2034,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Restore point saved")).toBeVisible();
 
-  await openTools(page);
+  await openVersions(page);
   await page.getByRole("button", { name: /delete original software resume/i }).click();
   await expect(page.getByText(/Deleted “Original software resume”/)).toBeVisible();
 
@@ -2026,23 +2048,23 @@ test("backs up the full checkpoint history before replacing its oldest local ver
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await openTools(page);
 
   for (let index = 1; index <= 5; index += 1) {
     await page
       .getByLabel("Professional Summary")
       .fill(`Tailored summary ${index} with enough specific context for this saved checkpoint.`);
-    await page.getByRole("button", { name: /save version/i }).click();
-    await page.getByLabel("Checkpoint name").fill(`Checkpoint ${index}`);
-    await page.getByRole("button", { name: /save checkpoint/i }).click();
+    await saveVersion(page, `Checkpoint ${index}`);
   }
 
-  await expect(page.getByText("5 saved.")).toBeVisible();
+  const versions = await openVersions(page);
+  await expect(versions.getByText("5 currently available")).toBeVisible();
+  await closeVersions(page);
 
   await page
     .getByLabel("Professional Summary")
     .fill("Tailored summary 6 with a new role-specific angle that should replace the oldest checkpoint.");
-  await page.getByRole("button", { name: /save version/i }).click();
+  const fullVersions = await openVersions(page);
+  await fullVersions.getByRole("button", { name: /save current version/i }).click();
 
   const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
   await expect(saveDialog).toBeVisible();
@@ -2064,9 +2086,9 @@ test("backs up the full checkpoint history before replacing its oldest local ver
   });
 
   await expect(page.getByText("Backed up and replaced Checkpoint 1")).toBeVisible();
-  await expect(page.getByText("Checkpoint 6", { exact: true })).toBeVisible();
-  await expect(page.getByText("Checkpoint 1", { exact: true })).toBeHidden();
-  await expect(page.getByText("5 saved.")).toBeVisible();
+  await expect(fullVersions.getByText("Checkpoint 6", { exact: true })).toBeVisible();
+  await expect(fullVersions.getByText("Checkpoint 1", { exact: true })).toBeHidden();
+  await expect(fullVersions.getByText("5 currently available")).toBeVisible();
 });
 
 test("imports a checkpoint history backup without replacing the current resume", async ({ page }) => {
@@ -2074,10 +2096,7 @@ test("imports a checkpoint history backup without replacing the current resume",
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await openTools(page);
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Platform baseline");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await saveVersion(page, "Platform baseline");
 
   const checkpoints = await page.evaluate(() => localStorage.getItem("resume-editor-version-history-v1"));
   const backup = JSON.stringify({
@@ -2108,8 +2127,8 @@ test("imports a checkpoint history backup without replacing the current resume",
 
   await expect(page.getByText("Added 1 checkpoint")).toBeVisible();
   await expect(page.getByText("Start from a resume you have—or a clean page.")).toBeVisible();
-  await openTools(page);
-  await expect(page.getByText("Platform baseline").first()).toBeVisible();
+  const versions = await openVersions(page);
+  await expect(versions.getByText("Platform baseline").first()).toBeVisible();
 });
 
 test("makes matching checkpoint backups explicit before merging", async ({ page }) => {
@@ -2117,10 +2136,7 @@ test("makes matching checkpoint backups explicit before merging", async ({ page 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await openTools(page);
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Platform baseline");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await saveVersion(page, "Platform baseline");
 
   const backup = await page.evaluate(() => {
     const checkpoints = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
@@ -2145,7 +2161,8 @@ test("makes matching checkpoint backups explicit before merging", async ({ page 
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
   await expect(page.getByText("All backup checkpoints are already saved")).toBeVisible();
-  await expect(page.getByText("Platform baseline", { exact: true })).toHaveCount(1);
+  const versions = await openVersions(page);
+  await expect(versions.getByText("Platform baseline", { exact: true })).toHaveCount(1);
 });
 
 test("names checkpoints that remain only in a large imported backup", async ({ page }) => {
@@ -2153,10 +2170,7 @@ test("names checkpoints that remain only in a large imported backup", async ({ p
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await openTools(page);
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Template checkpoint");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await saveVersion(page, "Template checkpoint");
 
   const checkpoint = await page.evaluate(() => {
     const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
@@ -2189,8 +2203,9 @@ test("names checkpoints that remain only in a large imported backup", async ({ p
   await expect(backupDialog.getByText(/Archived checkpoint 5 ·/)).toBeVisible();
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
-  await expect(page.getByText("Archived checkpoint 1", { exact: true })).toBeVisible();
-  await expect(page.getByText("Archived checkpoint 5", { exact: true })).toBeHidden();
+  const versions = await openVersions(page);
+  await expect(versions.getByText("Archived checkpoint 1", { exact: true })).toBeVisible();
+  await expect(versions.getByText("Archived checkpoint 5", { exact: true })).toBeHidden();
 });
 
 test("reviews every checkpoint in backups larger than local history", async ({ page }) => {
@@ -2198,10 +2213,7 @@ test("reviews every checkpoint in backups larger than local history", async ({ p
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await openTools(page);
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Template checkpoint");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await saveVersion(page, "Template checkpoint");
 
   const checkpoint = await page.evaluate(() => {
     const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
@@ -2234,6 +2246,7 @@ test("reviews every checkpoint in backups larger than local history", async ({ p
 
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
   await expect(page.getByText("Added 4 checkpoints")).toBeVisible();
-  await expect(page.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
-  await expect(page.getByText("Expanded checkpoint 7", { exact: true })).toBeHidden();
+  const versions = await openVersions(page);
+  await expect(versions.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
+  await expect(versions.getByText("Expanded checkpoint 7", { exact: true })).toBeHidden();
 });
