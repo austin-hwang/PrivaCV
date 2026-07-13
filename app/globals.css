@@ -485,6 +485,13 @@
     break-inside: avoid;
   }
 
+  /* An entry-less section (Skills) is measured as one atomic unit in the live
+     preview. Keep the print engine in step so the block never splits at a
+     different line than the preview reserved — preview and PDF stay identical. */
+  .resume-section-atomic {
+    break-inside: avoid;
+  }
+
   /* The live preview reserves whitespace before an entry it moves to the next
      page. In print the page break supplies the jump and the @page margin
      supplies the top inset, so the reserved spacer is dropped entirely. */

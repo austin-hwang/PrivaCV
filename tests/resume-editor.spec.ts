@@ -1740,6 +1740,44 @@ test("matches preview page count when print keeps a long role intact", async ({ 
   expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
 });
 
+test("keeps the Skills section whole on the exported page the preview shows it on", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  // Enough role detail to push Skills onto the first-page boundary. A list
+  // section has no per-entry break points, so it used to straddle the boundary
+  // in the preview while the print engine split it at the page margin.
+  const details = Array.from(
+    { length: 24 },
+    (_, index) => `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design and delivery.`,
+  ).join("\n");
+  await page.locator("#field-experience-0-details").fill(details);
+
+  // The preview reserves a full break for the block and shows it on page 2.
+  await expect(page.getByText("2 pages in preview", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-resume-print-section="skills"]')).toHaveClass(/resume-print-break-before/);
+
+  await page.emulateMedia({ media: "print" });
+  const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
+
+  // The exported PDF must agree: every Skills line lands together on page 2,
+  // never split across the Letter boundary the preview drew.
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdf) }).promise;
+  const markers = ["SKILLS", "Languages", "Frameworks", "Databases", "Tools"];
+  const pageText = await Promise.all(
+    Array.from({ length: doc.numPages }, async (_, index) => {
+      const content = await (await doc.getPage(index + 1)).getTextContent();
+      return content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
+    }),
+  );
+  expect(doc.numPages).toBe(2);
+  expect(markers.every((marker) => !pageText[0].includes(marker))).toBe(true);
+  expect(markers.every((marker) => pageText[1].includes(marker))).toBe(true);
+});
+
 test("recomputes the preview page count when the resume shrinks", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -418,7 +418,7 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
     if (!lines.length) return null;
     return (
       <section
-        className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+        className={cn("resume-section resume-section-atomic resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
         data-resume-guide-label={title ? `${title} · Skills` : "Skills"}
         data-resume-print-section={section}
         style={printBreakStyle(printBreakTarget, printBreaks)}

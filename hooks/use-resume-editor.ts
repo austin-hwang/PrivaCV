@@ -682,7 +682,20 @@ export function useResumeEditor() {
         const sectionId = section.dataset.resumePrintSection;
         if (!sectionId) return;
         const entries = Array.from(section.querySelectorAll<HTMLElement>("[data-resume-print-entry]"));
-        if (!entries.length) return;
+
+        // A section without individually breakable entries (Skills renders as
+        // list lines, not entries) is one atomic unit. Reserve the same page
+        // break the print engine takes for it via `break-inside: avoid`, so the
+        // block moves to the next page in the preview exactly as it does in the
+        // exported PDF instead of straddling the Letter boundary.
+        if (!entries.length) {
+          printableUnits.push({
+            targetId: `section:${sectionId}`,
+            element: section,
+            end: section.offsetTop + section.offsetHeight,
+          });
+          return;
+        }
 
         const startsWithHeading = section.dataset.resumeSectionHasHeading === "true";
         const firstEntry = entries[0];
