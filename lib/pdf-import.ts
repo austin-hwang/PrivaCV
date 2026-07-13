@@ -1,5 +1,11 @@
 import { blankEntry, emptyState, normalizeResume, type ResumeState } from "@/lib/resume";
 
+// A resume PDF is normally far smaller than this. Check the selected file
+// before loading pdf.js so an accidentally huge or hostile upload cannot tie
+// up the browser while this local-only importer is trying to recover text.
+export const MAX_PDF_BYTES = 10 * 1024 * 1024;
+export const MAX_PDF_PAGES = 30;
+
 export type PositionedTextItem = {
   str?: string;
   transform: number[];
@@ -95,6 +101,9 @@ async function loadPdfJs() {
 export async function extractLines(buffer: ArrayBuffer) {
   const lib = await loadPdfJs();
   const pdf = await lib.getDocument({ data: buffer }).promise;
+  if (pdf.numPages > MAX_PDF_PAGES) {
+    throw new Error(`This PDF has more than ${MAX_PDF_PAGES} pages. Try copying the resume text instead.`);
+  }
   const lines: string[] = [];
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -576,6 +585,9 @@ export async function importResumePdf(file: File) {
 export async function importResumePdfWithSource(file: File) {
   if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
     throw new Error("Please choose a PDF file.");
+  }
+  if (file.size > MAX_PDF_BYTES) {
+    throw new Error("This PDF is too large to import locally. Try copying the resume text instead.");
   }
   const buffer = await file.arrayBuffer();
   const lines = await extractLines(buffer);

@@ -257,6 +257,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep sensitive import paths self-contained: the on-demand PDF parser and its
   worker now ship from the app origin rather than a third-party CDN, so the
   user's selected resume never depends on or contacts an external parser host.
+- Keep browser-only PDF import forgiving under unusual files: a resume-sized
+  10 MiB / 30-page boundary now fails before a large parse with the existing
+  paste-text path as recovery. Reassess these limits against real long-form CV
+  feedback before changing them.
 - Keep local Word import safe to open: the importer now validates a standard
   single-disk `.docx` archive's declared expanded size before decompression,
   avoiding a browser freeze from a highly compressed or unusually complex file.

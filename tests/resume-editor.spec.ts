@@ -4,6 +4,8 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
 import { sampleState } from "@/lib/resume";
 
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
+
 async function openMenu(page: Page) {
   await page.getByRole("button", { name: /^more actions$/i }).click();
 }
@@ -305,6 +307,22 @@ test("imports a PDF with parser code served from the app", async ({ page }) => {
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByText("Imported PDF - please review")).toBeVisible();
   expect(thirdPartyRequests).toEqual([]);
+});
+
+test("keeps an oversized PDF import local and gives a clear recovery path", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /import a pdf/i }).click();
+  await page.locator('input[type="file"][accept*="application/pdf"]').setInputFiles({
+    name: "large-resume.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.alloc(MAX_PDF_BYTES + 1),
+  });
+
+  await expect(page.getByText("This PDF is too large to import locally. Try copying the resume text instead.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /start from a resume you have/i })).toBeVisible();
 });
 
 test("imports an editable Word resume locally and keeps its review deliberate", async ({ page }) => {

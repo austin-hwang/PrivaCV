@@ -204,6 +204,8 @@ Notes:
   resume structure.
 - Always review imported fields before exporting.
 - Scanned/image-only PDFs do not contain extractable text.
+- To keep the browser responsive, PDFs over 10 MiB or 30 pages are stopped
+  before full text extraction; copy and paste the resume text instead.
 - PDF import loads its parser and worker from this app on demand. Your selected
   PDF and its extracted text stay in the browser; importing does not send the
   document to a third party.

@@ -26,7 +26,14 @@ import {
   RESUME_TEMPLATES,
 } from "@/lib/resume";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
-import { detectSection, importResumeText, importResumeTextWithSource, linesFromPositionedTextItems } from "@/lib/pdf-import";
+import {
+  detectSection,
+  importResumePdfWithSource,
+  importResumeText,
+  importResumeTextWithSource,
+  linesFromPositionedTextItems,
+  MAX_PDF_BYTES,
+} from "@/lib/pdf-import";
 import {
   MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
@@ -230,6 +237,12 @@ describe("resume helpers", () => {
 
   it("keeps Word import failures specific when the archive has no document XML", () => {
     expect(() => extractDocxText(new Uint8Array([80, 75, 3, 4]).buffer)).toThrow(/readable Word/i);
+  });
+
+  it("rejects oversized PDF imports before loading the local parser", async () => {
+    const file = new File([new Uint8Array(MAX_PDF_BYTES + 1)], "large-resume.pdf", { type: "application/pdf" });
+
+    await expect(importResumePdfWithSource(file)).rejects.toThrow(/too large to import locally/i);
   });
 
   it("creates safe contact links without turning invalid values into links", () => {

@@ -1,5 +1,14 @@
 # Agent Log
 
+## 2026-07-13 — Bound browser-only PDF imports
+
+- Market and product review: Rezi and Teal both make existing PDF/DOCX import a primary entry path, but their own guidance asks people to review every transferred section because document formatting differs. Recent user feedback also calls out broken imports and formatting drift. The editor already bounded Word archive expansion, while an unusually large or very long PDF could still make the browser do substantial local parsing before it could offer recovery.
+- Options considered: add more import-layout heuristics, pursue broad Word text-box reconstruction, or add a small PDF resource boundary with a familiar recovery path. The PDF boundary won because it protects an immediate, high-risk first-use operation without weakening the private local-first model or making semantic guesses about a document.
+- Implementation: PDF import now rejects files over 10 MiB before loading pdf.js and stops PDFs over 30 pages immediately after reading the document metadata. Both paths give a specific instruction to paste the resume text instead. The normal imported-draft review remains unchanged.
+- Expected experience improvement: a normal resume still imports directly, while an accidentally huge or hostile file fails promptly, preserves the current draft, and leaves the person with a clear local way to continue instead of a stuck-looking tab.
+- Verification: `pnpm test` (70 tests), `pnpm typecheck`, `pnpm lint`, focused Chromium Playwright coverage of the oversized-PDF recovery flow, `pnpm build`, and `git diff --check` passed. The page-count boundary is covered in production code but was not exercised independently with a generated 31-page fixture in this run.
+- Provisional next step: reassess the 10 MiB / 30-page limits with real long-form CV feedback before changing them; separately reassess Word text-box and complex multi-column extraction without promising layout reconstruction.
+
 ## 2026-07-12 — Recover Word field-code contact links locally
 
 - Market and product review: Teal still puts existing `.docx` and PDF resumes
