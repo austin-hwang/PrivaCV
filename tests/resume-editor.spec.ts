@@ -573,6 +573,10 @@ test("makes validated contact details actionable in the preview", async ({ page 
   await page.reload();
   await loadSample(page);
 
+  // Contact details are actionable links when inline editing is off (and in the
+  // exported PDF); inline editing turns them into editable spans instead.
+  await page.getByRole("button", { name: /editing on sheet/i }).click();
+
   const preview = page.locator(".resume-sheet");
   await expect(preview.getByRole("link", { name: "jane.doe@example.com" })).toHaveAttribute("href", "mailto:jane.doe@example.com");
   await expect(preview.getByRole("link", { name: "(555) 123-4567" })).toHaveAttribute("href", "tel:(555) 123-4567");
@@ -621,13 +625,46 @@ test("connects editor focus with the preview and supports custom sections", asyn
 
   const previewEntry = page.locator(".resume-sheet").getByText("Reliable Interfaces", { exact: true });
   await expect(page.locator(".resume-sheet").getByText("Publications", { exact: true })).toBeVisible();
-  await previewEntry.click();
-  await expect(page.locator('[id^="field-custom-"][id$="-0-title"]')).toBeFocused();
+  // Custom-section content renders on the sheet and is inline-editable.
+  await expect(previewEntry).toHaveAttribute("contenteditable", "true");
 
   await page.waitForTimeout(450);
   await page.reload();
   await expect(page.getByLabel("Selected Experience section title")).toHaveValue("Selected Experience");
   await expect(page.getByLabel("Publications section title")).toBeVisible();
+});
+
+test("edits resume text inline on the sheet and toggles the mode", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  // Inline editing is on by default: the name is directly editable on the sheet.
+  const name = page.locator(".resume-name");
+  await expect(name).toHaveAttribute("contenteditable", "true");
+  await name.selectText();
+  await page.keyboard.type("Ada Lovelace");
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+
+  // A bullet edits in place and syncs back to the entry details field.
+  const firstBullet = page.locator(".resume-entry .resume-bullets li").first();
+  await firstBullet.click();
+  await firstBullet.selectText();
+  await page.keyboard.type("Rewrote the deploy pipeline, cutting release time in half.");
+  await page.locator(".resume-name").click();
+  await expect(page.locator("#field-experience-0-details")).toHaveValue(/Rewrote the deploy pipeline/);
+
+  // Collapsing the editor gives a focused full-width canvas.
+  await page.getByRole("button", { name: /hide editor/i }).click();
+  await expect(page.getByLabel("Full Name")).toBeHidden();
+  await page.getByRole("button", { name: /show editor/i }).click();
+  await expect(page.getByLabel("Full Name")).toBeVisible();
+
+  // Turning inline editing off restores plain (non-editable) preview text.
+  await page.getByRole("button", { name: /editing on sheet/i }).click();
+  await expect(page.locator(".resume-name")).not.toHaveAttribute("contenteditable", "true");
 });
 
 test("keeps accidental entry and custom-section removal reversible", async ({ page }) => {

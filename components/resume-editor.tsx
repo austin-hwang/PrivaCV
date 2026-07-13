@@ -15,6 +15,9 @@ import {
   FileText,
   GripVertical,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Pencil,
   Plus,
   Printer,
   RotateCcw,
@@ -107,6 +110,15 @@ export function ResumeEditor() {
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
+  // Inline editing on the resume sheet is the primary way to edit; the left
+  // form stays available as a fallback (and can be collapsed for a focused
+  // canvas).
+  const [inlineEdit, setInlineEdit] = useState(true);
+  const [editorCollapsed, setEditorCollapsed] = useState(false);
+  // Turn inline editing off while the browser prints so the exported PDF keeps
+  // its normal markup (e.g. clickable contact links) and none of the editing
+  // affordances.
+  const [printing, setPrinting] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
@@ -177,6 +189,17 @@ export function ResumeEditor() {
     () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
     [externalDraft, state],
   );
+
+  useEffect(() => {
+    const before = () => setPrinting(true);
+    const after = () => setPrinting(false);
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, []);
 
   const startBlankResume = (template = state.template) => {
     updateField("template", template);
@@ -518,7 +541,7 @@ export function ResumeEditor() {
         </div>
       </header>
 
-      <main className="app-shell grid min-h-[calc(100vh-73px)] grid-cols-1 lg:grid-cols-[minmax(390px,1fr)_minmax(440px,1fr)]">
+      <main className={cn("app-shell grid min-h-[calc(100vh-73px)] grid-cols-1", editorCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[minmax(390px,1fr)_minmax(440px,1fr)]")}>
         <section
           id="resume-editor-pane"
           aria-label="Resume editor"
@@ -529,6 +552,7 @@ export function ResumeEditor() {
           className={cn(
             "editor-pane relative overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:px-6 lg:pb-6 lg:pt-0",
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
+            editorCollapsed && "lg:hidden",
           )}
         >
           {/* The section nav sits flush at the top of the pane (lg:pt-0) so it
@@ -1119,7 +1143,7 @@ export function ResumeEditor() {
           aria-label="Resume preview"
         >
           <div ref={previewWrapRef} className="mx-auto flex w-full max-w-[8.5in] flex-col items-center gap-3">
-            <div className="app-chrome flex w-full items-center justify-between gap-3">
+            <div className="app-chrome flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2">
               <div className="flex min-w-0 items-center gap-3">
                 <label className="hidden items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground sm:flex">
                   <span className="whitespace-nowrap">Text size</span>
@@ -1154,9 +1178,35 @@ export function ResumeEditor() {
                   ) : null}
                 </div>
               </div>
-              <Button type="button" variant="outline" size="sm" className="shrink-0 lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
-                <FileText /> Edit resume
-              </Button>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  type="button"
+                  variant={inlineEdit ? "secondary" : "outline"}
+                  size="icon"
+                  className="hidden lg:inline-flex"
+                  aria-pressed={inlineEdit}
+                  aria-label={inlineEdit ? "Editing on sheet" : "Edit on sheet"}
+                  onClick={() => setInlineEdit((value) => !value)}
+                  title={inlineEdit ? "Inline editing is on — click resume text to edit it" : "Turn on inline editing (click resume text to edit)"}
+                >
+                  <Pencil />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="hidden lg:inline-flex"
+                  aria-pressed={editorCollapsed}
+                  aria-label={editorCollapsed ? "Show editor" : "Hide editor"}
+                  title={editorCollapsed ? "Show the editor panel" : "Hide the editor panel for a focused canvas"}
+                  onClick={() => setEditorCollapsed((value) => !value)}
+                >
+                  {editorCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
+                  <FileText /> Edit resume
+                </Button>
+              </div>
             </div>
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
               <ResumePreview
@@ -1167,6 +1217,10 @@ export function ResumeEditor() {
                 ref={resumeRef}
                 activeTarget={activeTarget}
                 onTargetSelect={focusEditorTarget}
+                editable={inlineEdit && workspaceHasStarted && !printing}
+                onEditField={(field, value) => updateField(field as Parameters<typeof updateField>[0], value)}
+                onEditSectionTitle={updateSectionTitle}
+                onEditEntry={updateEntry}
               />
             </div>
           </div>

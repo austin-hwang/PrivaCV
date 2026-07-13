@@ -1,4 +1,4 @@
-import { forwardRef, type CSSProperties, type KeyboardEvent } from "react";
+import { forwardRef, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
 import {
   bulletsFrom,
   contactHref,
@@ -12,6 +12,14 @@ import {
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
+type InlineEditHandlers = {
+  /** When true, resume text is edited in place on the sheet. */
+  editable?: boolean;
+  onEditField?: (field: string, value: string) => void;
+  onEditSectionTitle?: (section: string, value: string) => void;
+  onEditEntry?: (section: string, index: number, key: "title" | "subtitle" | "meta" | "details", value: string) => void;
+};
+
 type ResumePreviewProps = {
   state: ResumeState;
   pageCount?: number;
@@ -19,7 +27,126 @@ type ResumePreviewProps = {
   printBreaks?: Array<{ targetId: string; spacer: number }>;
   activeTarget?: string | null;
   onTargetSelect?: (targetId: string) => void;
-};
+} & InlineEditHandlers;
+
+/**
+ * A single run of inline-editable text. While editing it is uncontrolled — the
+ * DOM text is set through a ref only when the element is not focused — so React
+ * re-renders never fight the caret. Changes commit on blur (and on Enter for
+ * single-line fields).
+ */
+function InlineText({
+  as = "span",
+  editable,
+  value,
+  placeholder,
+  multiline = false,
+  className,
+  onCommit,
+  ...rest
+}: {
+  as?: "span" | "div" | "h1" | "h2" | "p";
+  editable?: boolean;
+  value: string;
+  placeholder?: string;
+  multiline?: boolean;
+  className?: string;
+  onCommit: (value: string) => void;
+} & Record<string, unknown>) {
+  const Tag = as as React.ElementType;
+  if (!editable) {
+    return (
+      <Tag className={className} {...rest}>
+        {value}
+      </Tag>
+    );
+  }
+  return (
+    <Tag
+      className={cn("resume-editable", !value && "resume-editable-empty", className)}
+      contentEditable
+      suppressContentEditableWarning
+      data-placeholder={placeholder}
+      spellCheck={false}
+      onBlur={(event: FocusEvent<HTMLElement>) => onCommit((event.currentTarget.textContent ?? "").trim())}
+      onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+        if (!multiline && event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        } else if (event.key === "Escape") {
+          event.currentTarget.textContent = value;
+          event.currentTarget.blur();
+        }
+      }}
+      {...rest}
+    >
+      {value}
+    </Tag>
+  );
+}
+
+/**
+ * A multi-line inline-editable list (bullets or skill lines). The rows are
+ * React-rendered so the sheet measures at its true height, but while editing no
+ * state changes (commit is on blur) so React never rewrites the text and the
+ * browser's own Enter/Backspace list handling is left alone. A content-keyed
+ * remount after each commit keeps reconciliation clean.
+ */
+function EditableList({
+  editable,
+  items,
+  onCommit,
+  className,
+  containerTag = "ul",
+  itemTag = "li",
+  itemClassName,
+  renderItem,
+}: {
+  editable?: boolean;
+  items: string[];
+  onCommit: (items: string[]) => void;
+  className?: string;
+  containerTag?: "ul" | "div";
+  itemTag?: "li" | "div";
+  itemClassName?: string;
+  renderItem?: (item: string) => React.ReactNode;
+}) {
+  const Container = containerTag as React.ElementType;
+  const ItemTag = itemTag as React.ElementType;
+  if (!editable) {
+    return (
+      <Container className={className}>
+        {items.map((item, index) => (
+          <ItemTag key={`${item}-${index}`} className={itemClassName}>
+            {renderItem ? renderItem(item) : item}
+          </ItemTag>
+        ))}
+      </Container>
+    );
+  }
+  const display = items.length ? items : [""];
+  return (
+    <Container
+      key={items.join("")}
+      className={cn("resume-editable", className)}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      onBlur={(event: FocusEvent<HTMLElement>) => {
+        const next = Array.from(event.currentTarget.children)
+          .map((child) => (child.textContent ?? "").trim())
+          .filter(Boolean);
+        onCommit(next);
+      }}
+    >
+      {display.map((text, index) => (
+        <ItemTag key={index} className={itemClassName}>
+          {text}
+        </ItemTag>
+      ))}
+    </Container>
+  );
+}
 
 function printBreakStyle(targetId: string, printBreaks: ResumePreviewProps["printBreaks"]) {
   const spacer = printBreaks?.find((item) => item.targetId === targetId)?.spacer;
@@ -44,9 +171,10 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect },
+  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry },
   ref,
 ) {
+  const edit: InlineEditHandlers = { editable, onEditField, onEditSectionTitle, onEditEntry };
   const hasContent = hasAnyContent(state);
   const pageBreaks: Array<{ page: number; label?: string }> = pageGuides.length
     ? pageGuides
@@ -83,7 +211,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
           style={{ top: `${index * 11}in` }}
         />
       ))}
-      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
+      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} {...edit} />}
       {pageBreaks.map(({ page, label }) => (
         <div
           key={page}
@@ -129,19 +257,38 @@ function EmptyResumePreview() {
   );
 }
 
-function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect }: ResumePreviewProps) {
+function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry }: ResumePreviewProps) {
   const contactParts = [
     ["email", state.email],
     ["phone", state.phone],
     ["location", state.location],
     ["website", state.website],
   ] as const;
+  const showContact = contactParts.some(([, value]) => Boolean(value));
 
   return (
     <>
-      <h1 className={cn("resume-name resume-preview-target", activeTarget === "field-name" && "resume-preview-active")} {...previewTargetProps("field-name", onTargetSelect)}>{state.name || "Your Name"}</h1>
-      {state.title ? <div className={cn("resume-title resume-preview-target", activeTarget === "field-title" && "resume-preview-active")} {...previewTargetProps("field-title", onTargetSelect)}>{state.title}</div> : null}
-      {contactParts.some(([, value]) => Boolean(value)) ? (
+      <InlineText
+        as="h1"
+        editable={editable}
+        value={state.name || (editable ? "" : "Your Name")}
+        placeholder="Your Name"
+        onCommit={(value) => onEditField?.("name", value)}
+        className={cn("resume-name resume-preview-target", activeTarget === "field-name" && "resume-preview-active")}
+        {...(editable ? {} : previewTargetProps("field-name", onTargetSelect))}
+      />
+      {state.title ? (
+        <InlineText
+          as="div"
+          editable={editable}
+          value={state.title}
+          placeholder="Title / role"
+          onCommit={(value) => onEditField?.("title", value)}
+          className={cn("resume-title resume-preview-target", activeTarget === "field-title" && "resume-preview-active")}
+          {...(editable ? {} : previewTargetProps("field-title", onTargetSelect))}
+        />
+      ) : null}
+      {showContact ? (
         <div className="resume-contact">
           {contactParts.map(([field, value]) => (
             <ContactPart
@@ -150,34 +297,74 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect 
               value={value}
               active={activeTarget === `field-${field}`}
               onTargetSelect={onTargetSelect}
+              editable={editable}
+              onEditField={onEditField}
             />
           ))}
         </div>
       ) : null}
-      {state.summary ? <p className={cn("resume-lead resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")} data-resume-guide-label="Summary" {...previewTargetProps("field-summary", onTargetSelect)}>{state.summary}</p> : null}
+      {state.summary ? (
+        <InlineText
+          as="p"
+          editable={editable}
+          value={state.summary}
+          placeholder="Professional summary"
+          multiline
+          onCommit={(value) => onEditField?.("summary", value)}
+          data-resume-guide-label="Summary"
+          className={cn("resume-lead resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")}
+          {...(editable ? {} : previewTargetProps("field-summary", onTargetSelect))}
+        />
+      ) : null}
       {state.sectionOrder.map((section) => (
-        <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />
+        <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} editable={editable} onEditField={onEditField} onEditSectionTitle={onEditSectionTitle} onEditEntry={onEditEntry} />
       ))}
     </>
   );
 }
+
+const CONTACT_PLACEHOLDERS = {
+  email: "email@example.com",
+  phone: "(555) 123-4567",
+  location: "City, ST",
+  website: "linkedin.com/in/you",
+} as const;
 
 function ContactPart({
   field,
   value,
   active,
   onTargetSelect,
+  editable,
+  onEditField,
 }: {
   field: "email" | "phone" | "location" | "website";
   value: string;
   active: boolean;
   onTargetSelect?: (targetId: string) => void;
+  editable?: boolean;
+  onEditField?: (field: string, value: string) => void;
 }) {
   if (!value) return null;
 
   const targetId = `field-${field}`;
   const className = cn("resume-preview-target", active && "resume-preview-active");
   const href = field === "location" ? undefined : contactHref(field, value);
+
+  // While editing, an existing contact detail is a plain editable span (a link
+  // would swallow the click). Adding a missing detail happens in the form.
+  if (editable) {
+    return (
+      <InlineText
+        as="span"
+        editable
+        value={value}
+        placeholder={CONTACT_PLACEHOLDERS[field]}
+        className={className}
+        onCommit={(next) => onEditField?.(field, next)}
+      />
+    );
+  }
 
   if (!href) {
     return <span className={className} {...previewTargetProps(targetId, onTargetSelect)}>{value}</span>;
@@ -196,12 +383,24 @@ function ContactPart({
   );
 }
 
-function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSelect }: ResumePreviewProps & { section: string }) {
+function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry }: ResumePreviewProps & { section: string }) {
   const sectionActive =
     activeTarget === `section-title-${section}` ||
     activeTarget === `field-${section}` ||
     activeTarget?.startsWith(`field-${section}-`);
   const title = getSectionTitle(state, section).trim();
+  const editableHeading = title && section !== "skills" ? (
+    <InlineText
+      as="h2"
+      editable={editable}
+      value={title}
+      placeholder="Section heading"
+      onCommit={(value) => onEditSectionTitle?.(section, value)}
+      data-resume-guide-label={title}
+      className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")}
+      {...(editable ? {} : previewTargetProps(`section-title-${section}`, onTargetSelect))}
+    />
+  ) : null;
   if (section === "skills") {
     const printBreakTarget = `section:${section}`;
     const lines = state.skills
@@ -215,25 +414,36 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
         data-resume-guide-label={title ? `${title} · Skills` : "Skills"}
         data-resume-print-section={section}
         style={printBreakStyle(printBreakTarget, printBreaks)}
-        {...previewTargetProps("field-skills", onTargetSelect)}
+        {...(editable ? {} : previewTargetProps("field-skills", onTargetSelect))}
       >
-        {title ? <h2 className="resume-section-title">{title}</h2> : null}
-        <div>
-          {lines.map((line) => {
+        {title ? (
+          <InlineText
+            as="h2"
+            editable={editable}
+            value={title}
+            placeholder="Skills"
+            onCommit={(value) => onEditSectionTitle?.(section, value)}
+            className="resume-section-title"
+          />
+        ) : null}
+        <EditableList
+          editable={editable}
+          items={lines}
+          containerTag="div"
+          itemTag="div"
+          itemClassName="resume-skill-line"
+          onCommit={(items) => onEditField?.("skills", items.join("\n"))}
+          renderItem={(line) => {
             const index = line.indexOf(":");
-            return (
-              <div className="resume-skill-line" key={line}>
-                {index > -1 ? (
-                  <>
-                    <span className="resume-skill-cat">{line.slice(0, index).trim()}:</span> {line.slice(index + 1).trim()}
-                  </>
-                ) : (
-                  line
-                )}
-              </div>
+            return index > -1 ? (
+              <>
+                <span className="resume-skill-cat">{line.slice(0, index).trim()}:</span> {line.slice(index + 1).trim()}
+              </>
+            ) : (
+              line
             );
-          })}
-        </div>
+          }}
+        />
       </section>
     );
   }
@@ -252,31 +462,59 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
       data-resume-section-has-heading={title ? "true" : "false"}
       style={printBreakStyle(printBreakTarget, printBreaks)}
     >
-      {title ? (
-        <h2 className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")} data-resume-guide-label={title} {...previewTargetProps(`section-title-${section}`, onTargetSelect)}>{title}</h2>
-      ) : null}
+      {editableHeading}
       {entries.map(({ entry, originalIndex }) => (
         <div
           className={cn("resume-entry resume-preview-target", activeTarget?.startsWith(`field-${section}-${originalIndex}-`) && "resume-preview-active", hasPrintBreak(`entry:${section}:${originalIndex}`, printBreaks) && "resume-print-break-before")}
-          key={`${entry.title}-${entry.subtitle}-${originalIndex}`}
+          key={`${section}-${originalIndex}`}
           data-resume-entry-section={section}
           data-resume-entry-index={originalIndex}
           data-resume-print-entry={`${section}:${originalIndex}`}
           data-resume-guide-label={[title, entry.title || entry.subtitle || `Entry ${originalIndex + 1}`].filter(Boolean).join(" · ")}
           style={printBreakStyle(`entry:${section}:${originalIndex}`, printBreaks)}
-          {...previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect)}
+          {...(editable ? {} : previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect))}
         >
           <div className="resume-entry-head">
-            <div>{entry.title ? <span className="resume-entry-role">{entry.title}</span> : null}</div>
-            {entry.meta ? <div className="resume-entry-meta">{entry.meta}</div> : null}
+            <div>
+              {entry.title ? (
+                <InlineText
+                  as="span"
+                  editable={editable}
+                  value={entry.title}
+                  placeholder="Role / title"
+                  className="resume-entry-role"
+                  onCommit={(value) => onEditEntry?.(section, originalIndex, "title", value)}
+                />
+              ) : null}
+            </div>
+            {entry.meta ? (
+              <InlineText
+                as="div"
+                editable={editable}
+                value={entry.meta}
+                placeholder="Dates / details"
+                className="resume-entry-meta"
+                onCommit={(value) => onEditEntry?.(section, originalIndex, "meta", value)}
+              />
+            ) : null}
           </div>
-          {entry.subtitle ? <div className="resume-entry-sub">{entry.subtitle}</div> : null}
+          {entry.subtitle ? (
+            <InlineText
+              as="div"
+              editable={editable}
+              value={entry.subtitle}
+              placeholder="Organization / context"
+              className="resume-entry-sub"
+              onCommit={(value) => onEditEntry?.(section, originalIndex, "subtitle", value)}
+            />
+          ) : null}
           {bulletsFrom(entry.details).length ? (
-            <ul className="resume-bullets">
-              {bulletsFrom(entry.details).map((bullet) => (
-                <li key={bullet}>{bullet}</li>
-              ))}
-            </ul>
+            <EditableList
+              editable={editable}
+              items={bulletsFrom(entry.details)}
+              className="resume-bullets"
+              onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n"))}
+            />
           ) : null}
         </div>
       ))}

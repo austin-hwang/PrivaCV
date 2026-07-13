@@ -335,6 +335,31 @@
   box-shadow: 0 0 0 3px rgb(14 165 233 / 22%);
 }
 
+/* Inline (WYSIWYG) editing: text runs on the sheet become directly editable.
+   Screen-only affordances; neutralized in the print block below. */
+.resume-editable {
+  cursor: text;
+  border-radius: 3px;
+  outline: none;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.resume-editable:hover {
+  box-shadow: 0 0 0 1px rgb(14 165 233 / 30%);
+}
+
+.resume-editable:focus,
+.resume-editable:focus-within {
+  background: rgb(14 165 233 / 8%);
+  box-shadow: 0 0 0 2px rgb(14 165 233 / 55%);
+}
+
+.resume-editable:empty::before,
+.resume-editable-empty::before {
+  content: attr(data-placeholder);
+  color: #9aa3af;
+}
+
 .resume-preview-section-active:not(:has(.resume-preview-active)) {
   border-radius: 2px;
   box-shadow: 0 0 0 3px rgb(14 165 233 / 14%);
@@ -439,6 +464,17 @@
     cursor: default;
     background: transparent !important;
     box-shadow: none !important;
+  }
+
+  /* Inline-edit affordances and empty-field placeholders never print. */
+  .resume-editable {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .resume-editable:empty::before,
+  .resume-editable-empty::before {
+    content: "" !important;
   }
 
   .resume-page-guide {
