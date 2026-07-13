@@ -41,22 +41,25 @@ export function FieldGroup({
       data-field-group={groupId}
       className={cn("scroll-mt-32 border-b transition-colors last:border-b-0 lg:scroll-mt-16", collapsed ? "pb-3" : "pb-5", className)}
     >
+      {/* The collapse toggle lives on the RIGHT so the title (and the fields
+          below it) share one flush-left edge — a left chevron would indent the
+          title past its own content and look misaligned. */}
       <div className={cn("flex items-center justify-between gap-3", collapsed ? "mb-0" : "mb-3")}>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
+        <div className="flex shrink-0 items-center gap-1">
+          {actions}
           {collapsible ? (
             <button
               type="button"
               onClick={onToggleCollapsed}
               aria-expanded={!collapsed}
               aria-label={collapsed ? "Expand section" : "Collapse section"}
-              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ChevronRight className={cn("size-4 transition-transform", !collapsed && "rotate-90")} />
             </button>
           ) : null}
-          <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
         </div>
-        {actions}
       </div>
       <div className={cn("space-y-3", collapsed && "hidden")}>{children}</div>
     </section>

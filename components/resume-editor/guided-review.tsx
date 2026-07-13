@@ -64,6 +64,8 @@ export function GuidedReview({
   onFinish,
   finishLabel = "Done",
   finishDisabled = false,
+  modal = false,
+  scrollLockSelector,
 }: {
   open: boolean;
   title: string;
@@ -74,6 +76,10 @@ export function GuidedReview({
   onFinish: () => void;
   finishLabel?: string;
   finishDisabled?: boolean;
+  /** Dim + block everything except the highlighted region and this card. */
+  modal?: boolean;
+  /** While modal, lock this scroll container so the active field can't scroll away. */
+  scrollLockSelector?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   // Only animate the ring when moving between steps. During scrolling the ring
@@ -235,14 +241,44 @@ export function GuidedReview({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, index, steps.length, onClose, onIndexChange]);
 
+  // A modal tour locks its scroll container so the active field can't be
+  // scrolled out of view (which is what detached the ring before).
+  useEffect(() => {
+    if (!open || !modal || !scrollLockSelector) return;
+    const el = document.querySelector<HTMLElement>(scrollLockSelector);
+    if (!el) return;
+    const previous = el.style.overflow;
+    el.style.overflow = "hidden";
+    return () => {
+      el.style.overflow = previous;
+    };
+  }, [open, modal, scrollLockSelector]);
+
   if (!open || !mounted || !step) return null;
   const isLast = index === steps.length - 1;
   const returnToTarget = () => {
     resolveRegionEl(step.targetId)?.scrollIntoView({ block: "center", behavior: "smooth" });
   };
 
+  // A modal tour dims and blocks everything except the highlighted region and
+  // the card. Four panes around the region leave a "hole" so the active field
+  // stays clickable and editable while clicks elsewhere are swallowed.
+  const HOLE = 6;
+  const backdropClass = "pointer-events-auto absolute bg-foreground/40 dark:bg-background/70";
+  const backdrop = !modal ? null : rect ? (
+    <div data-guided-review-backdrop aria-hidden="true" className="pointer-events-none fixed inset-0">
+      <div className={backdropClass} style={{ top: 0, left: 0, right: 0, height: Math.max(0, rect.top - HOLE) }} />
+      <div className={backdropClass} style={{ top: rect.bottom + HOLE, left: 0, right: 0, bottom: 0 }} />
+      <div className={backdropClass} style={{ top: Math.max(0, rect.top - HOLE), left: 0, width: Math.max(0, rect.left - HOLE), height: rect.height + HOLE * 2 }} />
+      <div className={backdropClass} style={{ top: Math.max(0, rect.top - HOLE), left: rect.right + HOLE, right: 0, height: rect.height + HOLE * 2 }} />
+    </div>
+  ) : (
+    <div className={cn(backdropClass, "inset-0")} data-guided-review-backdrop aria-hidden="true" />
+  );
+
   return createPortal(
     <div className="app-chrome pointer-events-none fixed inset-0 z-[60]" aria-hidden={false}>
+      {backdrop}
       {rect ? (
         <div
           data-guided-review-highlight

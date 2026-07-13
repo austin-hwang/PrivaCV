@@ -28,13 +28,11 @@ import {
 import {
   EXPORT_CHECKPOINT_KEY,
   IMPORT_REVIEW_KEY,
-  MAX_VERSION_HISTORY,
   STORAGE_KEY,
   VERSION_HISTORY_BACKUP_FORMAT,
   VERSION_HISTORY_BACKUP_VERSION,
   VERSION_HISTORY_KEY,
   buildImportReview,
-  formatCheckpointTime,
   importReviewProgress,
   importReviewDraftFingerprint,
   mergeVersionHistory,
@@ -45,13 +43,11 @@ import {
   storedImportReview,
   versionHistoryFingerprint,
   versionLabel,
-  versionReplacementCandidate,
   type ExportCheckpoint,
   type ImportReviewState,
   type RecoveryPoint,
   type RestoredVersionSummary,
   type ToastState,
-  type VersionCompareTarget,
   type VersionHistoryBackup,
   type VersionHistoryItem,
 } from "@/lib/resume-workspace";
@@ -185,7 +181,6 @@ export function useResumeEditor() {
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
   const [versionDraftLabel, setVersionDraftLabel] = useState("");
   const [versionDraftNote, setVersionDraftNote] = useState("");
-  const [versionCompareTarget, setVersionCompareTarget] = useState<VersionCompareTarget | null>(null);
   const [draftSourceVersionId, setDraftSourceVersionId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [undoableRemoval, setUndoableRemoval] = useState<UndoableChange | null>(null);
@@ -222,24 +217,7 @@ export function useResumeEditor() {
         : [],
     [exportCheckpoint, exportIsCurrent, state],
   );
-  const comparedBaseVersion = useMemo(
-    () => versionHistory.find((item) => item.id === versionCompareTarget?.baseId) ?? null,
-    [versionCompareTarget?.baseId, versionHistory],
-  );
-  const comparedTargetVersion = useMemo(
-    () =>
-      versionCompareTarget?.targetId && versionCompareTarget.targetId !== "current"
-        ? versionHistory.find((item) => item.id === versionCompareTarget.targetId) ?? null
-        : null,
-    [versionCompareTarget?.targetId, versionHistory],
-  );
-  const comparedTargetState = versionCompareTarget?.targetId === "current" ? state : comparedTargetVersion?.state;
-  const versionCompareUsesCurrent = versionCompareTarget?.targetId === "current";
   const currentVersionHistoryFingerprint = exportFingerprint;
-  const versionToReplaceOnSave = useMemo(
-    () => versionReplacementCandidate(versionHistory, currentVersionHistoryFingerprint),
-    [currentVersionHistoryFingerprint, versionHistory],
-  );
   const existingVersionForSave = useMemo(
     () => versionHistory.find((item) => versionHistoryFingerprint(item) === currentVersionHistoryFingerprint) ?? null,
     [currentVersionHistoryFingerprint, versionHistory],
@@ -248,27 +226,8 @@ export function useResumeEditor() {
     () =>
       historyBackupToImport
         ? mergeVersionHistory(versionHistory, historyBackupToImport)
-        : { checkpoints: [], overflow: [], incomingUnique: [], matchingCheckpoints: [] },
+        : { checkpoints: [], incomingUnique: [], matchingCheckpoints: [] },
     [historyBackupToImport, versionHistory],
-  );
-  const versionChanges = useMemo(
-    () =>
-      comparedBaseVersion && comparedTargetState
-        ? exportChangeSummary(comparedBaseVersion.state, comparedTargetState)
-        : [],
-    [comparedBaseVersion, comparedTargetState],
-  );
-  const versionCompareDescription = useMemo(() => {
-    if (!comparedBaseVersion) return "Compare a saved checkpoint with the current resume or another saved checkpoint.";
-    const base = `${comparedBaseVersion.label} saved ${formatCheckpointTime(comparedBaseVersion.savedAt)}`;
-    if (versionCompareUsesCurrent) return `${base} compared with the current resume.`;
-    if (!comparedTargetVersion) return base;
-    return `${base} compared with ${comparedTargetVersion.label} saved ${formatCheckpointTime(comparedTargetVersion.savedAt)}.`;
-  }, [comparedBaseVersion, comparedTargetVersion, versionCompareUsesCurrent]);
-  const versionCompareBeforeLabel = versionCompareUsesCurrent ? "Saved" : "Base";
-  const versionCompareAfterLabel = versionCompareUsesCurrent ? "Current" : "Compared";
-  const versionCompareOpen = Boolean(
-    comparedBaseVersion && (versionCompareUsesCurrent || comparedTargetVersion),
   );
   const importReviewTargets = useMemo(
     () => new Set(importReview?.items.map((item) => item.targetId) ?? []),
@@ -342,32 +301,18 @@ export function useResumeEditor() {
     setVersionSaveOpen(true);
   };
 
-  const saveVersion = (backUpBeforeReplacement = false) => {
+  const saveVersion = () => {
     if (!hasAnyContent(state)) {
       flash("Add resume details first");
       return;
     }
+    // Every save is its own checkpoint now — no cap and no fingerprint-based
+    // replacement. People differentiate near-identical saves with the label +
+    // note, so two saves of similar content each keep their own entry.
     const fingerprint = resumeExportFingerprint(state);
-    const historyFingerprint = fingerprint;
     const label = versionDraftLabel.trim() || versionLabel(state);
     const note = versionDraftNote.trim();
-    const replacement = versionReplacementCandidate(versionHistory, historyFingerprint);
-    // A full local timeline used to make replacement easy to acknowledge but
-    // still easy to regret. The safe action downloads the complete current
-    // history before the oldest item falls out of the browser-only limit.
-    if (backUpBeforeReplacement && replacement) {
-      const backup: VersionHistoryBackup = {
-        format: VERSION_HISTORY_BACKUP_FORMAT,
-        version: VERSION_HISTORY_BACKUP_VERSION,
-        exportedAt: new Date().toISOString(),
-        checkpoints: versionHistory,
-      };
-      downloadJsonFile(backup, `${safeResumeFilename(state.name || "resume")}-checkpoints.json`);
-    }
-    const derivedFrom =
-      versionHistory.find((item) => item.id === draftSourceVersionId && versionHistoryFingerprint(item) !== historyFingerprint) ??
-      versionHistory.find((item) => versionHistoryFingerprint(item) !== historyFingerprint) ??
-      null;
+    const derivedFrom = versionHistory.find((item) => item.id === draftSourceVersionId) ?? null;
     const entry: VersionHistoryItem = {
       id: `${Date.now()}`,
       savedAt: new Date().toISOString(),
@@ -379,16 +324,10 @@ export function useResumeEditor() {
       state: normalizeResume(state),
       importReview,
     };
-    setVersionHistory((current) => [entry, ...current.filter((item) => versionHistoryFingerprint(item) !== historyFingerprint)].slice(0, MAX_VERSION_HISTORY));
+    setVersionHistory((current) => [entry, ...current]);
     setDraftSourceVersionId(entry.id);
     setVersionSaveOpen(false);
-    flash(
-      replacement
-        ? backUpBeforeReplacement
-          ? `Backed up and replaced ${replacement.label}`
-          : `Saved locally and replaced ${replacement.label}`
-        : "Version saved locally",
-    );
+    flash("Version saved locally");
   };
 
   const restoreVersion = (item: VersionHistoryItem) => {
@@ -410,7 +349,6 @@ export function useResumeEditor() {
     const deleted = versionHistory.find((item) => item.id === id) ?? null;
     setVersionHistory((current) => current.filter((item) => item.id !== id));
     setDeletedVersion(deleted);
-    if (versionCompareTarget?.baseId === id || versionCompareTarget?.targetId === id) setVersionCompareTarget(null);
     if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
     flash("Deleted saved version");
@@ -420,8 +358,7 @@ export function useResumeEditor() {
     if (!deletedVersion) return;
     setVersionHistory((current) =>
       [deletedVersion, ...current.filter((item) => item.id !== deletedVersion.id)]
-        .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime())
-        .slice(0, MAX_VERSION_HISTORY),
+        .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime()),
     );
     setDeletedVersion(null);
     flash("Restored deleted checkpoint");
@@ -432,11 +369,6 @@ export function useResumeEditor() {
     if (!target) return;
     target.focus({ preventScroll: true });
     target.scrollIntoView({ block: "center", behavior: "smooth" });
-  };
-
-  const focusFromVersionCompare = (targetId: string) => {
-    setVersionCompareTarget(null);
-    window.setTimeout(() => focusCheckTarget(targetId), 120);
   };
 
   useEffect(() => {
@@ -1117,7 +1049,6 @@ export function useResumeEditor() {
     setVersionHistory(mergedHistoryBackup.checkpoints);
     setHistoryBackupToImport(null);
     setDeletedVersion(null);
-    setVersionCompareTarget(null);
     setDraftSourceVersionId(null);
     flash(
       importedCount
@@ -1351,9 +1282,6 @@ export function useResumeEditor() {
     checks,
     clearResume,
     copyApplicationField,
-    comparedBaseVersion,
-    comparedTargetState,
-    comparedTargetVersion,
     copyPlainText,
     importFileInputRef,
     deleteVersion,
@@ -1374,7 +1302,6 @@ export function useResumeEditor() {
     failedChecks,
     focusCheckTarget,
     focusFromExportCheck,
-    focusFromVersionCompare,
     hasContent,
     historyBackupInputRef,
     historyBackupToImport,
@@ -1421,7 +1348,6 @@ export function useResumeEditor() {
     setImportReview,
     setTextReviewOpen,
     setTextImportOpen,
-    setVersionCompareTarget,
     setVersionDraftLabel,
     setVersionDraftNote,
     setVersionSaveOpen,
@@ -1442,17 +1368,10 @@ export function useResumeEditor() {
     updateField,
     updateSectionTitle,
     useExternalDraft,
-    versionChanges,
-    versionCompareAfterLabel,
-    versionCompareBeforeLabel,
-    versionCompareDescription,
-    versionCompareOpen,
-    versionCompareUsesCurrent,
     versionDraftLabel,
     versionDraftNote,
     versionHistory,
     versionSaveOpen,
-    versionToReplaceOnSave,
     visibleRestoredVersionSummary,
   };
 }

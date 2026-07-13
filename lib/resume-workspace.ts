@@ -19,7 +19,6 @@ export const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 export const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
 export const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
 export const VERSION_HISTORY_BACKUP_VERSION = 1;
-export const MAX_VERSION_HISTORY = 5;
 export const CHANGE_PREVIEW_LIMIT = 4;
 export const REPEATABLE_SECTIONS = ["experience", "education", "projects"] as const;
 
@@ -136,14 +135,8 @@ export type VersionHistoryBackup = {
 
 export type VersionHistoryMerge = {
   checkpoints: VersionHistoryItem[];
-  overflow: VersionHistoryItem[];
   incomingUnique: VersionHistoryItem[];
   matchingCheckpoints: VersionHistoryItem[];
-};
-
-export type VersionCompareTarget = {
-  baseId: string;
-  targetId: "current" | string;
 };
 
 export type RestoredVersionSummary = {
@@ -341,7 +334,7 @@ export function storedImportReview(importReview: ImportReviewState): StoredImpor
   return review;
 }
 
-export function parseVersionHistory(value: string | null, limit = MAX_VERSION_HISTORY): VersionHistoryItem[] {
+export function parseVersionHistory(value: string | null, limit = Number.POSITIVE_INFINITY): VersionHistoryItem[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
@@ -423,8 +416,7 @@ export function mergeVersionHistory(existing: VersionHistoryItem[], incoming: Ve
     });
 
   return {
-    checkpoints: uniqueHistory.slice(0, MAX_VERSION_HISTORY),
-    overflow: uniqueHistory.slice(MAX_VERSION_HISTORY),
+    checkpoints: uniqueHistory,
     incomingUnique,
     matchingCheckpoints,
   };
@@ -466,12 +458,6 @@ export function versionContentBadges(state: ResumeState) {
   if (skillCount) badges.push(`${skillCount} ${skillCount === 1 ? "skill line" : "skill lines"}`);
 
   return badges.length ? badges : ["Empty draft"];
-}
-
-export function versionReplacementCandidate(versions: VersionHistoryItem[], fingerprint: string) {
-  if (versions.some((item) => versionHistoryFingerprint(item) === fingerprint)) return null;
-  if (versions.length < MAX_VERSION_HISTORY) return null;
-  return versions[versions.length - 1] ?? null;
 }
 
 export function entryTargetId(section: string, entry: ResumeEntry, index: number) {

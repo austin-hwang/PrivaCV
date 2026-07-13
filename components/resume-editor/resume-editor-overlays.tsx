@@ -28,10 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { VersionChangeRow } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import { applicationCopyGroups, plainTextStats } from "@/lib/resume";
-import { MAX_VERSION_HISTORY, formatCheckpointTime } from "@/lib/resume-workspace";
 
 export function ResumeEditorOverlays({
   editor,
@@ -43,9 +41,6 @@ export function ResumeEditorOverlays({
   const {
     applicationCopyOpen,
     checks,
-    comparedBaseVersion,
-    comparedTargetState,
-    comparedTargetVersion,
     copyPlainText,
     importFileInputRef,
     copyApplicationField,
@@ -57,7 +52,6 @@ export function ResumeEditorOverlays({
     pendingExportFormat,
     failedChecks,
     focusFromExportCheck,
-    focusFromVersionCompare,
     historyBackupInputRef,
     historyBackupToImport,
     importReview,
@@ -71,14 +65,12 @@ export function ResumeEditorOverlays({
     openVersionHistoryBackup,
     plainText,
     completeImportReview,
-    restoreVersion,
     saveVersion,
     setExportCheckOpen,
     setApplicationCopyOpen,
     setHistoryBackupToImport,
     setTextReviewOpen,
     setTextImportOpen,
-    setVersionCompareTarget,
     setVersionDraftLabel,
     setVersionDraftNote,
     setVersionSaveOpen,
@@ -86,17 +78,9 @@ export function ResumeEditorOverlays({
     textImportOpen,
     toast,
     undoRemoval,
-    versionChanges,
-    versionCompareAfterLabel,
-    versionCompareBeforeLabel,
-    versionCompareDescription,
-    versionCompareOpen,
-    versionCompareUsesCurrent,
     versionDraftLabel,
     versionDraftNote,
-    versionHistory,
     versionSaveOpen,
-    versionToReplaceOnSave,
   } = editor;
 
   const nextImportReviewItem = importReview?.items.find(
@@ -171,7 +155,7 @@ export function ResumeEditorOverlays({
             </DialogDescription>
           </DialogHeader>
           {plainText ? (
-            <Textarea value={plainText} readOnly className="min-h-[360px] resize-y whitespace-pre font-mono text-xs leading-relaxed" />
+            <Textarea value={plainText} readOnly className="min-h-[300px] w-full min-w-0 resize-y overflow-auto whitespace-pre font-mono text-xs leading-relaxed" />
           ) : (
             <Alert>
               <AlertCircle className="h-4 w-4" />
@@ -181,7 +165,7 @@ export function ResumeEditorOverlays({
           )}
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">{plainText ? plainTextStats(plainText) : "0 words"}</span>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" onClick={requestDocxExport} disabled={!plainText}>
                 <FileText /> Download .docx
               </Button>
@@ -203,7 +187,7 @@ export function ResumeEditorOverlays({
           if (!open) setExpandedApplicationFields(new Set());
         }}
       >
-        <DialogContent className="max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
           <DialogHeader>
             <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Application copy</DialogDescription>
             <DialogTitle>Copy exactly what each portal asks for</DialogTitle>
@@ -297,53 +281,33 @@ export function ResumeEditorOverlays({
                 onChange={(event) => setVersionDraftLabel(event.target.value)}
               />
             </label>
-            {versionToReplaceOnSave ? (
-              <Alert className="border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>History is full</AlertTitle>
-                <AlertDescription>
-                  Saving a new checkpoint will replace {versionToReplaceOnSave.label}, saved{" "}
-                  {formatCheckpointTime(versionToReplaceOnSave.savedAt)}. The recommended action downloads a complete
-                  backup first, so every current checkpoint remains recoverable.
-                </AlertDescription>
-              </Alert>
-            ) : existingVersionForSave ? (
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>Note <span className="font-normal normal-case text-muted-foreground/80">— optional, what makes this version different</span></span>
+              <Textarea
+                value={versionDraftNote}
+                placeholder="e.g. Tailored for the Stripe backend role; trimmed to one page."
+                className="min-h-20"
+                onChange={(event) => setVersionDraftNote(event.target.value)}
+              />
+            </label>
+            {existingVersionForSave ? (
               <Alert>
                 <History className="h-4 w-4" />
-                <AlertTitle>Matching checkpoint found</AlertTitle>
+                <AlertTitle>A checkpoint with identical content exists</AlertTitle>
                 <AlertDescription>
-                  Saving will refresh {existingVersionForSave.label} instead of using another local history slot.
+                  “{existingVersionForSave.label}” already holds this exact resume. Saving keeps both — use the name or note to tell them apart.
                 </AlertDescription>
               </Alert>
-            ) : (
-              <Alert>
-                <History className="h-4 w-4" />
-                <AlertTitle>{MAX_VERSION_HISTORY - versionHistory.length} local slots available</AlertTitle>
-                <AlertDescription>
-                  PrivaCV keeps the newest {MAX_VERSION_HISTORY} checkpoints in this browser.
-                </AlertDescription>
-              </Alert>
-            )}
+            ) : null}
             <DialogFooter className="items-center sm:justify-between">
               <span className="text-xs text-muted-foreground">Saved only in this browser.</span>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setVersionSaveOpen(false)}>
                   Cancel
                 </Button>
-                {versionToReplaceOnSave ? (
-                  <>
-                    <Button type="submit" variant="outline">
-                      <Save /> Save without backup
-                    </Button>
-                    <Button type="button" onClick={() => saveVersion(true)}>
-                      <Download /> Back up &amp; Save
-                    </Button>
-                  </>
-                ) : (
-                  <Button type="submit">
-                    <Save /> Save Checkpoint
-                  </Button>
-                )}
+                <Button type="submit">
+                  <Save /> Save checkpoint
+                </Button>
               </div>
             </DialogFooter>
           </form>
@@ -369,7 +333,7 @@ export function ResumeEditorOverlays({
                     : "No new checkpoints to add"}
                 </AlertTitle>
                 <AlertDescription>
-                  PrivaCV keeps the newest {MAX_VERSION_HISTORY} unique checkpoints. After merging, {mergedHistoryBackup.checkpoints.length} will remain in this browser.
+                  Unique checkpoints are merged into this browser&apos;s local history. After merging, {mergedHistoryBackup.checkpoints.length} will be available here.
                 </AlertDescription>
               </Alert>
               <div className="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md border bg-muted/30 p-3">
@@ -389,31 +353,11 @@ export function ResumeEditorOverlays({
                     {mergedHistoryBackup.matchingCheckpoints.length} {mergedHistoryBackup.matchingCheckpoints.length === 1 ? "checkpoint already matches" : "checkpoints already match"} this browser
                   </AlertTitle>
                   <AlertDescription className="space-y-2">
-                    <span>Matching drafts will not use another local history slot.</span>
+                    <span>Matching drafts are kept as-is instead of duplicated.</span>
                     <span className="flex flex-wrap gap-2">
                       {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
-                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-sky-300 bg-background text-foreground">
+                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-sky-300 bg-background text-foreground dark:border-sky-500/50">
                           {checkpoint.label}
-                        </Badge>
-                      ))}
-                    </span>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              {mergedHistoryBackup.overflow.length ? (
-                <Alert className="border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>
-                    {mergedHistoryBackup.overflow.length} older {mergedHistoryBackup.overflow.length === 1 ? "checkpoint will" : "checkpoints will"} stay only in this backup
-                  </AlertTitle>
-                  <AlertDescription className="space-y-2">
-                    <span>
-                      These drafts fall outside this browser&apos;s {MAX_VERSION_HISTORY}-checkpoint limit. Keep the backup file to retain them.
-                    </span>
-                    <span className="flex flex-wrap gap-2">
-                      {mergedHistoryBackup.overflow.map((checkpoint) => (
-                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-amber-300 bg-background text-foreground">
-                          {checkpoint.label} · {formatCheckpointTime(checkpoint.savedAt)}
                         </Badge>
                       ))}
                     </span>
@@ -431,80 +375,6 @@ export function ResumeEditorOverlays({
               <Button type="button" onClick={importVersionHistoryBackup}>
                 <History /> Add checkpoints
               </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={versionCompareOpen} onOpenChange={(open) => !open && setVersionCompareTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Version history</DialogDescription>
-            <DialogTitle>{versionCompareUsesCurrent ? "Compare saved checkpoint" : "Compare saved versions"}</DialogTitle>
-            <DialogDescription>{versionCompareDescription}</DialogDescription>
-          </DialogHeader>
-
-          {comparedBaseVersion && comparedTargetState ? (
-            <div className="grid max-h-[56vh] gap-3 overflow-y-auto pr-1">
-              {versionChanges.length ? (
-                <div className="grid gap-2">
-                  {versionChanges.map((change) => (
-                    <VersionChangeRow
-                      key={change.id}
-                      change={change}
-                      beforeLabel={versionCompareBeforeLabel}
-                      afterLabel={versionCompareAfterLabel}
-                      onSelect={versionCompareUsesCurrent ? () => focusFromVersionCompare(change.targetId) : undefined}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Alert>
-                  <Check className="h-4 w-4" />
-                  <AlertTitle>No resume differences found</AlertTitle>
-                  <AlertDescription>
-                    {versionCompareUsesCurrent
-                      ? "The current resume matches this saved checkpoint."
-                      : "These saved checkpoints contain the same resume content."}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          ) : null}
-
-          <DialogFooter className="items-center sm:justify-between">
-            <span className="text-xs text-muted-foreground">
-              {versionChanges.length
-                ? `${versionChanges.length} changed ${versionChanges.length === 1 ? "area" : "areas"}`
-                : "Saved only in this browser"}
-            </span>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setVersionCompareTarget(null)}>
-                Close
-              </Button>
-              {comparedTargetVersion ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    restoreVersion(comparedTargetVersion);
-                    setVersionCompareTarget(null);
-                  }}
-                >
-                  <Undo2 /> Restore Compared
-                </Button>
-              ) : null}
-              {comparedBaseVersion ? (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    restoreVersion(comparedBaseVersion);
-                    setVersionCompareTarget(null);
-                  }}
-                >
-                  <Undo2 /> {versionCompareUsesCurrent ? "Restore Saved" : "Restore Base"}
-                </Button>
-              ) : null}
             </div>
           </DialogFooter>
         </DialogContent>

@@ -91,15 +91,23 @@ export function MenuContent({ children, className, align = "end" }: { children: 
   const { open, setOpen, contentId, triggerId } = useMenu();
   const contentRef = React.useRef<HTMLDivElement>(null);
 
+  // Only visible items are focusable — some items are responsively hidden
+  // (e.g. mobile-only actions with `sm:hidden`) yet remain in the DOM.
+  const focusableItems = (root: HTMLElement) =>
+    Array.from(root.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')).filter(
+      (item) => item.offsetParent !== null,
+    );
+
   React.useEffect(() => {
     if (!open) return;
-    contentRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
+    const first = contentRef.current ? focusableItems(contentRef.current)[0] : undefined;
+    first?.focus();
   }, [open]);
 
   if (!open) return null;
 
   const moveFocus = (current: HTMLElement, direction: 1 | -1) => {
-    const items = Array.from(current.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'));
+    const items = focusableItems(current);
     const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
     items[(currentIndex + direction + items.length) % items.length]?.focus();
   };
@@ -119,7 +127,7 @@ export function MenuContent({ children, className, align = "end" }: { children: 
           moveFocus(event.currentTarget, -1);
         } else if (event.key === "Home" || event.key === "End") {
           event.preventDefault();
-          const items = event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)');
+          const items = focusableItems(event.currentTarget);
           items[event.key === "Home" ? 0 : items.length - 1]?.focus();
         } else if (event.key === "Escape") {
           event.preventDefault();
@@ -145,11 +153,13 @@ export function MenuItem({
   onSelect,
   disabled,
   destructive,
+  className,
 }: {
   children: React.ReactNode;
   onSelect?: () => void;
   disabled?: boolean;
   destructive?: boolean;
+  className?: string;
 }) {
   const { setOpen } = useMenu();
   return (
@@ -160,6 +170,7 @@ export function MenuItem({
       className={cn(
         "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:bg-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
         destructive ? "text-destructive hover:bg-destructive/10 [&_svg]:text-destructive" : "hover:bg-accent hover:text-accent-foreground",
+        className,
       )}
       onClick={() => {
         setOpen(false);

@@ -21,6 +21,7 @@ import {
   Keyboard,
   Loader2,
   MessageSquarePlus,
+  Moon,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
@@ -39,7 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle, toggleTheme } from "@/components/theme-toggle";
 import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
 import { Input } from "@/components/ui/input";
 import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
@@ -145,6 +146,9 @@ export function ResumeEditor() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [designAdvancedOpen, setDesignAdvancedOpen] = useState(false);
+  // Mirrors the theme so the mobile ⋯ menu item can name the opposite mode.
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
+  useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
   const {
     addCustomSection,
     addBuiltinSection,
@@ -159,7 +163,6 @@ export function ResumeEditor() {
     exportIsCurrent,
     focusCheckTarget,
     focusFromExportCheck,
-    focusFromVersionCompare,
     hasContent,
     historyBackupInputRef,
     importReview,
@@ -450,12 +453,6 @@ export function ResumeEditor() {
     revealTarget(targetId);
     window.setTimeout(() => focusFromExportCheck(targetId), 0);
   };
-  const focusEditorFromVersionCompare = (targetId: string) => {
-    setMobileWorkspaceView("editor");
-    setToolsOpen(false);
-    revealTarget(targetId);
-    window.setTimeout(() => focusFromVersionCompare(targetId), 0);
-  };
 
   // Keep common tailoring actions within reach for keyboard-first editing.
   // The shortcut is deliberately scoped to the form editor so it cannot steal
@@ -684,9 +681,13 @@ export function ResumeEditor() {
             </Badge>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <ThemeToggle />
+            {/* Feedback + theme toggle are desktop-only in the bar; on mobile
+                they live in the ⋯ menu so the title never gets crowded out. */}
+            <span className="hidden sm:inline-flex">
+              <ThemeToggle />
+            </span>
             {FEEDBACK_URL ? (
-              <Button type="button" variant="outline" asChild className="gap-2">
+              <Button type="button" variant="outline" asChild className="hidden gap-2 sm:inline-flex">
                 <a href={FEEDBACK_URL} target="_blank" rel="noreferrer" aria-label="Share feedback or vote on features (opens in a new tab)">
                   <MessageSquarePlus />
                   <span className="hidden sm:inline">Feedback</span>
@@ -706,7 +707,7 @@ export function ResumeEditor() {
                 {hasContent ? (
                   <span
                     className={cn(
-                      "inline-flex h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
+                      "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
                       checksReady ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300",
                     )}
                   >
@@ -764,7 +765,6 @@ export function ResumeEditor() {
               className="relative"
             >
               <Printer /> <span className="hidden sm:inline">Export PDF</span>
-              <span className="sm:hidden">Export</span>
               <kbd className="hidden rounded border border-primary-foreground/35 px-1 py-px text-[10px] font-medium leading-none opacity-80 2xl:inline">
                 Cmd/Ctrl P
               </kbd>
@@ -782,6 +782,14 @@ export function ResumeEditor() {
                 </Button>
               </MenuTrigger>
               <MenuContent>
+                <MenuItem className="sm:hidden" onSelect={() => setIsDarkTheme(toggleTheme())}>
+                  <Moon /> {isDarkTheme ? "Switch to light mode" : "Switch to night mode"}
+                </MenuItem>
+                {FEEDBACK_URL ? (
+                  <MenuItem className="sm:hidden" onSelect={() => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer")}>
+                    <MessageSquarePlus /> Feedback
+                  </MenuItem>
+                ) : null}
                 <MenuLabel>Import</MenuLabel>
                 <MenuItem onSelect={() => setTextImportOpen(true)}>
                   <ClipboardPaste /> Paste text
@@ -869,17 +877,13 @@ export function ResumeEditor() {
             editorCollapsed && "lg:hidden",
           )}
         >
-          {/* The section nav sits flush at the top of the pane (lg:pt-0) so it
-              can stick cleanly while scrolling. Everything that can appear
-              above it instead — the start panel, or a pre-nav banner — needs a
-              desktop-only inset so it is not flush against the header. A flow
-              spacer (not pane padding) keeps the sticky nav flush once
-              scrolled. The one case with no inset is the bare editor, where the
-              sticky nav is meant to sit against the header. */}
-          {!workspaceHasStarted || storageIssue || externalDraft || recoveryPoint || importReview || visibleRestoredVersionSummary ? (
-            <div aria-hidden className="hidden lg:block lg:h-6" />
-          ) : null}
-
+          {/* Everything that can render above the sticky section nav lives in
+              this wrapper. On desktop it adds a header gap whenever it holds
+              anything (`:not(:empty)`), and collapses to nothing when empty so
+              the nav still hugs the header. Using `:empty` (not a hand-kept list
+              of conditions) means any new banner/guide added here is spaced
+              correctly for free — this bug kept recurring with the old list. */}
+          <div className="lg:[&:not(:empty)]:pt-6">
           {!workspaceHasStarted ? (
             <StartPanel
               isImporting={isImporting}
@@ -1010,6 +1014,7 @@ export function ResumeEditor() {
               onDismiss={() => setBlankResumeGuideVisible(false)}
             />
           ) : null}
+          </div>
 
           {workspaceHasStarted ? <SectionNav items={navItems} /> : null}
 
@@ -1546,10 +1551,6 @@ export function ResumeEditor() {
         onSave={editor.openVersionSave}
         onSaveBackup={editor.saveVersionHistoryBackup}
         onOpenBackup={() => editor.historyBackupInputRef.current?.click()}
-        onCompareCurrent={(item) => {
-          setVersionsOpen(false);
-          editor.setVersionCompareTarget({ baseId: item.id, targetId: "current" });
-        }}
         onRestore={(item) => {
           editor.restoreVersion(item);
           setVersionsOpen(false);
@@ -1572,13 +1573,14 @@ export function ResumeEditor() {
         }}
         finishLabel={reviewTour?.kind === "import" ? "Finish review" : "Done"}
         finishDisabled={reviewTour?.kind === "import" && !importReviewStatus?.isComplete}
+        modal={reviewTour?.kind === "import"}
+        scrollLockSelector="#resume-editor-pane"
       />
 
       <ResumeEditorOverlays
         editor={{
           ...editor,
           focusFromExportCheck: focusEditorFromExportCheck,
-          focusFromVersionCompare: focusEditorFromVersionCompare,
         }}
       />
     </>

@@ -1031,16 +1031,13 @@ test("walks resume checks with a guided highlight tour from the tools drawer", a
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
-test("keeps a guided review recoverable when its active field scrolls out of view", async ({ page }) => {
+test("locks the editor behind a modal import review so the highlight can't scroll away", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
-  // Extra role detail below the (first-step) contact section so the editor pane
-  // scrolls well past its viewport — the contact section then leaves view for
-  // real, not just to the edge, no matter the surrounding layout.
   const experienceBullets = Array.from({ length: 12 }, (_, index) => `• Delivered measurable outcome number ${index + 1}.`).join("\n");
   await importDialog.getByLabel("Resume text").fill(
     `Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n${experienceBullets}\n\nEducation\nB.S. Mathematics | Cambridge | 2018`,
@@ -1051,30 +1048,18 @@ test("keeps a guided review recoverable when its active field scrolls out of vie
   const tour = page.getByRole("dialog", { name: /guided review/i });
   await expect(tour).toBeVisible();
   await expect(page.locator("[data-guided-review-highlight]")).toBeVisible();
+  // The modal tour dims and blocks the rest of the app.
+  await expect(page.locator("[data-guided-review-backdrop]")).toBeVisible();
 
-  // The editor has its own scroller. Moving the active contact section out of
-  // it must hide the detached ring and leave an explicit recovery path. Re-apply
-  // the scroll each poll so the tour's own settle-scroll can't quietly undo it.
-  await expect
-    .poll(async () => {
-      await page.locator("#resume-editor-pane").evaluate((pane) => {
-        pane.scrollTop = pane.scrollHeight;
-        pane.dispatchEvent(new Event("scroll", { bubbles: true }));
-      });
-      return tour.getByText(/current field is above/i).isVisible();
-    })
-    .toBe(true);
-  await expect(tour.getByText(/current field is above/i)).toBeVisible();
-  await expect(page.locator("[data-guided-review-highlight]")).toBeHidden();
-
-  // This button unmounts the instant its click returns the field to view, so
-  // wait for it, then force the click past the stability/scroll checks that
-  // would otherwise see it detach mid-action and retry until timeout.
-  const returnButton = tour.getByRole("button", { name: /return to field/i });
-  await expect(returnButton).toBeVisible();
-  await returnButton.click({ force: true });
-  await expect(tour.getByText(/current field is above/i)).toBeHidden();
+  // The editor pane is scroll-locked (overflow hidden) so a user can't scroll
+  // the active field out of view — the ring stays put, no recovery UI needed.
+  await expect(page.locator("#resume-editor-pane")).toHaveCSS("overflow-y", /hidden/);
   await expect(page.locator("[data-guided-review-highlight]")).toBeVisible();
+  await expect(tour.getByText(/current field is above/i)).toBeHidden();
+
+  // Closing the tour releases the scroll lock.
+  await tour.getByRole("button", { name: "Close guided review" }).click();
+  await expect(page.locator("#resume-editor-pane")).not.toHaveCSS("overflow-y", /hidden/);
 });
 
 test("keeps the whole page from scrolling away during import review", async ({ page }) => {
@@ -2090,24 +2075,6 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
 
   await openVersions(page);
-  await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Compare" }).click();
-  const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
-  await expect(compareDialog).toBeVisible();
-  const headerChange = compareDialog.getByRole("button", { name: /header changed/i });
-  await expect(headerChange).toBeVisible();
-  await expect(headerChange.getByText("Full name")).toBeVisible();
-  await expect(compareDialog.getByText("Experience changed")).toBeVisible();
-  await expect(compareDialog.getByText("Entry 1 Job title")).toBeVisible();
-  await expect(headerChange.getByText("Saved", { exact: true })).toBeVisible();
-  await expect(headerChange.getByText("Current", { exact: true })).toBeVisible();
-  await expect(compareDialog.getByText("Jane Doe")).toBeVisible();
-  await expect(compareDialog.getByText("Grace Hopper")).toBeVisible();
-
-  await headerChange.click();
-  await expect(page.locator("#field-name")).toBeFocused();
-  await expect(compareDialog).toBeHidden();
-
-  await openVersions(page);
   await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
   await expect(page.getByText("Checkpoint restored")).toBeVisible();
@@ -2127,13 +2094,13 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByRole("button", { name: /delete original software resume/i })).toBeVisible();
 });
 
-test("backs up the full checkpoint history before replacing its oldest local version", async ({ page }) => {
+test("keeps every checkpoint without a save limit", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
 
-  for (let index = 1; index <= 5; index += 1) {
+  for (let index = 1; index <= 7; index += 1) {
     await page
       .getByLabel("Professional Summary")
       .fill(`Tailored summary ${index} with enough specific context for this saved checkpoint.`);
@@ -2141,38 +2108,28 @@ test("backs up the full checkpoint history before replacing its oldest local ver
   }
 
   const versions = await openVersions(page);
-  await expect(versions.getByText("5 currently available")).toBeVisible();
-  await closeVersions(page);
+  // No cap: all seven checkpoints (plus their thumbnails) remain available.
+  await expect(versions.getByText("7 checkpoints saved")).toBeVisible();
+  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(7);
+  await expect(versions.getByText("Checkpoint 1", { exact: true })).toBeVisible();
+  await expect(versions.getByText("Checkpoint 7", { exact: true })).toBeVisible();
+});
 
-  await page
-    .getByLabel("Professional Summary")
-    .fill("Tailored summary 6 with a new role-specific angle that should replace the oldest checkpoint.");
-  const fullVersions = await openVersions(page);
-  await fullVersions.getByRole("button", { name: /save current version/i }).click();
+test("differentiates saved checkpoints with an optional note", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
 
+  const versions = await openVersions(page);
+  await versions.getByRole("button", { name: /save current version/i }).click();
   const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
-  await expect(saveDialog).toBeVisible();
-  await expect(saveDialog.getByText("History is full")).toBeVisible();
-  await expect(saveDialog.getByText("Saving a new checkpoint will replace Checkpoint 1")).toBeVisible();
-  await expect(saveDialog.getByText(/recommended action downloads a complete backup first/i)).toBeVisible();
+  await saveDialog.getByLabel("Checkpoint name").fill("Backend focus");
+  await saveDialog.getByLabel(/^Note/).fill("Tailored for the Stripe backend role; trimmed to one page.");
+  await saveDialog.getByRole("button", { name: /save checkpoint/i }).click();
 
-  await page.getByLabel("Checkpoint name").fill("Checkpoint 6");
-  const download = page.waitForEvent("download");
-  await saveDialog.getByRole("button", { name: /back up & save/i }).click();
-  const backup = await download;
-  expect(backup.suggestedFilename()).toBe("Jane_Doe-checkpoints.json");
-  const backupPath = await backup.path();
-  expect(backupPath).not.toBeNull();
-  expect(JSON.parse(await readFile(backupPath!, "utf8"))).toMatchObject({
-    format: "resume-editor-version-history-backup",
-    version: 1,
-    checkpoints: expect.arrayContaining([expect.objectContaining({ label: "Checkpoint 1" })]),
-  });
-
-  await expect(page.getByText("Backed up and replaced Checkpoint 1")).toBeVisible();
-  await expect(fullVersions.getByText("Checkpoint 6", { exact: true })).toBeVisible();
-  await expect(fullVersions.getByText("Checkpoint 1", { exact: true })).toBeHidden();
-  await expect(fullVersions.getByText("5 currently available")).toBeVisible();
+  await expect(versions.getByText("Backend focus")).toBeVisible();
+  await expect(versions.getByText("Tailored for the Stripe backend role; trimmed to one page.")).toBeVisible();
 });
 
 test("imports a checkpoint history backup without replacing the current resume", async ({ page }) => {
@@ -2241,7 +2198,7 @@ test("makes matching checkpoint backups explicit before merging", async ({ page 
   const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
   await expect(backupDialog.getByText("No new checkpoints to add")).toBeVisible();
   await expect(backupDialog.getByText("1 checkpoint already matches this browser")).toBeVisible();
-  await expect(backupDialog.getByText("Matching drafts will not use another local history slot.")).toBeVisible();
+  await expect(backupDialog.getByText("Matching drafts are kept as-is instead of duplicated.")).toBeVisible();
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
   await expect(page.getByText("All backup checkpoints are already saved")).toBeVisible();
@@ -2249,50 +2206,7 @@ test("makes matching checkpoint backups explicit before merging", async ({ page 
   await expect(versions.getByText("Platform baseline", { exact: true })).toHaveCount(1);
 });
 
-test("names checkpoints that remain only in a large imported backup", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await saveVersion(page, "Template checkpoint");
-
-  const checkpoint = await page.evaluate(() => {
-    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
-    return history[0];
-  });
-  const checkpoints = Array.from({ length: 5 }, (_, index) => ({
-    ...checkpoint,
-    id: `backup-${index + 1}`,
-    label: `Archived checkpoint ${index + 1}`,
-    fingerprint: `backup-fingerprint-${index + 1}`,
-    savedAt: new Date(Date.UTC(2026, 0, 5 - index)).toISOString(),
-  }));
-  const backup = JSON.stringify({
-    format: "resume-editor-version-history-backup",
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    checkpoints,
-  });
-
-  await page.locator("#history-backup-input").setInputFiles({
-    name: "large-resume-checkpoints.json",
-    mimeType: "application/json",
-    buffer: Buffer.from(backup),
-  });
-
-  const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
-  await expect(backupDialog).toBeVisible();
-  await expect(backupDialog.getByText("5 unique checkpoints ready to add")).toBeVisible();
-  await expect(backupDialog.getByText("1 older checkpoint will stay only in this backup")).toBeVisible();
-  await expect(backupDialog.getByText(/Archived checkpoint 5 ·/)).toBeVisible();
-  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
-
-  const versions = await openVersions(page);
-  await expect(versions.getByText("Archived checkpoint 1", { exact: true })).toBeVisible();
-  await expect(versions.getByText("Archived checkpoint 5", { exact: true })).toBeHidden();
-});
-
-test("reviews every checkpoint in backups larger than local history", async ({ page }) => {
+test("merges every checkpoint from a large imported backup without a limit", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -2325,12 +2239,12 @@ test("reviews every checkpoint in backups larger than local history", async ({ p
 
   const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
   await expect(backupDialog.getByText("7 unique checkpoints ready to add")).toBeVisible();
-  await expect(backupDialog.getByText("3 older checkpoints will stay only in this backup")).toBeVisible();
-  await expect(backupDialog.getByText(/Expanded checkpoint 7 ·/)).toBeVisible();
-
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
-  await expect(page.getByText("Added 4 checkpoints")).toBeVisible();
+  await expect(page.getByText("Added 7 checkpoints")).toBeVisible();
+
+  // No cap: the oldest imported checkpoint is kept alongside the newest.
   const versions = await openVersions(page);
   await expect(versions.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
-  await expect(versions.getByText("Expanded checkpoint 7", { exact: true })).toBeHidden();
+  await expect(versions.getByText("Expanded checkpoint 7", { exact: true })).toBeVisible();
 });
+

@@ -201,6 +201,17 @@
    margins and leaves the visible page guides aligned with the exported PDF. */
 .resume-print-break-before {
   padding-top: var(--resume-print-break-space, 0);
+  /* The reserved page-break gap is padding on this same element. Keep any
+     on-sheet selection highlight (background + ring) around the real content
+     only, so it doesn't paint across the gap and span the page boundary. */
+  background-clip: content-box;
+}
+
+/* The glow ring hugs the border box, which would include the break gap. Drop it
+   on a broken element — the (content-clipped) fill still marks it as active. */
+.resume-print-break-before.resume-preview-active,
+.resume-print-break-before.resume-preview-section-active {
+  box-shadow: none;
 }
 
 .resume-preview-sheet-frame {

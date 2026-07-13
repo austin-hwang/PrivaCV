@@ -1,13 +1,11 @@
 "use client";
 
-import { Download, Eye, History, Save, Trash2, Undo2, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Download, History, Save, Trash2, Undo2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import {
-  MAX_VERSION_HISTORY,
   formatCheckpointTime,
   versionHeadline,
   type VersionHistoryItem,
@@ -53,7 +51,6 @@ export function VersionHistoryCard({
   onSave,
   onSaveBackup,
   onOpenBackup,
-  onCompareCurrent,
   onRestore,
   onDelete,
   onUndoDelete,
@@ -68,21 +65,14 @@ export function VersionHistoryCard({
   onSave: () => void;
   onSaveBackup: () => void;
   onOpenBackup: () => void;
-  onCompareCurrent: (item: VersionHistoryItem) => void;
   onRestore: (item: VersionHistoryItem) => void;
   onDelete: (id: string) => void;
   onUndoDelete: () => void;
   onDismissDeleted: () => void;
 }) {
-  const [lastFocusedId, setLastFocusedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (lastFocusedId && !versions.some((item) => item.id === lastFocusedId)) setLastFocusedId(null);
-  }, [lastFocusedId, versions]);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(900px,calc(100vh-2rem))] max-w-6xl flex-col gap-0 overflow-hidden p-0" aria-describedby="version-history-description">
+      <DialogContent className="flex h-[min(900px,calc(100dvh-2rem))] max-w-6xl flex-col gap-0 overflow-hidden p-0" aria-describedby="version-history-description">
         <DialogHeader className="border-b px-5 py-5 pr-12">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Version history</p>
           <DialogTitle>See each saved resume before changing course.</DialogTitle>
@@ -93,7 +83,7 @@ export function VersionHistoryCard({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-5 py-3">
           <p className="text-sm text-muted-foreground">
-            Up to {MAX_VERSION_HISTORY} saved · {versions.length} currently available
+            {versions.length} {versions.length === 1 ? "checkpoint" : "checkpoints"} saved
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" onClick={onSave} disabled={!hasContent}>
@@ -125,7 +115,6 @@ export function VersionHistoryCard({
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {versions.map((item) => {
                 const isCurrent = item.fingerprint === currentFingerprint;
-                const wasLastFocused = item.id === lastFocusedId;
                 return (
                   <li key={item.id} className="rounded-lg border bg-card p-3 shadow-sm">
                     <VersionThumbnail item={item} />
@@ -141,18 +130,6 @@ export function VersionHistoryCard({
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        aria-pressed={wasLastFocused}
-                        onClick={() => {
-                          setLastFocusedId(item.id);
-                          onCompareCurrent(item);
-                        }}
-                      >
-                        <Eye /> Compare
-                      </Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>
                         <Undo2 /> Restore
                       </Button>

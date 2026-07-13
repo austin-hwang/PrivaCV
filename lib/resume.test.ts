@@ -36,7 +36,6 @@ import {
   MAX_PDF_BYTES,
 } from "@/lib/pdf-import";
 import {
-  MAX_VERSION_HISTORY,
   VERSION_HISTORY_BACKUP_FORMAT,
   VERSION_HISTORY_BACKUP_VERSION,
   buildImportCoverage,
@@ -1187,8 +1186,8 @@ describe("resume helpers", () => {
     expect(parseExportCheckpoint("not json")).toBeNull();
   });
 
-  it("parses version-history backups without applying the browser slot limit early", () => {
-    const checkpoints = Array.from({ length: MAX_VERSION_HISTORY + 2 }, (_, index): VersionHistoryItem => ({
+  it("parses every checkpoint in a version-history backup", () => {
+    const checkpoints = Array.from({ length: 7 }, (_, index): VersionHistoryItem => ({
       id: `${index}`,
       savedAt: `2026-07-0${index + 1}T12:00:00.000Z`,
       label: `Draft ${index}`,
@@ -1204,7 +1203,7 @@ describe("resume helpers", () => {
         exportedAt: "2026-07-09T12:00:00.000Z",
         checkpoints,
       }),
-    ).toHaveLength(MAX_VERSION_HISTORY + 2);
+    ).toHaveLength(7);
   });
 
   it("deduplicates version history by resume content when merging backups", () => {
