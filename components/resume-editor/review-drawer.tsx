@@ -1,10 +1,9 @@
 "use client";
 
-import { ArrowRight, Check, FileCheck2, History, Target } from "lucide-react";
+import { ArrowRight, Check, FileCheck2, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { RoleFocusCard } from "@/components/resume-editor/role-focus-card";
 import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
 import type { useResumeEditor } from "@/hooks/use-resume-editor";
@@ -13,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 const JUMP_TARGETS = [
   { id: "tool-checks", label: "Checks" },
-  { id: "tool-role", label: "Role focus" },
   { id: "tool-versions", label: "Versions" },
 ];
 
@@ -37,12 +35,6 @@ export function ReviewDrawer({
     exportIsCurrent,
     exportChanges,
     requestExport,
-    jobDescription,
-    roleLabel,
-    roleFocus,
-    plainText,
-    setJobDescription,
-    setRoleLabel,
     exportFingerprint,
     deletedVersion,
     versionHistory,
@@ -180,21 +172,6 @@ export function ReviewDrawer({
             ) : null}
           </section>
 
-          <section id="tool-role" aria-label="Role focus" className="scroll-mt-4 border-t pt-6">
-            <RoleFocusCard
-              jobDescription={jobDescription}
-              roleLabel={roleLabel}
-              roleFocus={roleFocus}
-              resumeText={plainText}
-              hasContent={hasContent}
-              onChange={setJobDescription}
-              onRoleLabelChange={setRoleLabel}
-              onClear={() => setJobDescription("")}
-              onSaveBase={openVersionSave}
-              onFocus={onFocusTarget}
-            />
-          </section>
-
           <section id="tool-versions" aria-label="Version history" className="scroll-mt-4 border-t pt-6">
             <VersionHistoryCard
               hasContent={hasContent}
@@ -213,10 +190,7 @@ export function ReviewDrawer({
           </section>
         </div>
 
-        <div className="flex items-center gap-2 border-t px-4 py-3">
-          <Target className="size-3.5 text-muted-foreground" />
-          <p className="text-xs leading-snug text-muted-foreground">Everything here stays in this browser.</p>
-        </div>
+        <p className="border-t px-4 py-3 text-xs leading-snug text-muted-foreground">Everything here stays in this browser.</p>
       </SheetContent>
     </Sheet>
   );

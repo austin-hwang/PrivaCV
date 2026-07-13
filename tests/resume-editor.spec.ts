@@ -638,41 +638,6 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
   await expect(page).toHaveTitle("PrivaCV — private, ATS-friendly resumes");
 });
 
-test("adds the private role label to tailored download names without changing resume content", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  const drawer = page.getByRole("dialog", { name: /review tools/i });
-  await drawer.getByLabel(/private role label/i).fill("Acme — Platform Engineer");
-
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /review text/i }).click();
-  const textReview = page.getByRole("dialog", { name: /review before copying/i });
-  await expect(textReview).toContainText("Jane Doe");
-
-  const textDownload = page.waitForEvent("download");
-  await textReview.getByRole("button", { name: /download \.txt/i }).click();
-  await expect((await textDownload).suggestedFilename()).toBe("Jane_Doe_Acme_Platform_Engineer.txt");
-
-  const wordDownload = page.waitForEvent("download");
-  await textReview.getByRole("button", { name: /download \.docx/i }).click();
-  await expect((await wordDownload).suggestedFilename()).toBe("Jane_Doe_Acme_Platform_Engineer.docx");
-
-  await page.keyboard.press("Escape");
-  await page.evaluate(() => {
-    window.print = () => {
-      document.documentElement.dataset.printTitle = document.title;
-      window.dispatchEvent(new Event("afterprint"));
-    };
-  });
-  await page.getByRole("button", { name: /^export pdf$/i }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-print-title", "Jane_Doe_Acme_Platform_Engineer_Resume");
-  await expect(page.locator(".resume-name").first()).toHaveText("Jane Doe");
-});
-
 test("flags a single resume entry that would continue onto another printed page", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -822,19 +787,19 @@ test("expands a collapsed section when a jump targets a field inside it", async 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
+  await page.getByLabel("Email").fill("not-an-email");
   await openTools(page);
 
-  await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
-  // Collapse everything, then jump from a matched role term.
+  // Collapse everything, then jump from the direct, actionable Resume Check.
   await page.getByRole("button", { name: /collapse all/i }).click();
   const drawer = page.getByRole("dialog", { name: /review tools/i });
-  await drawer.getByRole("button", { name: /^go to$/i }).first().click();
+  await drawer.getByRole("button", { name: /fix contact/i }).click();
 
   // The containing group re-expands and its field is focused.
   await expect
     .poll(() => page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
-      return Boolean(el && el.id.startsWith("field-") && el.offsetParent !== null);
+      return Boolean(el?.id === "field-email" && el.offsetParent !== null);
     }))
     .toBe(true);
 });
@@ -1579,43 +1544,6 @@ test("gently prompts for specific action openings while preserving truthful bull
   await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Starting with what you did can make the contribution easier to scan; keep the wording truthful.")).toBeVisible();
 });
 
-test("turns a pasted role into a local wording checklist without an ATS score", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByLabel("Job description").fill([
-    "Build reliable product systems and collaborate across product teams.",
-    "Requirements",
-    "- TypeScript and GraphQL experience",
-  ].join("\n"));
-
-  const drawer = page.getByRole("dialog", { name: /review tools/i });
-  await expect(drawer.getByText(/key terms already in your resume/i)).toBeVisible();
-  await expect(drawer.getByText(/A wording check, not an ATS score/i)).toBeVisible();
-  // A requirement-sourced term is flagged as required in the checklist.
-  await expect(drawer.getByText("required", { exact: true }).first()).toBeVisible();
-});
-
-test("jumps from a matched role term to the wording already in the resume", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
-  const drawer = page.getByRole("dialog", { name: /review tools/i });
-  const goTo = drawer.getByRole("button", { name: /^go to$/i }).first();
-  await expect(goTo).toBeVisible();
-  await goTo.click();
-  await expect
-    .poll(() => page.evaluate(() => (document.activeElement?.id ?? "").startsWith("field-")))
-    .toBe(true);
-});
-
 test("keeps mobile editing focused while leaving review tools one tap away", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
@@ -1627,12 +1555,12 @@ test("keeps mobile editing focused while leaving review tools one tap away", asy
 
   // Editing stays front-and-center; review tools live one tap away in the drawer.
   await expect(page.getByLabel("Full Name")).toBeVisible();
-  await expect(page.getByLabel("Job description")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Role focus" })).toBeHidden();
 
   await openTools(page);
   await expect(page.getByRole("dialog", { name: /review tools/i })).toBeVisible();
   await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Job description")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Role focus" })).toBeHidden();
 
   await page.getByRole("button", { name: /close tools/i }).click();
   await expect(page.getByRole("dialog", { name: /review tools/i })).toBeHidden();
@@ -2308,52 +2236,4 @@ test("reviews every checkpoint in backups larger than local history", async ({ p
   await expect(page.getByText("Added 4 checkpoints")).toBeVisible();
   await expect(page.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
   await expect(page.getByText("Expanded checkpoint 7", { exact: true })).toBeHidden();
-});
-
-test("reviews role language locally without presenting an ATS score", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  const description = page.getByLabel("Job description");
-  await description.fill(
-    "Build TypeScript services for product teams. Partner with platform teams to improve TypeScript reliability.",
-  );
-
-  const drawer = page.getByRole("dialog", { name: /review tools/i });
-  await expect(drawer.getByText(/key terms already in your resume/i)).toBeVisible();
-  await expect(drawer.getByText("typescript", { exact: true }).first()).toBeVisible();
-  await expect(drawer.getByText(/A wording check, not an ATS score/i)).toBeVisible();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-role-focus-v1"))).toContain("TypeScript");
-
-  await drawer.getByRole("button", { name: /^clear$/i }).click();
-  await expect(description).toHaveValue("");
-  await expect(drawer.getByText(/key terms already in your resume/i)).toBeHidden();
-});
-
-test("keeps a labeled base draft and exact role phrases local while tailoring", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  const drawer = page.getByRole("dialog", { name: /review tools/i });
-  await drawer.getByLabel(/private role label/i).fill("Acme — Platform Engineer");
-  await drawer.getByLabel("Job description").fill("Build backend microservices for dependable product systems.");
-
-  const phrase = drawer.getByLabel("Check an exact phrase");
-  await phrase.fill("backend microservices");
-  await expect(drawer.getByText("Phrase already appears in your resume.")).toBeVisible();
-  await expect(drawer.getByRole("button", { name: /save base draft/i })).toBeVisible();
-
-  await drawer.getByRole("button", { name: /save base draft/i }).click();
-  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
-  await saveDialog.getByLabel("Checkpoint name").fill("Acme platform base");
-  await saveDialog.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await expect(drawer.getByText("Role: Acme — Platform Engineer")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-role-focus-label-v1"))).toBe("Acme — Platform Engineer");
 });

@@ -18,7 +18,7 @@ subscriptions, watermarks, or backend storage.
 - Valid email, phone, and website details remain clickable in the preview and browser-produced PDF, while malformed values stay as plain text for correction.
 - Focused mobile editor and preview views that keep the printed Letter layout
   intact while scaling it to the screen, plus an on-demand Review tools strip
-  for import checklists, checks, role focus, and versions; imported resumes keep
+  for import checklists, checks, and versions; imported resumes keep
   a compact next-field prompt above the form so editing stays within reach on a
   narrow screen.
 - First-run start panel with fast paths for Word and PDF import, pasted resume text,
@@ -66,17 +66,6 @@ subscriptions, watermarks, or backend storage.
   experience and project entry also identifies bullets that could use more
   truthful scope or outcome evidence, plus a few clearly generic openings that
   could more directly name the work done.
-- Local-only Role Focus review that compares a pasted job description with the
-  current resume's wording, surfaces terms from explicit qualifications-style
-  sections before repeated general wording, clearly separates terms already
-  present from terms to consider, shows whether matched terms are grounded in
-  an experience, project, or custom-section detail versus only mentioned in a
-  title, heading, summary, or skills, jumps directly to that wording, suggests
-  a small set of direct exact phrases to review, includes an opt-in exact
-  phrase check for multi-word concepts, and avoids opaque ATS scoring.
-- Role Focus offers a direct local "Save base draft" checkpoint once a job
-  description is pasted, so the original resume and its private role context
-  are easy to restore after tailoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog, including when the familiar
   Cmd/Ctrl+P shortcut is used. An unfinished import review survives a browser
@@ -100,13 +89,8 @@ subscriptions, watermarks, or backend storage.
 - Per-bullet tailoring for experience and projects: temporarily omit lower-
   relevance bullets from the current role-specific version without deleting
   them from the browser-only master draft. Preview, PDF printing, Word, plain
-  text, application copy, Resume Check, and Role Focus all use the same chosen
+  text, application copy, and Resume Check all use the same chosen
   bullets.
-- Role-aware checkpoints with optional private labels, so job-specific wording
-  context stays attached to the right local draft; intentional PDF, Word,
-  plain-text, and JSON exports include that label in their filename to prevent
-  application mix-ups, while the label never appears in resume content or on a
-  PDF page.
 - Glanceable version summaries, suggested comparisons, reversible deletion, and
   post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF. When a

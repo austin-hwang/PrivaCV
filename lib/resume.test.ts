@@ -27,7 +27,6 @@ import {
   summarizeEvidence,
   RESUME_TEMPLATES,
 } from "@/lib/resume";
-import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
 import {
   detectSection,
   importResumePdfWithSource,
@@ -49,7 +48,6 @@ import {
   parseExportCheckpoint,
   parseStoredImportReview,
   parseVersionHistoryBackup,
-  roleContextFingerprint,
   storedImportReview,
   versionContentBadges,
   versionHistoryFingerprint,
@@ -68,9 +66,6 @@ describe("resume helpers", () => {
       expect.objectContaining({ label: "Achievements", text: expect.not.stringContaining(omitted) }),
     ]));
     expect(strFromU8(unzipSync(resumeDocx(state))["word/document.xml"])).not.toContain(omitted);
-    expect(buildRoleFocus(state, "Requirements:\n- Mentored engineering teams").terms).toEqual(expect.arrayContaining([
-      expect.objectContaining({ term: "mentored", matched: false }),
-    ]));
   });
 
   it("creates granular, portal-friendly copy fields without adding empty values", () => {
@@ -1175,165 +1170,6 @@ describe("resume helpers", () => {
     expect(exportChangeSummary(saved, normalizeResume(saved))).toEqual([]);
   });
 
-  it("surfaces substantive role terms without presenting an ATS score", () => {
-    const focus = buildRoleFocus(
-      "Product engineer building TypeScript services and React interfaces.",
-      "The product engineer will build TypeScript services, partner with product teams, and improve TypeScript systems.",
-    );
-
-    expect(focus.terms).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ term: "typescript", count: 2, matched: true }),
-        expect.objectContaining({ term: "product", matched: true }),
-        expect.objectContaining({ term: "services", matched: true }),
-        expect.objectContaining({ term: "partner", matched: false }),
-      ]),
-    );
-    expect(focus.matchedCount).toBeGreaterThan(0);
-    expect(focus.totalCount).toBeLessThanOrEqual(14);
-  });
-
-  it("shows terms from an explicit requirements section before repeated general wording", () => {
-    const focus = buildRoleFocus(
-      "Product engineer building TypeScript services.",
-      [
-        "Build reliable product systems and collaborate across product teams.",
-        "Requirements",
-        "- TypeScript and React experience",
-        "- Kubernetes and distributed systems knowledge",
-        "Benefits",
-        "- Flexible work arrangements",
-      ].join("\n"),
-    );
-
-    expect(focus.requirementCount).toBeGreaterThan(0);
-    expect(focus.terms.slice(0, focus.requirementCount)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ term: "typescript", isRequirement: true, matched: true }),
-        expect.objectContaining({ term: "kubernetes", isRequirement: true, matched: false }),
-      ]),
-    );
-    expect(focus.terms.find((term) => term.term === "flexible")?.isRequirement).toBe(false);
-  });
-
-  it("locates role terms in concrete experience separately from supporting mentions", () => {
-    const state = sampleState();
-    state.summary = "Product engineer focused on reliable systems.";
-    state.skills = "Languages: TypeScript\nPractices: Product discovery";
-    state.experience[0].details = "Built TypeScript services for product teams.";
-
-    const focus = buildRoleFocus(state, "Product engineers build TypeScript services and lead product discovery.");
-
-    expect(focus.terms.find((term) => term.term === "typescript")?.evidence).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: "Experience 1", targetId: "field-experience-0-details", isConcrete: true }),
-        expect.objectContaining({ label: "Skills", targetId: "field-skills", isConcrete: false }),
-      ]),
-    );
-    expect(focus.terms.find((term) => term.term === "product")?.evidence).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: "Summary", targetId: "field-summary", isConcrete: false }),
-      ]),
-    );
-  });
-
-  it("distinguishes detailed role evidence from skills and education references", () => {
-    const state = sampleState();
-    state.skills = "TypeScript";
-    state.experience[0].details = "Built TypeScript services for a billing platform.";
-    state.education[0].title = "B.S. Computer Science";
-
-    const focus = buildRoleFocus(state, [
-      "Requirements",
-      "- TypeScript",
-      "- Computer science",
-    ].join("\n"));
-
-    expect(focus).toMatchObject({ detailEvidenceCount: 1, referenceOnlyCount: 2 });
-    expect(focus.terms.find((term) => term.term === "computer")?.evidence).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: "Education 1", targetId: "field-education-0-title", isConcrete: false }),
-      ]),
-    );
-  });
-
-  it("includes custom section wording in role focus and links it to the saved entry", () => {
-    const state = sampleState();
-    state.customSections = [{
-      id: "custom-certifications",
-      title: "Certifications",
-      entries: [{
-        title: "Kubernetes Administrator",
-        subtitle: "Cloud Native Computing Foundation",
-        meta: "2026",
-        details: "Administered Kubernetes clusters for production releases.",
-      }],
-    }];
-    state.sectionOrder.push("custom-certifications");
-
-    const focus = buildRoleFocus(state, [
-      "Requirements",
-      "- Kubernetes experience",
-      "- Certifications",
-    ].join("\n"));
-
-    expect(focus.terms.find((term) => term.term === "kubernetes")).toMatchObject({
-      matched: true,
-      evidence: expect.arrayContaining([
-        expect.objectContaining({
-          label: "Certifications 1",
-          targetId: "field-custom-certifications-0-details",
-          isConcrete: true,
-        }),
-      ]),
-    });
-    expect(focus.terms.find((term) => term.term === "certifications")).toMatchObject({
-      matched: true,
-      evidence: expect.arrayContaining([
-        expect.objectContaining({
-          label: "Certifications heading",
-          targetId: "section-title-custom-certifications",
-          isConcrete: false,
-        }),
-      ]),
-    });
-  });
-
-  it("checks an opted-in role phrase in word order while ignoring punctuation", () => {
-    const resume = "Built TypeScript services, improving release reliability.";
-
-    expect(reviewRolePhrase(resume, "TypeScript services")).toMatchObject({
-      termCount: 2,
-      matched: true,
-    });
-    expect(reviewRolePhrase(resume, "services TypeScript")).toMatchObject({
-      termCount: 2,
-      matched: false,
-    });
-    expect(reviewRolePhrase(resume, "TypeScript")).toMatchObject({
-      termCount: 1,
-      matched: false,
-    });
-    expect(reviewRolePhrase("Chart leadership", "art lead")).toMatchObject({
-      termCount: 2,
-      matched: false,
-    });
-  });
-
-  it("suggests a small set of exact job-description phrases with transparent matches", () => {
-    const suggestions = buildRolePhraseSuggestions(
-      "Built TypeScript services and React interfaces for product teams.",
-      "Build TypeScript services, partner with product teams, and improve TypeScript services.",
-    );
-
-    expect(suggestions).toHaveLength(1);
-    expect(suggestions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ phrase: "TypeScript services", termCount: 2, matched: true }),
-      ]),
-    );
-  });
-
   it("normalizes saved export checkpoints and rejects malformed data", () => {
     const state = sampleState();
     const checkpoint = parseExportCheckpoint(
@@ -1371,7 +1207,7 @@ describe("resume helpers", () => {
     ).toHaveLength(MAX_VERSION_HISTORY + 2);
   });
 
-  it("deduplicates version history by resume and role context when merging backups", () => {
+  it("deduplicates version history by resume content when merging backups", () => {
     const baseState = sampleState();
     const existing: VersionHistoryItem[] = [
       {
@@ -1381,7 +1217,6 @@ describe("resume helpers", () => {
         fingerprint: "same-resume",
         state: baseState,
         importReview: null,
-        roleLabel: "Frontend",
       },
     ];
     const incoming: VersionHistoryItem[] = [
@@ -1391,19 +1226,18 @@ describe("resume helpers", () => {
       },
       {
         ...existing[0],
-        id: "incoming-new-role",
+        id: "incoming-duplicate-again",
         savedAt: "2026-07-10T12:00:00.000Z",
-        label: "Backend",
-        roleLabel: "Backend",
+        label: "Duplicate",
       },
     ];
 
     const merged = mergeVersionHistory(existing, incoming);
 
-    expect(merged.matchingCheckpoints).toHaveLength(1);
-    expect(merged.incomingUnique).toHaveLength(1);
-    expect(merged.checkpoints.map((item) => item.label)).toEqual(["Backend", "Current"]);
-    expect(versionHistoryFingerprint(existing[0])).toBe(`same-resume\u0000${roleContextFingerprint(undefined, "Frontend")}`);
+    expect(merged.matchingCheckpoints).toHaveLength(2);
+    expect(merged.incomingUnique).toHaveLength(0);
+    expect(merged.checkpoints.map((item) => item.label)).toEqual(["Current"]);
+    expect(versionHistoryFingerprint(existing[0])).toBe("same-resume");
   });
 
   it("builds import-review targets for likely PDF parser guesses", () => {

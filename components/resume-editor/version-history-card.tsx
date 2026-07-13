@@ -100,9 +100,6 @@ export function VersionHistoryCard({
                     <p className="truncate text-xs text-muted-foreground">
                       {formatCheckpointTime(item.savedAt)} · {versionHeadline(item.state)}
                     </p>
-                    {item.roleLabel ? (
-                      <p className="truncate text-xs text-muted-foreground">Role: {item.roleLabel}</p>
-                    ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={`Compare ${item.label} with current resume`} onClick={() => onCompareCurrent(item)}>

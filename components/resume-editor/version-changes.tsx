@@ -1,18 +1,13 @@
 "use client";
 
-import { ArrowRight, Check, ChevronDown, ChevronUp, History, Target, Undo2 } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronUp, History, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ExportChange } from "@/lib/resume";
-import {
-  CHANGE_PREVIEW_LIMIT,
-  compactDetail,
-  formatCheckpointTime,
-  type RestoredVersionSummary,
-} from "@/lib/resume-workspace";
+import { CHANGE_PREVIEW_LIMIT, formatCheckpointTime, type RestoredVersionSummary } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 export function VersionChangeRow({
@@ -65,54 +60,6 @@ export function VersionChangeRow({
 
   return <div className={className}>{content}</div>;
 }
-export function RoleFocusComparison({
-  beforeLabel,
-  afterLabel,
-  beforeRoleLabel,
-  afterRoleLabel,
-  beforeDescription,
-  afterDescription,
-}: {
-  beforeLabel: string;
-  afterLabel: string;
-  beforeRoleLabel: string;
-  afterRoleLabel: string;
-  beforeDescription: string;
-  afterDescription: string;
-}) {
-  return (
-    <Alert className="border-sky-300 bg-sky-50/70">
-      <Target className="h-4 w-4 text-sky-800" />
-      <AlertTitle>Role focus changed</AlertTitle>
-      <AlertDescription className="grid gap-2">
-        <span>These drafts use different local role context. Restore the matching checkpoint to bring its role label and job description back.</span>
-        <span className="grid gap-1.5 rounded-md border border-sky-200 bg-background p-2 text-xs leading-snug text-muted-foreground">
-          {beforeRoleLabel || afterRoleLabel ? (
-            <>
-              <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
-                <span className="font-medium text-foreground">{beforeLabel} label</span>
-                <span>{beforeRoleLabel || "No label saved"}</span>
-              </span>
-              <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
-                <span className="font-medium text-foreground">{afterLabel} label</span>
-                <span>{afterRoleLabel || "No label saved"}</span>
-              </span>
-            </>
-          ) : null}
-          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
-            <span className="font-medium text-foreground">{beforeLabel}</span>
-            <span>{beforeDescription ? compactDetail(beforeDescription) : "No role focus saved"}</span>
-          </span>
-          <span className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-2">
-            <span className="font-medium text-foreground">{afterLabel}</span>
-            <span>{afterDescription ? compactDetail(afterDescription) : "No role focus saved"}</span>
-          </span>
-        </span>
-      </AlertDescription>
-    </Alert>
-  );
-}
-
 export function ChangeSummaryGrid({
   changes,
   beforeLabel,

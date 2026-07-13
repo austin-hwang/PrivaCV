@@ -13,7 +13,6 @@ import {
   History,
   Printer,
   Save,
-  Target,
   Undo2,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,10 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  RoleFocusComparison,
-  VersionChangeRow,
-} from "@/components/resume-editor/version-changes";
+import { VersionChangeRow } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import { applicationCopyGroups, plainTextStats } from "@/lib/resume";
 import { MAX_VERSION_HISTORY, formatCheckpointTime } from "@/lib/resume-workspace";
@@ -47,11 +43,7 @@ export function ResumeEditorOverlays({
   const {
     applicationCopyOpen,
     checks,
-    comparedBaseRoleFocus,
-    comparedBaseRoleLabel,
     comparedBaseVersion,
-    comparedTargetRoleFocus,
-    comparedTargetRoleLabel,
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
@@ -70,7 +62,6 @@ export function ResumeEditorOverlays({
     importReview,
     importReviewStatus,
     importVersionHistoryBackup,
-    jobDescription,
     jsonInputRef,
     mergedHistoryBackup,
     openJson,
@@ -82,7 +73,6 @@ export function ResumeEditorOverlays({
     plainText,
     completeImportReview,
     restoreVersion,
-    roleLabel,
     saveVersion,
     setExportCheckOpen,
     setApplicationCopyOpen,
@@ -106,7 +96,6 @@ export function ResumeEditorOverlays({
     versionDraftLabel,
     versionDraftNote,
     versionHistory,
-    versionRoleFocusChanged,
     versionSaveOpen,
     versionToReplaceOnSave,
   } = editor;
@@ -458,16 +447,6 @@ export function ResumeEditorOverlays({
 
           {comparedBaseVersion && comparedTargetState ? (
             <div className="grid max-h-[56vh] gap-3 overflow-y-auto pr-1">
-              {versionRoleFocusChanged ? (
-                <RoleFocusComparison
-                  beforeLabel={versionCompareBeforeLabel}
-                  afterLabel={versionCompareAfterLabel}
-                  beforeRoleLabel={comparedBaseRoleLabel}
-                  afterRoleLabel={comparedTargetRoleLabel}
-                  beforeDescription={comparedBaseRoleFocus}
-                  afterDescription={comparedTargetRoleFocus}
-                />
-              ) : null}
               {versionChanges.length ? (
                 <div className="grid gap-2">
                   {versionChanges.map((change) => (
@@ -497,11 +476,7 @@ export function ResumeEditorOverlays({
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">
               {versionChanges.length
-                ? `${versionChanges.length} changed ${versionChanges.length === 1 ? "area" : "areas"}${
-                    versionRoleFocusChanged ? " · role focus changed" : ""
-                  }`
-                : versionRoleFocusChanged
-                  ? "Same resume · role focus changed"
+                ? `${versionChanges.length} changed ${versionChanges.length === 1 ? "area" : "areas"}`
                 : "Saved only in this browser"}
             </span>
             <div className="flex justify-end gap-2">

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { importResumeDocxWithSource } from "@/lib/docx-import";
 import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
 import { resumeDocxBlob } from "@/lib/docx-export";
-import { buildRoleFocus } from "@/lib/job-match";
 import {
   blankEntry,
   buildResumeChecks,
@@ -30,8 +29,6 @@ import {
   EXPORT_CHECKPOINT_KEY,
   IMPORT_REVIEW_KEY,
   MAX_VERSION_HISTORY,
-  ROLE_FOCUS_KEY,
-  ROLE_FOCUS_LABEL_KEY,
   STORAGE_KEY,
   VERSION_HISTORY_BACKUP_FORMAT,
   VERSION_HISTORY_BACKUP_VERSION,
@@ -45,7 +42,6 @@ import {
   parseStoredImportReview,
   parseVersionHistory,
   parseVersionHistoryBackup,
-  roleContextFingerprint,
   storedImportReview,
   versionHistoryFingerprint,
   versionLabel,
@@ -132,16 +128,6 @@ function safeResumeFilename(name: string) {
 }
 
 /**
- * A private role label is useful at the moment a tailored file leaves the
- * browser: it prevents a stack of otherwise identical "Jane_Doe" downloads
- * from being confused at upload time. It never changes the resume content.
- */
-function resumeFileStem(name: string, roleLabel: string) {
-  const roleSegment = roleLabel.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
-  return roleSegment ? `${safeResumeFilename(name)}_${roleSegment}` : safeResumeFilename(name);
-}
-
-/**
  * Browsers commonly use document.title as the initial Save as PDF filename.
  * Keep that transient title descriptive, but restore the public page title as
  * soon as printing finishes.
@@ -206,8 +192,6 @@ export function useResumeEditor() {
   const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
   const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
-  const [jobDescription, setJobDescription] = useState("");
-  const [roleLabel, setRoleLabel] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
@@ -224,7 +208,6 @@ export function useResumeEditor() {
   const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
-  const roleFocus = useMemo(() => buildRoleFocus(state, jobDescription), [jobDescription, state]);
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
   const visibleRestoredVersionSummary =
     restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;
@@ -249,17 +232,7 @@ export function useResumeEditor() {
   );
   const comparedTargetState = versionCompareTarget?.targetId === "current" ? state : comparedTargetVersion?.state;
   const versionCompareUsesCurrent = versionCompareTarget?.targetId === "current";
-  const comparedBaseRoleFocus = comparedBaseVersion?.jobDescription ?? "";
-  const comparedBaseRoleLabel = comparedBaseVersion?.roleLabel ?? "";
-  const comparedTargetRoleFocus = versionCompareUsesCurrent ? jobDescription : comparedTargetVersion?.jobDescription ?? "";
-  const comparedTargetRoleLabel = versionCompareUsesCurrent ? roleLabel : comparedTargetVersion?.roleLabel ?? "";
-  const versionRoleFocusChanged =
-    roleContextFingerprint(comparedBaseRoleFocus, comparedBaseRoleLabel) !==
-    roleContextFingerprint(comparedTargetRoleFocus, comparedTargetRoleLabel);
-  const currentVersionHistoryFingerprint = useMemo(
-    () => `${exportFingerprint}\u0000${roleContextFingerprint(jobDescription, roleLabel)}`,
-    [exportFingerprint, jobDescription, roleLabel],
-  );
+  const currentVersionHistoryFingerprint = exportFingerprint;
   const versionToReplaceOnSave = useMemo(
     () => versionReplacementCandidate(versionHistory, currentVersionHistoryFingerprint),
     [currentVersionHistoryFingerprint, versionHistory],
@@ -332,8 +305,6 @@ export function useResumeEditor() {
       label: string,
       previousState = state,
       previousImportReview = importReview,
-      previousJobDescription = jobDescription,
-      previousRoleLabel = roleLabel,
     ) => {
       if (!hasAnyContent(previousState) && !previousImportReview) {
         setRecoveryPoint(null);
@@ -343,19 +314,15 @@ export function useResumeEditor() {
         label,
         state: previousState,
         importReview: previousImportReview,
-        jobDescription: previousJobDescription,
-        roleLabel: previousRoleLabel,
       });
     },
-    [importReview, jobDescription, roleLabel, state],
+    [importReview, state],
   );
 
   const restoreRecoveryPoint = () => {
     if (!recoveryPoint) return;
     setState(recoveryPoint.state);
     setImportReview(recoveryPoint.importReview);
-    setJobDescription(recoveryPoint.jobDescription);
-    setRoleLabel(recoveryPoint.roleLabel);
     setRecoveryPoint(null);
     setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
@@ -378,7 +345,7 @@ export function useResumeEditor() {
       return;
     }
     const fingerprint = resumeExportFingerprint(state);
-    const historyFingerprint = `${fingerprint}\u0000${roleContextFingerprint(jobDescription, roleLabel)}`;
+    const historyFingerprint = fingerprint;
     const label = versionDraftLabel.trim() || versionLabel(state);
     const note = versionDraftNote.trim();
     const replacement = versionReplacementCandidate(versionHistory, historyFingerprint);
@@ -408,8 +375,6 @@ export function useResumeEditor() {
       fingerprint,
       state: normalizeResume(state),
       importReview,
-      jobDescription: jobDescription.trim() || undefined,
-      roleLabel: roleLabel.trim() || undefined,
     };
     setVersionHistory((current) => [entry, ...current.filter((item) => versionHistoryFingerprint(item) !== historyFingerprint)].slice(0, MAX_VERSION_HISTORY));
     setDraftSourceVersionId(entry.id);
@@ -434,8 +399,6 @@ export function useResumeEditor() {
     });
     setState(item.state);
     setImportReview(item.importReview);
-    setJobDescription(item.jobDescription ?? "");
-    setRoleLabel(item.roleLabel ?? "");
     setDraftSourceVersionId(item.id);
     flash("Restored saved version");
   };
@@ -481,8 +444,10 @@ export function useResumeEditor() {
       setImportReview(parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY)));
       setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
       setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
-      setJobDescription(localStorage.getItem(ROLE_FOCUS_KEY) ?? "");
-      setRoleLabel(localStorage.getItem(ROLE_FOCUS_LABEL_KEY) ?? "");
+      // Role Focus was removed because it added a distracting detour without
+      // reliably improving a person's resume. Clear its old private data too.
+      localStorage.removeItem("resume-editor-role-focus-v1");
+      localStorage.removeItem("resume-editor-role-focus-label-v1");
     } catch {
       reportStorageIssue();
     } finally {
@@ -581,26 +546,6 @@ export function useResumeEditor() {
       reportStorageIssue();
     }
   }, [loaded, reportStorageIssue, versionHistory]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      if (jobDescription.trim()) localStorage.setItem(ROLE_FOCUS_KEY, jobDescription);
-      else localStorage.removeItem(ROLE_FOCUS_KEY);
-    } catch {
-      reportStorageIssue();
-    }
-  }, [jobDescription, loaded, reportStorageIssue]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      if (roleLabel.trim()) localStorage.setItem(ROLE_FOCUS_LABEL_KEY, roleLabel);
-      else localStorage.removeItem(ROLE_FOCUS_LABEL_KEY);
-    } catch {
-      reportStorageIssue();
-    }
-  }, [loaded, reportStorageIssue, roleLabel]);
 
   useEffect(() => {
     if (!toast) return;
@@ -1125,7 +1070,7 @@ export function useResumeEditor() {
   };
 
   const saveJson = () => {
-    downloadJsonFile(state, `${resumeFileStem(state.name || "resume", roleLabel)}.json`);
+    downloadJsonFile(state, `${safeResumeFilename(state.name || "resume")}.json`);
     flash("Saved JSON to downloads");
   };
 
@@ -1282,7 +1227,7 @@ export function useResumeEditor() {
       flash("Add resume details first");
       return;
     }
-    downloadTextFile(plainText, `${resumeFileStem(state.name || "resume", roleLabel)}.txt`);
+    downloadTextFile(plainText, `${safeResumeFilename(state.name || "resume")}.txt`);
     flash("Saved plain text to downloads");
   };
 
@@ -1291,7 +1236,7 @@ export function useResumeEditor() {
       flash("Add resume details first");
       return;
     }
-    downloadFile(resumeDocxBlob(state), `${resumeFileStem(state.name || "resume", roleLabel)}.docx`);
+    downloadFile(resumeDocxBlob(state), `${safeResumeFilename(state.name || "resume")}.docx`);
     flash("Saved Word document to downloads");
   };
 
@@ -1314,7 +1259,7 @@ export function useResumeEditor() {
     const restoreTitle = () => {
       document.title = previousTitle;
     };
-    document.title = pdfDocumentTitle(resumeFileStem(state.name || "resume", roleLabel));
+    document.title = pdfDocumentTitle(safeResumeFilename(state.name || "resume"));
     window.addEventListener("afterprint", restoreTitle, { once: true });
     window.print();
   };
@@ -1371,11 +1316,7 @@ export function useResumeEditor() {
     checks,
     clearResume,
     copyApplicationField,
-    comparedBaseRoleFocus,
-    comparedBaseRoleLabel,
     comparedBaseVersion,
-    comparedTargetRoleFocus,
-    comparedTargetRoleLabel,
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
@@ -1407,7 +1348,6 @@ export function useResumeEditor() {
     importReviewTargets,
     importVersionHistoryBackup,
     isImporting,
-    jobDescription,
     jsonInputRef,
     keepCurrentDraft,
     loadSample,
@@ -1437,8 +1377,6 @@ export function useResumeEditor() {
     restoreVersion,
     restoredVersionSummary,
     resumeRef,
-    roleFocus,
-    roleLabel,
     saveJson,
     saveVersion,
     saveVersionHistoryBackup,
@@ -1447,8 +1385,6 @@ export function useResumeEditor() {
     setApplicationCopyOpen,
     setHistoryBackupToImport,
     setImportReview,
-    setJobDescription,
-    setRoleLabel,
     setTextReviewOpen,
     setTextImportOpen,
     setVersionCompareTarget,
@@ -1481,7 +1417,6 @@ export function useResumeEditor() {
     versionDraftLabel,
     versionDraftNote,
     versionHistory,
-    versionRoleFocusChanged,
     versionSaveOpen,
     versionToReplaceOnSave,
     visibleRestoredVersionSummary,

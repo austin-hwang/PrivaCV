@@ -17,8 +17,6 @@ export const STORAGE_KEY = "resume-editor-data-v2";
 export const IMPORT_REVIEW_KEY = "resume-editor-import-review-v1";
 export const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 export const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
-export const ROLE_FOCUS_KEY = "resume-editor-role-focus-v1";
-export const ROLE_FOCUS_LABEL_KEY = "resume-editor-role-focus-label-v1";
 export const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
 export const VERSION_HISTORY_BACKUP_VERSION = 1;
 export const MAX_VERSION_HISTORY = 5;
@@ -115,8 +113,6 @@ export type RecoveryPoint = {
   label: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
-  jobDescription: string;
-  roleLabel: string;
 };
 
 export type VersionHistoryItem = {
@@ -129,8 +125,6 @@ export type VersionHistoryItem = {
   fingerprint: string;
   state: ResumeState;
   importReview: ImportReviewState | null;
-  jobDescription?: string;
-  roleLabel?: string;
 };
 
 export type VersionHistoryBackup = {
@@ -236,16 +230,9 @@ export function importSectionExcerpt(sourceText: string | undefined, section: st
   return excerpt.join("\n") || undefined;
 }
 
-export function roleFocusFingerprint(value: string | undefined) {
-  return (value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase();
-}
-
-export function roleContextFingerprint(jobDescription: string | undefined, roleLabel: string | undefined) {
-  return `${roleFocusFingerprint(roleLabel)}\u0000${roleFocusFingerprint(jobDescription)}`;
-}
-
-export function versionHistoryFingerprint(item: Pick<VersionHistoryItem, "fingerprint" | "jobDescription" | "roleLabel">) {
-  return `${item.fingerprint}\u0000${roleContextFingerprint(item.jobDescription, item.roleLabel)}`;
+/** A checkpoint represents one unique resume state. */
+export function versionHistoryFingerprint(item: Pick<VersionHistoryItem, "fingerprint">) {
+  return item.fingerprint;
 }
 
 export function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
@@ -380,8 +367,6 @@ export function parseVersionHistory(value: string | null, limit = MAX_VERSION_HI
           fingerprint: item.fingerprint,
           state: normalizeResume(item.state),
           importReview: item.importReview ?? null,
-          jobDescription: typeof item.jobDescription === "string" ? item.jobDescription : undefined,
-          roleLabel: typeof item.roleLabel === "string" ? item.roleLabel : undefined,
         };
       })
       .filter((item): item is VersionHistoryItem => Boolean(item))

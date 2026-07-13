@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-13 — Remove Role Focus to keep tailoring direct
+
+## Product review
+
+- **Finding:** The Role Focus checklist asked people to paste a job post,
+  interpret keyword matches, and maintain role context, but it did not make
+  the core writing and export workflow clearer. User direction confirmed that
+  this extra layer was not useful enough to justify its space or complexity.
+- **Options considered:** Keep refining match explanations, hide the feature
+  behind an advanced control, or remove it and strengthen the direct editing
+  path. Removal won because Resume Check, per-bullet tailoring, version
+  checkpoints, and export review already give people concrete next actions.
+- **Expected user benefit:** The Review tools drawer is shorter and easier to
+  scan, saved versions represent resume changes only, and exports have simple,
+  predictable names without a separate job-description workflow.
+
+## Changes
+
+- Removed the Role Focus UI, keyword matcher, phrase checker, and role-context
+  comparison views.
+- Simplified local version deduplication to one checkpoint per resume state.
+- Restored standard name-based PDF, Word, text, and JSON filenames.
+- Clear the retired local Role Focus keys on load, and updated documentation
+  and browser tests to route users from Resume Check directly to an editable
+  field.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, and `pnpm test` (67 tests).
+- Passed focused Chromium coverage and the full 82-test Chromium suite.
+- Passed `pnpm build` and `git diff --check`.
+
 ## 2026-07-13 — Keep application copying available in privacy-restricted browsers
 
 ## Product review

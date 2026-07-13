@@ -148,17 +148,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   draft is not lost merely because the browser-only convenience limit is met.
 - Make saved drafts quick to scan, compare, restore, or undo when users are
   deciding which tailored version to continue.
-- Keep role-focus context attached to the right saved draft without making
-  version management dominate the editor. A private role label now also makes
-  intentional PDF, Word, plain-text, and JSON export filenames distinct, so
-  tailored attachments are less likely to be mixed up without changing resume
-  content; reassess application-specific naming only if users need a separate
-  filename from their saved role label.
 - Make the master-resume approach practical without turning it into a second
   product: experience and project bullets can now be included or omitted per
   tailored draft without deleting the retained wording. The selected copy is
   used consistently in preview, PDF print, Word, plain text, application copy,
-  checks, and Role Focus; editing the full Highlights field intentionally
+  and checks; editing the full Highlights field intentionally
   restores every bullet. Reassess whether people next need reusable bullet
   variants or whether lightweight checkpoints already cover that workflow.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
@@ -175,7 +169,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   phone workspace keeps the form first,
   surfaces a compact next-field
   prompt for imported resumes, and moves the full import checklist, resume checks,
-  role focus, and version history into on-demand Review tools; reassess whether
+  and version history into on-demand Review tools; reassess whether
   the remaining import-quality explanation or correction context needs more help.
 - Preserve an ATS-safe structure while letting people represent the parts of a
   career that do not fit a fixed template: editable section headings, a small
@@ -220,23 +214,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   copy path if modern clipboard permission is unavailable, while all resume
   text remains local. Reassess richer portal-specific workflows only if users
   need more than reliable field-level copying.
-- Improve the export checkpoint with role-aware recommendations and more
+- Improve the export checkpoint with more contextual recommendations and
   granular changed-field detail for dense edit sessions.
-- Keep refining the local Role Focus review so its transparent wording cues
-  stay useful without pretending to predict ATS or hiring outcomes; it now
-  elevates terms from explicit qualifications-style sections, distinguishes
-  terms backed by experience, project, or custom-entry details from matches
-  that appear only outside an entry detail, and provides direct field jumps for
-  review. Education matches are now visible and navigable as legitimate
-  credential context without being presented as achievement proof. Custom-section
-  headings and entries now count as real resume evidence too, so a relevant
-  certification or volunteer entry is never falsely reported as missing.
-  Reassess phrase ranking only where it stays reviewable and local-first.
-- Keep the reversible tailoring flow obvious at the moment users paste a role:
-  Role Focus now offers a direct "Save base draft" action that opens the named
-  local checkpoint flow with the pasted role context included. Reassess whether
-  users need a separate application tracker only if this lightweight version
-  workflow no longer keeps repeated tailoring organized.
 - Multiple clean text-only templates with consistent ATS-friendly structure.
 - Role-specific sample resumes that users can adapt quickly.
 - Keep improving PDF and pasted-text import review with clearer confidence
@@ -254,7 +233,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   explicit field-by-field review as the safety net; do not infer multi-column
   reading order or arbitrary title-case headings.
 - Improve local version history just enough to support tailoring: clear labels,
-  role context, simple comparisons, undo paths, and readable restore summaries.
+  simple comparisons, undo paths, and readable restore summaries.
 - Keep PDF reconstruction conservative but resilient: tiny baseline differences
   between positioned text fragments now stay on one source line before parsing,
   preventing routine name, heading, and role fragments from being split. Do not
