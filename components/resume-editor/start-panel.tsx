@@ -95,14 +95,28 @@ export function StartPanel({
               </span>
             </span>
           </button>
+          <button
+            type="button"
+            className="group rounded-lg border bg-background p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            onClick={onOpenJson}
+          >
+            <span className="flex items-start gap-3">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
+                <FileJson className="size-4" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">Open a saved JSON</span>
+                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                  Reopen a resume you previously saved from PrivaCV as a local JSON file.
+                </span>
+              </span>
+            </span>
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-3">
-          <span className="mr-1 text-xs font-medium text-muted-foreground">Already saved work?</span>
-          <Button type="button" variant="outline" size="sm" onClick={onOpenJson}>
-            <FileJson /> Open JSON
-          </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onOpenCheckpointBackup}>
+          <span className="mr-1 text-xs font-medium text-muted-foreground">Restoring a checkpoint backup?</span>
+          <Button type="button" variant="outline" size="sm" onClick={onOpenCheckpointBackup}>
             <History /> Open checkpoint backup
           </Button>
         </div>

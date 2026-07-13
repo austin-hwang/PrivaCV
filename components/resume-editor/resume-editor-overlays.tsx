@@ -254,7 +254,7 @@ export function ResumeEditorOverlays({
             <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Version history</DialogDescription>
             <DialogTitle>Name this checkpoint</DialogTitle>
             <DialogDescription>
-              Add context before tailoring this resume so the right draft is easy to restore later.
+              Give this snapshot a name so the right draft is easy to find and restore later.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -272,28 +272,6 @@ export function ResumeEditorOverlays({
                 onChange={(event) => setVersionDraftLabel(event.target.value)}
               />
             </label>
-            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-              <span>Note (optional)</span>
-              <Textarea
-                value={versionDraftNote}
-                placeholder="Before tailoring bullets for the Stripe application."
-                className="min-h-24"
-                onChange={(event) => setVersionDraftNote(event.target.value)}
-              />
-            </label>
-            <Alert className={jobDescription.trim() || roleLabel.trim() ? "border-sky-300 bg-sky-50/70" : undefined}>
-              <Target className="h-4 w-4" />
-              <AlertTitle>
-                {jobDescription.trim() ? "Role focus included" : roleLabel.trim() ? "Role label included" : "No role focus to include"}
-              </AlertTitle>
-              <AlertDescription>
-                {jobDescription.trim()
-                  ? "This checkpoint will keep its pasted job description and private role label so you can resume the same local wording review when you restore it."
-                  : roleLabel.trim()
-                    ? "This checkpoint will keep its private role label so this draft stays recognizable in local version history."
-                    : "Add a job description or private role label in Role Focus before saving if you want this checkpoint to retain tailoring context."}
-              </AlertDescription>
-            </Alert>
             {versionToReplaceOnSave ? (
               <Alert className="border-amber-300 bg-amber-50/70">
                 <AlertCircle className="h-4 w-4" />

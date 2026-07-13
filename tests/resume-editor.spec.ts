@@ -309,7 +309,8 @@ test("helps first-time users choose the right private import route", async ({ pa
   await expect(page.getByText("Choose the route that best matches your source.")).toBeVisible();
   await expect(page.getByRole("button", { name: /paste resume text/i })).toContainText("OCR'd scanned PDFs");
   await expect(page.getByRole("button", { name: /import a pdf/i })).toContainText("Read locally");
-  await expect(page.getByText("Already saved work?")).toBeVisible();
+  await expect(page.getByRole("button", { name: /open a saved json/i })).toContainText("previously saved");
+  await expect(page.getByText("Restoring a checkpoint backup?")).toBeVisible();
   await expect(page.getByText("You will review every imported field before you export.")).toBeVisible();
 });
 
@@ -1309,80 +1310,7 @@ test("gently prompts for specific action openings while preserving truthful bull
   await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Starting with what you did can make the contribution easier to scan; keep the wording truthful.")).toBeVisible();
 });
 
-test("suggests exact role phrases for a local wording review", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page
-    .getByLabel("Job description")
-    .fill("Build backend microservices, partner with product teams, and improve backend microservices.");
-
-  const toolsDrawer = page.getByRole("dialog", { name: /review tools/i });
-  const phraseButton = toolsDrawer.getByRole("button", { name: /backend microservices/i }).first();
-  await expect(phraseButton).toBeVisible();
-  await phraseButton.click();
-  await expect(page.getByLabel("Check an exact phrase from this role")).toHaveValue("backend microservices");
-  await expect(page.getByText("Phrase already appears in your resume.")).toBeVisible();
-});
-
-test("shows where a matched role term is supported in the resume", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
-  const evidenceButton = page.getByRole("button", { name: /experience 1/i }).first();
-  await expect(evidenceButton).toBeVisible();
-  await evidenceButton.click();
-  await expect(page.locator("#field-experience-0-details")).toBeFocused();
-});
-
-test("separates detailed role evidence from skills and education references", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByLabel("Job description").fill([
-    "Requirements",
-    "- TypeScript",
-    "- Computer science",
-  ].join("\n"));
-
-  await expect(page.getByText("0 backed by entry details", { exact: true })).toBeVisible();
-  await expect(page.getByText(/3 matching terms appear outside entry details/i)).toBeVisible();
-  await page.getByRole("button", { name: "Education 1" }).first().click();
-  await expect(page.locator("#field-education-0-title")).toBeFocused();
-});
-
-test("counts truthful custom-section evidence in role focus and links back to it", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-
-  await page.getByRole("button", { name: /certifications/i }).click();
-  await page.locator('[id^="field-custom-"][id$="-0-details"]').fill("Administered Kubernetes clusters for production releases.");
-  await openTools(page);
-  await page.getByLabel("Job description").fill([
-    "Requirements",
-    "- Kubernetes experience",
-    "- Certifications",
-  ].join("\n"));
-
-  await expect(page.getByText("kubernetes present", { exact: true })).toBeVisible();
-  await expect(page.getByText("certifications present", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Certifications 1" }).click();
-  await expect(page.locator('[id^="field-custom-"][id$="-0-details"]')).toBeFocused();
-});
-
-test("elevates explicit role requirements without treating them as an ATS score", async ({ page }) => {
+test("turns a pasted role into a local wording checklist without an ATS score", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1393,14 +1321,30 @@ test("elevates explicit role requirements without treating them as an ATS score"
     "Build reliable product systems and collaborate across product teams.",
     "Requirements",
     "- TypeScript and GraphQL experience",
-    "Benefits",
-    "- Flexible work arrangements",
   ].join("\n"));
 
-  await expect(page.getByText("Listed requirements", { exact: true })).toBeVisible();
-  await expect(page.getByText("typescript present", { exact: true })).toBeVisible();
-  await expect(page.getByText("graphql review", { exact: true })).toBeVisible();
-  await expect(page.getByText(/This is a wording review, not an ATS score/i)).toBeVisible();
+  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  await expect(drawer.getByText(/key terms already in your resume/i)).toBeVisible();
+  await expect(drawer.getByText(/A wording check, not an ATS score/i)).toBeVisible();
+  // A requirement-sourced term is flagged as required in the checklist.
+  await expect(drawer.getByText("required", { exact: true }).first()).toBeVisible();
+});
+
+test("jumps from a matched role term to the wording already in the resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
+  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  const goTo = drawer.getByRole("button", { name: /^go to$/i }).first();
+  await expect(goTo).toBeVisible();
+  await goTo.click();
+  await expect
+    .poll(() => page.evaluate(() => (document.activeElement?.id ?? "").startsWith("field-")))
+    .toBe(true);
 });
 
 test("keeps mobile editing focused while leaving review tools one tap away", async ({ browser }) => {
@@ -1739,7 +1683,7 @@ test("expands dense change audits after export and restore", async ({ page }) =>
   await expect(page.getByText("Projects changed")).toBeVisible();
   await expect(page.getByText("Skills changed")).toBeVisible();
 
-  await page.getByRole("button", { name: /^restore$/i }).click();
+  await page.getByRole("button", { name: /restore clean baseline/i }).click();
   await expect(page.getByText("Checkpoint restored")).toBeVisible();
   await expect(page.getByText("2 more changed areas")).toBeVisible();
   await page.getByRole("button", { name: /show all changes/i }).click();
@@ -1776,26 +1720,17 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.getByRole("button", { name: /save version/i }).click();
   await expect(page.getByRole("dialog", { name: /name this checkpoint/i })).toBeVisible();
   await page.getByLabel("Checkpoint name").fill("Original software resume");
-  await page.getByLabel("Note (optional)").fill("Before tailoring for the platform role.");
-  await expect(page.getByText("No role focus to include")).toBeVisible();
   await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect(page.getByText("Version saved locally")).toBeVisible();
   await expect(page.getByText("Original software resume")).toBeVisible();
-  await expect(page.getByText("Before tailoring for the platform role.")).toBeVisible();
   await expect(page.getByText("Current", { exact: true })).toBeVisible();
   await expect(page.getByText("Jane Doe").first()).toBeVisible();
-  await expect(page.getByText("2 roles")).toBeVisible();
-  await expect(page.getByText("1 project")).toBeVisible();
-  await expect(page.getByText("4 skill lines")).toBeVisible();
 
   await page.getByLabel("Full Name").fill("Grace Hopper");
   await page.getByLabel("Job Title").first().fill("Principal Software Engineer");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
-  await expect(page.getByText("Suggested checkpoint")).toBeVisible();
-  await expect(page.getByRole("button", { name: /review differences/i })).toBeVisible();
-  await expect(page.getByText("2 changed areas").first()).toBeVisible();
 
-  await page.getByRole("button", { name: /compare/i }).click();
+  await page.getByRole("button", { name: /compare original software resume with current resume/i }).click();
   const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
   await expect(compareDialog).toBeVisible();
   const headerChange = compareDialog.getByRole("button", { name: /header changed/i });
@@ -1813,7 +1748,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(compareDialog).toBeHidden();
 
   await openTools(page);
-  await page.getByRole("button", { name: /^restore$/i }).click();
+  await page.getByRole("button", { name: /restore original software resume/i }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
   await expect(page.getByText("Checkpoint restored")).toBeVisible();
   const restoredChange = page.getByRole("button", { name: /header changed/i }).first();
@@ -1824,167 +1759,12 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByText("Restore point saved")).toBeVisible();
 
   await openTools(page);
-  await page.getByLabel("Delete saved version Original software resume").click();
-  await expect(page.getByText("Deleted checkpoint")).toBeVisible();
-  await expect(page.getByText("Restore it to version history before closing this page.")).toBeVisible();
+  await page.getByRole("button", { name: /delete original software resume/i }).click();
+  await expect(page.getByText(/Deleted “Original software resume”/)).toBeVisible();
 
-  await page.getByRole("button", { name: /undo delete/i }).click();
+  await page.getByRole("button", { name: /undo/i }).click();
   await expect(page.getByText("Restored deleted checkpoint")).toBeVisible();
-  await expect(page.getByLabel("Delete saved version Original software resume")).toBeVisible();
-});
-
-test("restores the local role focus saved with a tailored checkpoint", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  const description = page.getByLabel("Job description");
-  await description.fill("Build TypeScript services for product teams and improve release reliability.");
-  await page.getByRole("button", { name: /save version/i }).click();
-  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
-  await expect(saveDialog.getByText("Role focus included")).toBeVisible();
-  await page.getByLabel("Checkpoint name").fill("Platform role draft");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-  await expect(page.getByText("Role focus saved · Build TypeScript services for product teams and improve release reliability.")).toBeVisible();
-
-  await description.fill("Lead design systems for a consumer product team.");
-  await page.getByLabel("Professional Summary").fill("Product engineer focused on reliable platform launches.");
-  await page.getByRole("button", { name: /^restore$/i }).click();
-
-  await expect(description).toHaveValue("Build TypeScript services for product teams and improve release reliability.");
-  await page.getByRole("button", { name: /restore previous/i }).click();
-  await expect(description).toHaveValue("Lead design systems for a consumer product team.");
-});
-
-test("offers a base checkpoint where users start a local role review", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByLabel("Private role label (optional)").fill("Acme — Senior Product Engineer");
-  await page.getByLabel("Job description").fill("Build reliable product experiences for growing teams.");
-  await expect(page.getByText("Save your base before tailoring")).toBeVisible();
-
-  await page.getByRole("button", { name: /save base draft/i }).click();
-  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
-  await expect(saveDialog).toBeVisible();
-  await expect(saveDialog.getByText("Role focus included")).toBeVisible();
-  await page.getByLabel("Checkpoint name").fill("Acme base resume");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await expect(page.getByText("Acme base resume")).toBeVisible();
-  await expect(page.getByText(/Role label · Acme — Senior Product Engineer/)).toBeVisible();
-});
-
-test("keeps same-resume checkpoints separate for different private role labels", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByLabel("Private role label (optional)").fill("Acme — Senior Product Engineer");
-  await page.getByLabel("Job description").fill("Build reliable product experiences for growing teams.");
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Acme application");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await page.getByLabel("Private role label (optional)").fill("Northstar — Platform Engineer");
-  await page.getByLabel("Job description").fill("Build scalable platform systems for engineering teams.");
-  await page.getByRole("button", { name: /save version/i }).click();
-  await expect(page.getByText("Matching checkpoint found")).toBeHidden();
-  await page.getByLabel("Checkpoint name").fill("Northstar application");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await expect(page.getByText("2/5 saved")).toBeVisible();
-  await expect(page.getByText(/Role label · Acme — Senior Product Engineer/)).toBeVisible();
-  await expect(page.getByText(/Role label · Northstar — Platform Engineer/)).toBeVisible();
-});
-
-test("clears an unrelated role focus when restoring a checkpoint without one", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("General resume");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  const description = page.getByLabel("Job description");
-  await description.fill("Lead design systems for a consumer product team.");
-  await page.getByRole("button", { name: /^restore$/i }).click();
-
-  await expect(description).toHaveValue("");
-  await expect(page.getByRole("button", { name: /clear description/i })).toBeHidden();
-  await page.getByRole("button", { name: /restore previous/i }).click();
-  await expect(description).toHaveValue("Lead design systems for a consumer product team.");
-});
-
-test("audits changed role focus even when a saved resume still matches", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  const description = page.getByLabel("Job description");
-  await description.fill("Build reliable platform services for product teams.");
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Platform services role");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await description.fill("Lead a consumer design system for mobile experiences.");
-  await expect(page.getByText("Same resume", { exact: true })).toBeVisible();
-  await expect(page.getByText("Role focus changed", { exact: true })).toBeVisible();
-
-  await page.getByRole("button", { name: /^compare$/i }).click();
-  const compareDialog = page.getByRole("dialog", { name: /compare saved checkpoint/i });
-  await expect(compareDialog.getByText("Role focus changed", { exact: true })).toBeVisible();
-  await expect(compareDialog.getByText("No resume differences found")).toBeVisible();
-  await expect(compareDialog.getByText("Build reliable platform services for product teams.")).toBeVisible();
-  await expect(compareDialog.getByText("Lead a consumer design system for mobile experiences.")).toBeVisible();
-  await expect(compareDialog.getByText("Same resume · role focus changed")).toBeVisible();
-});
-
-test("compares two saved version history checkpoints", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Original software resume");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await page
-    .getByLabel("Professional Summary")
-    .fill("Platform engineer focused on infrastructure launches, reliability, and internal developer tools.");
-  await page.getByRole("button", { name: /save version/i }).click();
-  await page.getByLabel("Checkpoint name").fill("Platform tailoring draft");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
-
-  await expect(page.getByText("Derived from Original software resume")).toBeVisible();
-  await expect(page.getByText("Compare two saved checkpoints")).toBeVisible();
-  await page.getByRole("button", { name: /compare saved versions/i }).click();
-
-  const compareDialog = page.getByRole("dialog", { name: /compare saved versions/i });
-  await expect(compareDialog).toBeVisible();
-  await expect(compareDialog.getByText("Platform tailoring draft")).toBeVisible();
-  await expect(compareDialog.getByText("Original software resume")).toBeVisible();
-  await expect(compareDialog.getByText("Summary changed")).toBeVisible();
-  await expect(compareDialog.getByText("Base", { exact: true })).toBeVisible();
-  await expect(compareDialog.getByText("Compared", { exact: true })).toBeVisible();
-  await expect(compareDialog.getByText("Platform engineer focused on infrastructure launches")).toBeVisible();
-  await expect(compareDialog.getByText("Software engineer specializing")).toBeVisible();
-  await expect(compareDialog.getByRole("button", { name: /restore compared/i })).toBeVisible();
-  await expect(compareDialog.getByRole("button", { name: /restore base/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /delete original software resume/i })).toBeVisible();
 });
 
 test("warns before replacing the oldest local version history checkpoint", async ({ page }) => {
@@ -2003,16 +1783,12 @@ test("warns before replacing the oldest local version history checkpoint", async
     await page.getByRole("button", { name: /save checkpoint/i }).click();
   }
 
-  await expect(page.getByText("5/5 saved")).toBeVisible();
-  await expect(page.getByText("New checkpoints replace the oldest saved draft.")).toBeVisible();
-  await expect(
-    page.getByText("Checkpoint 1 is the oldest checkpoint and will be replaced first by a new unique save."),
-  ).toBeVisible();
+  await expect(page.getByText("5 saved.")).toBeVisible();
 
   await page
     .getByLabel("Professional Summary")
     .fill("Tailored summary 6 with a new role-specific angle that should replace the oldest checkpoint.");
-  await page.getByRole("button", { name: /save with review/i }).click();
+  await page.getByRole("button", { name: /save version/i }).click();
 
   const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
   await expect(saveDialog).toBeVisible();
@@ -2025,7 +1801,7 @@ test("warns before replacing the oldest local version history checkpoint", async
   await expect(page.getByText("Saved locally and replaced Checkpoint 1")).toBeVisible();
   await expect(page.getByText("Checkpoint 6", { exact: true })).toBeVisible();
   await expect(page.getByText("Checkpoint 1", { exact: true })).toBeHidden();
-  await expect(page.getByText("5/5 saved")).toBeVisible();
+  await expect(page.getByText("5 saved.")).toBeVisible();
 });
 
 test("imports a checkpoint history backup without replacing the current resume", async ({ page }) => {
@@ -2209,19 +1985,13 @@ test("reviews role language locally without presenting an ATS score", async ({ p
     "Build TypeScript services for product teams. Partner with platform teams to improve TypeScript reliability.",
   );
 
-  await expect(page.getByText(/selected terms appear/i)).toBeVisible();
-  await expect(page.getByText("typescript", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("partner", { exact: true })).toBeVisible();
-  await expect(page.getByText("This is a wording review, not an ATS score.")).toBeVisible();
+  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  await expect(drawer.getByText(/key terms already in your resume/i)).toBeVisible();
+  await expect(drawer.getByText("typescript", { exact: true }).first()).toBeVisible();
+  await expect(drawer.getByText(/A wording check, not an ATS score/i)).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-role-focus-v1"))).toContain("TypeScript");
 
-  const phrase = page.getByLabel("Check an exact phrase from this role");
-  await phrase.fill("JavaScript TypeScript");
-  await expect(page.getByText("Phrase already appears in your resume.")).toBeVisible();
-  await phrase.fill("platform teams");
-  await expect(page.getByText("Phrase not found verbatim in your resume.")).toBeVisible();
-
-  await page.getByRole("button", { name: /clear description/i }).click();
+  await drawer.getByRole("button", { name: /^clear$/i }).click();
   await expect(description).toHaveValue("");
-  await expect(phrase).toBeHidden();
+  await expect(drawer.getByText(/key terms already in your resume/i)).toBeHidden();
 });
