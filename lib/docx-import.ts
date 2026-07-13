@@ -183,6 +183,34 @@ export function docxHeaderPartPathsFromXml(xml: string) {
   return paths;
 }
 
+/**
+ * Lists footer XML parts referenced by the main document. Footers can contain
+ * a compact email/phone/portfolio strip, but they also commonly contain page
+ * numbers or template branding, so callers must recover only explicit contact
+ * lines rather than treating the footer as ordinary resume body text.
+ */
+export function docxFooterPartPathsFromXml(xml: string) {
+  const paths: string[] = [];
+  const relationshipPattern = /<Relationship\b([^>]*)\/?\s*>/g;
+
+  for (const relationship of xml.matchAll(relationshipPattern)) {
+    const attributes = relationship[1];
+    const type = relationshipAttribute(attributes, "Type");
+    const target = relationshipAttribute(attributes, "Target");
+    const targetMode = relationshipAttribute(attributes, "TargetMode");
+    if (!target || targetMode?.toLowerCase() === "external" || !/\/footer$/i.test(type ?? "")) continue;
+
+    // As with headers, accept only ordinary sibling footer parts so this
+    // browser-only importer cannot follow arbitrary paths inside the archive.
+    const match = target.replace(/\\/g, "/").match(/^(?:\.\/)?(footer\d+\.xml)$/i);
+    if (!match) continue;
+    const path = `word/${match[1]}`;
+    if (!paths.includes(path)) paths.push(path);
+  }
+
+  return paths;
+}
+
 function hyperlinkTargetFromInstruction(value: string) {
   // Word can store a hyperlink as a field instead of an r:id relationship.
   // The field instruction may contain switches after the target, so accept
@@ -270,6 +298,21 @@ function paragraphsFromDocxPart(files: Record<string, Uint8Array>, path: string)
   return docxParagraphsFromXml(strFromU8(part), relationshipTargets);
 }
 
+function isFooterContactLine(value: string) {
+  const line = value.trim();
+  if (!line) return false;
+
+  // Keep recovery intentionally narrow. A footer can include page numbers,
+  // document titles, or an employer's branding; only an explicit phone,
+  // email, web/link target, or city/state line belongs in the resume's
+  // contact block. This also recognizes safe targets added for label-only
+  // Word hyperlinks above.
+  return /[\w.+-]+@[\w-]+\.[\w.-]+/.test(line) ||
+    /(?:https?:\/\/|mailto:|tel:|www\.)/i.test(line) ||
+    /(?:\+?\d[\d().\s-]{6,}\d)/.test(line) ||
+    /\b[A-Z][a-zA-Z.]+(?:\s[A-Z][a-zA-Z.]+)*,\s*[A-Z]{2}\b/.test(line);
+}
+
 export function extractDocxText(buffer: ArrayBuffer) {
   if (buffer.byteLength > MAX_DOCX_BYTES) {
     throw new Error("This Word file is too large to import locally. Try copying its resume text instead.");
@@ -289,14 +332,22 @@ export function extractDocxText(buffer: ArrayBuffer) {
   }
 
   const relationships = files["word/_rels/document.xml.rels"];
-  const headerPaths = relationships ? docxHeaderPartPathsFromXml(strFromU8(relationships)) : [];
+  const documentRelationships = relationships ? strFromU8(relationships) : "";
+  const headerPaths = documentRelationships ? docxHeaderPartPathsFromXml(documentRelationships) : [];
+  const footerPaths = documentRelationships ? docxFooterPartPathsFromXml(documentRelationships) : [];
   const headerParagraphs = headerPaths.flatMap((path) => paragraphsFromDocxPart(files, path));
+  const footerContactParagraphs = footerPaths
+    .flatMap((path) => paragraphsFromDocxPart(files, path))
+    .filter(isFooterContactLine)
+    .filter((line) => !headerParagraphs.includes(line))
+    .filter((line, index, lines) => lines.indexOf(line) === index);
   const documentParagraphs = paragraphsFromDocxPart(files, "word/document.xml");
-  // Put referenced header text before the body so the existing conservative
-  // parser sees the contact block in the same order a reader does. A blank
-  // separation prevents a header's final contact line from merging with the
-  // first document-body section.
-  const text = [...headerParagraphs, ...(headerParagraphs.length ? [""] : []), ...documentParagraphs]
+  // Put referenced header text and narrowly recovered footer contact lines
+  // before the body so the existing conservative parser sees them in its
+  // preamble. A blank separation prevents the final contact line from merging
+  // with the first document-body section.
+  const contactPreamble = [...headerParagraphs, ...footerContactParagraphs];
+  const text = [...contactPreamble, ...(contactPreamble.length ? [""] : []), ...documentParagraphs]
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

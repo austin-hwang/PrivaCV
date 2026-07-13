@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-13 — Recover Word footer contact details locally
+
+- Market and product review: current Teal and Rezi workflows continue to put
+  importing an existing resume at the front of onboarding, while job seekers
+  consistently describe cleanup and retyping after an imperfect import as a
+  high-friction moment. The local Word importer already recovered normal body
+  paragraphs and referenced headers, but a common template variant keeps an
+  email, phone, or label-only portfolio link in the document footer.
+- Options considered: leave footer details for manual re-entry, ingest every
+  footer paragraph and risk importing page numbers or template branding, or
+  recover only explicit contact-shaped footer lines. The narrow recovery won
+  because it completes a common contact block without pretending footer layout
+  is resume content.
+- Implementation: the importer now follows referenced Word footer parts and
+  places only explicit email, phone, city/state, or safe web/contact-link lines
+  into the normal parsed contact preamble. Page numbers and non-contact footer
+  text stay out. Footer links use the existing relationship allow-list and
+  source-backed import review. README and roadmap now document this boundary.
+- Expected experience improvement: a person whose Word template puts contact
+  details in its footer reaches the editable review with those details already
+  present instead of reopening the source to copy them one at a time.
+- Verification: `pnpm test` (71 tests), `pnpm typecheck`, `pnpm lint`, focused
+  Chromium coverage of the footer import flow, `pnpm build`, and `git diff
+  --check` passed.
+- Provisional next step: reassess uncommon Word source structures and actual
+  import-review feedback before broadening extraction beyond explicit semantic
+  text and contact details.
+
 ## 2026-07-13 — Bound browser-only PDF imports
 
 - Market and product review: Rezi and Teal both make existing PDF/DOCX import a primary entry path, but their own guidance asks people to review every transferred section because document formatting differs. Recent user feedback also calls out broken imports and formatting drift. The editor already bounded Word archive expansion, while an unusually large or very long PDF could still make the browser do substantial local parsing before it could offer recovery.

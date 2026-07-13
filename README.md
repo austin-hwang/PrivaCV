@@ -213,13 +213,15 @@ Notes:
 ## Importing a Word document
 
 Click **Import a Word file** and choose an editable `.docx` resume. The app
-reads ordinary paragraph text locally (including text in simple table cells and
-referenced document headers) and recovers safe external contact-link
+reads ordinary paragraph text locally (including text in simple table cells,
+referenced document headers, and explicit contact details in referenced
+footers) and recovers safe external contact-link
 destinations—including standard Word hyperlink fields—when Word displays only
 a label such as “LinkedIn.” It then uses
 the same conservative parser and
-required review used for pasted text and PDFs. Visual layout, table structure,
-comments, and tracked changes are not reconstructed; use this route for the
+required review used for pasted text and PDFs. Page numbers, template branding,
+visual layout, table structure, comments, and tracked changes are not
+reconstructed; use this route for the
 resume text you want to edit, not as a pixel-perfect Word converter. To keep
 this browser-only path responsive, unusually large or highly compressed Word
 archives are rejected before decompression; copy and paste the resume text if
