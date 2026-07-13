@@ -38,8 +38,11 @@ export function ReviewDrawer({
     exportChanges,
     requestExport,
     jobDescription,
+    roleLabel,
     roleFocus,
+    plainText,
     setJobDescription,
+    setRoleLabel,
     exportFingerprint,
     deletedVersion,
     versionHistory,
@@ -180,10 +183,14 @@ export function ReviewDrawer({
           <section id="tool-role" aria-label="Role focus" className="scroll-mt-4 border-t pt-6">
             <RoleFocusCard
               jobDescription={jobDescription}
+              roleLabel={roleLabel}
               roleFocus={roleFocus}
+              resumeText={plainText}
               hasContent={hasContent}
               onChange={setJobDescription}
+              onRoleLabelChange={setRoleLabel}
               onClear={() => setJobDescription("")}
+              onSaveBase={openVersionSave}
               onFocus={onFocusTarget}
             />
           </section>

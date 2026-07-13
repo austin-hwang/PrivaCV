@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-13 — Restore deliberate role-tailoring checkpoints
+
+- Market and product review: Rezi and Teal position imported resumes and
+  role-specific tailoring as core workflows; Rezi also explicitly tells people
+  to review imported drafts because source formatting varies. PrivaCV's
+  streamlined Role Focus still stored private role context internally, but had
+  stopped exposing the label, save-before-edit checkpoint, and exact-phrase
+  review promised in its own product copy. That left users more likely to lose
+  their baseline or overlook a meaningful multi-word concept while tailoring.
+- Options considered: add writing automation, expand keyword scoring, or
+  restore the small, transparent controls already supported locally. Restoring
+  the controls won because it makes a high-frequency tailoring workflow safer
+  and easier without uploading resume data, inventing experience, or claiming
+  an ATS score.
+- Implementation: Role Focus again accepts an optional private role label,
+  provides a **Save base draft** checkpoint immediately after a role is pasted,
+  offers direct exact-phrase checks plus deterministic suggestions from the
+  posted language, and displays a saved draft's role label in version history.
+  The label remains browser-only and never enters the resume or PDF.
+- Expected experience improvement: a person can name the application, preserve
+  the strong starting draft before experimenting, and verify an important
+  phrase in one place instead of juggling role text and checkpoint history.
+- Verification: `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests), the
+  complete 82-test Chromium suite against the existing workspace dev server,
+  `NEXT_DIST_DIR=.next-codex-build pnpm build`, and `git diff --check` passed.
+  A first full browser attempt's temporary dev server stopped mid-run because
+  it shared Next's build cache with an already-running local dev server; the
+  rerun avoided that collision and passed.
+- Provisional next step: reassess real role-tailoring sessions before adding
+  any writing assistance; phrase suggestions should stay transparent and
+  user-controlled rather than expanding into opaque fit scores.
+
 ## 2026-07-13 — Preserve import review during cross-tab draft recovery
 
 - Market and product review: Rezi and Teal both make existing-resume import a

@@ -33,6 +33,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Let release checks use an isolated cache while a local dev server is open.
+  // Production keeps Next's normal `.next` output unless explicitly overridden.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

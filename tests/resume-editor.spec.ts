@@ -2158,3 +2158,28 @@ test("reviews role language locally without presenting an ATS score", async ({ p
   await expect(description).toHaveValue("");
   await expect(drawer.getByText(/key terms already in your resume/i)).toBeHidden();
 });
+
+test("keeps a labeled base draft and exact role phrases local while tailoring", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  await drawer.getByLabel(/private role label/i).fill("Acme — Platform Engineer");
+  await drawer.getByLabel("Job description").fill("Build backend microservices for dependable product systems.");
+
+  const phrase = drawer.getByLabel("Check an exact phrase");
+  await phrase.fill("backend microservices");
+  await expect(drawer.getByText("Phrase already appears in your resume.")).toBeVisible();
+  await expect(drawer.getByRole("button", { name: /save base draft/i })).toBeVisible();
+
+  await drawer.getByRole("button", { name: /save base draft/i }).click();
+  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
+  await saveDialog.getByLabel("Checkpoint name").fill("Acme platform base");
+  await saveDialog.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await expect(drawer.getByText("Role: Acme — Platform Engineer")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-role-focus-label-v1"))).toBe("Acme — Platform Engineer");
+});
