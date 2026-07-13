@@ -545,6 +545,15 @@ export function ResumeEditor() {
             />
           ) : null}
 
+          {/* The section nav sits flush at the top of the pane (lg:pt-0) so it
+              can stick cleanly while scrolling. When a pre-nav banner shows
+              above it instead, add a desktop-only inset so the banner is not
+              flush against the header. A flow spacer (not padding) keeps the
+              sticky nav flush once scrolled. */}
+          {workspaceHasStarted && (storageIssue || externalDraft || recoveryPoint || importReview || visibleRestoredVersionSummary) ? (
+            <div aria-hidden className="hidden lg:block lg:h-6" />
+          ) : null}
+
           {storageIssue ? (
             <Alert className="mb-6 border-amber-300 bg-amber-50/70">
               <AlertCircle className="h-4 w-4 text-amber-900" />
