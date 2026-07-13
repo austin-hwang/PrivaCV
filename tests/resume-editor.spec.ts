@@ -610,31 +610,6 @@ test("offers copy-ready application fields without making users retype resume de
   await expect(firstExperience.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
 });
 
-test("compares a job description locally without changing the resume", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /tailor to job/i }).click();
-
-  const dialog = page.getByRole("dialog", { name: /compare this resume with a job/i });
-  await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Job description").fill(
-    "Build TypeScript and React experiences. Partner with Kubernetes platform teams.",
-  );
-  await expect(dialog.getByText(/distinctive terms found/i)).toBeVisible();
-  await expect(dialog.getByText("TypeScript", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("Kubernetes", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
-
-  await dialog.getByRole("button", { name: "Close", exact: true }).first().click();
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /tailor to job/i }).click();
-  await expect(dialog.getByLabel("Job description")).toHaveValue("");
-});
-
 test("copies application fields when the browser rejects async clipboard access", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -26,7 +26,6 @@ import {
   Printer,
   RotateCcw,
   SlidersHorizontal,
-  Target,
   Trash2,
   Undo2,
   Upload,
@@ -117,7 +116,6 @@ export function ResumeEditor() {
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
-  const [jobMatchOpen, setJobMatchOpen] = useState(false);
   const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
   // Inline editing on the resume sheet is the primary way to edit; the left
   // form stays available as a fallback (and can be collapsed for a focused
@@ -611,9 +609,6 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
-                <MenuItem onSelect={() => setJobMatchOpen(true)} disabled={!hasContent}>
-                  <Target /> Tailor to job
-                </MenuItem>
                 <MenuItem onSelect={() => setApplicationCopyOpen(true)} disabled={!hasContent}>
                   <ClipboardCopy /> Copy for applications
                 </MenuItem>
@@ -1479,8 +1474,6 @@ export function ResumeEditor() {
           focusFromExportCheck: focusEditorFromExportCheck,
           focusFromVersionCompare: focusEditorFromVersionCompare,
         }}
-        jobMatchOpen={jobMatchOpen}
-        setJobMatchOpen={setJobMatchOpen}
       />
     </>
   );
