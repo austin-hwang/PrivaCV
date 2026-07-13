@@ -16,3 +16,6 @@ test-results/
 !.dev.vars.example
 
 !.env.example
+
+# Local preview tooling
+.claude/
