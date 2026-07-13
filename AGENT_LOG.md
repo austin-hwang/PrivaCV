@@ -2639,3 +2639,30 @@
   authoritative fallback instead of showing a misleading success state.
 - Added browser coverage for the saving-to-saved transition and documented the
   local-persistence behavior in the README and roadmap.
+
+# 2026-07-13 — Recoverable guided-review spotlight
+
+## Product review
+
+- **Finding:** The guided review preserved editing freedom, but its highlight
+  could become a detached floating box after the editor pane scrolled past the
+  active field. That makes the tour look broken precisely when someone is
+  checking a longer import.
+- **Options considered:** Lock all scrolling, keep the detached highlight, or
+  hide it while leaving a direct recovery action. The recovery pattern won: it
+  keeps people in control of scrolling without presenting a misleading visual.
+- **Expected user benefit:** The current step remains understandable even if
+  someone scrolls away; a single action returns them to the exact field.
+
+## Changes
+
+- Hide the review ring when its target is above or below the viewport.
+- Keep the tour card visible with directional context and **Return to field**,
+  which centers the active editor region and restores the highlight.
+- Added a browser regression test for scrolling away from an active import
+  review step and returning to it.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests), focused
+  Chromium Playwright coverage, `pnpm build`, and `git diff --check`.

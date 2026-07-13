@@ -81,6 +81,7 @@ export function GuidedReview({
   // behind and look detached from the section it frames.
   const [animate, setAnimate] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [offscreenDirection, setOffscreenDirection] = useState<"above" | "below" | null>(null);
   const [cardPos, setCardPos] = useState<{ top: number; left: number; placement: "below" | "above" | "bottom" | "right" } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const step = steps[index];
@@ -120,13 +121,35 @@ export function GuidedReview({
       return;
     }
     const r = el.getBoundingClientRect();
-    setRect((prev) =>
-      prev && prev.top === r.top && prev.left === r.left && prev.width === r.width && prev.height === r.height ? prev : r,
-    );
-
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const cardH = cardRef.current?.offsetHeight ?? 200;
+    const isInViewport = r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
+    const nextOffscreenDirection = !isInViewport ? (r.bottom <= 0 ? "above" : "below") : null;
+
+    setOffscreenDirection((prev) => (prev === nextOffscreenDirection ? prev : nextOffscreenDirection));
+    // A ring without its element looks like a rendering error. Hide it when a
+    // person scrolls the active field away, then leave the tour card available
+    // with a direct route back to the exact field.
+    if (!isInViewport) {
+      setRect((prev) => (prev === null ? prev : null));
+      setCardPos((prev) => {
+        const width = Math.min(CARD_WIDTH, vw - 24);
+        const next = {
+          top: nextOffscreenDirection === "above" ? 12 : Math.max(12, vh - cardH - 12),
+          left: Math.max(12, (vw - width) / 2),
+          placement: (vw < 640 ? "bottom" : "below") as "below" | "above" | "bottom" | "right",
+        };
+        return prev && Math.abs(prev.top - next.top) < 1 && Math.abs(prev.left - next.left) < 1 && prev.placement === next.placement
+          ? prev
+          : next;
+      });
+      return;
+    }
+
+    setRect((prev) =>
+      prev && prev.top === r.top && prev.left === r.left && prev.width === r.width && prev.height === r.height ? prev : r,
+    );
 
     const setPos = (next: { top: number; left: number; placement: "below" | "above" | "bottom" | "right" }) =>
       setCardPos((prev) =>
@@ -214,11 +237,15 @@ export function GuidedReview({
 
   if (!open || !mounted || !step) return null;
   const isLast = index === steps.length - 1;
+  const returnToTarget = () => {
+    resolveRegionEl(step.targetId)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
 
   return createPortal(
     <div className="app-chrome pointer-events-none fixed inset-0 z-[60]" aria-hidden={false}>
       {rect ? (
         <div
+          data-guided-review-highlight
           className={cn(
             "pointer-events-none absolute rounded-md",
             animate && "transition-[top,left,width,height] duration-150",
@@ -259,6 +286,16 @@ export function GuidedReview({
         </div>
 
         {step.description ? <p className="text-xs leading-snug text-muted-foreground">{step.description}</p> : null}
+        {offscreenDirection ? (
+          <div className="mt-3 rounded-md border bg-muted/40 p-2.5">
+            <p className="text-xs leading-snug text-muted-foreground">
+              The current field is {offscreenDirection}. Return to it to continue this step.
+            </p>
+            <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={returnToTarget}>
+              Return to field
+            </Button>
+          </div>
+        ) : null}
         {step.excerpt ? (
           <p className="mt-2 max-h-24 overflow-y-auto whitespace-pre-line rounded-md border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed text-foreground">
             {step.excerpt}

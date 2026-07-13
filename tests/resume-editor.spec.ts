@@ -883,6 +883,37 @@ test("walks resume checks with a guided highlight tour from the tools drawer", a
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
+test("keeps a guided review recoverable when its active field scrolls out of view", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation\nB.S. Mathematics | Cambridge | 2018",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await page.getByRole("button", { name: /start walkthrough/i }).click();
+
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  await expect(tour).toBeVisible();
+  await expect(page.locator("[data-guided-review-highlight]")).toBeVisible();
+
+  // The editor has its own scroller. Moving the active contact section out of
+  // it must hide the detached ring and leave an explicit recovery path.
+  await page.locator("#resume-editor-pane").evaluate((pane) => {
+    pane.scrollTop = pane.scrollHeight;
+    pane.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  await expect(tour.getByText(/current field is above/i)).toBeVisible();
+  await expect(page.locator("[data-guided-review-highlight]")).toBeHidden();
+
+  await tour.getByRole("button", { name: /return to field/i }).click();
+  await expect(tour.getByText(/current field is above/i)).toBeHidden();
+  await expect(page.locator("[data-guided-review-highlight]")).toBeVisible();
+});
+
 test("keeps the whole page from scrolling away during import review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
