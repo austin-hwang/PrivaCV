@@ -326,7 +326,7 @@ export function useResumeEditor() {
     setVersionSaveOpen(true);
   };
 
-  const saveVersion = () => {
+  const saveVersion = (backUpBeforeReplacement = false) => {
     if (!hasAnyContent(state)) {
       flash("Add resume details first");
       return;
@@ -336,6 +336,18 @@ export function useResumeEditor() {
     const label = versionDraftLabel.trim() || versionLabel(state);
     const note = versionDraftNote.trim();
     const replacement = versionReplacementCandidate(versionHistory, historyFingerprint);
+    // A full local timeline used to make replacement easy to acknowledge but
+    // still easy to regret. The safe action downloads the complete current
+    // history before the oldest item falls out of the browser-only limit.
+    if (backUpBeforeReplacement && replacement) {
+      const backup: VersionHistoryBackup = {
+        format: VERSION_HISTORY_BACKUP_FORMAT,
+        version: VERSION_HISTORY_BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        checkpoints: versionHistory,
+      };
+      downloadJsonFile(backup, `${safeResumeFilename(state.name || "resume")}-checkpoints.json`);
+    }
     const derivedFrom =
       versionHistory.find((item) => item.id === draftSourceVersionId && versionHistoryFingerprint(item) !== historyFingerprint) ??
       versionHistory.find((item) => versionHistoryFingerprint(item) !== historyFingerprint) ??
@@ -356,7 +368,13 @@ export function useResumeEditor() {
     setVersionHistory((current) => [entry, ...current.filter((item) => versionHistoryFingerprint(item) !== historyFingerprint)].slice(0, MAX_VERSION_HISTORY));
     setDraftSourceVersionId(entry.id);
     setVersionSaveOpen(false);
-    flash(replacement ? `Saved locally and replaced ${replacement.label}` : "Version saved locally");
+    flash(
+      replacement
+        ? backUpBeforeReplacement
+          ? `Backed up and replaced ${replacement.label}`
+          : `Saved locally and replaced ${replacement.label}`
+        : "Version saved locally",
+    );
   };
 
   const restoreVersion = (item: VersionHistoryItem) => {

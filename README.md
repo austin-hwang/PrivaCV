@@ -89,6 +89,8 @@ subscriptions, watermarks, or backend storage.
   appears before choosing between conflicting drafts in two browser tabs.
 - Local version history for naming, annotating, comparing, and restoring a few
   browser-only checkpoints while tailoring a resume for different applications.
+  When that short local history is full, the recommended save path downloads a
+  complete checkpoint backup before replacing its oldest draft.
 - Role-aware checkpoints with optional private labels, so job-specific wording
   context stays attached to the right local draft; intentional PDF, Word,
   plain-text, and JSON exports include that label in their filename to prevent

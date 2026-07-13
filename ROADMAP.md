@@ -134,7 +134,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   density choices—now appear beside content edits, and the same comparison
   explains conflicting same-browser drafts before a person chooses one.
 - Let users keep lightweight browser-only checkpoints so job-specific tailoring
-  feels reversible without accounts or cloud storage.
+  feels reversible without accounts or cloud storage. When the deliberately
+  small local timeline is full, the recommended save route now downloads the
+  complete current history before replacing its oldest checkpoint, so a base
+  draft is not lost merely because the browser-only convenience limit is met.
 - Make saved drafts quick to scan, compare, restore, or undo when users are
   deciding which tailored version to continue.
 - Keep role-focus context attached to the right saved draft without making

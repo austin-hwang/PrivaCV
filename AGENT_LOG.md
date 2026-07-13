@@ -1,5 +1,37 @@
 # Agent Log
 
+## 2026-07-13 — Protect full tailored-version histories
+
+## Product review
+
+- **Finding:** The local tailoring flow encouraged people to save a base draft,
+  but the five-checkpoint limit still let the next save discard the oldest
+  version after a warning. That makes the core recovery promise fragile just
+  when someone has several active applications.
+- **Options considered:** Add an application tracker, increase local storage,
+  or make the existing checkpoint backup part of the replacement decision. The
+  backup path won because it protects a real draft-loss moment without an
+  account, background upload, or a more complex version model.
+- **Expected user benefit:** A person can keep moving through role-specific
+  saves knowing the recommended action preserves every current local draft in
+  a portable file before an old slot is reused.
+
+## Changes
+
+- Added a **Back up & Save** action whenever a new checkpoint would replace
+  the oldest local one. It downloads the complete current checkpoint history,
+  then saves the new draft in the browser.
+- Kept a clearly labeled **Save without backup** option for people who intend
+  to reuse the slot, and made the replacement alert explain the safer default.
+- Added browser coverage that verifies the download contains the outgoing
+  oldest checkpoint before the local timeline changes.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests), focused
+  Chromium Playwright coverage of the full-history backup flow,
+  `NEXT_DIST_DIR=.next-codex-build pnpm build`, and `git diff --check`.
+
 ## 2026-07-13 — Distinct filenames for tailored applications
 
 - Market and product review: Teal and similar builders center the repeated

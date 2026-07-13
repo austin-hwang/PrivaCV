@@ -1965,7 +1965,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByRole("button", { name: /delete original software resume/i })).toBeVisible();
 });
 
-test("warns before replacing the oldest local version history checkpoint", async ({ page }) => {
+test("backs up the full checkpoint history before replacing its oldest local version", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1992,11 +1992,22 @@ test("warns before replacing the oldest local version history checkpoint", async
   await expect(saveDialog).toBeVisible();
   await expect(saveDialog.getByText("History is full")).toBeVisible();
   await expect(saveDialog.getByText("Saving a new checkpoint will replace Checkpoint 1")).toBeVisible();
+  await expect(saveDialog.getByText(/recommended action downloads a complete backup first/i)).toBeVisible();
 
   await page.getByLabel("Checkpoint name").fill("Checkpoint 6");
-  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  const download = page.waitForEvent("download");
+  await saveDialog.getByRole("button", { name: /back up & save/i }).click();
+  const backup = await download;
+  expect(backup.suggestedFilename()).toBe("Jane_Doe-checkpoints.json");
+  const backupPath = await backup.path();
+  expect(backupPath).not.toBeNull();
+  expect(JSON.parse(await readFile(backupPath!, "utf8"))).toMatchObject({
+    format: "resume-editor-version-history-backup",
+    version: 1,
+    checkpoints: expect.arrayContaining([expect.objectContaining({ label: "Checkpoint 1" })]),
+  });
 
-  await expect(page.getByText("Saved locally and replaced Checkpoint 1")).toBeVisible();
+  await expect(page.getByText("Backed up and replaced Checkpoint 1")).toBeVisible();
   await expect(page.getByText("Checkpoint 6", { exact: true })).toBeVisible();
   await expect(page.getByText("Checkpoint 1", { exact: true })).toBeHidden();
   await expect(page.getByText("5 saved.")).toBeVisible();

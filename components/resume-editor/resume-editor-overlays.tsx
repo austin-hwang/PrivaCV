@@ -278,8 +278,8 @@ export function ResumeEditorOverlays({
                 <AlertTitle>History is full</AlertTitle>
                 <AlertDescription>
                   Saving a new checkpoint will replace {versionToReplaceOnSave.label}, saved{" "}
-                  {formatCheckpointTime(versionToReplaceOnSave.savedAt)}. Back up checkpoints first if you want a copy
-                  outside this browser.
+                  {formatCheckpointTime(versionToReplaceOnSave.savedAt)}. The recommended action downloads a complete
+                  backup first, so every current checkpoint remains recoverable.
                 </AlertDescription>
               </Alert>
             ) : existingVersionForSave ? (
@@ -305,9 +305,20 @@ export function ResumeEditorOverlays({
                 <Button type="button" variant="outline" onClick={() => setVersionSaveOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  <Save /> Save Checkpoint
-                </Button>
+                {versionToReplaceOnSave ? (
+                  <>
+                    <Button type="submit" variant="outline">
+                      <Save /> Save without backup
+                    </Button>
+                    <Button type="button" onClick={() => saveVersion(true)}>
+                      <Download /> Back up &amp; Save
+                    </Button>
+                  </>
+                ) : (
+                  <Button type="submit">
+                    <Save /> Save Checkpoint
+                  </Button>
+                )}
               </div>
             </DialogFooter>
           </form>
