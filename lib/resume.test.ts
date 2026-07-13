@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
-import { docxHyperlinkTargetsFromXml, docxParagraphsFromXml, extractDocxText } from "@/lib/docx-import";
+import {
+  docxArchiveUncompressedSize,
+  docxHyperlinkTargetsFromXml,
+  docxParagraphsFromXml,
+  extractDocxText,
+  MAX_DOCX_EXPANDED_BYTES,
+} from "@/lib/docx-import";
 import {
   applicationCopyGroups,
   buildResumeChecks,
@@ -103,6 +109,24 @@ describe("resume helpers", () => {
     expect(imported.experience).toEqual(expect.arrayContaining([
       expect.objectContaining({ title: "Senior Software Engineer", subtitle: "Acme Corp - San Francisco, CA" }),
     ]));
+  });
+
+  it("checks a Word archive's expanded size before decompressing it", () => {
+    const archive = resumeDocx(sampleState());
+    expect(docxArchiveUncompressedSize(archive.buffer)).toBeGreaterThan(0);
+
+    // A minimal central directory is sufficient for this guard: extraction
+    // must reject the claimed expansion before it tries to unzip any payload.
+    const oversizedArchive = new ArrayBuffer(68);
+    const view = new DataView(oversizedArchive);
+    view.setUint32(0, 0x02014b50, true);
+    view.setUint32(24, MAX_DOCX_EXPANDED_BYTES + 1, true);
+    view.setUint32(46, 0x06054b50, true);
+    view.setUint16(54, 1, true);
+    view.setUint16(56, 1, true);
+    view.setUint32(58, 46, true);
+
+    expect(() => extractDocxText(oversizedArchive)).toThrow(/expand to too much data/i);
   });
 
   it("keeps simple Word table cell text in document order", () => {

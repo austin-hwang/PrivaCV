@@ -256,6 +256,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep sensitive import paths self-contained: the on-demand PDF parser and its
   worker now ship from the app origin rather than a third-party CDN, so the
   user's selected resume never depends on or contacts an external parser host.
+- Keep local Word import safe to open: the importer now validates a standard
+  single-disk `.docx` archive's declared expanded size before decompression,
+  avoiding a browser freeze from a highly compressed or unusually complex file.
+  It offers copied text as the recovery route rather than attempting ZIP64 or
+  multi-disk document reconstruction.
 - Continue using zod normalization for imported and saved resume data.
 - Keep the dependency graph free of known production advisories. PostCSS is
   explicitly overridden to the patched 8.5.16 release because the currently

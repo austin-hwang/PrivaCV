@@ -1,5 +1,27 @@
 # Agent Log
 
+## 2026-07-12 — Bound Word archive expansion before parsing
+
+- Market and product review: private, free export remains a clear market
+  differentiator, while feedback repeatedly describes import cleanup as a
+  painful first-use moment. The recent local Word import removes that friction,
+  but its compressed-file limit alone could let a crafted `.docx` expand a very
+  large archive in the browser before its document-XML limit applied.
+- Options considered: accept the residual browser-freeze risk, move Word
+  parsing to a server, or inspect standard ZIP metadata locally before
+  decompression. The bounded local check won because it keeps resume data on
+  the device, protects a sensitive import path, and leaves normal editable
+  Word files unchanged.
+- Implementation: Word import now reads the central-directory metadata of a
+  standard single-disk archive and rejects files whose declared total expansion
+  exceeds 32 MiB before handing them to the unzipper. ZIP64 or multi-disk
+  archives are deliberately treated as too complex and point people to the
+  existing paste-text recovery path. A test asserts the oversized archive is
+  stopped before decompression; README and roadmap document the boundary.
+- Expected experience improvement: importing a normal resume remains one step,
+  while an unsafe or unusually complex file fails promptly with a clear way to
+  continue instead of risking a stuck tab or lost in-progress edits.
+
 ## 2026-07-12 — Preserve hidden Word contact links locally
 
 - Market and product review: Teal and Rezi both treat importing an existing

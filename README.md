@@ -216,7 +216,10 @@ and recovers safe external contact-link destinations when Word displays only a
 label such as “LinkedIn.” It then uses the same conservative parser and
 required review used for pasted text and PDFs. Visual layout, table structure,
 comments, and tracked changes are not reconstructed; use this route for the
-resume text you want to edit, not as a pixel-perfect Word converter.
+resume text you want to edit, not as a pixel-perfect Word converter. To keep
+this browser-only path responsive, unusually large or highly compressed Word
+archives are rejected before decompression; copy and paste the resume text if
+that happens.
 
 ## Importing pasted text
 
