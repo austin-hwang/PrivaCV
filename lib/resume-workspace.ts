@@ -8,6 +8,12 @@ import {
 import { detectSection, detectSpecialtySection } from "@/lib/pdf-import";
 
 export const STORAGE_KEY = "resume-editor-data-v2";
+/**
+ * The import-review checklist is stored separately from the editable resume.
+ * Keeping it independent preserves compatibility with existing local drafts,
+ * while allowing a required import review to survive a refresh.
+ */
+export const IMPORT_REVIEW_KEY = "resume-editor-import-review-v1";
 export const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 export const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
 export const ROLE_FOCUS_KEY = "resume-editor-role-focus-v1";
@@ -77,6 +83,13 @@ export type ImportReviewState = {
   sourceText?: string;
   coverage?: ImportCoverageItem[];
 };
+
+/**
+ * A compact, reload-safe representation of an import review. The complete
+ * extracted source can be much larger than a normal localStorage budget, and
+ * the checklist already keeps the small source excerpts needed for review.
+ */
+export type StoredImportReview = Omit<ImportReviewState, "sourceText">;
 
 export type RecoveryPoint = {
   label: string;
@@ -237,6 +250,87 @@ export function parseExportCheckpoint(value: string | null): ExportCheckpoint | 
     return null;
   }
   return null;
+}
+
+function limitedString(value: unknown, maximum = 2_000) {
+  return typeof value === "string" ? value.slice(0, maximum) : undefined;
+}
+
+/**
+ * Restores only well-formed review metadata from browser storage. This is
+ * deliberately narrower than a version checkpoint: it excludes the complete
+ * extracted source while retaining the local excerpts and coverage prompts
+ * needed to finish an interrupted review after a refresh.
+ */
+export function parseStoredImportReview(value: string | null): ImportReviewState | null {
+  if (!value) return null;
+
+  try {
+    const parsed = JSON.parse(value) as Partial<StoredImportReview>;
+    if (!parsed || typeof parsed !== "object" || typeof parsed.fileName !== "string" || !Array.isArray(parsed.items)) {
+      return null;
+    }
+
+    const items = parsed.items
+      .slice(0, 250)
+      .flatMap((item): ImportReviewItem[] => {
+        if (!item || typeof item !== "object") return [];
+        const candidate = item as Partial<ImportReviewItem>;
+        const id = limitedString(candidate.id, 160);
+        const label = limitedString(candidate.label, 240);
+        const targetId = limitedString(candidate.targetId, 240);
+        const detail = limitedString(candidate.detail);
+        if (!id || !label || !targetId || !detail) return [];
+        const sourceExcerpt = limitedString(candidate.sourceExcerpt, 4_000);
+        return [{ id, label, targetId, detail, ...(sourceExcerpt ? { sourceExcerpt } : {}) }];
+      });
+
+    if (!items.length) return null;
+    const itemIds = new Set(items.map((item) => item.id));
+    const coverage = Array.isArray(parsed.coverage)
+      ? parsed.coverage.slice(0, 40).flatMap((item): ImportCoverageItem[] => {
+          if (!item || typeof item !== "object") return [];
+          const candidate = item as Partial<ImportCoverageItem>;
+          const id = limitedString(candidate.id, 160);
+          const label = limitedString(candidate.label, 240);
+          const detail = limitedString(candidate.detail);
+          const targetId = limitedString(candidate.targetId, 240);
+          if (!id || !label || !detail || !targetId || typeof candidate.detected !== "boolean") return [];
+          const sourceExcerpt = limitedString(candidate.sourceExcerpt, 4_000);
+          return [{
+            id,
+            label,
+            detail,
+            targetId,
+            detected: candidate.detected,
+            ...(typeof candidate.sourceDetected === "boolean" ? { sourceDetected: candidate.sourceDetected } : {}),
+            ...(sourceExcerpt ? { sourceExcerpt } : {}),
+          }];
+        })
+      : undefined;
+
+    return {
+      fileName: limitedString(parsed.fileName, 500) ?? "imported resume",
+      sections: Array.isArray(parsed.sections)
+        ? parsed.sections.map((section) => limitedString(section, 240)).filter((section): section is string => Boolean(section)).slice(0, 40)
+        : [],
+      items,
+      reviewedItemIds: Array.isArray(parsed.reviewedItemIds)
+        ? parsed.reviewedItemIds
+            .map((id) => limitedString(id, 160))
+            .filter((id): id is string => typeof id === "string" && itemIds.has(id))
+        : [],
+      ...(coverage ? { coverage } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Drops full extracted source text before persisting a review in localStorage. */
+export function storedImportReview(importReview: ImportReviewState): StoredImportReview {
+  const { sourceText: _sourceText, ...review } = importReview;
+  return review;
 }
 
 export function parseVersionHistory(value: string | null, limit = MAX_VERSION_HISTORY): VersionHistoryItem[] {

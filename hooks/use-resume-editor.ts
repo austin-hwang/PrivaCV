@@ -28,6 +28,7 @@ import {
 } from "@/lib/resume";
 import {
   EXPORT_CHECKPOINT_KEY,
+  IMPORT_REVIEW_KEY,
   MAX_VERSION_HISTORY,
   ROLE_FOCUS_KEY,
   ROLE_FOCUS_LABEL_KEY,
@@ -40,9 +41,11 @@ import {
   importReviewProgress,
   mergeVersionHistory,
   parseExportCheckpoint,
+  parseStoredImportReview,
   parseVersionHistory,
   parseVersionHistoryBackup,
   roleContextFingerprint,
+  storedImportReview,
   versionHistoryFingerprint,
   versionLabel,
   versionReplacementCandidate,
@@ -400,6 +403,7 @@ export function useResumeEditor() {
       const legacy = localStorage.getItem("resume-editor-data-v1");
       const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
       if (saved) setState(normalizeResume(JSON.parse(saved)));
+      setImportReview(parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY)));
       setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
       setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
       setJobDescription(localStorage.getItem(ROLE_FOCUS_KEY) ?? "");
@@ -447,6 +451,19 @@ export function useResumeEditor() {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [confirmStorageAvailable, externalDraft, loaded, reportStorageIssue, state]);
+
+  // A refresh should never turn an unreviewed import into an ordinary draft.
+  // Persist the compact checklist with its source excerpts, but deliberately
+  // omit the full extracted source so local storage stays bounded.
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      if (importReview) localStorage.setItem(IMPORT_REVIEW_KEY, JSON.stringify(storedImportReview(importReview)));
+      else localStorage.removeItem(IMPORT_REVIEW_KEY);
+    } catch {
+      reportStorageIssue();
+    }
+  }, [importReview, loaded, reportStorageIssue]);
 
   const useExternalDraft = () => {
     if (!externalDraft) return;

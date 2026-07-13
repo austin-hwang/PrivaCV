@@ -844,6 +844,34 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
   await expect(page.getByText("Review the imported fields")).toBeHidden();
 });
 
+test("keeps an unfinished import review after a browser refresh", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expect(page.locator("#import-review-panel")).toBeVisible();
+
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("Ada Lovelace");
+  const storedReview = await page.evaluate(() => localStorage.getItem("resume-editor-import-review-v1"));
+  expect(storedReview).toContain('"items"');
+  expect(storedReview).not.toContain('"sourceText"');
+
+  await page.reload();
+
+  const banner = page.locator("#import-review-panel");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+  await expect(banner.getByText("Review the imported fields")).toBeVisible();
+  await expect(banner.getByText("0/2")).toBeVisible();
+  await page.getByRole("button", { name: /^export pdf$/i }).click();
+  await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
+});
+
 test("imports common alternate section headings without losing resume content", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

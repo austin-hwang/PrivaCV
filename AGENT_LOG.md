@@ -1,5 +1,34 @@
 # Agent Log
 
+## 2026-07-13 — Keep import review intact across refreshes
+
+- Market and product review: Teal and Rezi both present import as a primary
+  start path and explicitly tell people to inspect the resulting draft. Recent
+  job-seeker feedback also shows that import mistakes create disproportionate
+  cleanup and trust costs. In PrivaCV, the imported resume autosaved, but its
+  required correction checklist existed only in memory; a refresh could remove
+  the reminder and let an unreviewed import reach export.
+- Options considered: persist the entire extracted source beside every local
+  draft, drop the review checkpoint after import, or persist only the compact
+  checklist that already contains actionable field and coverage excerpts. The
+  compact checklist won because it preserves the safety gate and restart
+  recovery without needlessly expanding browser storage with a full source
+  document.
+- Implementation: unfinished import review metadata now saves independently
+  with the local draft and is restored on reload. The stored form validates
+  item and coverage metadata, preserves the confirmation count and nearby
+  excerpts, and deliberately excludes the full extracted source text. A
+  refresh therefore retains the walkthrough and routes Export PDF through the
+  same review checkpoint until a person completes it.
+- Expected experience improvement: someone can refresh, close and reopen a
+  tab, or return after an interruption without losing the reminder to verify
+  potentially imperfect imported details before sending a PDF.
+- Verification: `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests), and
+  focused Chromium coverage of a refresh followed by an export attempt passed.
+- Provisional next step: reassess actual import-review behavior across browser
+  tabs and uncommon document structures before expanding parser heuristics or
+  tailoring automation.
+
 ## 2026-07-13 — Recover Word footer contact details locally
 
 - Market and product review: current Teal and Rezi workflows continue to put

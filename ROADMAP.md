@@ -37,7 +37,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep import review deliberately trustworthy without making a clean import
   feel like paperwork: people can still correct and confirm individual fields,
   while a clear source-backed checklist now offers one explicit confirmation
-  for an import they have reviewed as a whole. Reassess whether uncommon
+  for an import they have reviewed as a whole. An unfinished checklist now
+  survives a refresh with its compact local excerpts and coverage prompts, so
+  accidental reloads cannot bypass the review; the complete extracted source
+  is intentionally not copied into browser storage. Reassess whether uncommon
   source layouts, rather than confirmation effort, are the next import gap.
 - Improve parsing accuracy for common plain-text layouts before expanding
   output formats: alternate headings such as Career Profile, Relevant

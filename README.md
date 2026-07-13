@@ -70,7 +70,9 @@ subscriptions, watermarks, or backend storage.
   are easy to restore after tailoring.
 - Export checkpoint that catches unresolved resume checks or PDF-import review
   items before opening the browser print dialog, including when the familiar
-  Cmd/Ctrl+P shortcut is used.
+  Cmd/Ctrl+P shortcut is used. An unfinished import review survives a browser
+  refresh, so a reload cannot silently turn an imported draft into a
+  review-free export.
 - Local, editable `.docx` export for portals that explicitly request a Word
   document. It keeps the current resume in a simple single-column structure
   with normal text, headings, bullets, and usable contact links; it is designed
@@ -124,7 +126,8 @@ subscriptions, watermarks, or backend storage.
   specialty source headings the parser did not populate and keeps a short source excerpt beside each
   recognized section, and keeps the export reminder visible until the review
   is finished. Experience entries include a one-click title/company swap for
-  company-first source layouts.
+  company-first source layouts. The reload-safe checklist retains its small
+  local excerpts and coverage prompts, not the complete extracted source text.
 - One-click restore point after high-risk actions like PDF import, JSON open,
   sample load, and clearing the resume.
 - A five-second Undo for accidentally removed entries or custom sections, so

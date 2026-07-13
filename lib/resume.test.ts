@@ -46,8 +46,10 @@ import {
   importReviewProgress,
   mergeVersionHistory,
   parseExportCheckpoint,
+  parseStoredImportReview,
   parseVersionHistoryBackup,
   roleContextFingerprint,
+  storedImportReview,
   versionContentBadges,
   versionHistoryFingerprint,
   type VersionHistoryItem,
@@ -696,6 +698,31 @@ describe("resume helpers", () => {
       remainingCount: 0,
       isComplete: true,
     });
+  });
+
+  it("keeps an interrupted import review reload-safe without storing its complete source text", () => {
+    const sourceText = [
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Experience",
+      "Platform Engineer | Analytical Engines | 2022–Present",
+      "• Built reliable systems.",
+    ].join("\n");
+    const review = buildImportReview(importResumeText(sourceText), "ada-resume.txt", sourceText);
+    const stored = storedImportReview({ ...review, reviewedItemIds: ["contact"] });
+    const restored = parseStoredImportReview(JSON.stringify(stored));
+
+    expect(stored).not.toHaveProperty("sourceText");
+    expect(restored).toMatchObject({ fileName: "ada-resume.txt", reviewedItemIds: ["contact"] });
+    expect(restored?.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: "contact" })]));
+    expect(restored?.sourceText).toBeUndefined();
+    expect(restored?.coverage?.find((item) => item.id === "experience")?.sourceExcerpt).toContain("Built reliable systems.");
+  });
+
+  it("rejects malformed persisted import-review metadata", () => {
+    expect(parseStoredImportReview('{"fileName":"resume.pdf","items":[{"id":"contact"}]}')).toBeNull();
+    expect(parseStoredImportReview("not json")).toBeNull();
   });
 
   it("includes every imported standard and custom entry in the review", () => {
