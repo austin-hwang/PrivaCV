@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Trash2 } from "lucide-react";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,18 +10,55 @@ import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
 
-export function FieldGroup({ id, title, actions, children, className, reviewRegion }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; reviewRegion?: boolean }) {
+export function FieldGroup({
+  id,
+  title,
+  actions,
+  children,
+  className,
+  reviewRegion,
+  groupId,
+  collapsible,
+  collapsed,
+  onToggleCollapsed,
+}: {
+  id?: string;
+  title: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  reviewRegion?: boolean;
+  /** Stable id used to reveal (expand) this group when a jump targets it. */
+  groupId?: string;
+  collapsible?: boolean;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+}) {
   return (
     <section
       id={id}
       data-review-region={reviewRegion ? "" : undefined}
-      className={cn("scroll-mt-32 border-b pb-5 transition-colors last:border-b-0 lg:scroll-mt-16", className)}
+      data-field-group={groupId}
+      className={cn("scroll-mt-32 border-b transition-colors last:border-b-0 lg:scroll-mt-16", collapsed ? "pb-3" : "pb-5", className)}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
+      <div className={cn("flex items-center justify-between gap-3", collapsed ? "mb-0" : "mb-3")}>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {collapsible ? (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? "Expand section" : "Collapse section"}
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ChevronRight className={cn("size-4 transition-transform", !collapsed && "rotate-90")} />
+            </button>
+          ) : null}
+          <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
+        </div>
         {actions}
       </div>
-      <div className="space-y-3">{children}</div>
+      <div className={cn("space-y-3", collapsed && "hidden")}>{children}</div>
     </section>
   );
 }

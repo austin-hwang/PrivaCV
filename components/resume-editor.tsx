@@ -7,6 +7,8 @@ import {
   ArrowUp,
   AlertCircle,
   Check,
+  ChevronsDownUp,
+  ChevronsUpDown,
   ClipboardCopy,
   ClipboardPaste,
   Download,
@@ -122,6 +124,9 @@ export function ResumeEditor() {
   const [previewScale, setPreviewScale] = useState(1);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
+  // Collapsed editor groups (by group id) so a long resume is quick to scan and
+  // scroll without hunting through every open section.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const {
@@ -219,21 +224,52 @@ export function ResumeEditor() {
     clearResume();
   };
 
+  const toggleGroup = (groupId: string) =>
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  const expandGroup = (groupId: string) =>
+    setCollapsedGroups((prev) => {
+      if (!prev.has(groupId)) return prev;
+      const next = new Set(prev);
+      next.delete(groupId);
+      return next;
+    });
+  const groupProps = (groupId: string) => ({
+    groupId,
+    collapsible: true,
+    collapsed: collapsedGroups.has(groupId),
+    onToggleCollapsed: () => toggleGroup(groupId),
+  });
+  // Expand whichever collapsed group holds a jump target before focusing it.
+  const revealTarget = (targetId: string) => {
+    const group = document.getElementById(targetId)?.closest("[data-field-group]")?.getAttribute("data-field-group");
+    if (group) expandGroup(group);
+  };
+  const editorGroupIds = ["design", "arrange", "header", "summary", ...state.sectionOrder];
+  const allCollapsed = editorGroupIds.every((groupId) => collapsedGroups.has(groupId));
+
   const focusEditorTarget = (targetId: string) => {
     setActiveTarget(targetId);
     setMobileWorkspaceView("editor");
     setToolsOpen(false);
+    revealTarget(targetId);
     window.setTimeout(() => focusCheckTarget(targetId), 120);
   };
   const focusEditorFromExportCheck = (targetId: string) => {
     setMobileWorkspaceView("editor");
     setToolsOpen(false);
-    focusFromExportCheck(targetId);
+    revealTarget(targetId);
+    window.setTimeout(() => focusFromExportCheck(targetId), 0);
   };
   const focusEditorFromVersionCompare = (targetId: string) => {
     setMobileWorkspaceView("editor");
     setToolsOpen(false);
-    focusFromVersionCompare(targetId);
+    revealTarget(targetId);
+    window.setTimeout(() => focusFromVersionCompare(targetId), 0);
   };
 
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
@@ -693,8 +729,22 @@ export function ResumeEditor() {
           {workspaceHasStarted ? <SectionNav items={navItems} /> : null}
 
           {workspaceHasStarted ? (
+            <div className="-mt-2 mb-1 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => setCollapsedGroups(allCollapsed ? new Set() : new Set(editorGroupIds))}
+              >
+                {allCollapsed ? <ChevronsUpDown /> : <ChevronsDownUp />} {allCollapsed ? "Expand all" : "Collapse all"}
+              </Button>
+            </div>
+          ) : null}
+
+          {workspaceHasStarted ? (
             <div className="space-y-6">
-              <FieldGroup id="edit-layout" title="Design">
+              <FieldGroup id="edit-layout" title="Design" {...groupProps("design")}>
                 <p className="text-xs leading-snug text-muted-foreground">
                   Start from a preset, then fine-tune font, color, and layout. Every option stays clean and ATS-readable.
                 </p>
@@ -805,7 +855,7 @@ export function ResumeEditor() {
                   </label>
                 </div>
               </FieldGroup>
-              <FieldGroup title="Arrange sections">
+              <FieldGroup title="Arrange sections" {...groupProps("arrange")}>
                 <p className="text-xs leading-snug text-muted-foreground">
                   Drag sections into the order you want, from top to bottom. The preview updates immediately.
                 </p>
@@ -872,7 +922,7 @@ export function ResumeEditor() {
                   })}
                 </div>
               </FieldGroup>
-              <FieldGroup id="edit-header" title="Header" reviewRegion>
+              <FieldGroup id="edit-header" title="Header" reviewRegion {...groupProps("header")}>
                 <TextField
                   id="field-name"
                   label="Full Name"
@@ -937,7 +987,7 @@ export function ResumeEditor() {
                 />
               </FieldGroup>
 
-              <FieldGroup id="edit-summary" title="Summary" reviewRegion>
+              <FieldGroup id="edit-summary" title="Summary" reviewRegion {...groupProps("summary")}>
                 <TextAreaField
                   id="field-summary"
                   label="Professional Summary"
@@ -989,6 +1039,7 @@ export function ResumeEditor() {
                   }}
                 >
                 <FieldGroup
+                  {...groupProps(section)}
                   reviewRegion={section === "skills"}
                   className={cn(
                     sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200",

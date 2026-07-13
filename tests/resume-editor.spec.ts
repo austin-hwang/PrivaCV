@@ -667,6 +667,50 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   await expect(page.locator(".resume-name")).not.toHaveAttribute("contenteditable", "true");
 });
 
+test("collapses editor sections to shorten a long resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  // A single group collapses and expands from its chevron.
+  const header = page.locator('[data-field-group="header"]');
+  await expect(page.getByLabel("Full Name")).toBeVisible();
+  await header.getByRole("button", { name: /collapse section/i }).click();
+  await expect(page.getByLabel("Full Name")).toBeHidden();
+  await header.getByRole("button", { name: /expand section/i }).click();
+  await expect(page.getByLabel("Full Name")).toBeVisible();
+
+  // Collapse all / expand all toggles every group at once.
+  await page.getByRole("button", { name: /collapse all/i }).click();
+  await expect(page.getByLabel("Full Name")).toBeHidden();
+  await expect(page.getByLabel("Professional Summary")).toBeHidden();
+  await page.getByRole("button", { name: /expand all/i }).click();
+  await expect(page.getByLabel("Full Name")).toBeVisible();
+});
+
+test("expands a collapsed section when a jump targets a field inside it", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openTools(page);
+
+  await page.getByLabel("Job description").fill("Build backend microservices and partner with product teams.");
+  // Collapse everything, then jump from a matched role term.
+  await page.getByRole("button", { name: /collapse all/i }).click();
+  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  await drawer.getByRole("button", { name: /^go to$/i }).first().click();
+
+  // The containing group re-expands and its field is focused.
+  await expect
+    .poll(() => page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      return Boolean(el && el.id.startsWith("field-") && el.offsetParent !== null);
+    }))
+    .toBe(true);
+});
+
 test("keeps accidental entry and custom-section removal reversible", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
