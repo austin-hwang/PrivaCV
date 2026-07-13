@@ -50,7 +50,8 @@ subscriptions, watermarks, or backend storage.
 - Click a preview heading or entry to return directly to its editor field; the
   active field is lightly highlighted in the preview while editing. The
   primary on-sheet editor keeps browser-native spell checking available for
-  resume prose and bullets while leaving structured contact values alone.
+  resume prose and bullets while leaving structured contact values alone;
+  spellcheck privacy behavior follows the browser's own settings.
 - Resume Check panel for page count, usable contact details (including obvious
   malformed email, phone, and link mistakes), concise bullets,
   oversized single entries that would continue without their heading on a later

@@ -23,6 +23,8 @@
   and bullets.
 - Kept structured contact values (email, phone, location, and website) out of
   spellchecking so ordinary formatting is not mistaken for prose.
+- Clarified that spellcheck privacy behavior follows the person's browser
+  settings; PrivaCV does not independently transmit or process the text.
 - Added browser coverage for both cases and documented the local-only boundary.
 
 ## Verification

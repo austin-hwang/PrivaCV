@@ -73,8 +73,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep the primary on-sheet editor as safe as the form: browser-native spell
   checking now remains active for prose, titles, and bullets directly on the
   resume canvas, while email, phone, URLs, and locations are deliberately
-  excluded. This catches ordinary writing mistakes locally without presenting
-  automated writing as fact or sending resume text to a service.
+  excluded. This catches ordinary writing mistakes without presenting
+  automated writing as fact; spellcheck privacy behavior follows the person's
+  browser settings.
 - Keep page-fit decisions intentional and reversible: when a preview crosses a
   page boundary, a small local helper can try compact spacing and then modest
   2% text reductions without touching the person’s content; reassess whether

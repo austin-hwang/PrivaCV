@@ -52,7 +52,7 @@ function InlineText({
   value: string;
   placeholder?: string;
   multiline?: boolean;
-  /** Let the browser catch ordinary writing mistakes without sending resume text anywhere. */
+  /** Let the browser catch ordinary writing mistakes using its configured spellcheck behavior. */
   spellCheck?: boolean;
   className?: string;
   onCommit: (value: string) => void;
