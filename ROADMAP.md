@@ -118,6 +118,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   now opens the same local review when attention is needed instead of bypassing
   imported-field confirmation or resume checks. Reassess real browser-engine
   PDF fidelity separately from this pre-export safeguard.
+- Keep Word export aligned with the same review promise: `.docx` downloads now
+  run through the import and resume-check checkpoint when attention is needed,
+  with an explicit Download Anyway path for an informed exception. Reassess
+  plain-text portal copy only if actual use shows that its in-dialog review is
+  insufficient.
 - Keep a portable plain-text route alongside PDF export: the reviewed
   ATS-friendly text can now be copied or downloaded as a `.txt` file for
   application portals that accept text uploads. Reassess actual browser-print

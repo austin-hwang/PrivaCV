@@ -49,11 +49,12 @@ export function ResumeEditorOverlays({
     copyPlainText,
     docxInputRef,
     copyApplicationField,
-    downloadDocx,
+    requestDocxExport,
     downloadPlainText,
     existingVersionForSave,
     exportAnyway,
     exportCheckOpen,
+    pendingExportFormat,
     failedChecks,
     focusFromExportCheck,
     focusFromVersionCompare,
@@ -183,7 +184,7 @@ export function ResumeEditorOverlays({
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">{plainText ? plainTextStats(plainText) : "0 words"}</span>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={downloadDocx} disabled={!plainText}>
+              <Button type="button" variant="outline" onClick={requestDocxExport} disabled={!plainText}>
                 <FileText /> Download .docx
               </Button>
               <Button type="button" variant="outline" onClick={downloadPlainText} disabled={!plainText}>
@@ -514,8 +515,10 @@ export function ResumeEditorOverlays({
       <Dialog open={exportCheckOpen} onOpenChange={setExportCheckOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">PDF export check</DialogDescription>
-            <DialogTitle>Review before exporting</DialogTitle>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">
+              {pendingExportFormat === "docx" ? "Word download check" : "PDF export check"}
+            </DialogDescription>
+            <DialogTitle>Review before {pendingExportFormat === "docx" ? "downloading" : "exporting"}</DialogTitle>
             <DialogDescription>
               Fix the highest-impact items now, or continue if you have already reviewed the resume yourself.
             </DialogDescription>
@@ -532,7 +535,7 @@ export function ResumeEditorOverlays({
                     <p className="text-xs leading-snug text-muted-foreground">
                       {importReviewStatus?.isComplete
                         ? "Finish the review to clear this reminder before your next export."
-                        : "Confirm each suggested field, or consciously continue with Export Anyway."}
+                        : `Confirm each suggested field, or consciously continue with ${pendingExportFormat === "docx" ? "Download Anyway" : "Export Anyway"}.`}
                     </p>
                   </div>
                   <Badge variant="secondary">
@@ -600,7 +603,8 @@ export function ResumeEditorOverlays({
                 Keep Editing
               </Button>
               <Button type="button" onClick={exportAnyway}>
-                <Printer /> Export Anyway
+                {pendingExportFormat === "docx" ? <FileText /> : <Printer />}
+                {pendingExportFormat === "docx" ? "Download Anyway" : "Export Anyway"}
               </Button>
             </div>
           </DialogFooter>

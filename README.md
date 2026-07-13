@@ -78,7 +78,9 @@ subscriptions, watermarks, or backend storage.
 - Local, editable `.docx` export for portals that explicitly request a Word
   document. It keeps the current resume in a simple single-column structure
   with normal text, headings, bullets, and usable contact links; it is designed
-  for compatibility rather than pixel-matching the PDF template.
+  for compatibility rather than pixel-matching the PDF template. Word downloads
+  use the same import and resume-check checkpoint as PDF export, so an imported
+  draft cannot accidentally bypass its review.
 - Local last-export status that shows whether the current resume still matches
   the most recent PDF export attempt.
 - Field-level change summary after edits so users can recheck exactly what

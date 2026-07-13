@@ -179,7 +179,7 @@ export function ResumeEditor() {
     restoreRecoveryPoint,
     resumeRef,
     saveJson,
-    downloadDocx,
+    requestDocxExport,
     setTextReviewOpen,
     setApplicationCopyOpen,
     setTextImportOpen,
@@ -656,7 +656,7 @@ export function ResumeEditor() {
                 <MenuItem onSelect={() => setTextReviewOpen(true)}>
                   <ClipboardCopy /> Review Text
                 </MenuItem>
-                <MenuItem onSelect={downloadDocx} disabled={!hasContent}>
+                <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
                   <FileText /> Download Word (.docx)
                 </MenuItem>
                 <MenuItem onSelect={saveJson}>

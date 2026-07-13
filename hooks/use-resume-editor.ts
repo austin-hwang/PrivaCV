@@ -178,6 +178,10 @@ export function useResumeEditor() {
   const [applicationCopyOpen, setApplicationCopyOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
+  // Keep one review checkpoint for every downloadable resume format. This
+  // prevents an imported draft from quietly bypassing review through Word
+  // export while preserving an explicit, informed continue action.
+  const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "docx">("pdf");
   const [versionSaveOpen, setVersionSaveOpen] = useState(false);
   const [versionDraftLabel, setVersionDraftLabel] = useState("");
   const [versionDraftNote, setVersionDraftNote] = useState("");
@@ -1231,13 +1235,26 @@ export function useResumeEditor() {
     flash("Saved plain text to downloads");
   };
 
-  const downloadDocx = () => {
+  const downloadDocxFile = () => {
     if (!hasAnyContent(state)) {
       flash("Add resume details first");
       return;
     }
     downloadFile(resumeDocxBlob(state), `${safeResumeFilename(state.name || "resume")}.docx`);
     flash("Saved Word document to downloads");
+  };
+
+  const requestDocxExport = () => {
+    if (!hasAnyContent(state)) {
+      flash("Add resume details first");
+      return;
+    }
+    if (failedChecks.length || importReview) {
+      setPendingExportFormat("docx");
+      setExportCheckOpen(true);
+      return;
+    }
+    downloadDocxFile();
   };
 
   const startPrintExport = () => {
@@ -1266,6 +1283,7 @@ export function useResumeEditor() {
 
   const requestExport = () => {
     if (failedChecks.length || importReview) {
+      setPendingExportFormat("pdf");
       setExportCheckOpen(true);
       return;
     }
@@ -1299,6 +1317,10 @@ export function useResumeEditor() {
 
   const exportAnyway = () => {
     setExportCheckOpen(false);
+    if (pendingExportFormat === "docx") {
+      downloadDocxFile();
+      return;
+    }
     window.setTimeout(startPrintExport, 120);
   };
 
@@ -1322,7 +1344,7 @@ export function useResumeEditor() {
     copyPlainText,
     docxInputRef,
     deleteVersion,
-    downloadDocx,
+    requestDocxExport,
     downloadPlainText,
     externalDraft,
     deletedVersion,
@@ -1332,6 +1354,7 @@ export function useResumeEditor() {
     exportAnyway,
     exportChanges,
     exportCheckOpen,
+    pendingExportFormat,
     exportCheckpoint,
     exportFingerprint,
     exportIsCurrent,

@@ -3003,3 +3003,34 @@
 - Passed focused Chromium coverage for keyboard editing and denied-clipboard
   fallback, plus `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and
   a full 86-test Chromium Playwright run.
+
+# 2026-07-13 — Keep Word downloads within export review
+
+## Product review
+
+- **Finding:** PrivaCV promised imported fields would be reviewed before
+  export, and its PDF path honored that promise, but the direct `.docx`
+  download path bypassed both import review and Resume Check. That could put an
+  unchecked imported resume straight into an application portal.
+- **Options considered:** Block Word downloads until every check is clear,
+  add a separate Word-only checklist, or reuse the existing export checkpoint
+  with an explicit override. A shared checkpoint won because it keeps the
+  warning consistent across formats and still lets a person knowingly proceed.
+- **Expected user benefit:** People receive the same clear chance to correct
+  imported fields and obvious resume issues before either common attachment
+  format leaves the browser, without an extra workflow for complete drafts.
+
+## Changes
+
+- Routed Word downloads from both the actions menu and text-review dialog
+  through the existing import and Resume Check checkpoint when it has items.
+- Made the dialog state format-aware, with a clear **Word download check** and
+  **Download Anyway** action so an intentional exception remains obvious.
+- Added a browser regression test that verifies an imported resume cannot
+  silently bypass review through `.docx` export; updated README and roadmap.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (67 tests), focused
+  Chromium coverage, `pnpm build`, full Chromium Playwright coverage (83
+  tests), and `git diff --check`.

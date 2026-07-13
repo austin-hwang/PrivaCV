@@ -1865,6 +1865,37 @@ test("keeps import confirmation explicit in the export checkpoint", async ({ pag
   await expect(page.locator("#field-name")).toBeFocused();
 });
 
+test("checks an imported resume before downloading Word", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "Platform Engineer",
+    "ada@example.com | San Francisco, CA",
+    "",
+    "Experience",
+    "Platform Engineer | Analytical Engines | 2022–Present",
+    "• Built reliable systems.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /download word/i }).click();
+
+  const exportDialog = page.getByRole("dialog", { name: /review before downloading/i });
+  await expect(exportDialog).toContainText("Word download check");
+  await expect(exportDialog.getByText("Imported fields still need review")).toBeVisible();
+  await expect(exportDialog.getByRole("button", { name: /export anyway/i })).toHaveCount(0);
+
+  const download = page.waitForEvent("download");
+  await exportDialog.getByRole("button", { name: /download anyway/i }).click();
+  await expect((await download).suggestedFilename()).toBe("Ada_Lovelace.docx");
+});
+
 test("shows when the resume changed after the last PDF export", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
