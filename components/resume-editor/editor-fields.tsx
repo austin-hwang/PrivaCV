@@ -10,14 +10,6 @@ import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
 
-export type ReviewState = "pending" | "confirmed";
-
-function reviewFieldClass(reviewState?: ReviewState) {
-  if (reviewState === "confirmed") return "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-200";
-  if (reviewState === "pending") return "border-amber-500 bg-amber-50 ring-2 ring-amber-200";
-  return undefined;
-}
-
 export function FieldGroup({ id, title, actions, children, className, reviewRegion }: { id?: string; title: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; reviewRegion?: boolean }) {
   return (
     <section
@@ -38,7 +30,6 @@ export function TextField({
   label,
   value,
   placeholder,
-  reviewState,
   onChange,
   type = "text",
   autoComplete,
@@ -49,7 +40,6 @@ export function TextField({
   label: string;
   value: string;
   placeholder?: string;
-  reviewState?: ReviewState;
   onChange: (value: string) => void;
   type?: TextInputType;
   autoComplete?: string;
@@ -67,7 +57,6 @@ export function TextField({
         autoComplete={autoComplete}
         inputMode={inputMode}
         spellCheck={spellCheck}
-        className={cn(reviewFieldClass(reviewState))}
         onChange={(event) => onChange(event.target.value)}
       />
     </div>
@@ -79,7 +68,6 @@ export function TextAreaField({
   label,
   value,
   placeholder,
-  reviewState,
   onChange,
   spellCheck = true,
 }: {
@@ -87,7 +75,6 @@ export function TextAreaField({
   label: string;
   value: string;
   placeholder?: string;
-  reviewState?: ReviewState;
   onChange: (value: string) => void;
   spellCheck?: boolean;
 }) {
@@ -99,7 +86,6 @@ export function TextAreaField({
         value={value}
         placeholder={placeholder}
         spellCheck={spellCheck}
-        className={cn(reviewFieldClass(reviewState))}
         onChange={(event) => onChange(event.target.value)}
       />
     </div>
@@ -110,7 +96,6 @@ export function EntryList({
   section,
   sectionLabel,
   entries,
-  reviewStateByTarget,
   onUpdate,
   onMove,
   onReorder,
@@ -120,7 +105,6 @@ export function EntryList({
   section: string;
   sectionLabel: string;
   entries: ResumeEntry[];
-  reviewStateByTarget: Map<string, ReviewState>;
   onUpdate: (section: string, index: number, key: keyof ResumeEntry, value: string) => void;
   onMove: (section: string, index: number, direction: -1 | 1) => void;
   onReorder: (section: string, index: number, target: number) => void;
@@ -240,28 +224,24 @@ export function EntryList({
               id={`field-${section}-${index}-title`}
               label={schema.title}
               value={entry.title}
-              reviewState={reviewStateByTarget.get(`field-${section}-${index}-title`)}
               onChange={(value) => onUpdate(section, index, "title", value)}
             />
             <TextField
               id={`field-${section}-${index}-subtitle`}
               label={schema.subtitle}
               value={entry.subtitle}
-              reviewState={reviewStateByTarget.get(`field-${section}-${index}-subtitle`)}
               onChange={(value) => onUpdate(section, index, "subtitle", value)}
             />
             <TextField
               id={`field-${section}-${index}-meta`}
               label={schema.meta}
               value={entry.meta}
-              reviewState={reviewStateByTarget.get(`field-${section}-${index}-meta`)}
               onChange={(value) => onUpdate(section, index, "meta", value)}
             />
             <TextAreaField
               id={`field-${section}-${index}-details`}
               label={schema.details}
               value={entry.details}
-              reviewState={reviewStateByTarget.get(`field-${section}-${index}-details`)}
               onChange={(value) => onUpdate(section, index, "details", value)}
             />
             {evidence?.bulletCount ? (

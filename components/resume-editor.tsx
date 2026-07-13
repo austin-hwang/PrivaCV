@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { Input } from "@/components/ui/input";
-import { EntryList, FieldGroup, TextAreaField, TextField, type ReviewState } from "@/components/resume-editor/editor-fields";
+import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
@@ -214,19 +214,6 @@ export function ResumeEditor() {
 
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
   const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
-
-  // Per-field review highlight: amber while an imported field is unconfirmed,
-  // green once it has been confirmed in the walkthrough.
-  const reviewStateByTarget = useMemo(() => {
-    const map = new Map<string, ReviewState>();
-    if (importReview) {
-      const reviewed = new Set(importReview.reviewedItemIds ?? []);
-      for (const item of importReview.items) {
-        map.set(item.targetId, reviewed.has(item.id) ? "confirmed" : "pending");
-      }
-    }
-    return map;
-  }, [importReview]);
 
   // Guided-review tour steps. Import: confirm each imported field, then flag any
   // source section the importer skipped. Checks: walk each readiness check.
@@ -848,7 +835,6 @@ export function ResumeEditor() {
                   placeholder="Jane Doe"
                   autoComplete="name"
                   spellCheck={false}
-                  reviewState={reviewStateByTarget.get("field-name")}
                   onChange={(value) => updateField("name", value)}
                 />
                 <TextField
@@ -858,7 +844,6 @@ export function ResumeEditor() {
                   placeholder="Senior Software Engineer"
                   autoComplete="organization-title"
                   spellCheck
-                  reviewState={reviewStateByTarget.get("field-title")}
                   onChange={(value) => updateField("title", value)}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -871,7 +856,6 @@ export function ResumeEditor() {
                     autoComplete="email"
                     inputMode="email"
                     spellCheck={false}
-                    reviewState={reviewStateByTarget.get("field-email")}
                     onChange={(value) => updateField("email", value)}
                   />
                   <TextField
@@ -883,7 +867,6 @@ export function ResumeEditor() {
                     autoComplete="tel"
                     inputMode="tel"
                     spellCheck={false}
-                    reviewState={reviewStateByTarget.get("field-phone")}
                     onChange={(value) => updateField("phone", value)}
                   />
                 </div>
@@ -894,7 +877,6 @@ export function ResumeEditor() {
                   placeholder="San Francisco, CA"
                   autoComplete="address-level2"
                   spellCheck={false}
-                  reviewState={reviewStateByTarget.get("field-location")}
                   onChange={(value) => updateField("location", value)}
                 />
                 <TextField
@@ -906,7 +888,6 @@ export function ResumeEditor() {
                   autoComplete="url"
                   inputMode="url"
                   spellCheck={false}
-                  reviewState={reviewStateByTarget.get("field-website")}
                   onChange={(value) => updateField("website", value)}
                 />
               </FieldGroup>
@@ -917,7 +898,6 @@ export function ResumeEditor() {
                   label="Professional Summary"
                   value={state.summary}
                   placeholder="Brief overview of your experience and strengths."
-                  reviewState={reviewStateByTarget.get("field-summary")}
                   onChange={(value) => updateField("summary", value)}
                 />
               </FieldGroup>
@@ -1040,7 +1020,6 @@ export function ResumeEditor() {
                       label={'Skills (one group per line, e.g. "Languages: Python, Go")'}
                       value={state.skills}
                       placeholder={"Languages: Python, JavaScript, Go\nTools: Docker, Kubernetes, AWS"}
-                      reviewState={reviewStateByTarget.get("field-skills")}
                       onChange={(value) => updateField("skills", value)}
                     />
                   ) : (
@@ -1048,7 +1027,6 @@ export function ResumeEditor() {
                       section={section}
                       sectionLabel={sectionTitle}
                       entries={entries}
-                      reviewStateByTarget={reviewStateByTarget}
                       onUpdate={updateEntry}
                       onMove={moveEntry}
                       onReorder={reorderEntry}
