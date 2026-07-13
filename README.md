@@ -94,6 +94,11 @@ subscriptions, watermarks, or backend storage.
   them from the browser-only master draft. Preview, PDF printing, Word, plain
   text, application copy, and Resume Check all use the same chosen
   bullets.
+- A local **Tailor to job** review compares distinctive terms from a pasted job
+  description with the current resume. It is a transparent exact-text aid—not
+  an ATS score or automatic rewrite—and clears the job description on close so
+  users can decide what is truthful and relevant without uploading either
+  document.
 - Glanceable version summaries, suggested comparisons, reversible deletion, and
   post-restore change review for safer tailoring decisions.
 - Text size slider that scales the resume preview and printed PDF. When a

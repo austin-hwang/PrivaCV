@@ -53,8 +53,23 @@ import {
   versionHistoryFingerprint,
   type VersionHistoryItem,
 } from "@/lib/resume-workspace";
+import { analyzeJobMatch } from "@/lib/job-match";
 
 describe("resume helpers", () => {
+  it("compares distinctive job terms locally without treating partial words as matches", () => {
+    const state = sampleState();
+    state.skills = "TypeScript\nReact\nPostgreSQL";
+
+    const analysis = analyzeJobMatch(
+      "Build React and TypeScript experiences. Partner with product teams on Kubernetes operations.",
+      state,
+    );
+
+    expect(analysis.matchedTerms.map((term) => term.term)).toEqual(expect.arrayContaining(["React", "TypeScript"]));
+    expect(analysis.missingTerms.map((term) => term.term)).toEqual(expect.arrayContaining(["Kubernetes"]));
+    expect(analysis.matchedTerms.map((term) => term.term)).not.toContain("product");
+  });
+
   it("keeps omitted tailoring bullets in the local draft but out of every exported copy path", () => {
     const state = sampleState();
     const omitted = "Mentored a team of 5 engineers and established code review standards.";

@@ -1,5 +1,40 @@
 # Agent Log
 
+## 2026-07-13 — Transparent local job tailoring
+
+## Product review
+
+- **Finding:** Job-description tailoring is a highly visible expectation in
+  current resume tools, but PrivaCV's earlier persistent Role Focus workflow
+  added too much ceremony for a quick comparison. The product now has strong
+  import review, local versioning, and reversible bullet selection, making a
+  short, on-demand comparison more useful than another workspace.
+- **Options considered:** Reintroduce a persistent job tracker, generate
+  rewrites, add an opaque ATS score, or expose a local exact-term review. The
+  exact-term review won because it supports a common application moment while
+  keeping users in control of truthfulness, resume wording, and their data.
+- **Expected user benefit:** A person can spot wording already represented in
+  their resume and inspect potentially relevant missing terms in seconds,
+  without account creation, uploads, automatic edits, or a misleading score.
+
+## Changes
+
+- Added **More actions → Tailor to job**, an on-demand dialog for pasting a
+  role description and comparing its distinctive terms with the active resume.
+- Kept the result deliberately transparent: matched and not-found terms are
+  exact-text results, not ATS predictions or suggestions to add unsupported
+  claims.
+- Kept the job description ephemeral: it is never persisted and clears when
+  the dialog closes.
+- Added deterministic unit coverage and browser coverage for comparison,
+  resume preservation, and clearing the pasted posting; updated README and
+  roadmap guidance.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (68 tests), focused
+  Chromium Playwright coverage, `pnpm build`, and `git diff --check`.
+
 ## 2026-07-13 — Give saved resumes their own visual workspace
 
 ## Product review

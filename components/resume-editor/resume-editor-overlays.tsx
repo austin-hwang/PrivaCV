@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -13,6 +13,7 @@ import {
   History,
   Printer,
   Save,
+  Target,
   Undo2,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -31,14 +32,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { VersionChangeRow } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import { applicationCopyGroups, plainTextStats } from "@/lib/resume";
+import { analyzeJobMatch } from "@/lib/job-match";
 import { MAX_VERSION_HISTORY, formatCheckpointTime } from "@/lib/resume-workspace";
 
 export function ResumeEditorOverlays({
   editor,
+  jobMatchOpen,
+  setJobMatchOpen,
 }: {
   editor: ReturnType<typeof useResumeEditor>;
+  jobMatchOpen: boolean;
+  setJobMatchOpen: (open: boolean) => void;
 }) {
   const [pastedResumeText, setPastedResumeText] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [expandedApplicationFields, setExpandedApplicationFields] = useState<Set<string>>(() => new Set());
   const {
     applicationCopyOpen,
@@ -104,6 +111,10 @@ export function ResumeEditorOverlays({
     (item) => !importReview.reviewedItemIds?.includes(item.id),
   );
   const applicationCopy = applicationCopyGroups(editor.state);
+  const jobMatch = useMemo(
+    () => (jobDescription.trim() ? analyzeJobMatch(jobDescription, editor.state) : null),
+    [editor.state, jobDescription],
+  );
   const toggleApplicationField = (fieldId: string) => {
     setExpandedApplicationFields((current) => {
       const next = new Set(current);
@@ -115,6 +126,81 @@ export function ResumeEditorOverlays({
 
   return (
     <>
+      <Dialog
+        open={jobMatchOpen}
+        onOpenChange={(open) => {
+          setJobMatchOpen(open);
+          if (!open) setJobDescription("");
+        }}
+      >
+        <DialogContent className="max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
+          <DialogHeader>
+            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Local tailoring review</DialogDescription>
+            <DialogTitle>Compare this resume with a job</DialogTitle>
+            <DialogDescription>
+              Paste a job description to see distinctive terms that appear here and terms to consider only if they are true for you. Nothing is uploaded, rewritten, or changed automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid min-h-0 gap-5 overflow-y-auto pr-1">
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>Job description</span>
+              <Textarea
+                autoFocus
+                value={jobDescription}
+                placeholder="Paste the role description, responsibilities, and qualifications here…"
+                className="min-h-40 resize-y text-sm leading-relaxed"
+                onChange={(event) => setJobDescription(event.target.value)}
+              />
+            </label>
+            {jobMatch ? (
+              jobMatch.terms.length ? (
+                <section aria-live="polite" className="grid gap-4">
+                  <div className="rounded-md border bg-muted/30 p-3">
+                    <p className="text-sm font-semibold">{jobMatch.matchedTerms.length} of {jobMatch.terms.length} distinctive terms found</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      This is an exact text comparison, not an ATS score. It does not judge your qualifications or recommend adding unsupported claims.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-semibold">Already reflected</h3>
+                    {jobMatch.matchedTerms.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {jobMatch.matchedTerms.map((term) => <Badge key={term.term} variant="secondary"><Check className="size-3" /> {term.term}</Badge>)}
+                      </div>
+                    ) : <p className="text-sm text-muted-foreground">No distinctive terms from this description appear verbatim yet.</p>}
+                  </div>
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-semibold">Not found verbatim</h3>
+                    {jobMatch.missingTerms.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {jobMatch.missingTerms.map((term) => <Badge key={term.term} variant="outline" className="border-amber-300 bg-amber-50 text-amber-950">{term.term}</Badge>)}
+                      </div>
+                    ) : <p className="text-sm text-muted-foreground">Every distinctive term selected from this description appears in the resume.</p>}
+                    <p className="text-xs leading-relaxed text-muted-foreground">Review wording, related experience, and relevance yourself before changing a resume.</p>
+                  </div>
+                </section>
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Add a fuller job description</AlertTitle>
+                  <AlertDescription>There are not enough distinctive terms to compare yet. Include responsibilities or qualifications for a more useful review.</AlertDescription>
+                </Alert>
+              )
+            ) : (
+              <Alert>
+                <Target className="h-4 w-4" />
+                <AlertTitle>Start with the posting</AlertTitle>
+                <AlertDescription>Paste the job description to compare its terminology with the current resume.</AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <DialogFooter className="items-center border-t pt-4 sm:justify-between">
+            <span className="text-xs text-muted-foreground">Your job description stays in this browser and is cleared when you close this review.</span>
+            <Button type="button" variant="outline" onClick={() => { setJobMatchOpen(false); setJobDescription(""); }}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog
         open={textImportOpen}
         onOpenChange={(open) => {

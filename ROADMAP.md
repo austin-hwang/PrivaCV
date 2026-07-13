@@ -319,7 +319,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## Future Ideas
 
-- Reassess phrase-level job-description comparison only after import-review
-  completion and first-use confidence are demonstrably strong.
+- Keep job-description tailoring intentionally narrow and trustworthy: the
+  local **Tailor to job** review now exposes a short, exact-term comparison
+  without saving the posting, inventing claims, or presenting an opaque ATS
+  score. Reassess phrase-level comparison only if users need more context than
+  this quick, evidence-first pass provides.
 - Guided bullet rewrites that keep user data private.
 - Recruiter-readability checks based on structure rather than opaque scores.
