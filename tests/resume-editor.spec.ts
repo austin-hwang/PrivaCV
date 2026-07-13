@@ -727,6 +727,10 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   // Inline editing is on by default: the name is directly editable on the sheet.
   const name = page.locator(".resume-name");
   await expect(name).toHaveAttribute("contenteditable", "true");
+  await expect(name).toHaveJSProperty("spellcheck", true);
+  await expect(page.locator(".resume-entry .resume-bullets").first()).toHaveJSProperty("spellcheck", true);
+  // Structured contact values should not be treated as ordinary prose.
+  await expect(page.locator(".resume-contact > *").first()).toHaveJSProperty("spellcheck", false);
   await name.selectText();
   await page.keyboard.type("Ada Lovelace");
   await page.keyboard.press("Enter");

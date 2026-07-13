@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-13 — Catch writing mistakes in the primary editor
+
+## Product review
+
+- **Finding:** Inline editing on the resume sheet is the default, fastest
+  workflow, yet it explicitly disabled the browser's native spelling aid for
+  every text field. That made a common export-quality safeguard available only
+  after switching attention to the side form.
+- **Options considered:** Add an AI rewriting service, build a custom
+  dictionary, or enable the browser's existing local spellcheck where it is
+  useful. Native spellcheck won because it prevents ordinary typos in the
+  primary workflow without data collection, invented wording, or a new
+  decision surface.
+- **Expected user benefit:** A person can correct a typo where they are
+  already editing the resume, including a bullet, before it reaches a PDF or
+  application portal.
+
+## Changes
+
+- Enabled browser-native spellcheck for inline resume prose, headings, titles,
+  and bullets.
+- Kept structured contact values (email, phone, location, and website) out of
+  spellchecking so ordinary formatting is not mistaken for prose.
+- Added browser coverage for both cases and documented the local-only boundary.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, and `pnpm test` (74 tests).
+- Passed focused Chromium coverage of the default inline editor and both
+  spellcheck boundaries, an isolated production build, and `git diff --check`.
+
 ## 2026-07-13 — Keep master-resume bullets while tailoring
 
 ## Product review

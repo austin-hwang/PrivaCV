@@ -42,6 +42,7 @@ function InlineText({
   value,
   placeholder,
   multiline = false,
+  spellCheck = true,
   className,
   onCommit,
   ...rest
@@ -51,6 +52,8 @@ function InlineText({
   value: string;
   placeholder?: string;
   multiline?: boolean;
+  /** Let the browser catch ordinary writing mistakes without sending resume text anywhere. */
+  spellCheck?: boolean;
   className?: string;
   onCommit: (value: string) => void;
 } & Record<string, unknown>) {
@@ -68,7 +71,7 @@ function InlineText({
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
-      spellCheck={false}
+      spellCheck={spellCheck}
       onBlur={(event: FocusEvent<HTMLElement>) => onCommit((event.currentTarget.textContent ?? "").trim())}
       onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
         if (!multiline && event.key === "Enter") {
@@ -97,6 +100,7 @@ function EditableList({
   editable,
   items,
   onCommit,
+  spellCheck = true,
   className,
   containerTag = "ul",
   itemTag = "li",
@@ -106,6 +110,8 @@ function EditableList({
   editable?: boolean;
   items: string[];
   onCommit: (items: string[]) => void;
+  /** Bullets and skill lines benefit from the browser's native local spellcheck. */
+  spellCheck?: boolean;
   className?: string;
   containerTag?: "ul" | "div";
   itemTag?: "li" | "div";
@@ -132,7 +138,7 @@ function EditableList({
       className={cn("resume-editable", className)}
       contentEditable
       suppressContentEditableWarning
-      spellCheck={false}
+      spellCheck={spellCheck}
       onBlur={(event: FocusEvent<HTMLElement>) => {
         const next = Array.from(event.currentTarget.children)
           .map((child) => (child.textContent ?? "").trim())
@@ -361,6 +367,7 @@ function ContactPart({
         editable
         value={value}
         placeholder={CONTACT_PLACEHOLDERS[field]}
+        spellCheck={false}
         className={className}
         onCommit={(next) => onEditField?.(field, next)}
       />

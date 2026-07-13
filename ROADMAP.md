@@ -70,6 +70,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   to recreate Word layout, footer body text, table structure, comments, or tracked changes;
   reassess uncommon Word structures only after real import review shows a gap.
 - Keep the editor dense but calm, with immediate preview feedback.
+- Keep the primary on-sheet editor as safe as the form: browser-native spell
+  checking now remains active for prose, titles, and bullets directly on the
+  resume canvas, while email, phone, URLs, and locations are deliberately
+  excluded. This catches ordinary writing mistakes locally without presenting
+  automated writing as fact or sending resume text to a service.
 - Keep page-fit decisions intentional and reversible: when a preview crosses a
   page boundary, a small local helper can try compact spacing and then modest
   2% text reductions without touching the person’s content; reassess whether
