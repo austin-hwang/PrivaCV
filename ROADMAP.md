@@ -15,6 +15,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
 ## User Experience
 
+- Keep a blank start as approachable as importing a finished resume: the editor
+  now opens with a small, dismissible essentials guide for contact details,
+  recent work, and skills. It is intentionally not a locked wizard, and it
+  yields to the more specific import-review flow when someone changes course.
+  Reassess whether users need more writing examples only after this direct
+  first-draft path proves insufficient.
 - Keep first use obvious: the onboarding now recommends pasted text for copied
   documents, LinkedIn, and OCR while clearly reserving PDF import for
   selectable-text files. Starting from scratch is now an equally direct route:

@@ -30,6 +30,10 @@ subscriptions, watermarks, or backend storage.
   are recognized locally before that review. If a newer imported draft is
   deliberately accepted from another browser tab, its matching unfinished
   review follows it, so the export reminder is never silently lost.
+- A blank draft begins with an optional, three-step essentials guide that jumps
+  directly to contact details, recent work, and skills. It gives first-time
+  writers a calm next action without forcing a wizard or limiting the sections
+  they can add.
 - Public-facing browser metadata, a web-app manifest, custom app icons, and
   graceful route-error recovery; titles and copy accurately describe the
   local-first data model without inventing a hosted domain.

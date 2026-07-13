@@ -43,6 +43,7 @@ import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
+import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
 import { ChangeSummaryGrid, RestoredVersionCard } from "@/components/resume-editor/version-changes";
@@ -50,6 +51,7 @@ import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   ACCENT_PRESETS,
   clampTextScale,
+  entryHasContent,
   CUSTOM_SECTION_PRESETS,
   DENSITIES,
   DENSITY_LABELS,
@@ -129,6 +131,7 @@ export function ResumeEditor() {
   const [previewScale, setPreviewScale] = useState(1);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
+  const [blankResumeGuideVisible, setBlankResumeGuideVisible] = useState(false);
   // Collapsed editor groups (by group id) so a long resume is quick to scan and
   // scroll without hunting through every open section.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -197,6 +200,35 @@ export function ResumeEditor() {
     visibleRestoredVersionSummary,
   } = editor;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
+  const blankResumeGuideSteps = useMemo<BlankResumeGuideStep[]>(
+    () => [
+      {
+        id: "contact",
+        label: "Add contact details",
+        description: "Name, email, phone, and location make it easy to follow up.",
+        actionLabel: "Add details",
+        targetId: "field-name",
+        done: checks.find((check) => check.id === "contact")?.ok ?? false,
+      },
+      {
+        id: "experience",
+        label: "Describe recent work",
+        description: "Start with a role and a few specific achievements.",
+        actionLabel: "Add a role",
+        targetId: "field-experience-0-title",
+        done: state.experience.some((entry) => entryHasContent(entry) && Boolean(entry.details.trim())),
+      },
+      {
+        id: "skills",
+        label: "List relevant skills",
+        description: "Use short groups such as Languages or Tools.",
+        actionLabel: "Add skills",
+        targetId: "field-skills",
+        done: Boolean(state.skills.trim()),
+      },
+    ],
+    [checks, state.experience, state.skills],
+  );
   const externalDraftChanges = useMemo(
     () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
     [externalDraft, state],
@@ -213,10 +245,18 @@ export function ResumeEditor() {
     };
   }, []);
 
+  // A person can switch from a blank start to an imported resume at any time.
+  // Import review is the relevant guide in that case, so never bring the blank
+  // drafting prompts back after it finishes.
+  useEffect(() => {
+    if (importReview) setBlankResumeGuideVisible(false);
+  }, [importReview]);
+
   const startBlankResume = (template = state.template) => {
     updateField("template", template);
     updateField("theme", TEMPLATE_THEMES[template]);
     setBlankWorkspaceOpen(true);
+    setBlankResumeGuideVisible(true);
     window.setTimeout(() => document.getElementById("field-name")?.focus(), 120);
   };
 
@@ -228,6 +268,7 @@ export function ResumeEditor() {
 
   const clearEditor = () => {
     setBlankWorkspaceOpen(false);
+    setBlankResumeGuideVisible(false);
     clearResume();
   };
 
@@ -625,7 +666,10 @@ export function ResumeEditor() {
                   <FileJson /> Open JSON
                 </MenuItem>
                 <MenuSeparator />
-                <MenuItem onSelect={loadSample}>
+                <MenuItem onSelect={() => {
+                  setBlankResumeGuideVisible(false);
+                  loadSample();
+                }}>
                   <FileText /> Sample
                 </MenuItem>
                 <MenuItem
@@ -816,6 +860,14 @@ export function ResumeEditor() {
               summary={visibleRestoredVersionSummary}
               onDismiss={dismissRestoredVersionSummary}
               onFocus={focusEditorTarget}
+            />
+          ) : null}
+
+          {blankWorkspaceOpen && blankResumeGuideVisible && !importReview ? (
+            <BlankResumeGuide
+              steps={blankResumeGuideSteps}
+              onFocus={focusEditorTarget}
+              onDismiss={() => setBlankResumeGuideVisible(false)}
             />
           ) : null}
 

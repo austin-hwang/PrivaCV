@@ -215,6 +215,14 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await page.getByRole("button", { name: /start a blank resume/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Starting fresh?")).toBeHidden();
+  const essentials = page.getByLabel("Blank resume essentials");
+  await expect(essentials).toContainText("Start with the parts a recruiter needs first.");
+  await expect(essentials.locator('ol[aria-label="0 of 3 essentials complete"]')).toBeVisible();
+  await essentials.getByRole("button", { name: /add a role/i }).click();
+  await expect(page.locator("#field-experience-0-title")).toBeFocused();
+  await essentials.getByRole("button", { name: /hide guide/i }).click();
+  await expect(essentials).toBeHidden();
+  await expect(page.getByLabel("Resume editor")).toBeVisible();
   await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Classic/);
 
   await page.reload();

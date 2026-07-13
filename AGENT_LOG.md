@@ -1,5 +1,24 @@
 # Agent Log
 
+## 2026-07-13 — Make a blank resume less intimidating
+
+## Product review
+
+- **Finding:** Import review is careful and actionable, but choosing **Start a blank resume** immediately exposed a dense editor with no clear first action. Competitors such as Rezi guide people through initial sections, while PrivaCV's local-first value does not require a heavy wizard to offer that same reassurance.
+- **Options considered:** Add a locked multi-page wizard, add AI writing prompts, or add a lightweight in-editor essentials guide. The compact guide won because it reduces blank-page anxiety while preserving direct editing, privacy, and an individual's own judgment about which sections belong.
+- **Expected user benefit:** A first-time writer sees the next useful action at once, can jump to it with one click, and can dismiss the help as soon as it is no longer useful.
+
+## Changes
+
+- Added an optional **Build the essentials** card for blank drafts with visible completion for contact details, a recent role with achievements, and skills.
+- Each step moves keyboard focus directly to the relevant field; it never blocks adding education, projects, or custom sections in any order.
+- The guide can be dismissed without returning to onboarding and automatically yields to import review or a loaded sample.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, and `pnpm test` (67 tests).
+- Passed focused Chromium coverage of the blank-start flow, direct role jump, and guide dismissal.
+
 ## 2026-07-13 — Give saved resumes their own visual workspace
 
 ## Product review
