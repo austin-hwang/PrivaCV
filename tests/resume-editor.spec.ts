@@ -60,6 +60,19 @@ function makeDocxWithLabelOnlyLink() {
   }));
 }
 
+function makeDocxWithFieldLink() {
+  const document = [
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
+    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:fldSimple w:instr=" HYPERLINK &quot;https://ada.example.com&quot; "><w:r><w:t>Portfolio</w:t></w:r></w:fldSimple></w:p>',
+    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
+    '</w:body></w:document>',
+  ].join("");
+  return Buffer.from(zipSync({ "word/document.xml": strToU8(document) }));
+}
+
 function makeDocxWithHeaderContact() {
   const header = [
     '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
@@ -325,6 +338,22 @@ test("recovers a label-only external contact link from a Word resume", async ({ 
   });
 
   await expect(page.getByLabel("Website")).toHaveValue("https://www.linkedin.com/in/ada");
+  await expect(page.getByText("Imported Word document - please review")).toBeVisible();
+});
+
+test("recovers a label-only Word field link from a resume", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
+    name: "ada-field-link-resume.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: makeDocxWithFieldLink(),
+  });
+
+  await expect(page.getByLabel("Website / LinkedIn")).toHaveValue("https://ada.example.com");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 

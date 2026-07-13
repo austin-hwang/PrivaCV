@@ -168,6 +168,32 @@ describe("resume helpers", () => {
     });
   });
 
+  it("recovers label-only Word field hyperlinks while ignoring unsafe field targets", () => {
+    const document = [
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
+      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:fldSimple w:instr=" HYPERLINK &quot;https://ada.example.com/portfolio&quot; "><w:r><w:t>Portfolio</w:t></w:r></w:fldSimple></w:p>',
+      '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> HYPERLINK "https://github.com/ada" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>GitHub</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>',
+      '<w:p><w:fldSimple w:instr=" HYPERLINK &quot;javascript:alert(1)&quot; "><w:r><w:t>Unsafe link</w:t></w:r></w:fldSimple></w:p>',
+      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
+      '</w:body></w:document>',
+    ].join("");
+    const archive = zipSync({ "word/document.xml": strToU8(document) });
+    const text = extractDocxText(archive.buffer);
+
+    expect(text).toContain("Portfolio — https://ada.example.com/portfolio");
+    expect(text).toContain("GitHub — https://github.com/ada");
+    expect(text).not.toContain("javascript:alert");
+    expect(importResumeText(text)).toMatchObject({
+      name: "Ada Lovelace",
+      title: "Platform Engineer",
+      email: "ada@example.com",
+      website: "https://ada.example.com/portfolio",
+    });
+  });
+
   it("recovers referenced Word header contact details before parsing the body", () => {
     const header = [
       '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',

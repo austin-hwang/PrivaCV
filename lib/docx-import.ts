@@ -183,22 +183,58 @@ export function docxHeaderPartPathsFromXml(xml: string) {
   return paths;
 }
 
-function addHiddenHyperlinkTargets(xml: string, relationshipTargets: Map<string, string>) {
-  if (!relationshipTargets.size) return xml;
-  const hyperlinkPattern = /<w:hyperlink\b([^>]*)>([\s\S]*?)<\/w:hyperlink>/g;
+function hyperlinkTargetFromInstruction(value: string) {
+  // Word can store a hyperlink as a field instead of an r:id relationship.
+  // The field instruction may contain switches after the target, so accept
+  // only the first quoted or unquoted argument and run it through the same
+  // scheme allow-list used for relationship targets.
+  const instruction = decodeXmlText(value).replace(/\s+/g, " ").trim();
+  const match = instruction.match(/\bHYPERLINK\s+(?:"([^"]+)"|'([^']+)'|([^\s\\]+))/i);
+  return match ? safeHyperlinkTarget(match[1] ?? match[2] ?? match[3] ?? "") : null;
+}
 
-  return xml.replace(hyperlinkPattern, (match, attributes: string, contents: string) => {
+function instructionTextFromXml(xml: string) {
+  return [...xml.matchAll(/<w:instrText(?:\s[^>]*)?>([\s\S]*?)<\/w:instrText>/g)]
+    .map((match) => decodeXmlText(match[1] ?? ""))
+    .join("");
+}
+
+function appendHiddenHyperlinkTarget(contents: string, target: string) {
+  // Exported Word files commonly show the address already. Avoid repeating it
+  // in the source review, while still recovering label-only hyperlinks.
+  const visibleText = textFromRuns(contents).replace(/\s+/g, " ").trim();
+  const comparableTarget = target.replace(/^(mailto:|tel:)/i, "");
+  if (visibleText.includes(comparableTarget)) return contents;
+
+  return `${contents}<w:r><w:t xml:space="preserve"> — ${escapeXmlText(target)}</w:t></w:r>`;
+}
+
+function addHiddenHyperlinkTargets(xml: string, relationshipTargets: Map<string, string>) {
+  const hyperlinkPattern = /<w:hyperlink\b([^>]*)>([\s\S]*?)<\/w:hyperlink>/g;
+  const simpleFieldPattern = /<w:fldSimple\b([^>]*)>([\s\S]*?)<\/w:fldSimple>/g;
+  // A manually inserted Word hyperlink can be represented as a complex field:
+  // begin marker, instruction text, visible result, and end marker. Keep this
+  // deliberately scoped to a complete begin/end pair; other field types (page
+  // numbers, merge fields, dates) remain ordinary visible text.
+  const complexFieldPattern = /<w:r(?:\s[^>]*)?>[\s\S]*?<w:fldChar\b(?=[^>]*\bw:fldCharType\s*=\s*["']begin["'])[^>]*\/?\s*>[\s\S]*?<\/w:r>([\s\S]*?)<w:r(?:\s[^>]*)?>[\s\S]*?<w:fldChar\b(?=[^>]*\bw:fldCharType\s*=\s*["']end["'])[^>]*\/?\s*>[\s\S]*?<\/w:r>/g;
+
+  const relationshipLinks = xml.replace(hyperlinkPattern, (match, attributes: string, contents: string) => {
     const relationshipId = relationshipAttribute(attributes, "r:id");
     const target = relationshipId ? relationshipTargets.get(relationshipId) : undefined;
-    if (!target) return match;
+    return target ? appendHiddenHyperlinkTarget(contents, target) : match;
+  });
 
-    // Exported Word files commonly show the address already. Avoid repeating
-    // it in the source review, while still recovering label-only hyperlinks.
-    const visibleText = textFromRuns(contents).replace(/\s+/g, " ").trim();
-    const comparableTarget = target.replace(/^(mailto:|tel:)/i, "");
-    if (visibleText.includes(comparableTarget)) return match;
+  const simpleFieldLinks = relationshipLinks.replace(simpleFieldPattern, (match, attributes: string, contents: string) => {
+    const target = hyperlinkTargetFromInstruction(relationshipAttribute(attributes, "w:instr") ?? "");
+    return target ? appendHiddenHyperlinkTarget(contents, target) : match;
+  });
 
-    return `${contents}<w:t xml:space="preserve"> — ${escapeXmlText(target)}</w:t>`;
+  return simpleFieldLinks.replace(complexFieldPattern, (match) => {
+    // The surrounding begin/end runs are part of the match. Reading the
+    // instruction from the complete field is more resilient to the optional
+    // result-separator run that Word may place between instruction and label.
+    const target = hyperlinkTargetFromInstruction(instructionTextFromXml(match));
+    return target ? appendHiddenHyperlinkTarget(match, target) : match;
   });
 }
 

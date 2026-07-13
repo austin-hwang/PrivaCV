@@ -213,7 +213,8 @@ Notes:
 Click **Import a Word file** and choose an editable `.docx` resume. The app
 reads ordinary paragraph text locally (including text in simple table cells and
 referenced document headers) and recovers safe external contact-link
-destinations when Word displays only a label such as “LinkedIn.” It then uses
+destinations—including standard Word hyperlink fields—when Word displays only
+a label such as “LinkedIn.” It then uses
 the same conservative parser and
 required review used for pasted text and PDFs. Visual layout, table structure,
 comments, and tracked changes are not reconstructed; use this route for the

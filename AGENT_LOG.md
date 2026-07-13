@@ -1,5 +1,36 @@
 # Agent Log
 
+## 2026-07-12 — Recover Word field-code contact links locally
+
+- Market and product review: Teal still puts existing `.docx` and PDF resumes
+  alongside LinkedIn and pasted text at the front of its builder. Recent user
+  feedback also continues to report import misplacement as a reason people
+  abandon a builder. The prior local importer recovered relationship-based
+  links, but Word can store a visible “Portfolio” or “LinkedIn” label as a
+  simple or complex `HYPERLINK` field instead, leaving the editable website
+  blank.
+- Options considered: ask people to retype those links, attempt broad Word
+  layout/field reconstruction, or recover only explicit safe hyperlink targets
+  from standard field forms. The narrow recovery won because it removes a
+  common contact-detail gap while keeping the source review and local-first
+  privacy promise intact.
+- Implementation: the Word importer now recognizes both simple and complex
+  `HYPERLINK` fields, adds only safe `http(s)`, `mailto:`, or `tel:` targets
+  when their visible labels omit the destination, and leaves unrelated Word
+  fields such as page numbers alone. Unit coverage includes both field forms
+  and a rejected `javascript:` target; focused Chromium coverage verifies the
+  normal import review receives a recovered Portfolio URL. README and roadmap
+  document the supported boundary.
+- Expected experience improvement: people importing ordinary Word resumes keep
+  a label-only portfolio or LinkedIn destination in the normal editable review
+  instead of looking it up and entering it again.
+- Verification: `pnpm test` (69 tests), `pnpm typecheck`, `pnpm lint`, focused
+  Chromium Playwright coverage, `pnpm build`, and `git diff --check` passed.
+- Provisional next step: reassess actual Word resumes that place content in
+  text boxes, shapes, or complex multi-column structures before broadening the
+  local extractor beyond ordinary paragraphs, referenced headers, and explicit
+  hyperlink forms.
+
 ## 2026-07-12 — Recover Word resume headers locally
 
 - Market and product review: Rezi's current import guidance still asks people

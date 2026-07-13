@@ -59,8 +59,8 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Make it easier to reuse an editable resume before asking anyone to retype it:
   `.docx` import now reads ordinary Word paragraphs—including simple table-cell
   text and referenced document headers—entirely in the browser, preserves safe
-  external contact-link targets
-  when Word displays only a label, and feeds the same conservative parser and
+  external contact-link targets—including standard Word hyperlink fields—when
+  Word displays only a label, and feeds the same conservative parser and
   explicit review used by pasted text and PDFs. It intentionally does not claim
   to recreate Word layout, table structure, comments, or tracked changes;
   reassess uncommon Word structures only after real import review shows a gap.
