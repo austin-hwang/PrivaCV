@@ -1,8 +1,0 @@
-{
-  "/icon.svg/route": "/icon.svg",
-  "/robots.txt/route": "/robots.txt",
-  "/manifest.webmanifest/route": "/manifest.webmanifest",
-  "/_not-found/page": "/_not-found",
-  "/apple-icon/route": "/apple-icon",
-  "/page": "/"
-}

@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">PrivaCV</title>
-  <desc id="desc">A dark document with a check mark</desc>
-  <rect width="64" height="64" rx="14" fill="#28303d"/>
-  <path d="M19 13.5h19.5L46 21v29.5H19z" fill="#fff"/>
-  <path d="M38.5 13.5V21H46" fill="#dce4ec"/>
-  <path d="M25 29h14M25 35h14" stroke="#7b8998" stroke-linecap="round" stroke-width="3"/>
-  <path d="m25 42 3.4 3.4L39.5 34" fill="none" stroke="#16745b" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
-</svg>

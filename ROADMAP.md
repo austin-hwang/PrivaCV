@@ -81,7 +81,9 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   resume canvas, while email, phone, URLs, and locations are deliberately
   excluded. This catches ordinary writing mistakes without presenting
   automated writing as fact; spellcheck privacy behavior follows the person's
-  browser settings.
+  browser settings. Single-line on-sheet pastes now use only the clipboard's
+  plain text and fold incidental whitespace into one line, so copied profile
+  details do not bring rich formatting or layout surprises into the preview.
 - Keep page-fit decisions intentional and reversible: when a preview crosses a
   page boundary, a small local helper can try compact spacing and then modest
   2% text reductions without touching the person’s content; reassess whether

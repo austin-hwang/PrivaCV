@@ -1,5 +1,22 @@
 # Agent Log
 
+## 2026-07-13 — Keep pasted canvas edits clean
+
+## Product review
+
+- **Finding:** The on-sheet editor is the fastest way to make a small correction, but pasting a name, title, heading, or date from a rich-text source could momentarily carry markup and line breaks into the printable canvas.
+- **Options considered:** Remove inline editing, add a separate paste dialog, or normalize the paste at the focused single-line field. Local normalization won because it keeps the direct workflow quick while protecting the clean export surface.
+- **Expected user benefit:** People can paste a role or contact detail from a document or profile without unexpected styling, line breaks, or a confusing layout shift.
+
+## Changes
+
+- Single-line on-sheet fields now insert clipboard plain text only and fold pasted whitespace into one readable line.
+- Added a Chromium regression check that verifies rich HTML clipboard data cannot enter the name field or the saved editor value.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (67 tests), focused Chromium coverage, and an optimized production build.
+
 ## 2026-07-13 — Make a blank resume less intimidating
 
 ## Product review

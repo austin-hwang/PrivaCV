@@ -1,5 +1,6 @@
 .DS_Store
 .next/
+.next-codex-build/
 node_modules/
 dist/
 coverage/

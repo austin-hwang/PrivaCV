@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST='{"lib/pdf-import.ts -> pdfjs-dist":{"id":6412,"files":["static/chunks/eec247d1.8c398b0e15a10dfc.js","static/chunks/911.2888f0cab096984f.js"]}}';
