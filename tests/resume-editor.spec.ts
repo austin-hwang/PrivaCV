@@ -1552,6 +1552,25 @@ test("matches preview page count when print keeps a long role intact", async ({ 
   expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
 });
 
+test("recomputes the preview page count when the resume shrinks", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const roleDetails = page.locator("#field-experience-0-details");
+  await roleDetails.fill(
+    Array.from({ length: 22 }, (_, index) => `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`).join("\n"),
+  );
+  // The compact-spacing helper only appears once the preview is multi-page.
+  await expect(page.getByRole("button", { name: "Try compact spacing" })).toBeVisible();
+
+  // Shrinking the resume must drop the extra page — the sheet min-height (set
+  // from the page count so full pages render) must not lock the count high.
+  await roleDetails.fill("Delivered one concise, measurable outcome.");
+  await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
+});
+
 test("offers reversible page-fit adjustments without changing resume content", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

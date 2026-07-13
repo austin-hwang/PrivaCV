@@ -524,7 +524,17 @@ export function useResumeEditor() {
       if (!sheet) return;
       const pageHeightPx = 11 * 96;
       const roundingTolerancePx = 2;
-      const nextPageCount = Math.max(1, Math.ceil((sheet.scrollHeight - roundingTolerancePx) / pageHeightPx));
+      // Measure the natural content height, not scrollHeight: the sheet's
+      // min-height is set from the current page count to render whole pages, so
+      // scrollHeight is floored at pageCount * 11in and could never shrink back
+      // (e.g. switching to a denser layout would keep a phantom extra page).
+      // The page frames and guides are absolutely positioned, so ignore them.
+      const contentHeight = Array.from(sheet.children).reduce((max, child) => {
+        const el = child as HTMLElement;
+        if (el.classList.contains("resume-page-frame") || el.classList.contains("resume-page-guide")) return max;
+        return Math.max(max, el.offsetTop + el.offsetHeight);
+      }, 0);
+      const nextPageCount = Math.max(1, Math.ceil((contentHeight - roundingTolerancePx) / pageHeightPx));
       setPageCount(nextPageCount);
 
       // A page boundary is most useful when it tells a person what will be
