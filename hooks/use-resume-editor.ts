@@ -105,7 +105,15 @@ async function copyText(text: string) {
   fallback.style.position = "fixed";
   fallback.style.opacity = "0";
   fallback.style.pointerEvents = "none";
-  document.body.appendChild(fallback);
+  // Keep the temporary control within an open modal when there is one. A modal
+  // focus trap can immediately pull focus away from a textarea added to body,
+  // leaving the legacy copy command with no selected text.
+  const fallbackContainer = activeElement?.closest<HTMLElement>("[role=dialog]") ?? document.body;
+  fallbackContainer.appendChild(fallback);
+  // Some browsers no longer focus a just-appended textarea as a side effect of
+  // select(). Explicit focus keeps the legacy user-gesture copy path reliable
+  // when the async Clipboard API is unavailable or denied.
+  fallback.focus();
   fallback.select();
   fallback.setSelectionRange(0, fallback.value.length);
 

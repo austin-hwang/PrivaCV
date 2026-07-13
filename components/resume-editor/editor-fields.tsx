@@ -182,6 +182,8 @@ export function EntryList({
           <Card
             key={index}
             data-review-region=""
+            data-editor-entry=""
+            data-editor-entry-index={index}
             className="bg-muted/20 shadow-none transition-colors"
             onDragOver={(event) => {
               if (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
@@ -223,6 +225,8 @@ export function EntryList({
                   variant="outline"
                   size="icon"
                   aria-label="Move entry up"
+                  aria-keyshortcuts="Alt+Shift+ArrowUp"
+                  title="Move entry up (Alt+Shift+Up while focused in this entry)"
                   disabled={index === 0}
                   onClick={() => onMove(section, index, -1)}
                 >
@@ -233,6 +237,8 @@ export function EntryList({
                   variant="outline"
                   size="icon"
                   aria-label="Move entry down"
+                  aria-keyshortcuts="Alt+Shift+ArrowDown"
+                  title="Move entry down (Alt+Shift+Down while focused in this entry)"
                   disabled={index === entries.length - 1}
                   onClick={() => onMove(section, index, 1)}
                 >

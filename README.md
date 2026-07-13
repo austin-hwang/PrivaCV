@@ -38,8 +38,11 @@ subscriptions, watermarks, or backend storage.
 - Professional design controls for template, font, restrained accent color,
   heading treatment, density, alignment, divider, and text scale; loading a
   sample preserves the active design so it can be evaluated in that layout.
-- Add, remove, and reorder repeatable entries, including with drag-and-drop or
-  accessible move controls.
+- Add, remove, and reorder repeatable entries, including with drag-and-drop,
+  accessible move controls, or focused editor shortcuts. `Alt+Shift+N` adds an
+  entry to the current section; `Alt+Shift+Up/Down` moves the focused entry or
+  section. A visible **Shortcuts** guide keeps those optional controls
+  discoverable without replacing touch-friendly buttons.
 - Rename—or intentionally omit—section headings, remove and restore default
   sections without leaving their content in the export, add local custom
   sections for content such as Publications or Certifications, start missing

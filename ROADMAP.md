@@ -329,7 +329,10 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Optional static hosting workflow for a hosted version.
 
 ## Nice-to-have
-- Keyboard shortcuts for adding entries and moving sections.
+- Reassess additional keyboard shortcuts only where they save a repeated action
+  without conflicting with ordinary text entry or browser shortcuts. Focused
+  editor shortcuts now add an entry and move an entry or section, while the
+  visible controls remain the primary path for touch and discoverability.
 - Theme controls limited to typography and spacing, not decorative templates.
 
 ## Future Ideas

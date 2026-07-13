@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -16,6 +16,7 @@ import {
   FileJson,
   FileText,
   GripVertical,
+  Keyboard,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
@@ -32,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { Input } from "@/components/ui/input";
 import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
@@ -129,6 +131,7 @@ export function ResumeEditor() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const {
     addCustomSection,
     addBuiltinSection,
@@ -232,13 +235,13 @@ export function ResumeEditor() {
       else next.add(groupId);
       return next;
     });
-  const expandGroup = (groupId: string) =>
+  const expandGroup = useCallback((groupId: string) =>
     setCollapsedGroups((prev) => {
       if (!prev.has(groupId)) return prev;
       const next = new Set(prev);
       next.delete(groupId);
       return next;
-    });
+    }), []);
   const groupProps = (groupId: string) => ({
     groupId,
     collapsible: true,
@@ -246,20 +249,20 @@ export function ResumeEditor() {
     onToggleCollapsed: () => toggleGroup(groupId),
   });
   // Expand whichever collapsed group holds a jump target before focusing it.
-  const revealTarget = (targetId: string) => {
+  const revealTarget = useCallback((targetId: string) => {
     const group = document.getElementById(targetId)?.closest("[data-field-group]")?.getAttribute("data-field-group");
     if (group) expandGroup(group);
-  };
+  }, [expandGroup]);
   const editorGroupIds = ["design", "arrange", "header", "summary", ...state.sectionOrder];
   const allCollapsed = editorGroupIds.every((groupId) => collapsedGroups.has(groupId));
 
-  const focusEditorTarget = (targetId: string) => {
+  const focusEditorTarget = useCallback((targetId: string) => {
     setActiveTarget(targetId);
     setMobileWorkspaceView("editor");
     setToolsOpen(false);
     revealTarget(targetId);
     window.setTimeout(() => focusCheckTarget(targetId), 120);
-  };
+  }, [revealTarget, focusCheckTarget]);
   const focusEditorFromExportCheck = (targetId: string) => {
     setMobileWorkspaceView("editor");
     setToolsOpen(false);
@@ -272,6 +275,75 @@ export function ResumeEditor() {
     revealTarget(targetId);
     window.setTimeout(() => focusFromVersionCompare(targetId), 0);
   };
+
+  // Keep common tailoring actions within reach for keyboard-first editing.
+  // The shortcut is deliberately scoped to the form editor so it cannot steal
+  // ordinary typing or inline editing on the resume sheet.
+  useEffect(() => {
+    const focusShortcutTarget = (targetId: string) => {
+      setActiveTarget(targetId);
+      // The affected field is already in the open section that has focus. Wait
+      // for its React update, then focus it directly—without the longer guided
+      // review delay that could otherwise override a user's next action.
+      window.setTimeout(() => focusCheckTarget(targetId), 0);
+    };
+
+    const handleEditorShortcut = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.metaKey ||
+        event.ctrlKey ||
+        !event.altKey ||
+        !event.shiftKey
+      ) {
+        return;
+      }
+
+      const focused = document.activeElement;
+      if (!(focused instanceof HTMLElement) || !focused.closest("#resume-editor-pane")) return;
+
+      const sectionElement = focused.closest<HTMLElement>("[data-editor-section]");
+      const section = sectionElement?.dataset.editorSection;
+      if (!section) return;
+
+      if (event.code === "KeyN") {
+        if (section === "skills") return;
+        event.preventDefault();
+        const nextIndex = getSectionEntries(state, section).length;
+        addEntry(section);
+        focusShortcutTarget(`field-${section}-${nextIndex}-title`);
+        return;
+      }
+
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      const direction = event.key === "ArrowUp" ? -1 : 1;
+      const entryElement = focused.closest<HTMLElement>("[data-editor-entry]");
+
+      if (entryElement) {
+        const entryIndex = Number(entryElement.dataset.editorEntryIndex);
+        const entries = getSectionEntries(state, section);
+        const targetIndex = entryIndex + direction;
+        if (!Number.isInteger(entryIndex) || targetIndex < 0 || targetIndex >= entries.length) return;
+        event.preventDefault();
+        const fieldMatch = focused.id.match(new RegExp(`^field-${section}-${entryIndex}-(title|subtitle|meta|details)$`));
+        const field = fieldMatch?.[1] ?? "title";
+        moveEntry(section, entryIndex, direction);
+        focusShortcutTarget(`field-${section}-${targetIndex}-${field}`);
+        return;
+      }
+
+      const sectionIndex = state.sectionOrder.indexOf(section);
+      const targetIndex = sectionIndex + direction;
+      if (targetIndex < 0 || targetIndex >= state.sectionOrder.length) return;
+      event.preventDefault();
+      moveSection(section, direction);
+      focusShortcutTarget(`section-title-${section}`);
+    };
+
+    window.addEventListener("keydown", handleEditorShortcut);
+    return () => window.removeEventListener("keydown", handleEditorShortcut);
+  }, [addEntry, focusCheckTarget, moveEntry, moveSection, state]);
 
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
   const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
@@ -730,7 +802,16 @@ export function ResumeEditor() {
           {workspaceHasStarted ? <SectionNav items={navItems} /> : null}
 
           {workspaceHasStarted ? (
-            <div className="-mt-2 mb-1 flex justify-end">
+            <div className="-mt-2 mb-1 flex justify-end gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => setShortcutsOpen(true)}
+              >
+                <Keyboard /> Shortcuts
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -1078,6 +1159,8 @@ export function ResumeEditor() {
                         variant="outline"
                         size="icon"
                         aria-label={`Move ${sectionDisplayTitle} up`}
+                        aria-keyshortcuts="Alt+Shift+ArrowUp"
+                        title="Move section up (Alt+Shift+Up when focused in this section)"
                         disabled={sectionIndex === 0}
                         onClick={() => moveSection(section, -1)}
                       >
@@ -1088,13 +1171,23 @@ export function ResumeEditor() {
                         variant="outline"
                         size="icon"
                         aria-label={`Move ${sectionDisplayTitle} down`}
+                        aria-keyshortcuts="Alt+Shift+ArrowDown"
+                        title="Move section down (Alt+Shift+Down when focused in this section)"
                         disabled={sectionIndex === state.sectionOrder.length - 1}
                         onClick={() => moveSection(section, 1)}
                       >
                         <ArrowDown />
                       </Button>
                       {section !== "skills" ? (
-                        <Button id={`add-${section}-entry`} type="button" variant="outline" size="sm" onClick={() => addEntry(section)}>
+                        <Button
+                          id={`add-${section}-entry`}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          aria-keyshortcuts="Alt+Shift+N"
+                          title="Add entry (Alt+Shift+N when focused in this section)"
+                          onClick={() => addEntry(section)}
+                        >
                           Add
                         </Button>
                       ) : null}
@@ -1279,6 +1372,35 @@ export function ResumeEditor() {
           </div>
         </section>
       </main>
+
+      <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Keyboard shortcuts</DialogTitle>
+            <DialogDescription>
+              Use these while focus is in the form editor. The visible buttons remain available for every action.
+            </DialogDescription>
+          </DialogHeader>
+          <dl className="grid gap-3 text-sm">
+            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
+              <dt>Add an entry in this section</dt>
+              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Alt + Shift + N</kbd></dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
+              <dt>Move the focused entry</dt>
+              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Alt + Shift + ↑ / ↓</kbd></dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
+              <dt>Move the current section</dt>
+              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Alt + Shift + ↑ / ↓</kbd></dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
+              <dt>Review and export PDF</dt>
+              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Cmd / Ctrl + P</kbd></dd>
+            </div>
+          </dl>
+        </DialogContent>
+      </Dialog>
 
       <ReviewDrawer
         editor={editor}

@@ -894,6 +894,35 @@ test("reorders resume sections by dragging their handles", async ({ page }) => {
   expect(rowPositions).toEqual([...rowPositions].sort((first, second) => first - second));
 });
 
+test("adds and reorders resume content without leaving the keyboard", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const experience = page.locator('[data-editor-section="experience"]');
+  const firstRole = experience.locator('#field-experience-0-title');
+  await firstRole.focus();
+  await page.keyboard.press("Alt+Shift+ArrowDown");
+  await expect(experience.locator('#field-experience-0-title')).toHaveValue("Software Engineer");
+  await expect(experience.locator('#field-experience-1-title')).toBeFocused();
+  await expect(experience.locator('#field-experience-1-title')).toHaveValue("Senior Software Engineer");
+
+  await page.keyboard.press("Alt+Shift+N");
+  await expect(experience.locator('#field-experience-2-title')).toBeFocused();
+
+  await page.getByLabel("Skills section title").focus();
+  await page.keyboard.press("Alt+Shift+ArrowUp");
+  await expect
+    .poll(() => page.locator("[data-arrange-section]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-arrange-section"))))
+    .toEqual(["education", "experience", "skills", "projects"]);
+
+  await page.getByRole("button", { name: /shortcuts/i }).click();
+  const dialog = page.getByRole("dialog", { name: /keyboard shortcuts/i });
+  await expect(dialog.getByText("Add an entry in this section")).toBeVisible();
+  await expect(dialog.getByText("Move the focused entry")).toBeVisible();
+});
+
 test("makes the active section drag and destination visible", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

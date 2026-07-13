@@ -2884,3 +2884,39 @@
 
 - Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests), focused
   Chromium Playwright coverage, `pnpm build`, and `git diff --check`.
+
+# 2026-07-13 — Editing-speed reassessment
+
+## Product review
+
+- **Finding:** The editor already makes imports, checks, exports, and local
+  tailoring unusually safe. The remaining repeated friction is manipulating
+  entries and section order: those actions require moving between field,
+  control, and preview even for keyboard-oriented editing.
+- **Options considered:** Add an opaque job-match score, expand decorative
+  templates, or reduce the interaction cost of common tailoring actions.
+  Keyboard shortcuts for adding and reordering won because they address a
+  high-frequency operation without collecting data, changing resume content,
+  or adding product complexity.
+- **Expected user benefit:** A person can keep their hands on the keyboard to
+  add the next accomplishment and reorder the currently focused entry or
+  section, while the existing buttons remain the obvious, touch-friendly path.
+
+## Changes
+
+- Added scoped `Alt+Shift+N` and `Alt+Shift+Up/Down` shortcuts to add an entry
+  or move the focused entry/section; the moved field retains focus.
+- Added a small keyboard-shortcuts dialog plus semantic shortcut metadata and
+  control tooltips, so optional shortcuts are discoverable and accessible.
+- Hardened the existing copy fallback inside focus-trapped dialogs by mounting
+  its temporary textarea within the active dialog before selecting it. Copying
+  application fields remains reliable when the browser denies Clipboard API
+  access.
+- Added browser coverage for shortcut behavior and preserved existing coverage
+  for permission-denied copying; updated README and roadmap guidance.
+
+## Verification
+
+- Passed focused Chromium coverage for keyboard editing and denied-clipboard
+  fallback, plus `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and
+  a full 86-test Chromium Playwright run.
