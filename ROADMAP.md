@@ -155,14 +155,14 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   density choices—now appear beside content edits, and the same comparison
   explains conflicting same-browser drafts before a person chooses one.
 - Let users keep lightweight browser-only checkpoints so job-specific tailoring
-  feels reversible without accounts or cloud storage. When the deliberately
-  small local timeline is full, the recommended save route now downloads the
-  complete current history before replacing its oldest checkpoint, so a base
-  draft is not lost merely because the browser-only convenience limit is met.
-- Make saved drafts quick to scan, compare, restore, or undo when users are
+  feels reversible without accounts or cloud storage. Checkpoints no longer
+  displace an older draft merely because an arbitrary slot limit is met, while
+  portable backup/import remains available for browser-storage limits.
+- Make saved drafts quick to scan, find, restore, or undo when users are
   deciding which tailored version to continue. Version history now opens in a
-  dedicated visual workspace with a first-page thumbnail for each checkpoint,
-  so people can recognize a draft before restoring it; reassess full multi-page
+  dedicated visual workspace with a first-page thumbnail for each checkpoint
+  and searches checkpoint names, notes, and resume identity, so people can
+  recognize or retrieve a draft before restoring it; reassess full multi-page
   checkpoint previews only if first-page recognition proves insufficient.
 - Make the master-resume approach practical without turning it into a second
   product: experience and project bullets can now be included or omitted per
@@ -249,7 +249,7 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   explicit field-by-field review as the safety net; do not infer multi-column
   reading order or arbitrary title-case headings.
 - Improve local version history just enough to support tailoring: clear labels,
-  simple comparisons, undo paths, and readable restore summaries.
+  searchable checkpoints, undo paths, and readable restore summaries.
 - Keep PDF reconstruction conservative but resilient: tiny baseline differences
   between positioned text fragments now stay on one source line before parsing,
   preventing routine name, heading, and role fragments from being split. Do not

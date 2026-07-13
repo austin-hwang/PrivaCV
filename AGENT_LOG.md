@@ -3051,3 +3051,45 @@
 - Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (67 tests), focused
   Chromium coverage, `pnpm build`, full Chromium Playwright coverage (83
   tests), and `git diff --check`.
+
+# 2026-07-13 — Find saved versions without scanning every card
+
+## Product review
+
+- **Finding:** Fresh market review of Rezi and Teal confirmed that organizing
+  multiple tailored resumes is a core application workflow. PrivaCV's Version
+  workspace now preserves every local checkpoint and shows a faithful visual
+  card, but finding a specific role-targeted draft still meant scanning every
+  thumbnail and timestamp.
+- **Options considered:** Add another job-description matcher, introduce
+  account-backed folders, or make the local history directly searchable.
+  Search won because it improves a frequent recovery/tailoring operation
+  immediately, keeps every resume private, and does not add a second workflow
+  or persistence model.
+- **Expected user benefit:** A person with several saved applications can find
+  the intended checkpoint by the name they gave it, the note describing the
+  role, or the resume identity shown on the card, then restore it confidently.
+
+## Changes
+
+- Added a responsive **Find a saved version** control to the Versions workspace.
+  It searches checkpoint labels, optional notes, resume names, and titles.
+- Added a live accessible result count, a clear action, a helpful no-results
+  state, and a fresh unfiltered list whenever the workspace is reopened.
+- Corrected README and roadmap text left behind by the prior unlimited-history
+  change, including the finite browser-storage boundary and portable backup
+  path.
+- Added Chromium coverage for note search, no-match recovery, and reopening
+  the workspace with all versions visible again.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (67 tests), focused
+  Chromium coverage, an optimized `pnpm build`, the full 85-test Chromium
+  Playwright suite, and `git diff --check`.
+
+## Provisional next direction
+
+- Reassess practical browser-storage limits and version-history performance
+  once larger real histories are in use; do not add syncing or account-based
+  organization until it is clearly worth the privacy tradeoff.

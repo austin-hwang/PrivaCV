@@ -1,9 +1,11 @@
 "use client";
 
-import { Download, History, Save, Trash2, Undo2, Upload } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Download, History, Save, Search, Trash2, Undo2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import {
   formatCheckpointTime,
@@ -70,8 +72,29 @@ export function VersionHistoryCard({
   onUndoDelete: () => void;
   onDismissDeleted: () => void;
 }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleVersions = useMemo(
+    () =>
+      normalizedQuery
+        ? versions.filter((item) =>
+            [item.label, item.note, item.state.name, item.state.title]
+              .filter((value): value is string => Boolean(value))
+              .some((value) => value.toLocaleLowerCase().includes(normalizedQuery)),
+          )
+        : versions,
+    [normalizedQuery, versions],
+  );
+  const showingFilteredVersions = visibleVersions.length !== versions.length;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) setQuery("");
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="flex h-[min(900px,calc(100dvh-2rem))] max-w-6xl flex-col gap-0 overflow-hidden p-0" aria-describedby="version-history-description">
         <DialogHeader className="border-b px-5 py-5 pr-12">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Version history</p>
@@ -99,6 +122,37 @@ export function VersionHistoryCard({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          {versions.length ? (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="relative min-w-0 flex-1 sm:max-w-sm">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  aria-label="Find a saved version"
+                  placeholder="Find by name, note, or resume title"
+                  className="pr-9 pl-9"
+                />
+                {query ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 size-9"
+                    aria-label="Clear version search"
+                    onClick={() => setQuery("")}
+                  >
+                    <X />
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {showingFilteredVersions ? `Showing ${visibleVersions.length} of ${versions.length}` : "Showing all saved versions"}
+              </p>
+            </div>
+          ) : null}
+
           {deletedVersion ? (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-500/40 dark:bg-amber-950/40">
               <p className="min-w-0 truncate text-sm text-amber-950 dark:text-amber-100">Deleted “{deletedVersion.label}”.</p>
@@ -111,9 +165,9 @@ export function VersionHistoryCard({
             </div>
           ) : null}
 
-          {versions.length ? (
+          {visibleVersions.length ? (
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {versions.map((item) => {
+              {visibleVersions.map((item) => {
                 const isCurrent = item.fingerprint === currentFingerprint;
                 return (
                   <li key={item.id} className="rounded-lg border bg-card p-3 shadow-sm">
@@ -141,6 +195,17 @@ export function VersionHistoryCard({
                 );
               })}
             </ul>
+          ) : versions.length ? (
+            <div className="grid min-h-56 place-items-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+              <div>
+                <Search className="mx-auto mb-3 size-6 text-muted-foreground" />
+                <p className="font-semibold">No saved versions match “{query.trim()}”</p>
+                <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Try a checkpoint name, note, or the resume name and title shown on a card.</p>
+                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setQuery("")}>
+                  Clear search
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="grid min-h-56 place-items-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
               <div>

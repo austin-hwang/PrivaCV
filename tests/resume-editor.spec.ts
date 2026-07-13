@@ -2132,6 +2132,38 @@ test("differentiates saved checkpoints with an optional note", async ({ page }) 
   await expect(versions.getByText("Tailored for the Stripe backend role; trimmed to one page.")).toBeVisible();
 });
 
+test("finds a saved checkpoint by its name, note, or resume identity", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await saveVersion(page, "Platform baseline");
+
+  await page.getByLabel("Professional Summary").fill("Cloud-platform leadership with a focus on reliable backend systems and developer experience.");
+  const versions = await openVersions(page);
+  await versions.getByRole("button", { name: /save current version/i }).click();
+  const saveDialog = page.getByRole("dialog", { name: /name this checkpoint/i });
+  await saveDialog.getByLabel("Checkpoint name").fill("Cloud leadership focus");
+  await saveDialog.getByLabel(/^Note/).fill("Tailored for the Stripe platform engineering role.");
+  await saveDialog.getByRole("button", { name: /save checkpoint/i }).click();
+
+  const search = versions.getByLabel("Find a saved version");
+  await search.fill("stripe");
+  await expect(versions.getByText("Showing 1 of 2")).toBeVisible();
+  await expect(versions.getByText("Cloud leadership focus", { exact: true })).toBeVisible();
+  await expect(versions.getByText("Platform baseline", { exact: true })).toBeHidden();
+
+  await closeVersions(page);
+  const reopenedVersions = await openVersions(page);
+  await expect(reopenedVersions.getByText("Showing all saved versions")).toBeVisible();
+  await expect(reopenedVersions.getByText("Platform baseline", { exact: true })).toBeVisible();
+
+  await reopenedVersions.getByLabel("Find a saved version").fill("no matching checkpoint");
+  await expect(reopenedVersions.getByText(/No saved versions match “no matching checkpoint”/)).toBeVisible();
+  await reopenedVersions.getByRole("button", { name: "Clear search" }).click();
+  await expect(reopenedVersions.getByText("Showing all saved versions")).toBeVisible();
+});
+
 test("imports a checkpoint history backup without replacing the current resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -2247,4 +2279,3 @@ test("merges every checkpoint from a large imported backup without a limit", asy
   await expect(versions.getByText("Expanded checkpoint 1", { exact: true })).toBeVisible();
   await expect(versions.getByText("Expanded checkpoint 7", { exact: true })).toBeVisible();
 });
-

@@ -88,13 +88,13 @@ subscriptions, watermarks, or backend storage.
   color, and spacing choices—with compact before/after snippets and an
   expandable full audit trail for edited resume areas. The same comparison
   appears before choosing between conflicting drafts in two browser tabs.
-- Local version history for naming, annotating, comparing, and restoring a few
+- Local version history for naming, annotating, restoring, and deleting
   browser-only checkpoints while tailoring a resume for different applications.
-  When that short local history is full, the recommended save path downloads a
-  complete checkpoint backup before replacing its oldest draft. A dedicated
-  Versions workspace keeps the editor and review tools focused while showing a
-  first-page visual thumbnail of every saved resume before it is compared,
-  restored, or deleted.
+  A dedicated Versions workspace keeps the editor and review tools focused,
+  shows a first-page visual thumbnail of every saved resume, and lets people
+  find a checkpoint by its name, note, or resume identity before restoring or
+  deleting it. Browser storage still has finite capacity, so portable backup
+  and import remain available utilities.
 - Per-bullet tailoring for experience and projects: temporarily omit lower-
   relevance bullets from the current role-specific version without deleting
   them from the browser-only master draft. Preview, PDF printing, Word, plain
