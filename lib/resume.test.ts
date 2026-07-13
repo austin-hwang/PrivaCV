@@ -3,6 +3,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
 import {
   docxArchiveUncompressedSize,
+  docxHeaderPartPathsFromXml,
   docxHyperlinkTargetsFromXml,
   docxParagraphsFromXml,
   extractDocxText,
@@ -164,6 +165,40 @@ describe("resume helpers", () => {
       title: "Platform Engineer",
       email: "ada@example.com",
       website: "https://www.linkedin.com/in/ada?trk=resume&source=word",
+    });
+  });
+
+  it("recovers referenced Word header contact details before parsing the body", () => {
+    const header = [
+      '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
+      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdPortfolio"><w:r><w:t>Portfolio</w:t></w:r></w:hyperlink></w:p>',
+      '</w:hdr>',
+    ].join("");
+    const document = [
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
+      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
+      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
+      '</w:body></w:document>',
+    ].join("");
+    const documentRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>';
+    const headerRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
+    const archive = zipSync({
+      "word/document.xml": strToU8(document),
+      "word/_rels/document.xml.rels": strToU8(documentRelationships),
+      "word/header1.xml": strToU8(header),
+      "word/_rels/header1.xml.rels": strToU8(headerRelationships),
+    });
+
+    expect(docxHeaderPartPathsFromXml(documentRelationships)).toEqual(["word/header1.xml"]);
+    expect(extractDocxText(archive.buffer)).toMatch(/^Ada Lovelace\nPlatform Engineer\nada@example.com/);
+    expect(importResumeText(extractDocxText(archive.buffer))).toMatchObject({
+      name: "Ada Lovelace",
+      title: "Platform Engineer",
+      email: "ada@example.com",
+      website: "https://ada.example.com",
+      experience: [expect.objectContaining({ title: "Engineer", subtitle: "Analytical Engines" })],
     });
   });
 

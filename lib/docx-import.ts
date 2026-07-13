@@ -153,6 +153,36 @@ export function docxHyperlinkTargetsFromXml(xml: string) {
   return targets;
 }
 
+/**
+ * Lists the header XML parts actually referenced by the main Word document.
+ * A resume's name and contact details are often placed in a header, while
+ * unused template headers may remain in the archive. Following document
+ * relationships lets us recover the useful text without treating every
+ * archived header as resume content.
+ */
+export function docxHeaderPartPathsFromXml(xml: string) {
+  const paths: string[] = [];
+  const relationshipPattern = /<Relationship\b([^>]*)\/?\s*>/g;
+
+  for (const relationship of xml.matchAll(relationshipPattern)) {
+    const attributes = relationship[1];
+    const type = relationshipAttribute(attributes, "Type");
+    const target = relationshipAttribute(attributes, "Target");
+    const targetMode = relationshipAttribute(attributes, "TargetMode");
+    if (!target || targetMode?.toLowerCase() === "external" || !/\/header$/i.test(type ?? "")) continue;
+
+    // Word's main-document relationships point to sibling header files. Keep
+    // the accepted path intentionally narrow so an archive cannot cause this
+    // local importer to read unrelated OOXML parts.
+    const match = target.replace(/\\/g, "/").match(/^(?:\.\/)?(header\d+\.xml)$/i);
+    if (!match) continue;
+    const path = `word/${match[1]}`;
+    if (!paths.includes(path)) paths.push(path);
+  }
+
+  return paths;
+}
+
 function addHiddenHyperlinkTargets(xml: string, relationshipTargets: Map<string, string>) {
   if (!relationshipTargets.size) return xml;
   const hyperlinkPattern = /<w:hyperlink\b([^>]*)>([\s\S]*?)<\/w:hyperlink>/g;
@@ -191,6 +221,19 @@ export function docxParagraphsFromXml(xml: string, relationshipTargets = new Map
   return paragraphs;
 }
 
+function paragraphsFromDocxPart(files: Record<string, Uint8Array>, path: string) {
+  const part = files[path];
+  if (!part) return [];
+  if (part.byteLength > MAX_DOCUMENT_XML_BYTES) {
+    throw new Error("This Word file has a text section that is too large to import locally. Try copying its resume text instead.");
+  }
+
+  const relationshipsPath = `word/_rels/${path.slice("word/".length)}.rels`;
+  const relationships = files[relationshipsPath];
+  const relationshipTargets = relationships ? docxHyperlinkTargetsFromXml(strFromU8(relationships)) : new Map<string, string>();
+  return docxParagraphsFromXml(strFromU8(part), relationshipTargets);
+}
+
 export function extractDocxText(buffer: ArrayBuffer) {
   if (buffer.byteLength > MAX_DOCX_BYTES) {
     throw new Error("This Word file is too large to import locally. Try copying its resume text instead.");
@@ -210,8 +253,17 @@ export function extractDocxText(buffer: ArrayBuffer) {
   }
 
   const relationships = files["word/_rels/document.xml.rels"];
-  const relationshipTargets = relationships ? docxHyperlinkTargetsFromXml(strFromU8(relationships)) : new Map<string, string>();
-  const text = docxParagraphsFromXml(strFromU8(document), relationshipTargets).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const headerPaths = relationships ? docxHeaderPartPathsFromXml(strFromU8(relationships)) : [];
+  const headerParagraphs = headerPaths.flatMap((path) => paragraphsFromDocxPart(files, path));
+  const documentParagraphs = paragraphsFromDocxPart(files, "word/document.xml");
+  // Put referenced header text before the body so the existing conservative
+  // parser sees the contact block in the same order a reader does. A blank
+  // separation prevents a header's final contact line from merging with the
+  // first document-body section.
+  const text = [...headerParagraphs, ...(headerParagraphs.length ? [""] : []), ...documentParagraphs]
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (!text) throw new Error("No readable text was found in this Word document. Try copying its resume text instead.");
   return text;
 }

@@ -1,5 +1,33 @@
 # Agent Log
 
+## 2026-07-12 — Recover Word resume headers locally
+
+- Market and product review: Rezi's current import guidance still asks people
+  to review every transferred section because document formatting changes what
+  arrives. A common Word resume format puts the name and contact block in a
+  document header; the body-only importer could therefore start a user at an
+  incomplete draft even when their selected file contained those details.
+- Options considered: leave header content for manual re-entry, reconstruct
+  Word layout broadly, or follow only the main document's referenced headers
+  and feed their text into the existing reviewed parser. The focused recovery
+  won because it addresses a frequent source layout without uploading data or
+  treating unused template fragments as resume content.
+- Implementation: Word import now follows referenced header relationships,
+  extracts their ordinary paragraphs before the document body, and resolves
+  safe external links from each header's own relationship file. It keeps the
+  same archive-size boundary and deliberately avoids footer, text-box, and
+  visual-layout reconstruction. A unit test covers name, title, email, and a
+  label-only portfolio link stored in a header.
+- Expected experience improvement: people whose Word resume keeps contact
+  details in the header arrive at a useful editable draft and verify it in the
+  normal import review instead of finding and retyping essential information.
+- Verification: `pnpm test` (68 tests), `pnpm typecheck`, `pnpm lint`, and
+  `pnpm build` passed. A focused Chromium import flow confirmed a referenced
+  header populates the name, title, email, and label-only portfolio URL.
+- Provisional next step: reassess real-world Word documents that rely on text
+  boxes, shapes, or complex multi-column structures before broadening local
+  extraction beyond ordinary document and referenced-header paragraphs.
+
 ## 2026-07-12 — Bound Word archive expansion before parsing
 
 - Market and product review: private, free export remains a clear market

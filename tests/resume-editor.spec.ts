@@ -60,6 +60,30 @@ function makeDocxWithLabelOnlyLink() {
   }));
 }
 
+function makeDocxWithHeaderContact() {
+  const header = [
+    '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
+    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdPortfolio"><w:r><w:t>Portfolio</w:t></w:r></w:hyperlink></w:p>',
+    '</w:hdr>',
+  ].join("");
+  const document = [
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
+    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
+    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
+    '</w:body></w:document>',
+  ].join("");
+  const documentRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>';
+  const headerRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
+  return Buffer.from(zipSync({
+    "word/document.xml": strToU8(document),
+    "word/_rels/document.xml.rels": strToU8(documentRelationships),
+    "word/header1.xml": strToU8(header),
+    "word/_rels/header1.xml.rels": strToU8(headerRelationships),
+  }));
+}
+
 test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
   await page.goto("/");
 
@@ -301,6 +325,25 @@ test("recovers a label-only external contact link from a Word resume", async ({ 
   });
 
   await expect(page.getByLabel("Website")).toHaveValue("https://www.linkedin.com/in/ada");
+  await expect(page.getByText("Imported Word document - please review")).toBeVisible();
+});
+
+test("imports contact details stored in a referenced Word header", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
+    name: "header-resume.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: makeDocxWithHeaderContact(),
+  });
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+  await expect(page.getByLabel("Title / Role")).toHaveValue("Platform Engineer");
+  await expect(page.getByLabel("Email")).toHaveValue("ada@example.com");
+  await expect(page.getByLabel("Website / LinkedIn")).toHaveValue("https://ada.example.com");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 
