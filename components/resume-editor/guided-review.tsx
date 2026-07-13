@@ -76,6 +76,10 @@ export function GuidedReview({
   finishDisabled?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
+  // Only animate the ring when moving between steps. During scrolling the ring
+  // tracks the element every frame; a position transition would make it lag
+  // behind and look detached from the section it frames.
+  const [animate, setAnimate] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [cardPos, setCardPos] = useState<{ top: number; left: number; placement: "below" | "above" | "bottom" | "right" } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -94,10 +98,17 @@ export function GuidedReview({
   const targetId = step?.targetId;
   useEffect(() => {
     if (!open || !targetId) return;
+    // Animate the ring toward the new target, then settle so subsequent scroll
+    // repositioning is instant.
+    setAnimate(true);
+    const settle = window.setTimeout(() => setAnimate(false), 220);
     const timer = window.setTimeout(() => {
       resolveRegionEl(targetId)?.scrollIntoView({ block: "center" });
     }, 30);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(settle);
+    };
   }, [open, targetId]);
 
   // Keep the ring + card positioned over the moving target while the tour is open.
@@ -208,7 +219,11 @@ export function GuidedReview({
     <div className="app-chrome pointer-events-none fixed inset-0 z-[60]" aria-hidden={false}>
       {rect ? (
         <div
-          className={cn("pointer-events-none absolute rounded-md transition-[top,left,width,height] duration-150", toneRing(step.tone))}
+          className={cn(
+            "pointer-events-none absolute rounded-md",
+            animate && "transition-[top,left,width,height] duration-150",
+            toneRing(step.tone),
+          )}
           style={{
             top: Math.max(rect.top - 4, 2),
             left: rect.left - 4,

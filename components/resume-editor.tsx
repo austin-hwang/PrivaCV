@@ -530,6 +530,17 @@ export function ResumeEditor() {
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
           )}
         >
+          {/* The section nav sits flush at the top of the pane (lg:pt-0) so it
+              can stick cleanly while scrolling. Everything that can appear
+              above it instead — the start panel, or a pre-nav banner — needs a
+              desktop-only inset so it is not flush against the header. A flow
+              spacer (not pane padding) keeps the sticky nav flush once
+              scrolled. The one case with no inset is the bare editor, where the
+              sticky nav is meant to sit against the header. */}
+          {!workspaceHasStarted || storageIssue || externalDraft || recoveryPoint || importReview || visibleRestoredVersionSummary ? (
+            <div aria-hidden className="hidden lg:block lg:h-6" />
+          ) : null}
+
           {!workspaceHasStarted ? (
             <StartPanel
               isImporting={isImporting}
@@ -543,15 +554,6 @@ export function ResumeEditor() {
               onStartBlank={startBlankResume}
               onChooseTemplate={startBlankResume}
             />
-          ) : null}
-
-          {/* The section nav sits flush at the top of the pane (lg:pt-0) so it
-              can stick cleanly while scrolling. When a pre-nav banner shows
-              above it instead, add a desktop-only inset so the banner is not
-              flush against the header. A flow spacer (not padding) keeps the
-              sticky nav flush once scrolled. */}
-          {workspaceHasStarted && (storageIssue || externalDraft || recoveryPoint || importReview || visibleRestoredVersionSummary) ? (
-            <div aria-hidden className="hidden lg:block lg:h-6" />
           ) : null}
 
           {storageIssue ? (

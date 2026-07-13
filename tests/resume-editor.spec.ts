@@ -1424,10 +1424,16 @@ test("keeps the resume sheet to true Letter dimensions on screen and in print", 
   await page.emulateMedia({ media: "print" });
   const printDimensions = await page.locator(".resume-sheet").evaluate((element) => {
     const sheet = element as HTMLElement;
-    return { width: sheet.offsetWidth, height: sheet.offsetHeight };
+    const cs = getComputedStyle(sheet);
+    return { width: sheet.offsetWidth, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom };
   });
   expect(printDimensions.width).toBeCloseTo(8.5 * 96, 0);
-  expect(printDimensions.height).toBeGreaterThanOrEqual(11 * 96);
+  // The @page margin now owns the top/bottom inset so every printed page keeps
+  // the same margin. The sheet therefore drops its own vertical padding (and
+  // its fixed 11in height) in print — otherwise page one would be
+  // double-margined and short resumes would spill onto a second page.
+  expect(printDimensions.paddingTop).toBe("0px");
+  expect(printDimensions.paddingBottom).toBe("0px");
 });
 
 test("shows page boundaries in the preview without printing those guides", async ({ page }) => {
