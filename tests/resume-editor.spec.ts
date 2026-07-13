@@ -23,10 +23,19 @@ async function openTools(page: Page) {
   }
 }
 
+/** Appearance controls live in an inline panel behind the preview "Design" button. */
+async function openDesign(page: Page) {
+  const panel = page.locator("#design-panel");
+  if (!(await panel.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: "Design" }).click();
+    await expect(panel).toBeVisible();
+  }
+}
+
 async function openVersions(page: Page) {
   const dialog = page.getByRole("dialog", { name: /see each saved resume before changing course/i });
   if (!(await dialog.isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /open version history/i }).click();
+    await page.getByRole("button", { name: /version history/i }).click();
     await expect(dialog).toBeVisible();
   }
   return dialog;
@@ -214,7 +223,7 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
 
   await page.getByRole("button", { name: /start a blank resume/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
-  await expect(page.getByText("Starting fresh?")).toBeHidden();
+  await expect(page.getByText("Start fresh")).toBeHidden();
   const essentials = page.getByLabel("Blank resume essentials");
   await expect(essentials).toContainText("Start with the parts a recruiter needs first.");
   await expect(essentials.locator('ol[aria-label="0 of 3 essentials complete"]')).toBeVisible();
@@ -223,12 +232,15 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await essentials.getByRole("button", { name: /hide guide/i }).click();
   await expect(essentials).toBeHidden();
   await expect(page.getByLabel("Resume editor")).toBeVisible();
-  await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Classic/);
+  // The Classic preset seeds ruled section headings.
+  await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "ruled");
 
   await page.reload();
+  await page.getByRole("button", { name: /more options/i }).click();
   await page.getByRole("button", { name: /start blank with modern template/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
-  await expect(page.locator('[aria-label="Resume templates"] button[aria-pressed="true"]')).toHaveText(/Modern/);
+  // The Modern preset seeds an accent bar heading style.
+  await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "bar");
 });
 
 test("customizes and persists a professional resume theme", async ({ page }) => {
@@ -238,10 +250,12 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await loadSample(page);
 
   const sheet = page.locator(".resume-sheet");
-  const templates = page.locator('[aria-label="Resume templates"]');
+
+  // Appearance controls live in the inline Design panel above the preview.
+  await openDesign(page);
 
   // A preset is a professional starting point that sets every theme axis.
-  await templates.getByRole("button", { name: /modern/i }).click();
+  await page.getByLabel("Resume preset").selectOption("modern");
   await expect(sheet).toHaveAttribute("data-heading", "bar");
   await expect(sheet).toHaveAttribute("data-divider", "on");
   await expect(sheet).toHaveCSS("font-family", /Inter/);
@@ -252,6 +266,9 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
   await page.getByLabel("Resume font").selectOption("georgia");
   await expect(sheet).toHaveCSS("font-family", /Georgia/);
+
+  // Header, headings, and density sit under the panel's Advanced disclosure.
+  await page.getByRole("button", { name: /^Advanced/ }).click();
   await page.getByRole("button", { name: "Plain", exact: true }).click();
   await expect(sheet).toHaveAttribute("data-heading", "plain");
   await page.getByRole("button", { name: "Compact", exact: true }).click();
@@ -335,12 +352,22 @@ test("helps first-time users choose the right private import route", async ({ pa
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await expect(page.getByText("Choose the route that best matches your source.")).toBeVisible();
-  await expect(page.getByRole("button", { name: /paste resume text/i })).toContainText("OCR'd scanned PDFs");
-  await expect(page.getByRole("button", { name: /import a pdf/i })).toContainText("Read locally");
-  await expect(page.getByRole("button", { name: /open a saved json/i })).toContainText("previously saved");
-  await expect(page.getByText("Restoring a checkpoint backup?")).toBeVisible();
-  await expect(page.getByText("You will review every imported field before you export.")).toBeVisible();
+  // Two clear primary paths up front: bring an existing resume in, or start blank.
+  await expect(page.getByText("I have a resume")).toBeVisible();
+  await expect(page.getByText("Start fresh")).toBeVisible();
+  await expect(page.getByRole("button", { name: /paste resume text/i })).toBeVisible();
+  // PDF and Word share one importer that routes on the file itself.
+  await expect(page.getByRole("button", { name: /^import a file$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^start a blank resume$/i })).toBeVisible();
+  await expect(page.getByText("You review every field before you export.")).toBeVisible();
+
+  // Secondary routes stay tucked away until asked for.
+  await expect(page.getByRole("button", { name: /open saved json/i })).toBeHidden();
+  await expect(page.getByRole("button", { name: /open checkpoint backup/i })).toBeHidden();
+  await page.getByRole("button", { name: /more options/i }).click();
+  await expect(page.getByRole("button", { name: /load a sample/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /open saved json/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /open checkpoint backup/i })).toBeVisible();
 });
 
 test("imports a PDF with parser code served from the app", async ({ page }) => {
@@ -352,7 +379,7 @@ test("imports a PDF with parser code served from the app", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /import a pdf/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="application/pdf"]').setInputFiles({
     name: "ada-resume.pdf",
     mimeType: "application/pdf",
@@ -369,7 +396,7 @@ test("keeps an oversized PDF import local and gives a clear recovery path", asyn
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /import a pdf/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="application/pdf"]').setInputFiles({
     name: "large-resume.pdf",
     mimeType: "application/pdf",
@@ -385,7 +412,7 @@ test("imports an editable Word resume locally and keeps its review deliberate", 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
     name: "jane-resume.docx",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -403,7 +430,7 @@ test("recovers a label-only external contact link from a Word resume", async ({ 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
     name: "ada-resume.docx",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -419,7 +446,7 @@ test("recovers a label-only Word field link from a resume", async ({ page }) => 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
     name: "ada-field-link-resume.docx",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -435,7 +462,7 @@ test("imports contact details stored in a referenced Word header", async ({ page
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
     name: "header-resume.docx",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -454,7 +481,7 @@ test("imports contact details stored in a referenced Word footer", async ({ page
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.getByRole("button", { name: /import a word file/i }).click();
+  await page.getByRole("button", { name: /import a file/i }).click();
   await page.locator('input[type="file"][accept*="wordprocessingml"]').setInputFiles({
     name: "footer-resume.docx",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -523,15 +550,17 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await page.reload();
   await loadSample(page);
 
+  // Autosave state is surfaced on the Versions button: a spinning loader while
+  // saving that settles to a check, mirrored on data-autosave-status + aria.
   const autosave = page.locator("[data-autosave-status]");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
-  await expect(autosave).toHaveText("Saved locally");
+  await expect(autosave).toHaveAccessibleName(/saved locally/i);
 
   await page.getByLabel("Professional Summary").fill("A local-first product engineer who ships dependable tools.");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
-  await expect(autosave).toHaveText("Saving locally");
+  await expect(autosave).toHaveAccessibleName(/saving locally/i);
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
-  await expect(autosave).toHaveText("Saved locally");
+  await expect(autosave).toHaveAccessibleName(/saved locally/i);
 });
 
 test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
@@ -1009,8 +1038,12 @@ test("keeps a guided review recoverable when its active field scrolls out of vie
 
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  // Extra role detail below the (first-step) contact section so the editor pane
+  // scrolls well past its viewport — the contact section then leaves view for
+  // real, not just to the edge, no matter the surrounding layout.
+  const experienceBullets = Array.from({ length: 12 }, (_, index) => `• Delivered measurable outcome number ${index + 1}.`).join("\n");
   await importDialog.getByLabel("Resume text").fill(
-    "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation\nB.S. Mathematics | Cambridge | 2018",
+    `Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n${experienceBullets}\n\nEducation\nB.S. Mathematics | Cambridge | 2018`,
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await page.getByRole("button", { name: /start walkthrough/i }).click();
@@ -1020,15 +1053,26 @@ test("keeps a guided review recoverable when its active field scrolls out of vie
   await expect(page.locator("[data-guided-review-highlight]")).toBeVisible();
 
   // The editor has its own scroller. Moving the active contact section out of
-  // it must hide the detached ring and leave an explicit recovery path.
-  await page.locator("#resume-editor-pane").evaluate((pane) => {
-    pane.scrollTop = pane.scrollHeight;
-    pane.dispatchEvent(new Event("scroll", { bubbles: true }));
-  });
+  // it must hide the detached ring and leave an explicit recovery path. Re-apply
+  // the scroll each poll so the tour's own settle-scroll can't quietly undo it.
+  await expect
+    .poll(async () => {
+      await page.locator("#resume-editor-pane").evaluate((pane) => {
+        pane.scrollTop = pane.scrollHeight;
+        pane.dispatchEvent(new Event("scroll", { bubbles: true }));
+      });
+      return tour.getByText(/current field is above/i).isVisible();
+    })
+    .toBe(true);
   await expect(tour.getByText(/current field is above/i)).toBeVisible();
   await expect(page.locator("[data-guided-review-highlight]")).toBeHidden();
 
-  await tour.getByRole("button", { name: /return to field/i }).click();
+  // This button unmounts the instant its click returns the field to view, so
+  // wait for it, then force the click past the stability/scroll checks that
+  // would otherwise see it detach mid-action and retry until timeout.
+  const returnButton = tour.getByRole("button", { name: /return to field/i });
+  await expect(returnButton).toBeVisible();
+  await returnButton.click({ force: true });
   await expect(tour.getByText(/current field is above/i)).toBeHidden();
   await expect(page.locator("[data-guided-review-highlight]")).toBeVisible();
 });
@@ -1948,7 +1992,8 @@ test("explains design changes after a PDF export", async ({ page }) => {
   await page.getByRole("button", { name: /export pdf/i }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 
-  await page.locator('[aria-label="Resume templates"]').getByRole("button", { name: /modern/i }).click();
+  await openDesign(page);
+  await page.getByLabel("Resume preset").selectOption("modern");
   await openTools(page);
 
   const styleChange = page.getByText("Visual style changed", { exact: true });

@@ -23,7 +23,7 @@ export function VersionChangeRow({
 }) {
   const content = (
     <>
-      <History className="mt-0.5 size-4 shrink-0 text-indigo-800" />
+      <History className="mt-0.5 size-4 shrink-0 text-indigo-800 dark:text-indigo-300" />
       <div className="min-w-0">
         <span className="block font-semibold text-foreground">{change.label}</span>
         <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
@@ -118,14 +118,14 @@ export function RestoredVersionCard({
   onFocus: (targetId: string) => void;
 }) {
   return (
-    <Card className="mb-6 border-violet-300 bg-violet-50/70">
+    <Card className="mb-6 border-violet-300 bg-violet-50/70 dark:border-violet-500/40 dark:bg-violet-950/40">
       <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-violet-300 bg-background text-violet-800">
+          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-violet-300 bg-background text-violet-800 dark:border-violet-500/50 dark:text-violet-300">
             <Undo2 className="size-4" />
           </span>
           <div>
-            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-violet-900">
+            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-violet-900 dark:text-violet-300">
               Checkpoint restored
             </CardDescription>
             <CardTitle className="text-base">{summary.label}</CardTitle>

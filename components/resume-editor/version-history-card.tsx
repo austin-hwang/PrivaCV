@@ -110,8 +110,8 @@ export function VersionHistoryCard({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {deletedVersion ? (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50/70 p-3">
-              <p className="min-w-0 truncate text-sm text-amber-950">Deleted “{deletedVersion.label}”.</p>
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-500/40 dark:bg-amber-950/40">
+              <p className="min-w-0 truncate text-sm text-amber-950 dark:text-amber-100">Deleted “{deletedVersion.label}”.</p>
               <div className="flex shrink-0 gap-1">
                 <Button type="button" variant="outline" size="sm" className="bg-background" onClick={onUndoDelete}>
                   <Undo2 /> Undo

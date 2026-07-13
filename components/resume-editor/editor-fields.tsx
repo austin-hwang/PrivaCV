@@ -338,8 +338,8 @@ export function EntryList({
                 className={cn(
                   "rounded-md border px-3 py-2 text-xs leading-snug",
                   evidence.unmeasuredIndexes.length
-                    ? "border-amber-300 bg-amber-50 text-amber-950"
-                    : "border-emerald-300 bg-emerald-50 text-emerald-950",
+                    ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100"
+                    : "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100",
                 )}
                 aria-live="polite"
               >

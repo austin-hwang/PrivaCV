@@ -47,7 +47,7 @@ export function ResumeEditorOverlays({
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
-    docxInputRef,
+    importFileInputRef,
     copyApplicationField,
     requestDocxExport,
     downloadPlainText,
@@ -66,11 +66,9 @@ export function ResumeEditorOverlays({
     jsonInputRef,
     mergedHistoryBackup,
     openJson,
-    openDocx,
-    openPdf,
+    openResumeFile,
     openTextImport,
     openVersionHistoryBackup,
-    pdfInputRef,
     plainText,
     completeImportReview,
     restoreVersion,
@@ -300,7 +298,7 @@ export function ResumeEditorOverlays({
               />
             </label>
             {versionToReplaceOnSave ? (
-              <Alert className="border-amber-300 bg-amber-50/70">
+              <Alert className="border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>History is full</AlertTitle>
                 <AlertDescription>
@@ -385,7 +383,7 @@ export function ResumeEditorOverlays({
                 ) : null}
               </div>
               {mergedHistoryBackup.matchingCheckpoints.length ? (
-                <Alert className="border-sky-300 bg-sky-50/70">
+                <Alert className="border-sky-300 bg-sky-50/70 dark:border-sky-500/40 dark:bg-sky-950/40">
                   <Check className="h-4 w-4" />
                   <AlertTitle>
                     {mergedHistoryBackup.matchingCheckpoints.length} {mergedHistoryBackup.matchingCheckpoints.length === 1 ? "checkpoint already matches" : "checkpoints already match"} this browser
@@ -403,7 +401,7 @@ export function ResumeEditorOverlays({
                 </Alert>
               ) : null}
               {mergedHistoryBackup.overflow.length ? (
-                <Alert className="border-amber-300 bg-amber-50/70">
+                <Alert className="border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>
                     {mergedHistoryBackup.overflow.length} older {mergedHistoryBackup.overflow.length === 1 ? "checkpoint will" : "checkpoints will"} stay only in this backup
@@ -526,7 +524,7 @@ export function ResumeEditorOverlays({
 
           <div className="grid gap-3">
             {importReview ? (
-              <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3">
+              <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-500/40 dark:bg-amber-950/40">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">
@@ -612,22 +610,12 @@ export function ResumeEditorOverlays({
       </Dialog>
 
       <input
-        ref={docxInputRef}
+        ref={importFileInputRef}
         type="file"
-        accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+        accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
         hidden
         onChange={(event) => {
-          void openDocx(event.target.files?.[0]);
-          event.target.value = "";
-        }}
-      />
-      <input
-        ref={pdfInputRef}
-        type="file"
-        accept="application/pdf,.pdf"
-        hidden
-        onChange={(event) => {
-          void openPdf(event.target.files?.[0]);
+          void openResumeFile(event.target.files?.[0]);
           event.target.value = "";
         }}
       />

@@ -1,4 +1,4 @@
-import { forwardRef, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
+import { forwardRef, type ClipboardEvent, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
 import {
   bulletsFrom,
   contactHref,
@@ -29,6 +29,28 @@ type ResumePreviewProps = {
   activeTarget?: string | null;
   onTargetSelect?: (targetId: string) => void;
 } & InlineEditHandlers;
+
+/**
+ * A rich-text paste can leave markup, line breaks, and unexpected sizing in a
+ * one-line field until it blurs. These compact canvas fields are intended for
+ * a name, title, heading, or date, so insert only the clipboard's plain text
+ * and fold its whitespace into one readable line.
+ */
+function pastePlainTextIntoSingleLineField(event: ClipboardEvent<HTMLElement>) {
+  event.preventDefault();
+  const text = event.clipboardData.getData("text/plain").replace(/\s+/g, " ");
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return;
+
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const textNode = document.createTextNode(text);
+  range.insertNode(textNode);
+  range.setStartAfter(textNode);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
 
 /**
  * A single run of inline-editable text. While editing it is uncontrolled — the
@@ -82,6 +104,7 @@ function InlineText({
           event.currentTarget.blur();
         }
       }}
+      onPaste={multiline ? undefined : pastePlainTextIntoSingleLineField}
       {...rest}
     >
       {value}

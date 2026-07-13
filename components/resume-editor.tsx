@@ -7,6 +7,8 @@ import {
   ArrowUp,
   AlertCircle,
   Check,
+  ChevronDown,
+  ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
   ClipboardCopy,
@@ -16,8 +18,9 @@ import {
   FileJson,
   FileText,
   GripVertical,
-  History,
   Keyboard,
+  Loader2,
+  MessageSquarePlus,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
@@ -36,6 +39,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
 import { Input } from "@/components/ui/input";
 import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
@@ -138,6 +143,8 @@ export function ResumeEditor() {
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [designOpen, setDesignOpen] = useState(false);
+  const [designAdvancedOpen, setDesignAdvancedOpen] = useState(false);
   const {
     addCustomSection,
     addBuiltinSection,
@@ -146,7 +153,7 @@ export function ResumeEditor() {
     checks,
     clearResume,
     dismissRecoveryPoint,
-    docxInputRef,
+    importFileInputRef,
     exportCheckpoint,
     externalDraft,
     exportIsCurrent,
@@ -163,12 +170,10 @@ export function ResumeEditor() {
     loadSample,
     moveEntry,
     moveSection,
-    openDocx,
     pageCount,
     pageGuides,
     printBreaks,
     passedChecks,
-    pdfInputRef,
     recoveryPoint,
     removeEntry,
     removeCustomSection,
@@ -297,8 +302,140 @@ export function ResumeEditor() {
     const group = document.getElementById(targetId)?.closest("[data-field-group]")?.getAttribute("data-field-group");
     if (group) expandGroup(group);
   }, [expandGroup]);
-  const editorGroupIds = ["design", "arrange", "header", "summary", ...state.sectionOrder];
+  const editorGroupIds = ["arrange", "header", "summary", ...state.sectionOrder];
   const allCollapsed = editorGroupIds.every((groupId) => collapsedGroups.has(groupId));
+
+  // Appearance controls live behind the preview toolbar's "Design" button so
+  // the left pane stays purely about content. Preset, font, and accent are the
+  // choices people reach for most; the rest sits under Advanced.
+  const designControls = (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Preset</span>
+          <div className="relative">
+            <select
+              value={state.template}
+              onChange={(event) => applyTemplate(event.target.value as ResumeTemplateId)}
+              className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Resume preset"
+            >
+              {RESUME_TEMPLATES.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </label>
+        <label className="grid gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Font</span>
+          <div className="relative">
+            <select
+              value={state.theme.font}
+              onChange={(event) => updateTheme({ font: event.target.value })}
+              className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              style={{ fontFamily: resolveFontStack(state.theme.font) }}
+              aria-label="Resume font"
+            >
+              {RESUME_FONTS.map((font) => (
+                <option key={font.id} value={font.id}>
+                  {font.label} · {font.kind}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </label>
+      </div>
+
+      <div className="grid gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Accent color</span>
+        <div className="flex flex-wrap items-center gap-1.5" aria-label="Accent color">
+          {ACCENT_PRESETS.map((accent) => {
+            const selected = normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
+            return (
+              <button
+                key={accent.id}
+                type="button"
+                aria-pressed={selected}
+                aria-label={accent.label}
+                title={accent.label}
+                onClick={() => updateTheme({ accent: accent.value })}
+                className={cn(
+                  "size-7 rounded-full border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                  selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
+                )}
+                style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
+              />
+            );
+          })}
+          <label className="ml-1 inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
+            Custom
+            <input
+              type="color"
+              value={normalizeAccent(state.theme.accent)}
+              onChange={(event) => updateTheme({ accent: event.target.value })}
+              className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
+              aria-label="Custom accent color"
+            />
+          </label>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        aria-expanded={designAdvancedOpen}
+        onClick={() => setDesignAdvancedOpen((open) => !open)}
+        className="flex w-full items-center gap-1.5 rounded-md text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ChevronRight className={cn("size-3.5 transition-transform", designAdvancedOpen && "rotate-90")} />
+        Advanced
+        <span className="font-normal">header, density, headings, divider</span>
+      </button>
+
+      {designAdvancedOpen ? (
+        <div className="grid gap-4 rounded-md border bg-muted/20 p-3">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ThemeSegment
+              label="Header"
+              value={state.theme.headerAlign}
+              options={[
+                { value: "left", label: "Left" },
+                { value: "center", label: "Center" },
+              ]}
+              onChange={(headerAlign) => updateTheme({ headerAlign })}
+            />
+            <ThemeSegment
+              label="Density"
+              value={state.theme.density}
+              options={DENSITIES.map((density) => ({ value: density as Density, label: DENSITY_LABELS[density] }))}
+              onChange={(density) => updateTheme({ density })}
+            />
+          </div>
+
+          <ThemeSegment
+            label="Section headings"
+            value={state.theme.headingStyle}
+            options={HEADING_STYLES.map((style) => ({ value: style as HeadingStyle, label: HEADING_STYLE_LABELS[style] }))}
+            onChange={(headingStyle) => updateTheme({ headingStyle })}
+          />
+
+          <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
+            <span className="text-xs font-medium">Divider under header</span>
+            <input
+              type="checkbox"
+              checked={state.theme.headerDivider}
+              onChange={(event) => updateTheme({ headerDivider: event.target.checked })}
+              className="size-4 accent-foreground"
+              aria-label="Divider under header"
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
+  );
 
   const focusEditorTarget = useCallback((targetId: string) => {
     setActiveTarget(targetId);
@@ -463,7 +600,6 @@ export function ResumeEditor() {
   const removedBuiltinSections = SECTION_KEYS.filter((section) => !state.sectionOrder.includes(section));
   const navItems: SectionNavItem[] = workspaceHasStarted
     ? [
-        { id: "edit-layout", label: "Layout" },
         { id: "edit-header", label: "Header" },
         { id: "edit-summary", label: "Summary" },
         ...state.sectionOrder.map((section) => ({
@@ -538,40 +674,24 @@ export function ResumeEditor() {
     <>
       <header className="app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <div className="min-w-0">
-            <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:block">
-              Private workspace
-            </p>
+          <div className="flex min-w-0 items-center gap-2">
             <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</h1>
+            <Badge
+              variant="secondary"
+              className="shrink-0 rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-[0.1em]"
+            >
+              {APP_STAGE}
+            </Badge>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {hasContent && !storageIssue ? (
-              <span
-                data-autosave-status={autosaveStatus}
-                aria-label={`Local autosave: ${autosaveStatus === "saving" ? "saving" : autosaveStatus === "conflict" ? "paused for another tab" : "saved"}`}
-                title={
-                  autosaveStatus === "saving"
-                    ? "Saving this resume in this browser"
-                    : autosaveStatus === "conflict"
-                      ? "Autosave is paused until you choose which tab's draft to keep."
-                    : "Saved in this browser. Use Save JSON for a portable backup."
-                }
-                className={cn(
-                  "inline-flex items-center gap-1.5 text-xs font-medium",
-                  autosaveStatus === "saving" ? "text-muted-foreground" : autosaveStatus === "conflict" ? "text-amber-700" : "text-emerald-700",
-                )}
-              >
-                {autosaveStatus === "saving" ? (
-                  <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-                ) : autosaveStatus === "conflict" ? (
-                  <span className="inline-flex size-3.5 items-center justify-center rounded-full border border-current text-[10px] leading-none" aria-hidden="true">!</span>
-                ) : (
-                  <Check className="size-3.5" aria-hidden="true" />
-                )}
-                <span className="hidden sm:inline">
-                  {autosaveStatus === "saving" ? "Saving locally" : autosaveStatus === "conflict" ? "Autosave paused" : "Saved locally"}
-                </span>
-              </span>
+            <ThemeToggle />
+            {FEEDBACK_URL ? (
+              <Button type="button" variant="outline" asChild className="gap-2">
+                <a href={FEEDBACK_URL} target="_blank" rel="noreferrer" aria-label="Share feedback or vote on features (opens in a new tab)">
+                  <MessageSquarePlus />
+                  <span className="hidden sm:inline">Feedback</span>
+                </a>
+              </Button>
             ) : null}
             {hasContent || versionHistory.length ? (
               <Button
@@ -587,7 +707,7 @@ export function ResumeEditor() {
                   <span
                     className={cn(
                       "inline-flex h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
-                      checksReady ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900",
+                      checksReady ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300",
                     )}
                   >
                     {passedChecks}/{checks.length}
@@ -600,10 +720,34 @@ export function ResumeEditor() {
                 type="button"
                 variant="outline"
                 onClick={() => setVersionsOpen(true)}
-                aria-label="Open version history"
+                data-autosave-status={storageIssue ? "conflict" : autosaveStatus}
+                aria-label={
+                  storageIssue
+                    ? "Version history — browser autosave unavailable"
+                    : autosaveStatus === "saving"
+                      ? "Version history — saving locally"
+                      : autosaveStatus === "conflict"
+                        ? "Version history — autosave paused for another tab"
+                        : "Version history — saved locally"
+                }
+                title={
+                  storageIssue
+                    ? "Autosave unavailable — save a JSON copy to keep your work"
+                    : autosaveStatus === "saving"
+                      ? "Saving this resume in this browser…"
+                      : autosaveStatus === "conflict"
+                        ? "Autosave paused until you choose which tab's draft to keep"
+                        : "Saved in this browser. Open version history or Save JSON for a portable backup."
+                }
                 className="gap-2"
               >
-                <History />
+                {autosaveStatus === "saving" && !storageIssue ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : storageIssue || autosaveStatus === "conflict" ? (
+                  <AlertCircle className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                ) : (
+                  <Check className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                )}
                 <span className="hidden sm:inline">Versions</span>
                 {versionHistory.length ? (
                   <span className="hidden min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums sm:inline">
@@ -642,11 +786,11 @@ export function ResumeEditor() {
                 <MenuItem onSelect={() => setTextImportOpen(true)}>
                   <ClipboardPaste /> Paste text
                 </MenuItem>
-                <MenuItem onSelect={() => pdfInputRef.current?.click()} disabled={isImporting}>
-                  <Upload /> {isImporting ? "Importing" : "Import PDF"}
+                <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
+                  <Upload /> {isImporting ? "Importing" : "Import a file"}
                 </MenuItem>
-                <MenuItem onSelect={() => docxInputRef.current?.click()} disabled={isImporting}>
-                  <FileText /> {isImporting ? "Importing" : "Import Word (.docx)"}
+                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
+                  <FileJson /> Open JSON
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
@@ -661,9 +805,6 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuItem onSelect={saveJson}>
                   <Download /> Save JSON
-                </MenuItem>
-                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
-                  <FileJson /> Open JSON
                 </MenuItem>
                 <MenuSeparator />
                 <MenuItem onSelect={() => {
@@ -743,8 +884,7 @@ export function ResumeEditor() {
             <StartPanel
               isImporting={isImporting}
               storageIssue={storageIssue}
-              onImportDocx={() => docxInputRef.current?.click()}
-              onImportPdf={() => pdfInputRef.current?.click()}
+              onImportFile={() => importFileInputRef.current?.click()}
               onImportText={() => setTextImportOpen(true)}
               onLoadSample={loadSample}
               onOpenJson={() => jsonInputRef.current?.click()}
@@ -755,12 +895,12 @@ export function ResumeEditor() {
           ) : null}
 
           {storageIssue ? (
-            <Alert className="mb-6 border-amber-300 bg-amber-50/70">
-              <AlertCircle className="h-4 w-4 text-amber-900" />
-              <AlertTitle className="text-amber-950">Browser autosave is unavailable</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3 text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+            <Alert className="mb-6 border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
+              <AlertCircle className="h-4 w-4 text-amber-900 dark:text-amber-300" />
+              <AlertTitle className="text-amber-950 dark:text-amber-100">Browser autosave is unavailable</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3 text-amber-950 dark:text-amber-100/90 sm:flex-row sm:items-center sm:justify-between">
                 <span>Your edits remain open here, but may not survive a refresh. Save a JSON copy before closing this tab.</span>
-                <Button type="button" variant="outline" size="sm" className="w-fit border-amber-400 bg-background" onClick={saveJson}>
+                <Button type="button" variant="outline" size="sm" className="w-fit border-amber-400 bg-background dark:border-amber-500/50" onClick={saveJson}>
                   <Download /> Save JSON copy
                 </Button>
               </AlertDescription>
@@ -768,19 +908,19 @@ export function ResumeEditor() {
           ) : null}
 
           {externalDraft ? (
-            <Alert className="mb-6 border-sky-300 bg-sky-50/70">
-              <AlertCircle className="h-4 w-4 text-sky-900" />
-              <AlertTitle className="text-sky-950">A different resume was saved in another tab</AlertTitle>
-              <AlertDescription className="grid gap-3 text-sky-950">
+            <Alert className="mb-6 border-sky-300 bg-sky-50/70 dark:border-sky-500/40 dark:bg-sky-950/40">
+              <AlertCircle className="h-4 w-4 text-sky-900 dark:text-sky-300" />
+              <AlertTitle className="text-sky-950 dark:text-sky-100">A different resume was saved in another tab</AlertTitle>
+              <AlertDescription className="grid gap-3 text-sky-950 dark:text-sky-100/90">
                 <span>Autosave is paused here so this tab does not overwrite the other draft. Review the changed areas, then choose which one to keep. If it was imported, its matching review checklist comes with it.</span>
                 {externalDraftChanges.length ? (
                   <ChangeSummaryGrid changes={externalDraftChanges} beforeLabel="This tab" afterLabel="Saved tab" />
                 ) : null}
                 <span className="flex shrink-0 flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={useExternalDraft}>
+                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background dark:border-sky-500/50" onClick={useExternalDraft}>
                     Use saved draft
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background" onClick={keepCurrentDraft}>
+                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background dark:border-sky-500/50" onClick={keepCurrentDraft}>
                     Keep this draft
                   </Button>
                 </span>
@@ -789,10 +929,10 @@ export function ResumeEditor() {
           ) : null}
 
           {recoveryPoint ? (
-            <Card className="mb-6 border-sky-200 bg-sky-50/60">
+            <Card className="mb-6 border-sky-200 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/40">
               <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-900">
+                  <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-900 dark:text-sky-300">
                     Restore point saved
                   </CardDescription>
                   <CardTitle className="text-base">You can go back to the previous resume.</CardTitle>
@@ -813,11 +953,11 @@ export function ResumeEditor() {
           ) : null}
 
           {importReview ? (
-            <Card id="import-review-panel" className="mb-6 border-amber-200 bg-amber-50/60">
+            <Card id="import-review-panel" className="mb-6 border-amber-200 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-950/40">
               <CardHeader className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900">
+                    <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900 dark:text-amber-300">
                       Import review
                     </CardDescription>
                     <CardTitle className="text-base">Review the imported fields</CardTitle>
@@ -825,12 +965,12 @@ export function ResumeEditor() {
                       Imported from {importReview.fileName}. Step through each suggested field, edit anything that looks off, and confirm it.
                     </CardDescription>
                   </div>
-                  <Badge variant="outline" className="shrink-0 border-amber-300 bg-background tabular-nums text-amber-950">
+                  <Badge variant="outline" className="shrink-0 border-amber-300 bg-background tabular-nums text-amber-950 dark:border-amber-500/50 dark:text-amber-200">
                     {importReviewStatus?.reviewedCount ?? 0}/{importReview.items.length}
                   </Badge>
                 </div>
                 {importSkippedCoverage.length ? (
-                  <CardDescription className="text-amber-900">
+                  <CardDescription className="text-amber-900 dark:text-amber-300">
                     {importSkippedCoverage.length} source {importSkippedCoverage.length === 1 ? "section was" : "sections were"} found but not imported — the walkthrough flags {importSkippedCoverage.length === 1 ? "it" : "them"} so you can add {importSkippedCoverage.length === 1 ? "it" : "them"} back.
                   </CardDescription>
                 ) : null}
@@ -898,117 +1038,6 @@ export function ResumeEditor() {
 
           {workspaceHasStarted ? (
             <div className="space-y-6">
-              <FieldGroup id="edit-layout" title="Design" {...groupProps("design")}>
-                <p className="text-xs leading-snug text-muted-foreground">
-                  Start from a preset, then fine-tune font, color, and layout. Every option stays clean and ATS-readable.
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2" aria-label="Resume templates">
-                  {RESUME_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      type="button"
-                      aria-pressed={state.template === template.id}
-                      className={cn(
-                        "rounded-md border p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        state.template === template.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-background",
-                      )}
-                      onClick={() => applyTemplate(template.id)}
-                    >
-                      <span className="block text-sm font-semibold">{template.label}</span>
-                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="grid gap-4 rounded-md border bg-muted/20 p-3">
-                  <label className="grid gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Font</span>
-                    <select
-                      value={state.theme.font}
-                      onChange={(event) => updateTheme({ font: event.target.value })}
-                      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      style={{ fontFamily: resolveFontStack(state.theme.font) }}
-                      aria-label="Resume font"
-                    >
-                      {RESUME_FONTS.map((font) => (
-                        <option key={font.id} value={font.id}>
-                          {font.label} · {font.kind}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="grid gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Accent color</span>
-                    <div className="flex flex-wrap items-center gap-1.5" aria-label="Accent color">
-                      {ACCENT_PRESETS.map((accent) => {
-                        const selected = normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
-                        return (
-                          <button
-                            key={accent.id}
-                            type="button"
-                            aria-pressed={selected}
-                            aria-label={accent.label}
-                            title={accent.label}
-                            onClick={() => updateTheme({ accent: accent.value })}
-                            className={cn(
-                              "size-7 rounded-full border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                              selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
-                            )}
-                            style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
-                          />
-                        );
-                      })}
-                      <label className="ml-1 inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                        Custom
-                        <input
-                          type="color"
-                          value={normalizeAccent(state.theme.accent)}
-                          onChange={(event) => updateTheme({ accent: event.target.value })}
-                          className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
-                          aria-label="Custom accent color"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <ThemeSegment
-                      label="Header"
-                      value={state.theme.headerAlign}
-                      options={[
-                        { value: "left", label: "Left" },
-                        { value: "center", label: "Center" },
-                      ]}
-                      onChange={(headerAlign) => updateTheme({ headerAlign })}
-                    />
-                    <ThemeSegment
-                      label="Density"
-                      value={state.theme.density}
-                      options={DENSITIES.map((density) => ({ value: density as Density, label: DENSITY_LABELS[density] }))}
-                      onChange={(density) => updateTheme({ density })}
-                    />
-                  </div>
-
-                  <ThemeSegment
-                    label="Section headings"
-                    value={state.theme.headingStyle}
-                    options={HEADING_STYLES.map((style) => ({ value: style as HeadingStyle, label: HEADING_STYLE_LABELS[style] }))}
-                    onChange={(headingStyle) => updateTheme({ headingStyle })}
-                  />
-
-                  <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
-                    <span className="text-xs font-medium">Divider under header</span>
-                    <input
-                      type="checkbox"
-                      checked={state.theme.headerDivider}
-                      onChange={(event) => updateTheme({ headerDivider: event.target.checked })}
-                      className="size-4 accent-foreground"
-                      aria-label="Divider under header"
-                    />
-                  </label>
-                </div>
-              </FieldGroup>
               <FieldGroup title="Arrange sections" {...groupProps("arrange")}>
                 <p className="text-xs leading-snug text-muted-foreground">
                   Drag sections into the order you want, from top to bottom. The preview updates immediately.
@@ -1196,7 +1225,7 @@ export function ResumeEditor() {
                   {...groupProps(section)}
                   reviewRegion={section === "skills"}
                   className={cn(
-                    sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200",
+                    sectionIsActive && "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200 dark:bg-sky-950/40 dark:ring-sky-500/40",
                     draggedSection === section && "rounded-md opacity-45",
                     dropTargetSection === section && draggedSection !== section && "rounded-md bg-primary/5 px-3 pt-3 ring-2 ring-primary/25",
                   )}
@@ -1363,6 +1392,19 @@ export function ResumeEditor() {
           <div ref={previewWrapRef} className="mx-auto flex w-full max-w-[8.5in] flex-col items-center gap-3">
             <div className="app-chrome flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2">
               <div className="flex min-w-0 items-center gap-3">
+                {workspaceHasStarted ? (
+                  <Button
+                    type="button"
+                    variant={designOpen ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-8 shrink-0 gap-1.5"
+                    aria-expanded={designOpen}
+                    aria-controls="design-panel"
+                    onClick={() => setDesignOpen((open) => !open)}
+                  >
+                    <SlidersHorizontal /> Design
+                  </Button>
+                ) : null}
                 <label className="hidden items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground sm:flex">
                   <span className="whitespace-nowrap">Text size</span>
                   <input
@@ -1399,15 +1441,22 @@ export function ResumeEditor() {
               <div className="flex shrink-0 items-center gap-2">
                 <Button
                   type="button"
-                  variant={inlineEdit ? "secondary" : "outline"}
-                  size="icon"
-                  className="hidden lg:inline-flex"
+                  variant={inlineEdit ? "default" : "outline"}
+                  size="sm"
+                  className="hidden gap-1.5 lg:inline-flex"
                   aria-pressed={inlineEdit}
-                  aria-label={inlineEdit ? "Editing on sheet" : "Edit on sheet"}
+                  aria-label={inlineEdit ? "Editing on sheet (click to turn off)" : "Edit on sheet (click to turn on)"}
                   onClick={() => setInlineEdit((value) => !value)}
-                  title={inlineEdit ? "Inline editing is on — click resume text to edit it" : "Turn on inline editing (click resume text to edit)"}
+                  title={inlineEdit ? "Inline editing is on — click any text on the resume to edit it" : "Turn on inline editing (click resume text to edit)"}
                 >
                   <Pencil />
+                  {inlineEdit ? (
+                    <>
+                      <span aria-hidden className="size-1.5 rounded-full bg-current" /> Editing
+                    </>
+                  ) : (
+                    "Edit"
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1426,6 +1475,11 @@ export function ResumeEditor() {
                 </Button>
               </div>
             </div>
+            {workspaceHasStarted && designOpen ? (
+              <div id="design-panel" className="w-full rounded-lg border bg-card p-4 shadow-sm">
+                {designControls}
+              </div>
+            ) : null}
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
               <ResumePreview
                 state={state}

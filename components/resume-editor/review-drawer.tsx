@@ -112,14 +112,14 @@ export function ReviewDrawer({
               <div
                 className={cn(
                   "mt-3 rounded-lg border p-3",
-                  exportIsCurrent ? "border-emerald-200 bg-emerald-50/60" : "border-indigo-200 bg-indigo-50/60",
+                  exportIsCurrent ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/40 dark:bg-emerald-950/40" : "border-indigo-200 bg-indigo-50/60 dark:border-indigo-500/40 dark:bg-indigo-950/40",
                 )}
               >
                 <div className="flex items-start gap-3">
                   <span
                     className={cn(
                       "mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-background",
-                      exportIsCurrent ? "border-emerald-200 text-emerald-700" : "border-indigo-200 text-indigo-700",
+                      exportIsCurrent ? "border-emerald-200 text-emerald-700 dark:border-emerald-500/50 dark:text-emerald-300" : "border-indigo-200 text-indigo-700 dark:border-indigo-500/50 dark:text-indigo-300",
                     )}
                   >
                     {exportIsCurrent ? <FileCheck2 className="size-4" /> : <History className="size-4" />}

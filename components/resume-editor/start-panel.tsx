@@ -1,16 +1,17 @@
 "use client";
 
-import { ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RESUME_TEMPLATES, type ResumeTemplateId } from "@/lib/resume";
+import { cn } from "@/lib/utils";
 
 type StartPanelProps = {
   isImporting: boolean;
   storageIssue: boolean;
-  onImportPdf: () => void;
-  onImportDocx: () => void;
+  onImportFile: () => void;
   onImportText: () => void;
   onLoadSample: () => void;
   onOpenJson: () => void;
@@ -22,8 +23,7 @@ type StartPanelProps = {
 export function StartPanel({
   isImporting,
   storageIssue,
-  onImportPdf,
-  onImportDocx,
+  onImportFile,
   onImportText,
   onLoadSample,
   onOpenJson,
@@ -31,133 +31,104 @@ export function StartPanel({
   onStartBlank,
   onChooseTemplate,
 }: StartPanelProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardDescription className="font-semibold uppercase tracking-[0.16em]">Private resume workspace</CardDescription>
         <CardTitle className="text-2xl">Start from a resume you have—or a clean page.</CardTitle>
         <CardDescription>
-          Choose the route that best matches your source. You will review every imported field before you export.
+          Everything stays on this device. You review every field before you export.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <button
-            type="button"
-            className="group rounded-lg border-2 border-primary bg-primary p-4 text-left text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            onClick={onImportText}
-          >
-            <span className="flex items-start gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15">
-                <ClipboardPaste className="size-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Paste resume text</span>
-                <span className="mt-1 block text-sm leading-snug text-primary-foreground/85">
-                  Best for copied documents, LinkedIn, and OCR&apos;d scanned PDFs.
-                </span>
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="group rounded-lg border bg-background p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-            onClick={onImportPdf}
-            disabled={isImporting}
-          >
-            <span className="flex items-start gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
-                <Upload className="size-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">{isImporting ? "Importing PDF" : "Import a PDF"}</span>
-                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
-                  Best for selectable-text PDFs. Read locally; scanned PDFs need OCR text first.
-                </span>
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="group rounded-lg border bg-background p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-            onClick={onImportDocx}
-            disabled={isImporting}
-          >
-            <span className="flex items-start gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
-                <FileText className="size-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Import a Word file</span>
-                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
-                  Best for editable .docx resumes. Read locally, then review every field.
-                </span>
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="group rounded-lg border bg-background p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            onClick={onOpenJson}
-          >
-            <span className="flex items-start gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
-                <FileJson className="size-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Open a saved JSON</span>
-                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
-                  Reopen a resume you previously saved from PrivaCV as a local JSON file.
-                </span>
-              </span>
-            </span>
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-3">
-          <span className="mr-1 text-xs font-medium text-muted-foreground">Restoring a checkpoint backup?</span>
-          <Button type="button" variant="outline" size="sm" onClick={onOpenCheckpointBackup}>
-            <History /> Open checkpoint backup
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted/50 p-3">
-          <p className="text-xs leading-snug text-muted-foreground">
-            Want to explore first? Load a sample resume and edit it locally.
-          </p>
-          <Button type="button" variant="secondary" size="sm" onClick={onLoadSample}>
-            <FileText /> Use sample
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
-          <div>
-            <p className="text-sm font-medium">Starting fresh?</p>
-            <p className="mt-1 text-xs leading-snug text-muted-foreground">
-              Open a clean, ATS-readable draft and begin with your contact details.
-            </p>
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => onStartBlank()}>
-            <FileText /> Start a blank resume
-          </Button>
-        </div>
-
-        <div className="border-t pt-3">
-          <p className="text-xs font-medium text-muted-foreground">Choose a layout and start blank</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {RESUME_TEMPLATES.map((template) => (
-              <button
-                key={template.id}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Path 1 — bring an existing resume in and review it. */}
+          <div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
+            <div>
+              <p className="text-sm font-semibold">I have a resume</p>
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                Import it locally, then review every field before exporting.
+              </p>
+            </div>
+            <div className="mt-auto grid gap-2">
+              <Button type="button" className="justify-start" onClick={onImportText}>
+                <ClipboardPaste /> Paste resume text
+              </Button>
+              <Button
                 type="button"
-                aria-label={`Start blank with ${template.label} template`}
-                className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => onChooseTemplate(template.id)}
+                variant="outline"
+                aria-label="Import a file"
+                className="justify-start"
+                onClick={onImportFile}
+                disabled={isImporting}
               >
-                <span className="block text-sm font-semibold">{template.label}</span>
-                <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
-              </button>
-            ))}
+                <Upload /> {isImporting ? "Importing…" : "Import a file (PDF or Word)"}
+              </Button>
+            </div>
           </div>
+
+          {/* Path 2 — begin from an empty, ATS-readable draft. */}
+          <div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
+            <div>
+              <p className="text-sm font-semibold">Start fresh</p>
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                Open a clean, ATS-readable draft and begin with your contact details.
+              </p>
+            </div>
+            <Button type="button" variant="secondary" className="mt-auto justify-start" onClick={() => onStartBlank()}>
+              <FileText /> Start a blank resume
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-muted/20">
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((open) => !open)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", moreOpen && "rotate-90")} />
+            More options
+            <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, checkpoint backup, layout</span>
+          </button>
+
+          {moreOpen ? (
+            <div className="space-y-4 border-t px-4 py-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={onLoadSample}>
+                  <FileText /> Load a sample
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={onOpenJson}>
+                  <FileJson /> Open saved JSON
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={onOpenCheckpointBackup}>
+                  <History /> Open checkpoint backup
+                </Button>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Start blank with a layout
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {RESUME_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      aria-label={`Start blank with ${template.label} template`}
+                      className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => onChooseTemplate(template.id)}
+                    >
+                      <span className="block text-sm font-semibold">{template.label}</span>
+                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2" aria-label="Privacy and export benefits">

@@ -1,0 +1,69 @@
+{
+  "pages": {
+    "/_not-found/page": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/_not-found/page-5e3ec58f71031f88.js"
+    ],
+    "/robots.txt/route": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/robots.txt/route-5e3ec58f71031f88.js"
+    ],
+    "/manifest.webmanifest/route": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/manifest.webmanifest/route-5e3ec58f71031f88.js"
+    ],
+    "/global-error": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/global-error-2cdf4fdcb96884f6.js"
+    ],
+    "/not-found": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/not-found-e60d7a67f92bebff.js"
+    ],
+    "/layout": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/css/b6af852516046d6b.css",
+      "static/chunks/app/layout-7b1761f653bfa604.js"
+    ],
+    "/error": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/error-1bea187a9421e938.js"
+    ],
+    "/apple-icon/route": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/app/apple-icon/route-5e3ec58f71031f88.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-92d04921cb9a06b4.js",
+      "static/chunks/9a3ab915-840d9a4daff7c615.js",
+      "static/chunks/50-f786747f855c6134.js",
+      "static/chunks/main-app-bd3da6284a861bcd.js",
+      "static/chunks/508-1e3f175e9b85089d.js",
+      "static/chunks/app/page-484c9133137ee550.js"
+    ]
+  }
+}

@@ -200,8 +200,7 @@ export function useResumeEditor() {
   const [storageIssue, setStorageIssue] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
   const [externalDraft, setExternalDraft] = useState<ResumeState | null>(null);
-  const docxInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLDivElement>(null);
@@ -1185,6 +1184,20 @@ export function useResumeEditor() {
     }
   };
 
+  // People shouldn't have to know whether their file is a PDF or a Word
+  // document before clicking — one importer routes on the file itself.
+  const openResumeFile = async (file: File | undefined) => {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    const isDocx =
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      name.endsWith(".docx");
+    const isPdf = file.type === "application/pdf" || name.endsWith(".pdf");
+    if (isDocx) return openDocx(file);
+    if (isPdf) return openPdf(file);
+    flash("Choose a PDF or Word (.docx) file, or paste the text instead");
+  };
+
   const openTextImport = (text: string) => {
     try {
       const imported = importResumeTextWithSource(text);
@@ -1342,7 +1355,7 @@ export function useResumeEditor() {
     comparedTargetState,
     comparedTargetVersion,
     copyPlainText,
-    docxInputRef,
+    importFileInputRef,
     deleteVersion,
     requestDocxExport,
     downloadPlainText,
@@ -1378,8 +1391,7 @@ export function useResumeEditor() {
     moveEntry,
     moveSection,
     openJson,
-    openDocx,
-    openPdf,
+    openResumeFile,
     openTextImport,
     openVersionHistoryBackup,
     openVersionSave,
@@ -1387,7 +1399,6 @@ export function useResumeEditor() {
     pageGuides,
     printBreaks,
     passedChecks,
-    pdfInputRef,
     plainText,
     recoveryPoint,
     removeEntry,

@@ -32,10 +32,10 @@ export function BlankResumeGuide({
   const complete = completeCount === steps.length;
 
   return (
-    <Card className="mb-5 border-sky-200 bg-sky-50/60" aria-label="Blank resume essentials">
+    <Card className="mb-5 border-sky-200 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/40" aria-label="Blank resume essentials">
       <CardHeader className="flex-col gap-2 space-y-0 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-900">
+          <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-900 dark:text-sky-300">
             Build the essentials
           </CardDescription>
           <CardTitle className="text-base">
@@ -47,7 +47,7 @@ export function BlankResumeGuide({
               : "These are guideposts, not requirements. Add other sections whenever they strengthen your story."}
           </CardDescription>
         </div>
-        <Button type="button" variant="ghost" size="sm" className="w-fit text-sky-900" onClick={onDismiss}>
+        <Button type="button" variant="ghost" size="sm" className="w-fit text-sky-900 dark:text-sky-300" onClick={onDismiss}>
           Hide guide
         </Button>
       </CardHeader>
@@ -58,14 +58,14 @@ export function BlankResumeGuide({
               key={step.id}
               className={cn(
                 "flex min-w-0 flex-col gap-2 rounded-md border bg-background/75 p-3",
-                step.done && "border-emerald-200 bg-emerald-50/60",
+                step.done && "border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/40 dark:bg-emerald-950/40",
               )}
             >
               <div className="flex items-start gap-2">
                 <span
                   className={cn(
                     "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
-                    step.done ? "border-emerald-500 bg-emerald-600 text-white" : "border-sky-300 bg-sky-50 text-sky-900",
+                    step.done ? "border-emerald-500 bg-emerald-600 text-white" : "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-500/50 dark:bg-sky-900/40 dark:text-sky-200",
                   )}
                   aria-hidden="true"
                 >

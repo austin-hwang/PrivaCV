@@ -2,6 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import { KofiWidget } from "@/components/kofi-widget";
+import { THEME_STORAGE_KEY } from "@/lib/site";
+
+// Applied before first paint so there's no flash: default to night mode, and
+// only fall back to light when the person has explicitly chosen it.
+const themeInitScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t==="light"){document.documentElement.classList.remove("dark");}else{document.documentElement.classList.add("dark");}}catch(e){document.documentElement.classList.add("dark");}})();`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,15 +46,18 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "light",
-  themeColor: "#28303d",
+  colorScheme: "dark light",
+  themeColor: "#16181d",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className={`${inter.variable} ${merriweather.variable}`}>
         {children}
         <KofiWidget />

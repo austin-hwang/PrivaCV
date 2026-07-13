@@ -26,6 +26,31 @@
     --radius: 0.5rem;
   }
 
+  /* Night mode (default). Only the app chrome recolours — the resume sheet keeps
+     its fixed paper colours (white page frames, black text) so the preview and
+     exported PDF stay identical, now popping against a dark workspace. */
+  .dark {
+    --background: 222 16% 9%;
+    --foreground: 220 14% 92%;
+    --card: 222 15% 12%;
+    --card-foreground: 220 14% 92%;
+    --popover: 222 15% 13%;
+    --popover-foreground: 220 14% 92%;
+    --primary: 220 14% 90%;
+    --primary-foreground: 222 20% 13%;
+    --secondary: 220 12% 20%;
+    --secondary-foreground: 220 14% 93%;
+    --muted: 222 13% 17%;
+    --muted-foreground: 220 10% 64%;
+    --accent: 220 12% 24%;
+    --accent-foreground: 220 14% 95%;
+    --destructive: 4 74% 54%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 12% 22%;
+    --input: 220 12% 27%;
+    --ring: 220 14% 72%;
+  }
+
   * {
     @apply border-border;
   }
