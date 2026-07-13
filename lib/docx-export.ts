@@ -1,10 +1,10 @@
 import { strToU8, zipSync } from "fflate";
 import {
-  bulletsFrom,
   contactHref,
   entryHasContent,
   getSectionEntries,
   getSectionTitle,
+  includedBulletsFrom,
   normalizeAccent,
   resolveDocxFont,
   type ResumeEntry,
@@ -81,8 +81,9 @@ function entryParagraphs(entry: ResumeEntry) {
     entry.subtitle ? textRun(`${entry.title ? " | " : ""}${entry.subtitle}`) : "",
     entry.meta ? textRun(`${entry.title || entry.subtitle ? " | " : ""}${entry.meta}`) : "",
   ].join("");
-  const heading = parts ? paragraph(parts, { after: bulletsFrom(entry.details).length ? 20 : 90 }) : "";
-  const details = bulletsFrom(entry.details).map((bullet) => paragraph(textRun(bullet), { bullet: true, after: 24 })).join("");
+  const bullets = includedBulletsFrom(entry);
+  const heading = parts ? paragraph(parts, { after: bullets.length ? 20 : 90 }) : "";
+  const details = bullets.map((bullet) => paragraph(textRun(bullet), { bullet: true, after: 24 })).join("");
   return `${heading}${details}`;
 }
 

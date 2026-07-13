@@ -1,5 +1,40 @@
 # Agent Log
 
+## 2026-07-13 — Keep master-resume bullets while tailoring
+
+## Product review
+
+- **Finding:** Competitors such as Teal make a comprehensive source resume and
+  job-specific selection central to their workflow. PrivaCV already offered
+  role context, transparent wording review, and reversible checkpoints, but a
+  person still had to delete or rewrite a strong bullet to remove it from one
+  application.
+- **Options considered:** Add AI rewrites, build a separate master-resume
+  system, or let the current local draft temporarily omit individual bullets.
+  Per-bullet selection won because it removes a frequent tailoring action
+  without sending data away, inventing claims, or adding a second data model.
+- **Expected user benefit:** A person can make a focused version in seconds,
+  preserve every original achievement for later roles, and trust that every
+  export path contains the same selected content.
+
+## Changes
+
+- Added accessible per-bullet include controls to experience and project
+  entries. Excluded bullets stay in the browser-only draft and can be restored
+  individually or all at once.
+- Made preview, browser-produced PDF, Word, plain text, application copy,
+  Resume Check, and Role Focus use only included bullets.
+- Protected the retained bullet bank from inline-preview edits: while a
+  tailored filter is active, the preview remains readable but the full
+  Highlights field is the safe edit route; changing it deliberately includes
+  all bullets again.
+- Added unit and browser coverage for the active export copy.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (74 tests), an isolated
+  production build, `git diff --check`, and the new Chromium tailoring flow.
+
 ## 2026-07-13 — Protect full tailored-version histories
 
 ## Product review

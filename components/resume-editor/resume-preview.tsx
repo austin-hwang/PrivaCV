@@ -6,6 +6,7 @@ import {
   getSectionEntries,
   getSectionTitle,
   hasAnyContent,
+  includedBulletsFrom,
   normalizeAccent,
   resolveFontStack,
   type ResumeState,
@@ -508,14 +509,22 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
               onCommit={(value) => onEditEntry?.(section, originalIndex, "subtitle", value)}
             />
           ) : null}
-          {bulletsFrom(entry.details).length ? (
-            <EditableList
-              editable={editable}
-              items={bulletsFrom(entry.details)}
-              className="resume-bullets"
-              onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n"))}
-            />
-          ) : null}
+          {(() => {
+            const allEntryBullets = bulletsFrom(entry.details);
+            const includedBullets = includedBulletsFrom(entry);
+            if (!includedBullets.length) return null;
+            return (
+              <EditableList
+                // Editing only the visible subset would overwrite retained
+                // master bullets. Use the full Highlights field while a
+                // tailored filter is active; changing it restores all bullets.
+                editable={editable && includedBullets.length === allEntryBullets.length}
+                items={includedBullets}
+                className="resume-bullets"
+                onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n"))}
+              />
+            );
+          })()}
         </div>
       ))}
     </section>

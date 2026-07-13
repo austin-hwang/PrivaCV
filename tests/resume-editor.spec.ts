@@ -471,6 +471,23 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
 });
 
+test("keeps a deselected tailoring bullet out of the preview and reviewed text", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const omitted = "Mentored a team of 5 engineers and established code review standards.";
+  const selector = page.getByLabel(new RegExp(`Include bullet 2: ${omitted}`));
+  await selector.uncheck();
+  await expect(page.locator(".resume-sheet")).not.toContainText(omitted);
+  await expect(page.getByText("2 of 3 bullets are included in your preview and downloads.")).toBeVisible();
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /review text/i }).click();
+  await expect(page.locator("textarea[readonly]")).not.toContainText(omitted);
+});
+
 test("makes local autosave visible while an edited resume is being stored", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

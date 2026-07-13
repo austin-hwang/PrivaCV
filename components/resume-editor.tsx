@@ -183,6 +183,7 @@ export function ResumeEditor() {
     updateSectionTitle,
     useExternalDraft,
     toggleImportReviewItem,
+    toggleEntryBullet,
     completeImportReview,
     confirmAllImportReviewItems,
     dismissRestoredVersionSummary,
@@ -1128,6 +1129,7 @@ export function ResumeEditor() {
                       onReorder={reorderEntry}
                       onRemove={removeEntry}
                       onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
+                      onToggleBullet={toggleEntryBullet}
                     />
                   )}
                 </FieldGroup>

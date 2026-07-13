@@ -18,6 +18,7 @@ import {
   CUSTOM_SECTION_PRESETS,
   emptyState,
   exportChangeSummary,
+  includedBulletsFrom,
   normalizeResume,
   resumeExportFingerprint,
   resumePlainText,
@@ -56,6 +57,22 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
+  it("keeps omitted tailoring bullets in the local draft but out of every exported copy path", () => {
+    const state = sampleState();
+    const omitted = "Mentored a team of 5 engineers and established code review standards.";
+    state.experience[0].excludedBulletIndexes = [1];
+
+    expect(includedBulletsFrom(state.experience[0])).not.toContain(omitted);
+    expect(resumePlainText(state)).not.toContain(omitted);
+    expect(applicationCopyGroups(state).find((group) => group.id === "experience-0")?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Achievements", text: expect.not.stringContaining(omitted) }),
+    ]));
+    expect(strFromU8(unzipSync(resumeDocx(state))["word/document.xml"])).not.toContain(omitted);
+    expect(buildRoleFocus(state, "Requirements:\n- Mentored engineering teams").terms).toEqual(expect.arrayContaining([
+      expect.objectContaining({ term: "mentored", matched: false }),
+    ]));
+  });
+
   it("creates granular, portal-friendly copy fields without adding empty values", () => {
     const state = sampleState();
     state.customSections = [{

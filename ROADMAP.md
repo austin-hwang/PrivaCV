@@ -146,6 +146,13 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
   tailored attachments are less likely to be mixed up without changing resume
   content; reassess application-specific naming only if users need a separate
   filename from their saved role label.
+- Make the master-resume approach practical without turning it into a second
+  product: experience and project bullets can now be included or omitted per
+  tailored draft without deleting the retained wording. The selected copy is
+  used consistently in preview, PDF print, Word, plain text, application copy,
+  checks, and Role Focus; editing the full Highlights field intentionally
+  restores every bullet. Reassess whether people next need reusable bullet
+  variants or whether lightweight checkpoints already cover that workflow.
 - Show what changed after restoring a checkpoint so reverting a tailored draft
   still feels reviewable.
 - Keep refining mobile and narrow-window editing without compromising the print

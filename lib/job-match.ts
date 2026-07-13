@@ -1,4 +1,4 @@
-import type { ResumeEntry, ResumeState } from "@/lib/resume";
+import { includedBulletsFrom, type ResumeEntry, type ResumeState } from "@/lib/resume";
 
 export type RoleTermEvidence = {
   label: string;
@@ -232,7 +232,7 @@ function requirementTermOrder(jobDescription: string) {
 
 function entryEvidence(section: string, label: string, entries: ResumeEntry[], term: string): RoleTermEvidence[] {
   return entries.flatMap((entry, index) => {
-    const detailsMatch = containsTerm(entry.details, term);
+    const detailsMatch = containsTerm(includedBulletsFrom(entry).join("\n"), term);
     const contextMatch = containsTerm([entry.title, entry.subtitle, entry.meta].join(" "), term);
     if (!detailsMatch && !contextMatch) return [];
 
@@ -296,12 +296,12 @@ export function buildRoleFocus(resume: ResumeState | string, jobDescription: str
     resume.website,
     resume.summary,
     resume.skills,
-    ...resume.experience.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
-    ...resume.projects.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
-    ...resume.education.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+    ...resume.experience.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, includedBulletsFrom(entry).join("\n")]),
+    ...resume.projects.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, includedBulletsFrom(entry).join("\n")]),
+    ...resume.education.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, includedBulletsFrom(entry).join("\n")]),
     ...resume.customSections.flatMap((section) => [
       section.title,
-      ...section.entries.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, entry.details]),
+      ...section.entries.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, includedBulletsFrom(entry).join("\n")]),
     ]),
   ].join(" ");
   const resumeTerms = new Set(words(resumeText));

@@ -138,6 +138,7 @@ export function EntryList({
   onReorder,
   onRemove,
   onSwapTitleAndSubtitle,
+  onToggleBullet,
 }: {
   section: string;
   sectionLabel: string;
@@ -147,6 +148,7 @@ export function EntryList({
   onReorder: (section: string, index: number, target: number) => void;
   onRemove: (section: string, index: number) => void;
   onSwapTitleAndSubtitle: (index: number) => void;
+  onToggleBullet: (section: string, index: number, bulletIndex: number) => void;
 }) {
   const schema = isBuiltinSection(section) && section !== "skills"
     ? ENTRY_SCHEMA[section]
@@ -166,6 +168,9 @@ export function EntryList({
       {entries.map((entry, index) => {
         const evidence = supportsEvidenceReview ? summarizeEvidence(entry.details) : null;
         const openings = supportsEvidenceReview ? summarizeBulletOpenings(entry.details) : null;
+        const bullets = entry.details.split("\n").map((bullet) => bullet.trim()).filter(Boolean);
+        const excludedBulletIndexes = entry.excludedBulletIndexes ?? [];
+        const includedBulletCount = bullets.filter((_, bulletIndex) => !excludedBulletIndexes.includes(bulletIndex)).length;
         const reviewLabel = evidence?.unmeasuredIndexes.length
           ? `Review ${evidence.unmeasuredIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
           : null;
@@ -281,6 +286,47 @@ export function EntryList({
               value={entry.details}
               onChange={(value) => onUpdate(section, index, "details", value)}
             />
+            {supportsEvidenceReview && bullets.length ? (
+              <fieldset className="rounded-md border bg-background p-3">
+                <legend className="px-1 text-xs font-semibold text-foreground">Tailor this version</legend>
+                <p className="mb-2 text-xs leading-snug text-muted-foreground">
+                  {includedBulletCount} of {bullets.length} {bullets.length === 1 ? "bullet is" : "bullets are"} included in your preview and downloads. Uncheck a lower-relevance bullet without deleting it.
+                </p>
+                {excludedBulletIndexes.length ? (
+                  <p className="mb-2 text-xs leading-snug text-muted-foreground">
+                    To edit the full Highlights list, use the field above; changing it includes every bullet again.
+                  </p>
+                ) : null}
+                <div className="space-y-2">
+                  {bullets.map((bullet, bulletIndex) => {
+                    const included = !excludedBulletIndexes.includes(bulletIndex);
+                    return (
+                      <label key={`${bulletIndex}-${bullet}`} className="flex cursor-pointer items-start gap-2 text-xs leading-snug text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={included}
+                          onChange={() => onToggleBullet(section, index, bulletIndex)}
+                          aria-label={`${included ? "Include" : "Exclude"} bullet ${bulletIndex + 1}: ${bullet}`}
+                          className="mt-0.5 size-3.5 shrink-0 accent-primary"
+                        />
+                        <span className={cn(!included && "text-muted-foreground line-through")}>{bullet}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {excludedBulletIndexes.length ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 h-7 px-1.5 text-xs"
+                    onClick={() => excludedBulletIndexes.forEach((bulletIndex) => onToggleBullet(section, index, bulletIndex))}
+                  >
+                    Include all bullets
+                  </Button>
+                ) : null}
+              </fieldset>
+            ) : null}
             {evidence?.bulletCount ? (
               <div
                 className={cn(

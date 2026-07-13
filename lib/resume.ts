@@ -132,6 +132,10 @@ export const entrySchema = z.object({
   subtitle: z.string().catch(""),
   meta: z.string().catch(""),
   details: z.string().catch(""),
+  // A tailored draft can omit a lower-relevance bullet without deleting it
+  // from the local master resume. Indexes keep duplicate bullet wording
+  // independently selectable.
+  excludedBulletIndexes: z.array(z.number().int().nonnegative()).optional().catch([]),
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
@@ -232,7 +236,7 @@ export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
 export function blankEntry(): ResumeEntry {
-  return { title: "", subtitle: "", meta: "", details: "" };
+  return { title: "", subtitle: "", meta: "", details: "", excludedBulletIndexes: [] };
 }
 
 export function emptyState(): ResumeState {
@@ -332,6 +336,12 @@ export function bulletsFrom(details: string) {
     .filter(Boolean);
 }
 
+/** Returns the bullets that belong in the current tailored version. */
+export function includedBulletsFrom(entry: ResumeEntry) {
+  const excluded = new Set(entry.excludedBulletIndexes ?? []);
+  return bulletsFrom(entry.details).filter((_, index) => !excluded.has(index));
+}
+
 export function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -354,9 +364,9 @@ export function entryHasContent(entry: ResumeEntry) {
 export function allBullets(state: ResumeState) {
   return ["experience", "education", "projects"].flatMap((section) =>
     state[section as "experience" | "education" | "projects"].flatMap((entry) =>
-      bulletsFrom(entry.details),
+      includedBulletsFrom(entry),
     ),
-  ).concat(state.customSections.flatMap((section) => section.entries.flatMap((entry) => bulletsFrom(entry.details))));
+  ).concat(state.customSections.flatMap((section) => section.entries.flatMap((entry) => includedBulletsFrom(entry))));
 }
 
 export function hasMeasuredEvidence(bullet: string) {
@@ -654,7 +664,7 @@ function entryPlainText(entry: ResumeEntry) {
   const title = cleanTextLine(entry.title);
   const subtitle = cleanTextLine(entry.subtitle);
   const meta = cleanTextLine(entry.meta);
-  const bullets = bulletsFrom(entry.details);
+  const bullets = includedBulletsFrom(entry);
 
   if (title) lines.push(title);
   if (subtitle || meta) lines.push([subtitle, meta].filter(Boolean).join(" | "));
@@ -708,7 +718,7 @@ function entryApplicationCopyGroup(section: string, label: string, entry: Resume
   const title = applicationCopyValue(entry.title);
   const subtitle = applicationCopyValue(entry.subtitle);
   const meta = applicationCopyValue(entry.meta);
-  const details = bulletsFrom(entry.details).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
+  const details = includedBulletsFrom(entry).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
   const entryText = entryPlainText(entry).join("\n");
   const isExperience = section === "experience";
   const isEducation = section === "education";
@@ -791,18 +801,21 @@ const ENTRY_FIELD_LABELS: Record<
     subtitle: "Company",
     meta: "Dates",
     details: "Achievements",
+    excludedBulletIndexes: "Included bullets",
   },
   education: {
     title: "Degree",
     subtitle: "School",
     meta: "Dates / location",
     details: "Details",
+    excludedBulletIndexes: "Included bullets",
   },
   projects: {
     title: "Project name",
     subtitle: "Technologies / role",
     meta: "Dates / link",
     details: "Description",
+    excludedBulletIndexes: "Included bullets",
   },
 };
 

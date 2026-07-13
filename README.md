@@ -91,6 +91,11 @@ subscriptions, watermarks, or backend storage.
   browser-only checkpoints while tailoring a resume for different applications.
   When that short local history is full, the recommended save path downloads a
   complete checkpoint backup before replacing its oldest draft.
+- Per-bullet tailoring for experience and projects: temporarily omit lower-
+  relevance bullets from the current role-specific version without deleting
+  them from the browser-only master draft. Preview, PDF printing, Word, plain
+  text, application copy, Resume Check, and Role Focus all use the same chosen
+  bullets.
 - Role-aware checkpoints with optional private labels, so job-specific wording
   context stays attached to the right local draft; intentional PDF, Word,
   plain-text, and JSON exports include that label in their filename to prevent
