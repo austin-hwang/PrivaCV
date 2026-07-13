@@ -116,7 +116,9 @@ subscriptions, watermarks, or backend storage.
   list, education entry, project, skills section, or custom-section entry without
   retyping. Long values can be expanded before copying, so the dialog stays
   compact without hiding the exact content. It mirrors the current resume and
-  stays entirely in the browser.
+  stays entirely in the browser; when a browser denies modern clipboard access,
+  an explicit copy action uses its built-in fallback instead of leaving a portal
+  field uncopied.
 - Best-effort Word import for editable `.docx` resumes and PDF import for text-based resumes through a locally bundled,
   on-demand pdf.js parser, plus a local pasted-text path for documents,
   LinkedIn, and scanned PDFs. The

@@ -81,6 +81,44 @@ function downloadFile(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Clipboard access can be unavailable in a privacy-restricted browser or an
+ * embedded context even when a person explicitly presses a copy button.
+ * Prefer the modern async API, then use the browser's user-gesture copy path
+ * as a narrow fallback so application-form copying remains dependable.
+ */
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to the synchronous browser fallback below.
+    }
+  }
+
+  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const fallback = document.createElement("textarea");
+  fallback.value = text;
+  fallback.readOnly = true;
+  fallback.setAttribute("aria-hidden", "true");
+  fallback.style.position = "fixed";
+  fallback.style.opacity = "0";
+  fallback.style.pointerEvents = "none";
+  document.body.appendChild(fallback);
+  fallback.select();
+  fallback.setSelectionRange(0, fallback.value.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    fallback.remove();
+    activeElement?.focus();
+  }
+}
+
 function safeResumeFilename(name: string) {
   return name.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || "resume";
 }
@@ -1199,10 +1237,9 @@ export function useResumeEditor() {
       flash("Add resume details first");
       return;
     }
-    try {
-      await navigator.clipboard.writeText(plainText);
+    if (await copyText(plainText)) {
       flash("Copied plain text");
-    } catch {
+    } else {
       flash("Could not copy text");
     }
   };
@@ -1212,10 +1249,9 @@ export function useResumeEditor() {
       flash(`Add ${label.toLocaleLowerCase()} first`);
       return;
     }
-    try {
-      await navigator.clipboard.writeText(text);
+    if (await copyText(text)) {
       flash(`Copied ${label.toLocaleLowerCase()}`);
-    } catch {
+    } else {
       flash("Could not copy text");
     }
   };

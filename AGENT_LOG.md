@@ -1,5 +1,34 @@
 # Agent Log
 
+## 2026-07-13 — Keep application copying available in privacy-restricted browsers
+
+## Product review
+
+- **Finding:** Copying into application forms is a high-frequency last-mile
+  action. The dialog and text review relied only on the modern Clipboard API,
+  so a browser that denied clipboard permission returned a generic failure even
+  after a person deliberately clicked **Copy**.
+- **Options considered:** Ask users to manually select text, add a portal
+  integration, or use the browser's gesture-bound copy fallback. The fallback
+  won because it repairs the immediate failure without an account, a third
+  party, or a new data model.
+- **Expected user benefit:** People can keep moving through an application
+  portal when their browser's async clipboard permission is unavailable.
+
+## Changes
+
+- Added a shared copy helper that prefers `navigator.clipboard` and falls back
+  to a temporary, hidden browser selection under the same explicit click.
+- Applied it to both full plain-text copy and granular application fields.
+- Added Chromium coverage that forces the permission failure and verifies the
+  selected portal field is still copied.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, and `pnpm test` (74 tests).
+- Passed an optimized production build, full Chromium coverage (85 tests), and
+  `git diff --check`.
+
 ## 2026-07-13 — Inspect full application-copy values before copying
 
 ## Product review

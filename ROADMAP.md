@@ -215,6 +215,11 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Keep the editor and live resume preview equally reachable on a phone, while
   preserving the fast desktop split workspace and print layout. Avoid putting
   optional review dashboards ahead of the first editable field on a phone.
+- Keep high-frequency application-form copying dependable across browser privacy
+  settings: explicit copy actions now fall back to the browser's user-gesture
+  copy path if modern clipboard permission is unavailable, while all resume
+  text remains local. Reassess richer portal-specific workflows only if users
+  need more than reliable field-level copying.
 - Improve the export checkpoint with role-aware recommendations and more
   granular changed-field detail for dense edit sessions.
 - Keep refining the local Role Focus review so its transparent wording cues

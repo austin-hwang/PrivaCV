@@ -589,6 +589,37 @@ test("offers copy-ready application fields without making users retype resume de
   await expect(firstExperience.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
 });
 
+test("copies application fields when the browser rejects async clipboard access", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new DOMException("Permission denied", "NotAllowedError")) },
+    });
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: (command: string) => {
+        if (command !== "copy") return false;
+        const copied = document.activeElement instanceof HTMLTextAreaElement ? document.activeElement.value : "";
+        document.documentElement.dataset.fallbackCopy = copied;
+        return true;
+      },
+    });
+  });
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /copy for applications/i }).click();
+  const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
+  await dialog.getByRole("button", { name: /copy job title/i }).first().click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-fallback-copy", "Senior Software Engineer");
+  await expect(page.getByText("Copied job title")).toBeVisible();
+});
+
 test("suggests a recognizable filename when exporting a PDF", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
