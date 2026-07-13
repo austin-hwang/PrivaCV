@@ -1,6 +1,7 @@
 import {
   SECTION_LABELS,
   normalizeResume,
+  resumeExportFingerprint,
   type ExportChange,
   type ResumeEntry,
   type ResumeState,
@@ -77,6 +78,8 @@ export type ImportCoverageItem = {
 
 export type ImportReviewState = {
   fileName: string;
+  /** Compact identity of the draft this review belongs to (for cross-tab safety). */
+  draftFingerprint?: string;
   sections: string[];
   items: ImportReviewItem[];
   reviewedItemIds?: string[];
@@ -90,6 +93,23 @@ export type ImportReviewState = {
  * the checklist already keeps the small source excerpts needed for review.
  */
 export type StoredImportReview = Omit<ImportReviewState, "sourceText">;
+
+/**
+ * A compact, deterministic identity for associating a review checklist with
+ * its draft. This is not a security primitive; it avoids copying the full
+ * resume into a second localStorage key just to coordinate browser tabs.
+ */
+export function importReviewDraftFingerprint(state: ResumeState) {
+  const value = resumeExportFingerprint(state);
+  let first = 0x811c9dc5;
+  let second = 0x9e3779b9;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    first = Math.imul(first ^ code, 0x01000193);
+    second = Math.imul(second ^ code, 0x85ebca6b);
+  }
+  return `${value.length.toString(36)}-${(first >>> 0).toString(36)}-${(second >>> 0).toString(36)}`;
+}
 
 export type RecoveryPoint = {
   label: string;
@@ -311,6 +331,7 @@ export function parseStoredImportReview(value: string | null): ImportReviewState
 
     return {
       fileName: limitedString(parsed.fileName, 500) ?? "imported resume",
+      ...(limitedString(parsed.draftFingerprint, 120) ? { draftFingerprint: limitedString(parsed.draftFingerprint, 120) } : {}),
       sections: Array.isArray(parsed.sections)
         ? parsed.sections.map((section) => limitedString(section, 240)).filter((section): section is string => Boolean(section)).slice(0, 40)
         : [],
@@ -704,6 +725,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
 
   return {
     fileName,
+    draftFingerprint: importReviewDraftFingerprint(state),
     sections: [...sections],
     items,
     reviewedItemIds: [],

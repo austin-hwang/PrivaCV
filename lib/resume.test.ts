@@ -714,6 +714,7 @@ describe("resume helpers", () => {
     const restored = parseStoredImportReview(JSON.stringify(stored));
 
     expect(stored).not.toHaveProperty("sourceText");
+    expect(stored.draftFingerprint).toMatch(/^.+-.+-.+$/);
     expect(restored).toMatchObject({ fileName: "ada-resume.txt", reviewedItemIds: ["contact"] });
     expect(restored?.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: "contact" })]));
     expect(restored?.sourceText).toBeUndefined();

@@ -27,7 +27,9 @@ subscriptions, watermarks, or backend storage.
   from the import-review banner
   instead of requiring repetitive per-field clicks. Common qualification-style
   headings and visually decorated PDF headings (for example, `— EXPERIENCE —`)
-  are recognized locally before that review.
+  are recognized locally before that review. If a newer imported draft is
+  deliberately accepted from another browser tab, its matching unfinished
+  review follows it, so the export reminder is never silently lost.
 - Public-facing browser metadata, a web-app manifest, custom app icons, and
   graceful route-error recovery; titles and copy accurately describe the
   local-first data model without inventing a hosted domain.

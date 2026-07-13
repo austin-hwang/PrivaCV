@@ -513,6 +513,38 @@ test("keeps a second tab from silently overwriting a newer local draft", async (
   await otherTab.close();
 });
 
+test("keeps required import review when using an imported draft from another tab", async ({ page, context }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const otherTab = await context.newPage();
+  await otherTab.goto("/");
+  await otherTab.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = otherTab.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com | San Francisco, CA",
+    "",
+    "Experience",
+    "Platform Engineer | Analytical Engines | 2022-Present",
+    "• Built reliable systems.",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expect(otherTab.locator("#import-review-panel")).toBeVisible();
+  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  await expect(page.getByText("A different resume was saved in another tab", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /use saved draft/i }).click();
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+  await expect(page.locator("#import-review-panel")).toBeVisible();
+  await expect(page.getByText("Loaded the draft and its import review")).toBeVisible();
+  await page.getByRole("button", { name: /export pdf/i }).click();
+  await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
+  await otherTab.close();
+});
+
 test("offers copy-ready application fields without making users retype resume details", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

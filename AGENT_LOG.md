@@ -1,5 +1,32 @@
 # Agent Log
 
+## 2026-07-13 — Preserve import review during cross-tab draft recovery
+
+- Market and product review: Rezi and Teal both make existing-resume import a
+  core start path and explicitly ask people to inspect transferred details;
+  recent job-seeker feedback similarly identifies broken imports as a reason
+  to abandon a builder. PrivaCV already paused autosave when another tab saved
+  a different draft, but accepting that draft could leave its separately stored
+  mandatory import-review checklist behind.
+- Options considered: merge all browser state into one large storage record,
+  drop the checklist during a cross-tab handoff, or associate the compact
+  checklist with the specific local draft. Draft-bound review metadata won
+  because it preserves the existing privacy boundary and safety gate without
+  duplicating full resume content or trusting stale checklist data.
+- Implementation: import reviews now carry a compact deterministic draft
+  identity which updates as the imported draft is edited. Choosing a newer
+  draft from another tab brings over its review only when the identities match;
+  otherwise the checklist is conservatively omitted. The conflict message now
+  makes that behavior clear.
+- Expected experience improvement: people can safely accept a newer imported
+  resume from another tab without accidentally bypassing the review that
+  protects them from parser mistakes before PDF export.
+- Verification: `pnpm typecheck`, `pnpm lint`, `pnpm test` (73 tests), focused
+  Chromium coverage of the two-tab imported-draft handoff, `CI=true pnpm build`,
+  and `git diff --check` passed.
+- Provisional next step: reassess real-world multi-tab behavior and uncommon
+  PDF/DOCX structures before extending parsing heuristics or tailoring tools.
+
 ## 2026-07-12 — Remove repetitive clicks from clean import review
 
 - Market and product review: Teal and Rezi make resume import a primary start

@@ -635,7 +635,7 @@ export function ResumeEditor() {
               <AlertCircle className="h-4 w-4 text-sky-900" />
               <AlertTitle className="text-sky-950">A different resume was saved in another tab</AlertTitle>
               <AlertDescription className="grid gap-3 text-sky-950">
-                <span>Autosave is paused here so this tab does not overwrite the other draft. Review the changed areas, then choose which one to keep.</span>
+                <span>Autosave is paused here so this tab does not overwrite the other draft. Review the changed areas, then choose which one to keep. If it was imported, its matching review checklist comes with it.</span>
                 {externalDraftChanges.length ? (
                   <ChangeSummaryGrid changes={externalDraftChanges} beforeLabel="This tab" afterLabel="Saved tab" />
                 ) : null}

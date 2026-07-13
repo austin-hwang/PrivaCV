@@ -39,6 +39,7 @@ import {
   buildImportReview,
   formatCheckpointTime,
   importReviewProgress,
+  importReviewDraftFingerprint,
   mergeVersionHistory,
   parseExportCheckpoint,
   parseStoredImportReview,
@@ -465,12 +466,32 @@ export function useResumeEditor() {
     }
   }, [importReview, loaded, reportStorageIssue]);
 
+  // The checklist follows ordinary edits to an imported draft. That gives a
+  // second tab a reliable way to tell whether the currently saved draft and
+  // the persisted review belong together, without duplicating the full resume
+  // in the review's browser-storage entry.
+  useEffect(() => {
+    if (!importReview) return;
+    const draftFingerprint = importReviewDraftFingerprint(state);
+    if (importReview.draftFingerprint === draftFingerprint) return;
+    setImportReview((current) => current ? { ...current, draftFingerprint } : null);
+  }, [importReview, state]);
+
   const useExternalDraft = () => {
     if (!externalDraft) return;
     saveRecoveryPoint("Before using the draft saved in another tab");
+    // Import-review metadata is persisted separately from the editable draft.
+    // Bring it across only when it identifies this exact saved draft; a stale
+    // checklist is less safe than asking the person to review again.
+    const externalReview = parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY));
+    const matchingExternalReview =
+      externalReview?.draftFingerprint === importReviewDraftFingerprint(externalDraft)
+        ? externalReview
+        : null;
     setState(externalDraft);
+    setImportReview(matchingExternalReview);
     setExternalDraft(null);
-    flash("Loaded the draft saved in another tab");
+    flash(matchingExternalReview ? "Loaded the draft and its import review" : "Loaded the draft saved in another tab");
   };
 
   const keepCurrentDraft = () => {
