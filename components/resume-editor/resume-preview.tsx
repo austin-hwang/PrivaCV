@@ -52,6 +52,12 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
     ? pageGuides
     : Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => ({ page: index + 2 }));
 
+  // Screen-only gutter between stacked page sheets. The content itself is never
+  // shifted (so the measurement/pagination model is untouched); each page is a
+  // white frame painted behind the content, and the grey preview pane shows
+  // through the gutter, so the preview reads as separate pages like the export.
+  const pages = Math.max(1, pageCount);
+
   return (
     <div
       ref={ref}
@@ -60,12 +66,23 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
         "--resume-scale": state.textScale,
         "--resume-font-family": resolveFontStack(state.theme.font),
         "--resume-accent": normalizeAccent(state.theme.accent),
+        "--resume-page-count": pages,
       } as CSSProperties}
       data-heading={state.theme.headingStyle}
       data-header-align={state.theme.headerAlign}
       data-divider={state.theme.headerDivider ? "on" : "off"}
       data-density={state.theme.density}
     >
+      {Array.from({ length: pages }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="resume-page-frame"
+          data-first={index === 0 ? "" : undefined}
+          data-last={index === pages - 1 ? "" : undefined}
+          style={{ top: `${index * 11}in` }}
+        />
+      ))}
       {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} />}
       {pageBreaks.map(({ page, label }) => (
         <div

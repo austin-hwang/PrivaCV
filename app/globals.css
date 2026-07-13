@@ -57,21 +57,59 @@
 
 .resume-sheet {
   position: relative;
+  isolation: isolate;
   box-sizing: border-box;
   width: 8.5in;
-  min-height: 11in;
+  /* Grow to a whole number of Letter pages so the preview shows each page in
+     full (the last page included), matching the exported PDF. --resume-page-count
+     is set by the preview from the measured page count. */
+  --resume-page-count: 1;
+  min-height: calc(var(--resume-page-count) * 11in);
   /* --resume-vpad is the top/bottom page inset. It is intentionally constant
      across densities so every page — and every theme — keeps the same
      vertical margin. Print mirrors it through the @page margin below; keep the
      two values in sync. */
   --resume-vpad: 0.4in;
+  /* Screen-only gutter between stacked page sheets. */
+  --resume-page-gap: 22px;
   padding: var(--resume-vpad) 0.5in;
-  background: #fff;
+  /* Transparent so the grey preview pane shows through the gutter between the
+     white page frames painted behind the content. Print restores white. */
+  background: transparent;
   color: #000;
   font-family: var(--resume-font-family, var(--font-serif), Georgia, "Times New Roman", serif);
   font-size: calc(10pt * var(--resume-scale, 1));
   line-height: 1.35;
-  box-shadow: 0 1px 6px rgb(0 0 0 / 18%);
+}
+
+/* One white Letter sheet painted behind the content per page. Positioned by an
+   inline `top: N*11in`; interior edges pull in by half the gutter so a grey
+   gap sits centred on each page boundary. The content is never shifted, so the
+   pagination model is unaffected. Hidden in print (the @page owns pages). */
+.resume-page-frame {
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  margin-top: calc(var(--resume-page-gap) / 2);
+  height: calc(11in - var(--resume-page-gap));
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 8px rgb(15 23 42 / 16%);
+}
+
+.resume-page-frame[data-first] {
+  margin-top: 0;
+  height: calc(11in - var(--resume-page-gap) / 2);
+}
+
+.resume-page-frame[data-last] {
+  height: calc(11in - var(--resume-page-gap) / 2);
+}
+
+.resume-page-frame[data-first][data-last] {
+  margin-top: 0;
+  height: 11in;
 }
 
 /* Density presets adjust spacing/padding without touching content. */
@@ -111,7 +149,6 @@
   align-items: center;
   gap: 8px;
   height: 0;
-  border-top: 1px dashed rgb(71 85 105 / 70%);
   color: rgb(71 85 105);
   font-family: var(--font-sans), Arial, sans-serif;
   font-size: 9px;
@@ -366,15 +403,23 @@
     display: block !important;
   }
 
+  /* The stacked page frames and their gutters are a screen-only affordance;
+     the print engine paginates via @page, so hide them and paint the sheet
+     itself white. */
+  .resume-page-frame {
+    display: none !important;
+  }
+
   .resume-sheet {
     width: 8.5in;
+    background: #fff;
     /* The @page margin now owns the top/bottom inset. Drop the sheet's own
        vertical padding so page one is not double-margined, and drop the fixed
        page height so a short resume prints on a single page. Horizontal
        padding is kept — it is the left/right margin. */
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    min-height: 0;
+    min-height: 0 !important;
     box-shadow: none;
   }
 
