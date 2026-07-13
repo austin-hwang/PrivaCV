@@ -103,9 +103,6 @@ test("protects the local workspace with production response security headers", a
   expect(headers["content-security-policy"]).toContain("default-src 'self'");
   expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
   expect(headers["content-security-policy"]).toContain("worker-src 'self' blob:");
-  // The Ko-fi support widget is the one allowed third-party origin.
-  expect(headers["content-security-policy"]).toContain("script-src 'self' 'unsafe-inline' https://storage.ko-fi.com");
-  expect(headers["content-security-policy"]).toContain("frame-src 'self' https://ko-fi.com https://*.ko-fi.com");
   expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
   expect(headers["cross-origin-resource-policy"]).toBe("same-origin");
   expect(headers["permissions-policy"]).toContain("camera=()");

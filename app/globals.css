@@ -413,19 +413,3 @@
     display: none;
   }
 }
-
-/* Pin the Ko-fi support widget to the bottom-right (it ships left-aligned). */
-.floatingchat-container-wrap,
-.floatingchat-container-wrap-mobi {
-  left: auto !important;
-  right: 16px !important;
-}
-
-/* Keep the third-party support widget out of the printed resume. */
-@media print {
-  .floatingchat-container-wrap,
-  .floatingchat-container-wrap-mobi,
-  [id^="kofi-widget-overlay"] {
-    display: none !important;
-  }
-}

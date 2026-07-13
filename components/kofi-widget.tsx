@@ -1,35 +1,21 @@
-"use client";
+import { Coffee } from "lucide-react";
 
-import Script from "next/script";
-
-declare global {
-  interface Window {
-    kofiWidgetOverlay?: {
-      draw: (
-        username: string,
-        config: Record<string, string>,
-      ) => void;
-    };
-  }
-}
-
-// Ko-fi's official floating "Support" button. The script and its assets are
-// served from storage.ko-fi.com / ko-fi.com (allowed in the CSP); it renders a
-// small overlay button that links to ko-fi.com/privacv. Resume content stays
-// local — this only surfaces a donation link.
+// A small floating link to the PrivaCV Ko-fi page. Rendered locally rather
+// than via Ko-fi's official overlay widget: that widget loads a third-party
+// script and renders its button inside a fixed-width iframe that clips when
+// repositioned. A plain link keeps the app fully local — clicking it just
+// opens ko-fi.com/privacv in a new tab — and shows only a floating icon.
 export function KofiWidget() {
   return (
-    <Script
-      src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"
-      strategy="afterInteractive"
-      onLoad={() => {
-        window.kofiWidgetOverlay?.draw("privacv", {
-          type: "floating-chat",
-          "floating-chat.donateButton.text": "Support PrivaCV",
-          "floating-chat.donateButton.background-color": "#28303d",
-          "floating-chat.donateButton.text-color": "#ffffff",
-        });
-      }}
-    />
+    <a
+      href="https://ko-fi.com/privacv"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Support PrivaCV on Ko-fi"
+      title="Support PrivaCV on Ko-fi"
+      className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg ring-1 ring-black/10 transition hover:scale-105 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 print:hidden"
+    >
+      <Coffee className="h-5 w-5" aria-hidden="true" />
+    </a>
   );
 }
