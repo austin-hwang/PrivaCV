@@ -44,7 +44,6 @@ import {
   importSourceExcerpt,
   importReviewProgress,
   mergeVersionHistory,
-  parseExportCheckpoint,
   parseStoredImportReview,
   parseVersionHistoryBackup,
   storedImportReview,
@@ -1074,7 +1073,7 @@ describe("resume helpers", () => {
     expect(resumeExportFingerprint(resized)).not.toBe(resumeExportFingerprint(exported));
   });
 
-  it("summarizes changes since the last export snapshot", () => {
+  it("summarizes changes between resume snapshots", () => {
     const exported = sampleState();
     const edited = {
       ...exported,
@@ -1176,23 +1175,6 @@ describe("resume helpers", () => {
     const saved = sampleState();
 
     expect(exportChangeSummary(saved, normalizeResume(saved))).toEqual([]);
-  });
-
-  it("normalizes saved export checkpoints and rejects malformed data", () => {
-    const state = sampleState();
-    const checkpoint = parseExportCheckpoint(
-      JSON.stringify({
-        fingerprint: "abc",
-        exportedAt: "2026-07-09T12:00:00.000Z",
-        pageCount: 1,
-        issueCount: 0,
-        snapshot: { ...state, sectionOrder: ["skills"] },
-      }),
-    );
-
-    expect(checkpoint?.snapshot?.sectionOrder).toEqual(["skills"]);
-    expect(parseExportCheckpoint(JSON.stringify({ fingerprint: "abc" }))).toBeNull();
-    expect(parseExportCheckpoint("not json")).toBeNull();
   });
 
   it("parses every checkpoint in a version-history backup", () => {

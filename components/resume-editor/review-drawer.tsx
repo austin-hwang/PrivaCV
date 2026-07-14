@@ -1,12 +1,10 @@
 "use client";
 
-import { ArrowRight, Check, FileCheck2, History } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
 import type { useResumeEditor } from "@/hooks/use-resume-editor";
-import { formatCheckpointTime } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 const JUMP_TARGETS = [
@@ -26,14 +24,7 @@ export function ReviewDrawer({
   onFocusTarget: (targetId: string) => void;
   onStartChecksReview: () => void;
 }) {
-  const {
-    checks,
-    passedChecks,
-    exportCheckpoint,
-    exportIsCurrent,
-    exportChanges,
-    requestExport,
-  } = editor;
+  const { checks, passedChecks } = editor;
 
   const checksReady = passedChecks === checks.length;
   const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -108,54 +99,6 @@ export function ReviewDrawer({
               ))}
             </div>
 
-            {exportCheckpoint ? (
-              <div
-                className={cn(
-                  "mt-3 rounded-lg border p-3",
-                  exportIsCurrent ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/40 dark:bg-emerald-950/40" : "border-indigo-200 bg-indigo-50/60 dark:border-indigo-500/40 dark:bg-indigo-950/40",
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-background",
-                      exportIsCurrent ? "border-emerald-200 text-emerald-700 dark:border-emerald-500/50 dark:text-emerald-300" : "border-indigo-200 text-indigo-700 dark:border-indigo-500/50 dark:text-indigo-300",
-                    )}
-                  >
-                    {exportIsCurrent ? <FileCheck2 className="size-4" /> : <History className="size-4" />}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Last export</p>
-                    <p className="text-sm font-semibold">
-                      {exportIsCurrent ? "Current resume matches your last PDF export." : "This resume changed since your last PDF export."}
-                    </p>
-                    <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                      Last opened print on {formatCheckpointTime(exportCheckpoint.exportedAt)} with {exportCheckpoint.pageCount}{" "}
-                      {exportCheckpoint.pageCount === 1 ? "page" : "pages"} and{" "}
-                      {exportCheckpoint.issueCount === 0
-                        ? "no unresolved checks"
-                        : `${exportCheckpoint.issueCount} unresolved ${exportCheckpoint.issueCount === 1 ? "item" : "items"}`}
-                      .
-                    </p>
-                    {!exportIsCurrent ? (
-                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={requestExport}>
-                        <FileCheck2 /> Export updated PDF
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-                {!exportIsCurrent && exportChanges.length ? (
-                  <div className="mt-3">
-                    <ChangeSummaryGrid
-                      changes={exportChanges}
-                      beforeLabel="Before"
-                      afterLabel="Now"
-                      onSelect={(change) => onFocusTarget(change.targetId)}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </section>
 
         </div>

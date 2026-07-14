@@ -26,7 +26,6 @@ import {
   type OversizedResumeEntry,
 } from "@/lib/resume";
 import {
-  EXPORT_CHECKPOINT_KEY,
   IMPORT_REVIEW_KEY,
   STORAGE_KEY,
   VERSION_HISTORY_BACKUP_FORMAT,
@@ -36,14 +35,12 @@ import {
   importReviewProgress,
   importReviewDraftFingerprint,
   mergeVersionHistory,
-  parseExportCheckpoint,
   parseStoredImportReview,
   parseVersionHistory,
   parseVersionHistoryBackup,
   storedImportReview,
   versionHistoryFingerprint,
   versionLabel,
-  type ExportCheckpoint,
   type ImportReviewState,
   type RecoveryPoint,
   type RestoredVersionSummary,
@@ -191,7 +188,6 @@ export function useResumeEditor() {
   const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
   const [deletedVersion, setDeletedVersion] = useState<VersionHistoryItem | null>(null);
   const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
-  const [exportCheckpoint, setExportCheckpoint] = useState<ExportCheckpoint | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
@@ -215,14 +211,6 @@ export function useResumeEditor() {
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
   const visibleRestoredVersionSummary =
     restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;
-  const exportIsCurrent = Boolean(exportCheckpoint && exportCheckpoint.fingerprint === exportFingerprint);
-  const exportChanges = useMemo(
-    () =>
-      exportCheckpoint?.snapshot && !exportIsCurrent
-        ? exportChangeSummary(exportCheckpoint.snapshot, state)
-        : [],
-    [exportCheckpoint, exportIsCurrent, state],
-  );
   const currentVersionHistoryFingerprint = exportFingerprint;
   const existingVersionForSave = useMemo(
     () => versionHistory.find((item) => versionHistoryFingerprint(item) === currentVersionHistoryFingerprint) ?? null,
@@ -419,7 +407,7 @@ export function useResumeEditor() {
         setAutosavedAt(localStorage.getItem(AUTOSAVE_TIME_KEY) ?? new Date().toISOString());
       }
       setImportReview(parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY)));
-      setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
+      localStorage.removeItem("resume-editor-last-export-v1");
       setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
       // Role Focus was removed because it added a distracting detour without
       // reliably improving a person's resume. Clear its old private data too.
@@ -1006,7 +994,7 @@ export function useResumeEditor() {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("resume-editor-data-v1");
       localStorage.removeItem(IMPORT_REVIEW_KEY);
-      localStorage.removeItem(EXPORT_CHECKPOINT_KEY);
+      localStorage.removeItem("resume-editor-last-export-v1");
       localStorage.removeItem(VERSION_HISTORY_KEY);
       localStorage.removeItem(AUTOSAVE_TIME_KEY);
       localStorage.removeItem("resume-editor-role-focus-v1");
@@ -1018,7 +1006,6 @@ export function useResumeEditor() {
     skipNextAutosaveRef.current = true;
     setState(emptyState());
     setImportReview(null);
-    setExportCheckpoint(null);
     setVersionHistory([]);
     setAutosavedAt(null);
     setRecoveryPoint(null);
@@ -1283,20 +1270,6 @@ export function useResumeEditor() {
   };
 
   const startPrintExport = () => {
-    const checkpoint: ExportCheckpoint = {
-      fingerprint: exportFingerprint,
-      exportedAt: new Date().toISOString(),
-      pageCount,
-      issueCount: failedChecks.length + (importReview ? 1 : 0),
-      snapshot: normalizeResume(state),
-    };
-    setExportCheckpoint(checkpoint);
-    try {
-      localStorage.setItem(EXPORT_CHECKPOINT_KEY, JSON.stringify(checkpoint));
-    } catch {
-      reportStorageIssue();
-    }
-
     const previousTitle = document.title;
     const restoreTitle = () => {
       document.title = previousTitle;
@@ -1377,12 +1350,9 @@ export function useResumeEditor() {
     dismissRestoredVersionSummary,
     existingVersionForSave,
     exportAnyway,
-    exportChanges,
     exportCheckOpen,
     pendingExportFormat,
-    exportCheckpoint,
     exportFingerprint,
-    exportIsCurrent,
     failedChecks,
     focusCheckTarget,
     focusFromExportCheck,

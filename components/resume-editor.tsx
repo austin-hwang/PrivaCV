@@ -215,9 +215,7 @@ export function ResumeEditor() {
     clearResume,
     dismissRecoveryPoint,
     importFileInputRef,
-    exportCheckpoint,
     externalDraft,
-    exportIsCurrent,
     focusCheckTarget,
     focusFromExportCheck,
     hasContent,
@@ -708,7 +706,6 @@ export function ResumeEditor() {
   const tourSteps = reviewTour?.kind === "import" ? importTourSteps : reviewTour?.kind === "checks" ? checksTourSteps : [];
 
   const checksReady = passedChecks === checks.length;
-  const exportStale = Boolean(exportCheckpoint) && !exportIsCurrent;
   const canTightenLayout = state.theme.density !== "compact" || state.textScale > MIN_TEXT_SCALE;
   const removedBuiltinSections = SECTION_KEYS.filter((section) => !state.sectionOrder.includes(section));
   const headerActive = Boolean(activeTarget && HEADER_FIELD_IDS.includes(activeTarget));
@@ -917,20 +914,13 @@ export function ResumeEditor() {
             <Button
               type="button"
               onClick={requestExport}
-              aria-label={exportStale ? "Export PDF (resume changed since last export)" : "Export PDF"}
-              title={exportStale ? "Resume changed since your last export — export again" : "Export PDF (Cmd/Ctrl+P)"}
-              className="relative"
+              aria-label="Export PDF"
+              title="Export PDF (Cmd/Ctrl+P)"
             >
               <Printer /> <span className="hidden sm:inline">Export PDF</span>
               <kbd className="hidden rounded border border-primary-foreground/35 px-1 py-px text-[10px] font-medium leading-none opacity-80 2xl:inline">
                 Cmd/Ctrl P
               </kbd>
-              {exportStale ? (
-                <span
-                  className="absolute -right-1 -top-1 size-2.5 rounded-full bg-amber-400 ring-2 ring-card"
-                  aria-hidden="true"
-                />
-              ) : null}
             </Button>
             <Menu>
               <MenuTrigger>

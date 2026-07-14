@@ -1868,7 +1868,7 @@ test("offers reversible page-fit adjustments without changing resume content", a
   await expect(roleDetails).toHaveValue(details);
 });
 
-test("shows an export checkpoint before printing an unresolved resume", async ({ page }) => {
+test("shows an export review before printing an unresolved resume", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
     localStorage.clear();
@@ -1919,7 +1919,7 @@ test("catches unusable contact details before export and uses contact-friendly i
   await expect(page.getByLabel("Email")).toBeFocused();
 });
 
-test("keeps import confirmation explicit in the export checkpoint", async ({ page }) => {
+test("keeps import confirmation explicit in the export review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1980,89 +1980,12 @@ test("checks an imported resume before downloading Word", async ({ page }) => {
   await expect((await download).suggestedFilename()).toBe("Ada_Lovelace.docx");
 });
 
-test("shows when the resume changed after the last PDF export", async ({ page }) => {
+test("expands dense change audits after restoring a version", async ({ page }) => {
   await page.goto("/");
-  await page.evaluate(() => {
-    localStorage.clear();
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
+  await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.evaluate(() => {
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
-  await loadSample(page);
-  await openTools(page);
-
-  await page.getByRole("button", { name: /export pdf/i }).click();
-
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
-  await expect(page.getByText("Current resume matches your last PDF export.")).toBeVisible();
-
-  await page.getByLabel("Professional Summary").fill("Edited summary for the next application.");
-
-  await expect(page.getByText("This resume changed since your last PDF export.")).toBeVisible();
-  const summaryChange = page.getByRole("button", { name: /summary changed/i });
-  await expect(summaryChange).toBeVisible();
-  await expect(summaryChange.getByText("Before", { exact: true })).toBeVisible();
-  await expect(summaryChange.getByText("Now", { exact: true })).toBeVisible();
-  await expect(summaryChange.getByText("Edited summary for the next application.")).toBeVisible();
-  await expect(page.getByRole("button", { name: /export updated pdf/i })).toBeVisible();
-});
-
-test("explains design changes after a PDF export", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => {
-    localStorage.clear();
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
-  await page.reload();
-  await page.evaluate(() => {
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
-  await loadSample(page);
-
-  await page.getByRole("button", { name: /export pdf/i }).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
-
-  await openDesign(page);
-  await page.getByLabel("Resume preset").selectOption("modern");
-  await openTools(page);
-
-  const styleChange = page.getByText("Visual style changed", { exact: true });
-  await expect(styleChange).toBeVisible();
-  await expect(styleChange.locator("..")).toContainText("Layout template");
-  await expect(styleChange.locator("..")).toContainText("Font");
-  await expect(styleChange.locator("..")).toContainText("Classic");
-  await expect(styleChange.locator("..")).toContainText("Modern");
-});
-
-test("expands dense change audits after export and restore", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => {
-    localStorage.clear();
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
-  await page.reload();
-  await page.evaluate(() => {
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
   await loadSample(page);
   await saveVersion(page, "Clean baseline");
-
-  await page.getByRole("button", { name: /export pdf/i }).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 
   await page.getByLabel("Full Name").fill("Ada Lovelace");
   await page.getByLabel("Professional Summary").fill("Research engineer focused on developer tools and reliable launches.");
@@ -2070,14 +1993,6 @@ test("expands dense change audits after export and restore", async ({ page }) =>
   await page.getByLabel("Degree").fill("M.S. Computer Science");
   await page.getByLabel("Project Name").fill("Launch Review Hub");
   await page.getByLabel('Skills (one group per line, e.g. "Languages: Python, Go")').fill("Languages: TypeScript, Python\nTools: Playwright, AWS");
-
-  await openTools(page);
-  await expect(page.getByText("2 more changed areas")).toBeVisible();
-  await expect(page.getByText("Projects changed")).toBeHidden();
-  await page.getByRole("button", { name: /show all changes/i }).click();
-  await expect(page.getByText("Showing all 6 changed areas")).toBeVisible();
-  await expect(page.getByText("Projects changed")).toBeVisible();
-  await expect(page.getByText("Skills changed")).toBeVisible();
 
   await openVersions(page);
   await page.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();

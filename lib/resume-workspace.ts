@@ -15,7 +15,6 @@ export const STORAGE_KEY = "resume-editor-data-v2";
  * while allowing a required import review to survive a refresh.
  */
 export const IMPORT_REVIEW_KEY = "resume-editor-import-review-v1";
-export const EXPORT_CHECKPOINT_KEY = "resume-editor-last-export-v1";
 export const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
 export const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
 export const VERSION_HISTORY_BACKUP_VERSION = 1;
@@ -148,14 +147,6 @@ export type RestoredVersionSummary = {
   changes: ExportChange[];
 };
 
-export type ExportCheckpoint = {
-  fingerprint: string;
-  exportedAt: string;
-  pageCount: number;
-  issueCount: number;
-  snapshot?: ResumeState;
-};
-
 export function compactDetail(value: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
   if (!cleaned) return "No text detected";
@@ -227,30 +218,6 @@ export function importSectionExcerpt(sourceText: string | undefined, section: st
 /** A checkpoint represents one unique resume state. */
 export function versionHistoryFingerprint(item: Pick<VersionHistoryItem, "fingerprint">) {
   return item.fingerprint;
-}
-
-export function parseExportCheckpoint(value: string | null): ExportCheckpoint | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as Partial<ExportCheckpoint>;
-    if (
-      typeof parsed.fingerprint === "string" &&
-      typeof parsed.exportedAt === "string" &&
-      typeof parsed.pageCount === "number" &&
-      typeof parsed.issueCount === "number"
-    ) {
-      return {
-        fingerprint: parsed.fingerprint,
-        exportedAt: parsed.exportedAt,
-        pageCount: parsed.pageCount,
-        issueCount: parsed.issueCount,
-        snapshot: parsed.snapshot ? normalizeResume(parsed.snapshot) : undefined,
-      };
-    }
-  } catch {
-    return null;
-  }
-  return null;
 }
 
 function limitedString(value: unknown, maximum = 2_000) {
