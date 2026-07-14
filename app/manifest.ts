@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "PrivaCV — private, ATS-friendly resumes",
+    name: "PrivaCV — Private, ATS-Friendly Resume Editor",
     short_name: "PrivaCV",
     description:
       "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",

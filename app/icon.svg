@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
   <title id="title">PrivaCV</title>
-  <desc id="desc">A dark document with a check mark</desc>
-  <rect width="64" height="64" rx="14" fill="#28303d"/>
-  <path d="M19 13.5h19.5L46 21v29.5H19z" fill="#fff"/>
-  <path d="M38.5 13.5V21H46" fill="#dce4ec"/>
-  <path d="M25 29h14M25 35h14" stroke="#7b8998" stroke-linecap="round" stroke-width="3"/>
-  <path d="m25 42 3.4 3.4L39.5 34" fill="none" stroke="#16745b" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
+  <desc id="desc">A resume document with a padlock, representing private resume editing</desc>
+  <rect width="64" height="64" rx="16" fill="#151b27"/>
+  <path d="M15 10h23l10 10v33H15z" fill="#f8fafc"/>
+  <path d="M38 10v10h10" fill="#dbeafe"/>
+  <path d="M22 24h17M22 30h12M22 36h14" fill="none" stroke="#60a5fa" stroke-linecap="round" stroke-width="3.5"/>
+  <path d="M35 43v-3a5 5 0 0 1 10 0v3" fill="none" stroke="#2563eb" stroke-linecap="round" stroke-width="3.5"/>
+  <rect x="30" y="42" width="20" height="14" rx="3.5" fill="#2563eb"/>
+  <circle cx="40" cy="48.5" r="2" fill="#f8fafc"/>
+  <path d="M40 50.5v2" stroke="#f8fafc" stroke-linecap="round" stroke-width="2"/>
 </svg>

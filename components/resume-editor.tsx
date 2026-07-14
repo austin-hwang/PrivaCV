@@ -36,6 +36,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BrandMark } from "@/components/brand-mark";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -817,6 +818,7 @@ export function ResumeEditor() {
       <header className="app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div className="flex min-w-0 items-center gap-2">
+            <BrandMark className="size-8" />
             <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</h1>
             <Badge
               variant="secondary"

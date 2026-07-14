@@ -170,14 +170,14 @@ function makeDocxWithFooterContact() {
 test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle("PrivaCV — private, ATS-friendly resumes");
+  await expect(page).toHaveTitle("PrivaCV — Private, ATS-Friendly Resume Editor");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
     /Build, tailor, and export a clean resume locally/i,
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     "content",
-    "PrivaCV — private, ATS-friendly resumes",
+    "PrivaCV — Private, ATS-Friendly Resume Editor",
   );
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest\.webmanifest$/);
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg(?:\?.*)?$/);
@@ -722,7 +722,7 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
 
   await page.getByRole("button", { name: /^export pdf$/i }).click();
   await expect(page.locator("html")).toHaveAttribute("data-print-title", "Jane_Doe_Resume");
-  await expect(page).toHaveTitle("PrivaCV — private, ATS-friendly resumes");
+  await expect(page).toHaveTitle("PrivaCV — Private, ATS-Friendly Resume Editor");
 });
 
 test("flags a single resume entry that would continue onto another printed page", async ({ page }) => {

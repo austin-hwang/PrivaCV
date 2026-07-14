@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import { KofiWidget } from "@/components/kofi-widget";
-import { THEME_STORAGE_KEY } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, THEME_STORAGE_KEY } from "@/lib/site";
 
 // Applied before first paint so there's no flash: default to night mode, and
 // only fall back to light when the person has explicitly chosen it.
@@ -21,28 +21,31 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
+  metadataBase: SITE_URL,
   title: {
-    default: "PrivaCV — private, ATS-friendly resumes",
+    default: "PrivaCV — Private, ATS-Friendly Resume Editor",
     template: "%s | PrivaCV",
   },
-  description:
-    "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",
-  applicationName: "PrivaCV",
-  category: "Productivity",
-  keywords: ["PrivaCV", "resume editor", "resume builder", "ATS-friendly resume", "private resume editor", "PDF resume"],
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  category: "BusinessApplication",
+  keywords: ["PrivaCV", "resume editor", "resume builder", "ATS-friendly resume", "private resume editor", "free resume editor", "PDF resume", "DOCX resume"],
+  alternates: SITE_URL ? { canonical: "/" } : undefined,
   openGraph: {
     type: "website",
-    siteName: "PrivaCV",
-    title: "PrivaCV — private, ATS-friendly resumes",
-    description:
-      "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",
+    siteName: SITE_NAME,
+    title: "PrivaCV — Private, ATS-Friendly Resume Editor",
+    description: SITE_DESCRIPTION,
+    url: SITE_URL?.toString(),
+    images: SITE_URL ? [{ url: "/api/og", width: 1200, height: 630, alt: "PrivaCV — private, ATS-friendly resume editor" }] : undefined,
   },
   twitter: {
     card: "summary",
-    title: "PrivaCV — private, ATS-friendly resumes",
-    description:
-      "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.",
+    title: "PrivaCV — Private, ATS-Friendly Resume Editor",
+    description: SITE_DESCRIPTION,
+    images: SITE_URL ? ["/api/og"] : undefined,
   },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {

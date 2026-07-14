@@ -13,7 +13,7 @@ export default function AppleIcon() {
       <div
         style={{
           alignItems: "center",
-          background: "#28303d",
+          background: "#151b27",
           borderRadius: 40,
           display: "flex",
           height: "100%",
@@ -24,7 +24,7 @@ export default function AppleIcon() {
       >
         <div
           style={{
-            background: "#ffffff",
+            background: "#f8fafc",
             display: "flex",
             height: 108,
             position: "relative",
@@ -33,7 +33,7 @@ export default function AppleIcon() {
         >
           <div
             style={{
-              background: "#dce4ec",
+              background: "#dbeafe",
               height: 21,
               position: "absolute",
               right: 0,
@@ -41,20 +41,26 @@ export default function AppleIcon() {
               width: 21,
             }}
           />
-          <div style={{ background: "#7b8998", height: 8, left: 17, position: "absolute", top: 43, width: 42 }} />
-          <div style={{ background: "#7b8998", height: 8, left: 17, position: "absolute", top: 60, width: 42 }} />
+          <div style={{ background: "#60a5fa", borderRadius: 8, height: 7, left: 16, position: "absolute", top: 34, width: 44 }} />
+          <div style={{ background: "#60a5fa", borderRadius: 8, height: 7, left: 16, position: "absolute", top: 51, width: 33 }} />
+          <div style={{ background: "#60a5fa", borderRadius: 8, height: 7, left: 16, position: "absolute", top: 68, width: 39 }} />
+          <div style={{ border: "7px solid #2563eb", borderBottom: "0", borderRadius: "18px 18px 0 0", height: 20, left: 39, position: "absolute", top: 64, width: 30 }} />
           <div
             style={{
-              borderBottom: "10px solid #16745b",
-              borderLeft: "10px solid #16745b",
-              height: 19,
-              left: 18,
+              background: "#2563eb",
+              alignItems: "center",
+              borderRadius: 8,
+              display: "flex",
+              height: 31,
+              justifyContent: "center",
+              left: 31,
               position: "absolute",
-              top: 75,
-              transform: "rotate(-45deg)",
-              width: 39,
+              top: 80,
+              width: 48,
             }}
-          />
+          >
+            <div style={{ background: "#f8fafc", borderRadius: 99, height: 8, width: 8 }} />
+          </div>
         </div>
       </div>
     ),
