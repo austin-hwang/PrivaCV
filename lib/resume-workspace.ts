@@ -560,7 +560,7 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
         : sourceSections.has("skills")
           ? "Skills heading found in source, but no text detected"
           : "No skills detected",
-      targetId: "field-skills",
+      targetId: "review-region-skills",
       sourceDetected: sourceSections.has("skills"),
       sourceExcerpt: importSectionExcerpt(sourceText, "skills"),
     },
@@ -647,7 +647,7 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
       {
         id: "skills",
         label: "Skills",
-        targetId: "field-skills",
+        targetId: "review-region-skills",
         detail: compactDetail(state.skills.split("\n")[0] ?? state.skills),
         sourceExcerpt: importSourceExcerpt(sourceText, [state.skills]),
       },

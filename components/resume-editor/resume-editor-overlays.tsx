@@ -246,7 +246,7 @@ export function ResumeEditorOverlays({
             </Alert>
           )}
           <DialogFooter className="items-center border-t pt-4 sm:justify-between">
-            <span className="text-xs text-muted-foreground">Need the whole resume? Use Review Text for a complete ATS-friendly copy.</span>
+            <span className="text-xs text-muted-foreground">Need the whole resume? Use Export → Copy resume text.</span>
             <Button type="button" variant="outline" onClick={() => setApplicationCopyOpen(false)}>
               Close
             </Button>

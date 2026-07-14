@@ -10,8 +10,9 @@ import {
   isLocalAIModelId,
   localAIRewriteMaxTokens,
   parseLocalAIImportProposal,
+  validateLocalAIRewrite,
 } from "@/lib/local-ai";
-import { friendlyLocalAIError, hasObviousLocalAIRepetition, localAIChatExtraBody, localAIModelCachePath } from "@/lib/local-ai-engine";
+import { friendlyLocalAIError, hasObviousLocalAIRepetition, localAIChatExtraBody, localAIChatSampling, localAIModelCachePath } from "@/lib/local-ai-engine";
 import { sampleState } from "@/lib/resume";
 
 describe("local AI helpers", () => {
@@ -25,7 +26,10 @@ describe("local AI helpers", () => {
 
   it("uses Qwen 3 for direct edits without spending the short response on reasoning", () => {
     expect(localAIChatExtraBody("Qwen3-0.6B-q4f16_1-MLC")).toEqual({ enable_thinking: false });
+    expect(localAIChatSampling("Qwen3-0.6B-q4f16_1-MLC")).toEqual({ temperature: 0.7, top_p: 0.8 });
     expect(localAIChatExtraBody("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBeUndefined();
+    expect(localAIChatSampling("SmolLM2-360M-Instruct-q4f32_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
+    expect(localAIChatSampling("Qwen3-0.6B-q4f16_1-MLC", true)).toEqual({ temperature: 0, top_p: 0.9 });
   });
 
   it("uses a Qwen-specific cache path without invalidating the smaller default model", () => {
@@ -104,6 +108,18 @@ describe("local AI helpers", () => {
     expect(cleanLocalAIRewrite("Here is the concise rewrite: Built accessible interfaces.")).toBe(
       "Built accessible interfaces.",
     );
+    expect(cleanLocalAIRewrite("<think>\n\n</think>\n\nBuilt accessible interfaces.")).toBe(
+      "Built accessible interfaces.",
+    );
+    expect(cleanLocalAIRewrite("<think>I should preserve the facts.</think>\n```text\nLed the migration.\n```")).toBe(
+      "Led the migration.",
+    );
+    expect(validateLocalAIRewrite("Built interfaces.", "<think></think>\nBuilt accessible interfaces.")).toBe(
+      "Built accessible interfaces.",
+    );
+    expect(() => validateLocalAIRewrite("Built interfaces.", "<think></think>\nBuilt interfaces.")).toThrow(
+      /original text unchanged/i,
+    );
   });
 
   it("keeps a custom inline edit localized and bounded", () => {
@@ -117,8 +133,10 @@ describe("local AI helpers", () => {
 
     expect(system).toMatch(/change only what the requested edit requires/i);
     expect(system).toMatch(/never invent skills, numbers, employers, dates, or outcomes/i);
+    expect(system).toMatch(/do not reveal reasoning or include <think> tags/i);
     expect(system).toMatch(/start immediately with the replacement/i);
     expect(user).toMatch(/do not say what you changed/i);
+    expect(user).toMatch(/do not copy the current text unchanged/i);
     expect(user).toMatch(/do not end with an unfinished sentence/i);
     expect(user).toContain("start-");
     expect(user).toContain("-end");

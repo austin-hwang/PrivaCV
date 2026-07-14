@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui/menu";
 import { RESUME_TEMPLATES, type ResumeTemplateId } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,6 @@ type StartPanelProps = {
   onOpenJson: () => void;
   onOpenCheckpointBackup: () => void;
   onStartBlank: (template?: ResumeTemplateId) => void;
-  onChooseTemplate: (template: ResumeTemplateId) => void;
 };
 
 export function StartPanel({
@@ -29,7 +29,6 @@ export function StartPanel({
   onOpenJson,
   onOpenCheckpointBackup,
   onStartBlank,
-  onChooseTemplate,
 }: StartPanelProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -70,9 +69,30 @@ export function StartPanel({
                 Begin from a blank, ATS-ready draft.
               </p>
             </div>
-            <Button type="button" variant="secondary" className="mt-auto justify-start" onClick={() => onStartBlank()}>
-              <FileText /> Start a blank resume
-            </Button>
+            <Menu className="mt-auto">
+              <MenuTrigger>
+                <Button type="button" variant="secondary" className="w-full justify-start">
+                  <FileText /> Start a blank resume <ChevronDown className="ml-auto" />
+                </Button>
+              </MenuTrigger>
+              <MenuContent align="start" className="w-full min-w-64">
+                <MenuLabel>Choose a layout</MenuLabel>
+                {RESUME_TEMPLATES.map((template) => (
+                  <MenuItem
+                    key={template.id}
+                    className="items-start"
+                    onSelect={() => onStartBlank(template.id)}
+                  >
+                    <span>
+                      <span className="block">{template.label}</span>
+                      <span className="mt-0.5 block text-xs font-normal leading-snug text-muted-foreground">
+                        {template.description}
+                      </span>
+                    </span>
+                  </MenuItem>
+                ))}
+              </MenuContent>
+            </Menu>
           </div>
         </div>
 
@@ -85,7 +105,7 @@ export function StartPanel({
           >
             <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", moreOpen && "rotate-90")} />
             More options
-            <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, backup, layouts</span>
+            <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, backup</span>
           </button>
 
           {moreOpen ? (
@@ -102,25 +122,6 @@ export function StartPanel({
                 </Button>
               </div>
 
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Start blank with a layout
-                </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {RESUME_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      type="button"
-                      aria-label={`Start blank with ${template.label} template`}
-                      className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      onClick={() => onChooseTemplate(template.id)}
-                    >
-                      <span className="block text-sm font-semibold">{template.label}</span>
-                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">{template.description}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : null}
         </div>

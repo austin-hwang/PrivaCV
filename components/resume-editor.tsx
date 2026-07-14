@@ -20,6 +20,7 @@ import {
   FileJson,
   FileText,
   GripVertical,
+  Import as ImportIcon,
   Keyboard,
   Loader2,
   MoreHorizontal,
@@ -40,7 +41,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { toggleTheme } from "@/components/theme-toggle";
 import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
@@ -181,6 +182,11 @@ const ACTIVE_SECTION_CLASS =
   "rounded-md bg-brand-soft/10 px-3 pt-3 ring-1 ring-brand/40";
 const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-phone", "field-location", "field-website"];
 
+// Skills can render as grouped tags, bullets, paragraphs, or rows, so its old
+// textarea target is not guaranteed to exist. Keep review tours anchored to the
+// stable section card while accepting reviews saved with the legacy field id.
+const reviewTourTargetId = (targetId: string) => targetId === "field-skills" ? "review-region-skills" : targetId;
+
 export function ResumeEditor() {
   const editor = useResumeEditor();
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
@@ -209,6 +215,7 @@ export function ResumeEditor() {
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [destructiveAction, setDestructiveAction] = useState<"clear" | "delete-all" | null>(null);
   const [localAIOpen, setLocalAIOpen] = useState(false);
   const [localAIInlineTarget, setLocalAIInlineTarget] = useState<LocalAIInlineTarget | null>(null);
   const [localAIImportOpen, setLocalAIImportOpen] = useState(false);
@@ -685,9 +692,10 @@ export function ResumeEditor() {
     ? [
         ...importReview.items.map((item, itemIndex) => {
           const confirmed = Boolean(importReview.reviewedItemIds?.includes(item.id));
+          const targetId = reviewTourTargetId(item.targetId);
           return {
             id: `item-${item.id}`,
-            targetId: item.targetId,
+            targetId,
             eyebrow: `Imported field ${itemIndex + 1} of ${importReview.items.length}`,
             title: item.label,
             description: item.detail,
@@ -702,7 +710,7 @@ export function ResumeEditor() {
         }),
         ...importSkippedCoverage.map((item) => ({
           id: `coverage-${item.id}`,
-          targetId: item.targetId,
+          targetId: reviewTourTargetId(item.targetId),
           eyebrow: "Possible skipped section",
           title: item.label,
           description: item.detail,
@@ -712,7 +720,7 @@ export function ResumeEditor() {
             label: "Go to this section",
             run: () => {
               setReviewTour(null);
-              focusEditorTarget(item.targetId);
+              focusEditorTarget(reviewTourTargetId(item.targetId));
             },
           },
         } satisfies GuidedReviewStep)),
@@ -913,7 +921,7 @@ export function ResumeEditor() {
                       ? "Saving this resume in this browser…"
                       : autosaveStatus === "conflict"
                         ? "Autosave paused until you choose which tab's draft to keep"
-                        : "Saved in this browser. Open version history or Save JSON for a portable backup."
+                        : "Saved in this browser. Open version history or export JSON for a portable backup."
                 }
                 className="gap-2"
               >
@@ -932,14 +940,46 @@ export function ResumeEditor() {
                 ) : null}
               </Button>
             ) : null}
-            <Button
-              type="button"
-              onClick={requestExport}
-              aria-label="Export PDF"
-              title="Export PDF"
-            >
-              <Printer /> <span className="hidden sm:inline">Export PDF</span>
-            </Button>
+            <Menu>
+              <MenuTrigger>
+                <Button type="button" variant="outline" aria-label="Import">
+                  <ImportIcon /> <span className="hidden sm:inline">Import</span>
+                  <ChevronDown className="hidden size-3.5 sm:block" />
+                </Button>
+              </MenuTrigger>
+              <MenuContent>
+                <MenuLabel>Import resume</MenuLabel>
+                <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
+                  <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
+                </MenuItem>
+                <MenuItem onSelect={() => setTextImportOpen(true)}>
+                  <ClipboardPaste /> Paste resume text
+                </MenuItem>
+              </MenuContent>
+            </Menu>
+            <Menu>
+              <MenuTrigger>
+                <Button type="button" aria-label="Export">
+                  <Download /> <span className="hidden sm:inline">Export</span>
+                  <ChevronDown className="hidden size-3.5 sm:block" />
+                </Button>
+              </MenuTrigger>
+              <MenuContent>
+                <MenuLabel>Export resume</MenuLabel>
+                <MenuItem onSelect={requestExport}>
+                  <Printer /> Export PDF
+                </MenuItem>
+                <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
+                  <FileText /> Export Word (.docx)
+                </MenuItem>
+                <MenuItem onSelect={() => setTextReviewOpen(true)} disabled={!hasContent}>
+                  <ClipboardCopy /> Copy resume text
+                </MenuItem>
+                <MenuItem onSelect={saveJson}>
+                  <FileJson /> Export JSON
+                </MenuItem>
+              </MenuContent>
+            </Menu>
             <Menu>
               <MenuTrigger>
                 <Button type="button" variant="outline" size="icon" aria-label="More actions">
@@ -947,29 +987,14 @@ export function ResumeEditor() {
                 </Button>
               </MenuTrigger>
               <MenuContent>
-                <MenuLabel>Import</MenuLabel>
-                <MenuItem onSelect={() => setTextImportOpen(true)}>
-                  <ClipboardPaste /> Paste text
-                </MenuItem>
-                <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
-                  <Upload /> {isImporting ? "Importing" : "Import a file"}
-                </MenuItem>
-                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
-                  <FileJson /> Open JSON
-                </MenuItem>
-                <MenuSeparator />
-                <MenuLabel>Export & files</MenuLabel>
+                <MenuLabel>More tools</MenuLabel>
                 <MenuItem onSelect={() => setApplicationCopyOpen(true)} disabled={!hasContent}>
                   <ClipboardCopy /> Copy for applications
                 </MenuItem>
-                <MenuItem onSelect={() => setTextReviewOpen(true)}>
-                  <ClipboardCopy /> Review Text
-                </MenuItem>
-                <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
-                  <FileText /> Download Word (.docx)
-                </MenuItem>
-                <MenuItem onSelect={saveJson}>
-                  <Download /> Save JSON
+                <MenuSeparator />
+                <MenuLabel>Files & data</MenuLabel>
+                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
+                  <FileJson /> Open JSON
                 </MenuItem>
                 <MenuSeparator />
                 <MenuItem onSelect={() => {
@@ -980,27 +1005,13 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuItem
                   destructive
-                  onSelect={() => {
-                    if (window.confirm("Clear all fields? You can restore this version from the recovery card.")) {
-                      clearEditor();
-                    }
-                  }}
+                  onSelect={() => setDestructiveAction("clear")}
                 >
                   <RotateCcw /> Clear
                 </MenuItem>
                 <MenuItem
                   destructive
-                  onSelect={() => {
-                    if (
-                      window.confirm(
-                        "Delete all resume data, saved versions, imported text, Local AI settings, and downloaded model files from this browser? This cannot be undone. Save JSON first if you want to keep a copy.",
-                      )
-                    ) {
-                      setBlankWorkspaceOpen(false);
-                      setBlankResumeGuideVisible(false);
-                      void deleteSavedBrowserData();
-                    }
-                  }}
+                  onSelect={() => setDestructiveAction("delete-all")}
                 >
                   <Trash2 /> Delete all data
                 </MenuItem>
@@ -1074,7 +1085,6 @@ export function ResumeEditor() {
               onOpenJson={() => jsonInputRef.current?.click()}
               onOpenCheckpointBackup={() => historyBackupInputRef.current?.click()}
               onStartBlank={startBlankResume}
-              onChooseTemplate={startBlankResume}
             />
           ) : null}
 
@@ -1369,6 +1379,7 @@ export function ResumeEditor() {
                 >
                 <FieldGroup
                   {...groupProps(section)}
+                  id={`review-region-${section}`}
                   card
                   reviewRegion={section === "skills"}
                   className={cn(
@@ -1751,17 +1762,17 @@ export function ResumeEditor() {
                   size="sm"
                   className="hidden h-8 gap-1.5 px-2 lg:inline-flex"
                   aria-pressed={inlineEdit}
-                  aria-label={inlineEdit ? "Editing on sheet (click to turn off)" : "Edit on sheet (click to turn on)"}
+                  aria-label={inlineEdit ? "Editing mode — switch to view only" : "View only mode — switch to editing"}
                   onClick={() => setInlineEdit((value) => !value)}
-                  title={inlineEdit ? "Inline editing is on — click any text on the resume to edit it" : "Turn on inline editing (click resume text to edit)"}
+                  title={inlineEdit ? "Editing is on — switch to view only" : "View only — switch to editing"}
                 >
-                  <Pencil />
                   {inlineEdit ? (
                     <>
-                      <span aria-hidden className="size-1.5 rounded-full bg-current" /> <span className="hidden 2xl:inline">Editing</span>
+                      <Pencil />
+                      <span aria-hidden className="size-1.5 rounded-full bg-current" /> <span>Editing</span>
                     </>
                   ) : (
-                    <span className="hidden 2xl:inline">Edit</span>
+                    <><Eye /> <span>View only</span></>
                   )}
                 </Button>
                 <Button
@@ -1816,6 +1827,46 @@ export function ResumeEditor() {
           </div>
         </section>
       </main>
+
+      <Dialog
+        open={destructiveAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setDestructiveAction(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{destructiveAction === "delete-all" ? "Delete all browser data?" : "Clear this resume?"}</DialogTitle>
+            <DialogDescription>
+              {destructiveAction === "delete-all"
+                ? "This removes the resume, saved versions, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export JSON first if you want to keep a copy."
+                : "This clears every resume field. You can restore the current version from the recovery card."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDestructiveAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                const action = destructiveAction;
+                setDestructiveAction(null);
+                if (action === "delete-all") {
+                  setBlankWorkspaceOpen(false);
+                  setBlankResumeGuideVisible(false);
+                  void deleteSavedBrowserData();
+                } else if (action === "clear") {
+                  clearEditor();
+                }
+              }}
+            >
+              {destructiveAction === "delete-all" ? "Delete all data" : "Clear resume"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
         <DialogContent className="max-w-md">

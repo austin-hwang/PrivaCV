@@ -192,6 +192,12 @@ export function localAIChatExtraBody(modelId: LocalAIModelId) {
   return modelId.startsWith("Qwen3") ? { enable_thinking: false as const } : undefined;
 }
 
+export function localAIChatSampling(modelId: LocalAIModelId, jsonMode = false) {
+  if (jsonMode) return { temperature: 0, top_p: 0.9 };
+  if (modelId.startsWith("Qwen3")) return { temperature: 0.7, top_p: 0.8 };
+  return { temperature: 0.2, top_p: 0.9 };
+}
+
 /** Detect clear end-of-response loops without rejecting ordinary repeated words. */
 export function hasObviousLocalAIRepetition(value: string) {
   const tokens = value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
@@ -234,11 +240,11 @@ export async function generateLocalAIText({
   generating = true;
   try {
     await current.engine.resetChat();
+    const sampling = localAIChatSampling(current.modelId, Boolean(jsonSchema));
     const chunks = await current.engine.chat.completions.create({
       messages,
       stream: true,
-      temperature: jsonSchema ? 0 : 0.2,
-      top_p: 0.9,
+      ...sampling,
       ...(jsonSchema ? {} : { repetition_penalty: 1.1 }),
       ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,

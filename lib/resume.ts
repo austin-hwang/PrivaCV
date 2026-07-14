@@ -1232,48 +1232,48 @@ export function plainTextStats(text: string) {
 
 export function sampleState(): ResumeState {
   return normalizeResume({
-    name: "Jane Doe",
-    title: "",
-    email: "jane.doe@example.com",
-    phone: "(555) 123-4567",
-    location: "San Francisco, CA",
-    website: "linkedin.com/in/janedoe",
+    name: "Maya Patel",
+    title: "Product Operations Manager",
+    email: "maya.patel@example.com",
+    phone: "(555) 014-7823",
+    location: "Chicago, IL",
+    website: "linkedin.com/in/mayapatel",
     summary:
-      "Software engineer specializing in applied AI, scaling backend microservices, and optimizing system performance to support high-traffic, production-grade applications.",
+      "Product operations leader with 7 years of experience turning customer insights into scalable workflows, clearer metrics, and faster launches across growing teams.",
     experience: [
       {
-        title: "Senior Software Engineer",
-        subtitle: "Acme Corp - San Francisco, CA",
-        meta: "Jan 2021 - Present",
+        title: "Product Operations Manager",
+        subtitle: "Northstar Health - Chicago, IL",
+        meta: "Mar 2022 - Present",
         details:
-          "Led migration of monolith to microservices, cutting deploy time by 60%.\nMentored a team of 5 engineers and established code review standards.\nDesigned the billing service handling $40M in annual transactions.",
+          "Rebuilt intake and prioritization across four teams, reducing request turnaround by 35%.\nLaunched a weekly KPI dashboard used by 12 leaders to track adoption, risk, and delivery.",
       },
       {
-        title: "Software Engineer",
-        subtitle: "Globex Inc - Palo Alto, CA",
-        meta: "Jun 2017 - Dec 2020",
+        title: "Business Operations Analyst",
+        subtitle: "Harbor Market - Chicago, IL",
+        meta: "Jul 2019 - Feb 2022",
         details:
-          "Built customer-facing analytics dashboard used by 10,000+ businesses.\nImproved API response times by 45% through query optimization.",
+          "Automated weekly reporting, saving 8 hours of manual work each month.\nMapped fulfillment bottlenecks and helped improve on-time delivery by 18%.",
       },
     ],
     education: [
       {
-        title: "B.S. in Computer Science",
-        subtitle: "University of California, Berkeley - Berkeley, CA",
-        meta: "2013 - 2017",
+        title: "B.A. in Economics",
+        subtitle: "University of Illinois Chicago - Chicago, IL",
+        meta: "2015 - 2019",
         details: "",
       },
     ],
     projects: [
       {
-        title: "Verichain",
-        subtitle: "React, Node.js, Solidity, Web3",
-        meta: "",
+        title: "Neighborhood Food Access Study",
+        subtitle: "Volunteer Data Lead",
+        meta: "2023",
         details:
-          "Built a decentralized open-data marketplace letting consumers bid on high-value IoT data.\nExecuted transactions on the Ethereum testnet via MetaMask.",
+          "Analyzed transit and grocery-access data for a community nonprofit and presented three expansion priorities to its board.",
       },
     ],
     skills:
-      "Languages: JavaScript, TypeScript, Python, Go\nFrameworks: React, Node.js, Django\nDatabases: PostgreSQL, MongoDB, Redis\nTools: Docker, Kubernetes, AWS, Terraform",
+      "Analysis: SQL, Excel, Tableau\nOperations: Process mapping, KPI design, Experiment planning\nTools: Airtable, Jira, Notion",
   });
 }

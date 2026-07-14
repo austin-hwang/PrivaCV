@@ -56,7 +56,7 @@ import {
 describe("resume helpers", () => {
   it("drops the legacy excludedBulletIndexes field from older saved resumes and shows every bullet", () => {
     const base = sampleState();
-    const bullet = "Mentored a team of 5 engineers and established code review standards.";
+    const bullet = "Launched a weekly KPI dashboard used by 12 leaders to track adoption, risk, and delivery.";
     // A resume saved while the removed "Tailor this version" control excluded a
     // bullet still carries the field; normalizing must strip it and keep every
     // bullet visible everywhere.
@@ -133,8 +133,8 @@ describe("resume helpers", () => {
     const certification = groups.find((group) => group.id === "custom-certifications-0");
 
     expect(groups.find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Full name", text: "Jane Doe" }),
-      expect.objectContaining({ label: "Email", text: "jane.doe@example.com" }),
+      expect.objectContaining({ label: "Full name", text: "Maya Patel" }),
+      expect.objectContaining({ label: "Email", text: "maya.patel@example.com" }),
     ]));
     expect(experience?.fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: "Job title" }),
@@ -155,11 +155,11 @@ describe("resume helpers", () => {
       "word/document.xml",
       "word/_rels/document.xml.rels",
     ]));
-    expect(document).toContain("Jane Doe");
+    expect(document).toContain("Maya Patel");
     expect(document).toContain("EXPERIENCE");
     expect(document).toContain("•");
-    expect(relationships).toContain("mailto:jane.doe@example.com");
-    expect(relationships).toContain("https://linkedin.com/in/janedoe");
+    expect(relationships).toContain("mailto:maya.patel@example.com");
+    expect(relationships).toContain("https://linkedin.com/in/mayapatel");
   });
 
   it("extracts Word paragraphs locally before using the normal resume parser", () => {
@@ -170,18 +170,18 @@ describe("resume helpers", () => {
     const text = extractDocxText(resumeDocx(state).buffer);
 
     expect(docxParagraphsFromXml(document)).toEqual(expect.arrayContaining([
-      "Jane Doe",
+      "Maya Patel",
       "Senior Product Engineer",
       "EXPERIENCE",
     ]));
-    expect(text).toContain("Jane Doe");
+    expect(text).toContain("Maya Patel");
     const imported = importResumeText(text);
     expect(imported).toMatchObject({
-      name: "Jane Doe",
+      name: "Maya Patel",
       title: "Senior Product Engineer",
     });
     expect(imported.experience).toEqual(expect.arrayContaining([
-      expect.objectContaining({ title: "Senior Software Engineer", subtitle: "Acme Corp - San Francisco, CA" }),
+      expect.objectContaining({ title: "Product Operations Manager", subtitle: "Northstar Health - Chicago, IL" }),
     ]));
   });
 
@@ -1169,7 +1169,7 @@ describe("resume helpers", () => {
       expect.objectContaining({ id: "header", detected: true, detail: "Name and 1 contact detail detected" }),
       expect.objectContaining({ id: "experience", detected: true, detail: "1 entry detected", targetId: "field-experience-0-title" }),
       expect.objectContaining({ id: "education", detected: false, detail: "No education entries detected", targetId: "add-education-entry" }),
-      expect.objectContaining({ id: "skills", detected: false, detail: "No skills detected", targetId: "field-skills" }),
+      expect.objectContaining({ id: "skills", detected: false, detail: "No skills detected", targetId: "review-region-skills" }),
     ]));
   });
 
@@ -1286,9 +1286,9 @@ describe("resume helpers", () => {
     const state = sampleState();
     const text = resumePlainText(state);
 
-    expect(text).toContain("Jane Doe");
+    expect(text).toContain("Maya Patel");
     expect(text.indexOf("Education")).toBeLessThan(text.indexOf("Experience"));
-    expect(text).toContain("- Led migration of monolith to microservices, cutting deploy time by 60%.");
+    expect(text).toContain("- Rebuilt intake and prioritization across four teams, reducing request turnaround by 35%.");
   });
 
   it("builds useful export-readiness checks", () => {
@@ -1368,7 +1368,7 @@ describe("resume helpers", () => {
 
     expect(evidence).toMatchObject({
       ok: false,
-      detail: "2 of 7 experience or project bullets show scope or results",
+      detail: "2 of 6 experience or project bullets show scope or results",
       actionLabel: "Strengthen a bullet",
       targetId: "field-experience-0-details",
     });
@@ -1507,11 +1507,11 @@ describe("resume helpers", () => {
     const changes = exportChangeSummary(exported, edited);
 
     expect(changes.find((change) => change.id === "summary")).toMatchObject({
-      before: expect.stringContaining("Software engineer specializing"),
+      before: expect.stringContaining("Product operations leader"),
       after: "Focused product engineer with strong launch experience.",
     });
     expect(changes.find((change) => change.id === "skills")).toMatchObject({
-      before: expect.stringContaining("Languages: JavaScript"),
+      before: expect.stringContaining("Analysis: SQL"),
       after: "Languages: TypeScript, Go / Tools: Docker, AWS",
     });
   });
@@ -1646,7 +1646,7 @@ describe("resume helpers", () => {
       expect.arrayContaining([
         expect.objectContaining({ id: "contact", targetId: "field-name" }),
         expect.objectContaining({ id: "experience-0", targetId: "field-experience-0-title" }),
-        expect.objectContaining({ id: "skills", targetId: "field-skills" }),
+        expect.objectContaining({ id: "skills", targetId: "review-region-skills" }),
       ]),
     );
   });
@@ -1654,7 +1654,7 @@ describe("resume helpers", () => {
   it("summarizes version content badges from normalized resume content", () => {
     expect(versionContentBadges(emptyState())).toEqual(["Empty draft"]);
     expect(versionContentBadges(sampleState())).toEqual(
-      expect.arrayContaining(["2 roles", "1 education", "1 project", "4 skill lines"]),
+      expect.arrayContaining(["2 roles", "1 education", "1 project", "3 skill lines"]),
     );
   });
 });

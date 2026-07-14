@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { resumeDocx } from "@/lib/docx-export";
@@ -10,6 +10,29 @@ async function openMenu(page: Page) {
   await page.getByRole("button", { name: /^more actions$/i }).click();
 }
 
+async function openExport(page: Page) {
+  await page.getByRole("button", { name: /^export$/i }).click();
+}
+
+async function exportPdf(page: Page) {
+  await openExport(page);
+  await page.getByRole("menuitem", { name: /^export pdf$/i }).click();
+}
+
+async function expectGuidedHighlightToFrame(page: Page, target: Locator) {
+  const highlight = page.locator("[data-guided-review-highlight]");
+  await expect(highlight).toBeVisible();
+  await expect.poll(async () => {
+    const highlightBox = await highlight.boundingBox();
+    const targetBox = await target.boundingBox();
+    if (!highlightBox || !targetBox) return false;
+    return highlightBox.x <= targetBox.x
+      && highlightBox.y <= targetBox.y
+      && highlightBox.x + highlightBox.width >= targetBox.x + targetBox.width
+      && highlightBox.y + highlightBox.height >= targetBox.y + targetBox.height;
+  }).toBe(true);
+}
+
 // Entries render as collapsed one-line summaries by default. Open every
 // collapsed entry so its fields are present for interaction/assertions.
 async function expandAllEntries(page: Page) {
@@ -17,6 +40,14 @@ async function expandAllEntries(page: Page) {
   await page.locator("[data-editor-entry]").first().waitFor({ state: "attached", timeout: 3000 }).catch(() => {});
   for (let i = 0; i < 40; i += 1) {
     const collapsed = page.locator('[data-editor-entry] [data-entry-toggle][aria-expanded="false"]');
+    if ((await collapsed.count()) === 0) break;
+    await collapsed.first().click();
+  }
+}
+
+async function expandAllTagGroups(page: Page) {
+  for (let i = 0; i < 20; i += 1) {
+    const collapsed = page.getByRole("button", { name: /^Expand .* tag group$/i });
     if ((await collapsed.count()) === 0) break;
     await collapsed.first().click();
   }
@@ -235,7 +266,7 @@ test("keeps the editor interactive while development security headers are active
 
   await loadSample(page);
 
-  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Maya Patel");
 });
 
 test("starts a fresh resume from the onboarding without hiding the editor", async ({ page }) => {
@@ -244,6 +275,7 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await page.reload();
 
   await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await page.getByRole("menuitem", { name: /classic/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Start fresh")).toBeHidden();
   const essentials = page.getByLabel("Blank resume essentials");
@@ -258,8 +290,8 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "ruled");
 
   await page.reload();
-  await page.getByRole("button", { name: /more options/i }).click();
-  await page.getByRole("button", { name: /start blank with modern template/i }).click();
+  await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await page.getByRole("menuitem", { name: /modern/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   // The Modern preset seeds an accent bar heading style.
   await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "bar");
@@ -363,7 +395,7 @@ test("warns clearly and offers a JSON backup when browser autosave fails", async
   await expect(storageWarning).toContainText("may not survive a refresh");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /save json copy/i }).click();
-  await expect((await download).suggestedFilename()).toBe("Jane_Doe.json");
+  await expect((await download).suggestedFilename()).toBe("Maya_Patel.json");
 });
 
 test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({ page }) => {
@@ -385,21 +417,37 @@ test("backs up a checkpoint instead of claiming it persisted when browser storag
   await page.getByLabel("Checkpoint name").fill("Tailored product role");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
-  await expect((await download).suggestedFilename()).toBe("Jane_Doe-checkpoints.json");
+  await expect((await download).suggestedFilename()).toBe("Maya_Patel-checkpoints.json");
   await expect(page.getByText("Browser storage unavailable — checkpoint backup downloaded", { exact: true })).toBeVisible();
   await expect(page.getByText("Tailored product role", { exact: true })).toBeVisible();
 });
 
-test("keeps secondary toolbar actions usable from the keyboard", async ({ page }) => {
+test("keeps import, export, and secondary toolbar actions usable from the keyboard", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+
+  const importTrigger = page.getByRole("button", { name: /^import$/i });
+  await importTrigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /upload pdf or word/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /paste resume text/i })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(importTrigger).toBeFocused();
+
+  const exportTrigger = page.getByRole("button", { name: /^export$/i });
+  await exportTrigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /export pdf/i })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(exportTrigger).toBeFocused();
 
   const trigger = page.getByRole("button", { name: /^more actions$/i });
   await trigger.focus();
   await page.keyboard.press("ArrowDown");
 
-  await expect(page.getByRole("menuitem", { name: /^paste text$/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /^open json$/i })).toBeFocused();
   await page.keyboard.press("End");
   await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();
   await page.keyboard.press("ArrowUp");
@@ -481,7 +529,7 @@ test("imports an editable Word resume locally and keeps its review deliberate", 
     buffer: Buffer.from(resumeDocx(sampleState())),
   });
 
-  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Maya Patel");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
   await expect(page.getByRole("heading", { name: /review the imported fields/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /start walkthrough/i })).toBeVisible();
@@ -563,30 +611,30 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await page.reload();
   await loadSample(page);
 
-  await expect(page.getByText("Jane Doe").first()).toBeVisible();
+  await expect(page.getByText("Maya Patel").first()).toBeVisible();
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
 
   await openTools(page);
   await expect(page.getByText("Resume Check", { exact: true })).toBeVisible();
 
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /review text/i }).click();
+  await openExport(page);
+  await page.getByRole("menuitem", { name: /copy resume text/i }).click();
   await expect(page.getByRole("dialog", { name: /review before copying/i })).toBeVisible();
-  await expect(page.locator("textarea[readonly]")).toContainText("Jane Doe");
+  await expect(page.locator("textarea[readonly]")).toContainText("Maya Patel");
 
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /download \.txt/i }).click();
-  await expect((await download).suggestedFilename()).toBe("Jane_Doe.txt");
+  await expect((await download).suggestedFilename()).toBe("Maya_Patel.txt");
 
   const wordDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: /download \.docx/i }).click();
   const wordFile = await wordDownload;
-  await expect(wordFile.suggestedFilename()).toBe("Jane_Doe.docx");
+  await expect(wordFile.suggestedFilename()).toBe("Maya_Patel.docx");
   expect(wordFile.suggestedFilename()).toMatch(/\.docx$/);
   const wordPath = await wordFile.path();
   expect(wordPath).toBeTruthy();
   const wordContents = unzipSync(new Uint8Array(await readFile(wordPath!)));
-  expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
+  expect(strFromU8(wordContents["word/document.xml"])).toContain("Maya Patel");
 });
 
 test("makes local autosave visible while an edited resume is being stored", async ({ page }) => {
@@ -626,7 +674,7 @@ test("keeps a second tab from silently overwriting a newer local draft", async (
 
   const otherTab = await context.newPage();
   await otherTab.goto("/");
-  await expect(otherTab.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(otherTab.getByLabel("Full Name")).toHaveValue("Maya Patel");
   await otherTab.getByLabel("Full Name").fill("Alex Morgan");
   await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
 
@@ -670,7 +718,7 @@ test("keeps required import review when using an imported draft from another tab
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.locator("#import-review-panel")).toBeVisible();
   await expect(page.getByText("Loaded the draft and its import review")).toBeVisible();
-  await page.getByRole("button", { name: /export pdf/i }).click();
+  await exportPdf(page);
   await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
   await otherTab.close();
 });
@@ -690,7 +738,7 @@ test("offers copy-ready application fields without making users retype resume de
   await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy achievements/i }).first()).toBeVisible();
-  await expect(dialog.getByText("Senior Software Engineer · Acme Corp - San Francisco, CA")).toBeVisible();
+  await expect(dialog.getByText("Product Operations Manager · Northstar Health - Chicago, IL")).toBeVisible();
 
   const firstExperience = dialog.locator('section[aria-label="Experience 1"]');
   const achievements = firstExperience.locator("#application-copy-experience-0-details");
@@ -729,7 +777,7 @@ test("copies application fields when the browser rejects async clipboard access"
   const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
   await dialog.getByRole("button", { name: /copy job title/i }).first().click();
 
-  await expect(page.locator("html")).toHaveAttribute("data-fallback-copy", "Senior Software Engineer");
+  await expect(page.locator("html")).toHaveAttribute("data-fallback-copy", "Product Operations Manager");
   await expect(page.getByText("Copied job title")).toBeVisible();
 });
 
@@ -746,8 +794,8 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
     };
   });
 
-  await page.getByRole("button", { name: /^export pdf$/i }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-print-title", "Jane_Doe_Resume");
+  await exportPdf(page);
+  await expect(page.locator("html")).toHaveAttribute("data-print-title", "Maya_Patel_Resume");
   await expect(page).toHaveTitle("PrivaCV — Private, ATS-Friendly Resume Editor");
 });
 
@@ -777,12 +825,12 @@ test("makes validated contact details actionable in the preview", async ({ page 
 
   // Contact details are actionable links when inline editing is off (and in the
   // exported PDF); inline editing turns them into editable spans instead.
-  await page.getByRole("button", { name: /editing on sheet/i }).click();
+  await page.getByRole("button", { name: /editing mode/i }).click();
 
   const preview = page.locator(".resume-sheet");
-  await expect(preview.getByRole("link", { name: "jane.doe@example.com" })).toHaveAttribute("href", "mailto:jane.doe@example.com");
-  await expect(preview.getByRole("link", { name: "(555) 123-4567" })).toHaveAttribute("href", "tel:(555) 123-4567");
-  await expect(preview.getByRole("link", { name: "linkedin.com/in/janedoe" })).toHaveAttribute("href", "https://linkedin.com/in/janedoe");
+  await expect(preview.getByRole("link", { name: "maya.patel@example.com" })).toHaveAttribute("href", "mailto:maya.patel@example.com");
+  await expect(preview.getByRole("link", { name: "(555) 014-7823" })).toHaveAttribute("href", "tel:(555) 014-7823");
+  await expect(preview.getByRole("link", { name: "linkedin.com/in/mayapatel" })).toHaveAttribute("href", "https://linkedin.com/in/mayapatel");
   expect(
     await preview.locator(".resume-contact > *").first().evaluate(
       (element) => getComputedStyle(element, "::after").content.includes("•"),
@@ -796,8 +844,9 @@ test("routes the browser print shortcut through the export review", async ({ pag
   await page.reload();
 
   await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await page.getByRole("menuitem", { name: /classic/i }).click();
   await page.getByLabel("Full Name").fill("Ada Lovelace");
-  await expect(page.getByRole("button", { name: "Export PDF" })).not.toContainText(/Cmd|Ctrl/);
+  await expect(page.getByRole("button", { name: "Export", exact: true })).not.toContainText(/Cmd|Ctrl/);
 
   await page.keyboard.press(process.platform === "darwin" ? "Meta+P" : "Control+P");
 
@@ -818,10 +867,10 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await experienceTitle.focus();
   await expect(page.locator(".resume-preview-active")).toHaveText("Selected Experience");
 
-  const languagesToggle = page.getByRole("button", { name: "Expand Languages tag group" });
-  await expect(page.getByLabel("Add tag to Languages")).toBeHidden();
-  await languagesToggle.click();
-  await page.getByLabel("Add tag to Languages").focus();
+  const analysisToggle = page.getByRole("button", { name: "Expand Analysis tag group" });
+  await expect(page.getByLabel("Add tag to Analysis")).toBeHidden();
+  await analysisToggle.click();
+  await page.getByLabel("Add tag to Analysis").focus();
   await expect(page.locator(".resume-sheet").getByText("Skills", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /add custom section/i }).click();
@@ -911,7 +960,8 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   await expect(page.getByLabel("Full Name")).toBeVisible();
 
   // Turning inline editing off restores plain (non-editable) preview text.
-  await page.getByRole("button", { name: /editing on sheet/i }).click();
+  await page.getByRole("button", { name: /editing mode/i }).click();
+  await expect(page.getByRole("button", { name: /view only mode/i })).toBeVisible();
   await expect(page.locator(".resume-name")).not.toHaveAttribute("contenteditable", "true");
 });
 
@@ -970,6 +1020,7 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
   });
   await page.reload();
   await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await page.getByRole("menuitem", { name: /classic/i }).click();
 
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("light");
 
@@ -990,7 +1041,7 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
 
   await toolsToggle.click();
   await toolsPanel.getByRole("button", { name: /switch to night mode/i }).click();
-  expect(await page.getByRole("button", { name: "Export PDF" }).evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 255)");
+  expect(await page.getByRole("button", { name: "Export", exact: true }).evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 255)");
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");
 });
 
@@ -1041,9 +1092,9 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
   const experience = page.locator('[data-editor-section="experience"]');
   await experience.getByRole("button", { name: /remove entry/i }).first().click();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" })).toBeVisible();
-  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Software Engineer");
+  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Business Operations Analyst");
   await page.getByRole("button", { name: /^undo$/i }).click();
-  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Senior Software Engineer");
+  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Product Operations Manager");
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   const sectionTitle = page.getByLabel("New Section section title");
@@ -1100,9 +1151,9 @@ test("adds and reorders resume content without leaving the keyboard", async ({ p
   const firstRole = experience.locator('#field-experience-0-title');
   await firstRole.focus();
   await page.keyboard.press("Alt+Shift+ArrowDown");
-  await expect(experience.locator('#field-experience-0-title')).toHaveValue("Software Engineer");
+  await expect(experience.locator('#field-experience-0-title')).toHaveValue("Business Operations Analyst");
   await expect(experience.locator('#field-experience-1-title')).toBeFocused();
-  await expect(experience.locator('#field-experience-1-title')).toHaveValue("Senior Software Engineer");
+  await expect(experience.locator('#field-experience-1-title')).toHaveValue("Product Operations Manager");
 
   await page.keyboard.press("Alt+Shift+N");
   await expect(experience.locator('#field-experience-2-title')).toBeFocused();
@@ -1158,7 +1209,7 @@ test("keeps blank titles blank and lets users remove and restore default section
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Education section" })).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expandAllEntries(page);
-  await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.S. in Computer Science");
+  await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.A. in Economics");
 
   await removeSection(page, "Education");
   await page.getByRole("button", { name: "Education", exact: true }).click();
@@ -1338,7 +1389,7 @@ test("keeps an unfinished import review after a browser refresh", async ({ page 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(banner.getByText("Review the imported fields")).toBeVisible();
   await expect(banner.getByText("0/2")).toBeVisible();
-  await page.getByRole("button", { name: /^export pdf$/i }).click();
+  await exportPdf(page);
   await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
 });
 
@@ -1387,6 +1438,7 @@ test("imports common alternate section headings without losing resume content", 
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
+  await expandAllTagGroups(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
@@ -1419,6 +1471,7 @@ test("imports styled PDF-style section headings without losing their content", a
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
+  await expandAllTagGroups(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
@@ -1447,6 +1500,7 @@ test("imports concise overview and skills headings without losing their content"
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
+  await expandAllTagGroups(page);
 
   await expect(page.getByLabel("Professional Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByRole("button", { name: "Remove TypeScript" })).toBeVisible();
@@ -1508,8 +1562,37 @@ test("requires review of imported specialty-section entries", async ({ page }) =
     await tour.getByRole("button", { name: /^next/i }).click();
   }
   await expect(tour.getByText("Certifications entry 1")).toBeVisible();
+  await expectGuidedHighlightToFrame(
+    page,
+    page.locator('[data-editor-section^="custom-"] [data-review-region]').first(),
+  );
   await tour.getByRole("button", { name: /confirm this field/i }).click();
   await expect(tour.getByRole("button", { name: /^confirmed$/i })).toBeVisible();
+});
+
+test("highlights grouped Skills during the import review tour", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill([
+    "Ada Lovelace",
+    "ada@example.com",
+    "",
+    "Skills",
+    "TypeScript, SQL, systems design",
+  ].join("\n"));
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+
+  await page.getByRole("button", { name: /start walkthrough/i }).click();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  await expect(tour.getByText("Contact details")).toBeVisible();
+  await tour.getByRole("button", { name: /^next/i }).click();
+
+  await expect(tour.getByText("Skills", { exact: true })).toBeVisible();
+  await expectGuidedHighlightToFrame(page, page.locator("#review-region-skills"));
 });
 
 test("preserves text written beside an inline resume heading", async ({ page }) => {
@@ -1530,6 +1613,7 @@ test("preserves text written beside an inline resume heading", async ({ page }) 
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
+  await expandAllTagGroups(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByRole("button", { name: "Remove TypeScript" })).toBeVisible();
@@ -1539,7 +1623,7 @@ test("preserves text written beside an inline resume heading", async ({ page }) 
   await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
-test("quickly corrects company-first imported experience entries", async ({ page }) => {
+test("parses company-first imported experience entries and keeps the swap control available", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1559,11 +1643,11 @@ test("quickly corrects company-first imported experience entries", async ({ page
 
   const title = page.getByLabel("Job Title", { exact: true }).first();
   const company = page.getByLabel("Company", { exact: true }).first();
-  await expect(title).toHaveValue("Analytical Engines");
-  await expect(company).toHaveValue("Staff Engineer");
-  await page.getByRole("button", { name: /switch role and employer/i }).click();
   await expect(title).toHaveValue("Staff Engineer");
   await expect(company).toHaveValue("Analytical Engines");
+  await page.getByRole("button", { name: /switch role and employer/i }).click();
+  await expect(title).toHaveValue("Analytical Engines");
+  await expect(company).toHaveValue("Staff Engineer");
 });
 
 test("asks users to review every imported experience entry", async ({ page }) => {
@@ -1734,7 +1818,7 @@ test("switches between focused editor and preview views on a narrow screen", asy
   await expect(editorPane).toBeHidden();
   await expect(previewPane.getByText("1 page in preview", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: /export pdf/i }).click();
+  await exportPdf(page);
   await page.getByRole("dialog", { name: /review before exporting/i }).getByRole("button", { name: /fix contact/i }).click();
   await expect(editorPane).toBeVisible();
   await expect(page.locator("#field-phone")).toBeFocused();
@@ -1938,7 +2022,7 @@ test("keeps the Skills section whole on the exported page the preview shows it o
   // never split across the Letter boundary the preview drew.
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const doc = await pdfjs.getDocument({ data: new Uint8Array(pdf) }).promise;
-  const markers = ["SKILLS", "Languages", "Frameworks", "Databases", "Tools"];
+  const markers = ["SKILLS", "SQL", "Tableau", "Airtable", "Jira", "Notion"];
   const pageText = await Promise.all(
     Array.from({ length: doc.numPages }, async (_, index) => {
       const content = await (await doc.getPage(index + 1)).getTextContent();
@@ -2018,7 +2102,7 @@ test("shows an export review before printing an unresolved resume", async ({ pag
   await loadSample(page);
   await page.getByLabel("Phone").fill("");
 
-  await page.getByRole("button", { name: /export pdf/i }).click();
+  await exportPdf(page);
   const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
   await expect(exportDialog).toBeVisible();
   await expect(exportDialog.getByText("Missing contact details can make a strong resume impossible to follow up on.")).toBeVisible();
@@ -2027,7 +2111,7 @@ test("shows an export review before printing an unresolved resume", async ({ pag
   await expect(page.locator("#field-phone")).toBeFocused();
   await expect(page.getByRole("dialog", { name: /review before exporting/i })).toBeHidden();
 
-  await page.getByRole("button", { name: /export pdf/i }).click();
+  await exportPdf(page);
   await page.getByRole("button", { name: /export anyway/i }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 });
@@ -2043,7 +2127,7 @@ test("catches unusable contact details before export and uses contact-friendly i
   await expect(page.getByLabel("Website / LinkedIn")).toHaveAttribute("type", "url");
 
   await page.getByLabel("Email").fill("jane-at-example");
-  await page.getByRole("button", { name: /export pdf/i }).click();
+  await exportPdf(page);
 
   const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
   await expect(exportDialog).toContainText("Invalid email");
@@ -2070,7 +2154,7 @@ test("keeps import confirmation explicit in the export review", async ({ page })
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
 
-  await page.getByRole("button", { name: /export pdf/i }).click();
+  await exportPdf(page);
   const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
   await expect(exportDialog.getByText("Imported fields still need review")).toBeVisible();
   await expect(exportDialog.getByText(/0\/\d+ confirmed/)).toBeVisible();
@@ -2100,8 +2184,8 @@ test("checks an imported resume before downloading Word", async ({ page }) => {
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
 
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /download word/i }).click();
+  await openExport(page);
+  await page.getByRole("menuitem", { name: /export word/i }).click();
 
   const exportDialog = page.getByRole("dialog", { name: /review before downloading/i });
   await expect(exportDialog).toContainText("Review before downloading");
@@ -2124,7 +2208,7 @@ test("restores a version without showing a post-restore difference audit", async
 
   await openVersions(page);
   await page.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
-  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Maya Patel");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
 });
@@ -2137,8 +2221,10 @@ test("restores the previous resume after clearing", async ({ page }) => {
   await page.getByLabel("Full Name").fill("Ada Lovelace");
 
   await openMenu(page);
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("menuitem", { name: /^clear$/i }).click();
+  const clearDialog = page.getByRole("dialog", { name: /clear this resume/i });
+  await expect(clearDialog).toBeVisible();
+  await clearDialog.getByRole("button", { name: /clear resume/i }).click();
 
   await expect(page.getByText("Previous resume available")).toBeVisible();
   await page.getByRole("button", { name: /restore previous/i }).click();
@@ -2168,8 +2254,10 @@ test("deletes all data from a shared browser", async ({ page }) => {
   });
 
   await openMenu(page);
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("menuitem", { name: /delete all data/i }).click();
+  const deleteDialog = page.getByRole("dialog", { name: /delete all browser data/i });
+  await expect(deleteDialog).toBeVisible();
+  await deleteDialog.getByRole("button", { name: /delete all data/i }).click();
 
   await expect(page.getByText("I have a resume")).toBeVisible();
   await expect(page.getByText("Deleted all data")).toBeVisible();
@@ -2209,7 +2297,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByText("Version saved locally")).toBeVisible();
   await expect(versions.getByText("Original software resume")).toBeVisible();
   await expect(versions.getByText("Current", { exact: true })).toBeVisible();
-  await expect(versions.getByText("Jane Doe").first()).toBeVisible();
+  await expect(versions.getByText("Maya Patel").first()).toBeVisible();
   await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(1);
   await closeVersions(page);
 
@@ -2219,7 +2307,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
 
   await openVersions(page);
   await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Restore" }).click();
-  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Maya Patel");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
 
