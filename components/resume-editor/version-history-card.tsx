@@ -179,7 +179,8 @@ export function VersionHistoryCard({
           {visibleVersions.length ? (
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {visibleVersions.map((item) => {
-                const isAutosave = item.id === "autosave-copy";
+                const isLiveAutosave = item.id === "autosave-copy";
+                const isAutosave = isLiveAutosave || item.id.startsWith("autosave-slot-");
                 const isCurrent = item.fingerprint === currentFingerprint;
                 return (
                   <li key={item.id} className="rounded-lg border bg-card p-3 shadow-sm">
@@ -201,7 +202,7 @@ export function VersionHistoryCard({
                       <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)} disabled={isCurrent}>
                         <Undo2 /> {isAutosave ? "Restore autosave" : "Restore"}
                       </Button>
-                      {!isAutosave ? (
+                      {!isLiveAutosave ? (
                         <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${item.label}`} onClick={() => onDelete(item.id)}>
                           <Trash2 />
                         </Button>

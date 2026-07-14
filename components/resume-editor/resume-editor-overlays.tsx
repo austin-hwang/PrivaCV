@@ -188,15 +188,15 @@ export function ResumeEditorOverlays({
           if (!open) setExpandedApplicationFields(new Set());
         }}
       >
-        <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Copy exactly what each portal asks for</DialogTitle>
+            <DialogTitle className="sr-only">Copy for applications</DialogTitle>
             <DialogDescription>
               Copy any field or section, ready to paste into applications.
             </DialogDescription>
           </DialogHeader>
           {applicationCopy.length ? (
-            <div className="grid min-h-0 gap-5 overflow-y-auto pr-1">
+            <div data-application-copy-list className="grid min-h-0 gap-5 overflow-y-auto pr-1">
               {applicationCopy.map((group) => (
                 <section key={group.id} aria-label={group.label} className="grid gap-2">
                   <div>
@@ -515,6 +515,7 @@ export function ResumeEditorOverlays({
         }}
       />
       <input
+        id="resume-json-input"
         ref={jsonInputRef}
         type="file"
         accept="application/json,.json"

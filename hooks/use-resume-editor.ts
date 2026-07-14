@@ -364,7 +364,44 @@ export function useResumeEditor() {
     }
   };
 
+  /**
+   * The live autosave key points at the resume currently open in the editor.
+   * Before loading a different saved resume, preserve the outgoing working
+   * draft as its own history slot so the incoming resume can autosave without
+   * replacing the previous draft.
+   */
+  const forkAutosaveBeforeLoading = (nextState: ResumeState, destinationLabel: string) => {
+    if (!hasAnyContent(state)) return;
+    const fingerprint = resumeExportFingerprint(state);
+    if (fingerprint === resumeExportFingerprint(nextState)) return;
+    if (versionHistory.some((item) => versionHistoryFingerprint(item) === fingerprint)) return;
+
+    const derivedFrom = versionHistory.find((item) => item.id === draftSourceVersionId) ?? null;
+    const timestamp = Date.now();
+    let id = `autosave-slot-${timestamp}`;
+    let suffix = 2;
+    while (versionHistory.some((item) => item.id === id)) {
+      id = `autosave-slot-${timestamp}-${suffix}`;
+      suffix += 1;
+    }
+    const entry: VersionHistoryItem = {
+      id,
+      savedAt: new Date(timestamp).toISOString(),
+      label: `Autosave · ${versionLabel(state)}`,
+      note: `Preserved automatically before loading ${destinationLabel}.`,
+      derivedFromId: derivedFrom?.id,
+      derivedFromLabel: derivedFrom?.label,
+      fingerprint,
+      state: normalizeResume(state),
+      importReview,
+    };
+    const nextHistory = [entry, ...versionHistory];
+    persistVersionHistory(nextHistory);
+    setVersionHistory(nextHistory);
+  };
+
   const restoreVersion = (item: VersionHistoryItem) => {
+    forkAutosaveBeforeLoading(item.state, item.label);
     saveRecoveryPoint(`Before restoring ${item.label}`);
     setState(item.state);
     setImportReview(item.importReview);
@@ -495,6 +532,7 @@ export function useResumeEditor() {
 
   const useExternalDraft = () => {
     if (!externalDraft) return;
+    forkAutosaveBeforeLoading(externalDraft, "the draft saved in another tab");
     saveRecoveryPoint("Before using the draft saved in another tab");
     // Import-review metadata is persisted separately from the editable draft.
     // Bring it across only when it identifies this exact saved draft; a stale
@@ -1192,6 +1230,7 @@ export function useResumeEditor() {
     try {
       const text = await file.text();
       const nextState = normalizeResume(JSON.parse(text));
+      forkAutosaveBeforeLoading(nextState, file.name);
       saveRecoveryPoint(`Before opening ${file.name}`);
       setState(nextState);
       setImportReview(null);

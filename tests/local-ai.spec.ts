@@ -36,6 +36,10 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toBeVisible();
   await expect(modelSelect).toBeEnabled();
   await expect(modelSelect).toBeFocused();
+  await expect(modelSelect).toHaveCSS("appearance", "none");
+  const modelCaret = dialog.locator("[data-model-select-caret]");
+  await expect(modelCaret).toBeVisible();
+  await expect(modelCaret).toHaveCSS("right", "12px");
   await expect(dialog).toHaveCSS("z-index", "80");
   await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
   await expect(dialog).toContainText("Nothing downloads automatically");
@@ -43,6 +47,7 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
+  await expect(dialog.getByRole("link", { name: /about webllm/i })).toHaveCount(0);
   await expect(modelSelect).toHaveValue("Llama-3.2-3B-Instruct-q4f16_1-MLC");
   await expect(dialog.getByText(/Llama 3\.2 3B:/)).toBeVisible();
   await expect(dialog).toContainText("Recommended for stronger rewrites");

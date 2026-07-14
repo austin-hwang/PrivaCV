@@ -801,8 +801,11 @@ test("offers copy-ready application fields without making users retype resume de
   await openTools(page);
   await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /copy for applications/i }).click();
 
-  const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
+  const dialog = page.getByRole("dialog", { name: /copy for applications/i });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Copy exactly what each portal asks for", { exact: true })).toHaveCount(0);
+  await expect(dialog).toHaveCSS("overflow-y", "hidden");
+  await expect(dialog.locator("[data-application-copy-list]")).toHaveCSS("overflow-y", "auto");
   await expect(dialog.getByRole("button", { name: /copy full name/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
@@ -843,7 +846,7 @@ test("copies application fields when the browser rejects async clipboard access"
 
   await openTools(page);
   await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /copy for applications/i }).click();
-  const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
+  const dialog = page.getByRole("dialog", { name: /copy for applications/i });
   await dialog.getByRole("button", { name: /copy job title/i }).first().click();
 
   await expect(page.locator("html")).toHaveAttribute("data-fallback-copy", "Product Operations Manager");
@@ -2346,6 +2349,65 @@ test("restores a version without showing a post-restore difference audit", async
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
+});
+
+test("forks autosave into a separate slot before loading another saved version", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await saveVersion(page, "Clean baseline");
+
+  await page.getByLabel("Full Name").fill("Ada Lovelace");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  let versions = await openVersions(page);
+  await versions.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  await expect.poll(() => page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    const active = JSON.parse(localStorage.getItem("resume-editor-data-v2") ?? "null");
+    return {
+      activeName: active?.name,
+      autosaveNames: history
+        .filter((item: { id?: string }) => item.id?.startsWith("autosave-slot-"))
+        .map((item: { state?: { name?: string } }) => item.state?.name),
+    };
+  })).toEqual({ activeName: "John Doe", autosaveNames: ["Ada Lovelace"] });
+
+  versions = await openVersions(page);
+  const previousAutosave = versions.locator("li", { hasText: "Autosave · Ada Lovelace" });
+  await expect(previousAutosave.getByText("Autosaved", { exact: true })).toBeVisible();
+  await expect(previousAutosave).toContainText("Preserved automatically before loading Clean baseline.");
+  await previousAutosave.getByRole("button", { name: "Restore autosave" }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+});
+
+test("keeps the current autosave in its own slot when opening saved JSON", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  const savedResume = await page.evaluate(() => JSON.parse(localStorage.getItem("resume-editor-data-v2") ?? "null"));
+  await page.locator("#resume-json-input").setInputFiles({
+    name: "grace-hopper.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ ...savedResume, name: "Grace Hopper" })),
+  });
+
+  await expect(page.getByText("Loaded JSON", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await expect.poll(() => page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    return history
+      .filter((item: { id?: string }) => item.id?.startsWith("autosave-slot-"))
+      .map((item: { state?: { name?: string } }) => item.state?.name);
+  })).toEqual(["John Doe"]);
 });
 
 test("restores the previous resume after clearing", async ({ page }) => {

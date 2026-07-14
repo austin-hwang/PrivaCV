@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -246,19 +246,22 @@ export function LocalAIDialog({
 
           <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
             Model
-            <select
-              ref={modelSelectRef}
-              value={modelId}
-              disabled={modelSelectionBusy}
-              onChange={(event) => changeModel(event.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {LOCAL_AI_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label} — {model.memory}{model.recommended ? " — recommended" : ""}
-                </option>
-              ))}
-            </select>
+            <span className="relative block">
+              <select
+                ref={modelSelectRef}
+                value={modelId}
+                disabled={modelSelectionBusy}
+                onChange={(event) => changeModel(event.target.value)}
+                className="h-10 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-10 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {LOCAL_AI_MODELS.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label} — {model.memory}{model.recommended ? " — recommended" : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown data-model-select-caret className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            </span>
           </label>
           <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{selectedModel.label}:</span> {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published configuration.
@@ -289,9 +292,6 @@ export function LocalAIDialog({
                 <Trash2 /> Remove download
               </Button>
             ) : null}
-            <Button type="button" variant="ghost" asChild>
-              <a href="https://github.com/mlc-ai/web-llm" target="_blank" rel="noreferrer">About WebLLM</a>
-            </Button>
           </div>
         </section>
       </DialogContent>
