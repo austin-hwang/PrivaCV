@@ -1,4 +1,4 @@
-import { isLocalAIModelId } from "@/lib/local-ai";
+import { isLocalAIModelId } from "@/lib/local-ai-models";
 
 const HUGGING_FACE_MODEL_ROOT = "https://huggingface.co/mlc-ai/";
 const MODEL_CACHE_PATH_VERSION = "webllm-cache-v2";
