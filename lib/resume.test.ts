@@ -18,6 +18,7 @@ import {
   CUSTOM_SECTION_PRESETS,
   emptyState,
   exportChangeSummary,
+  getSectionEntries,
   includedBulletsFrom,
   normalizeResume,
   normalizeTagGroups,
@@ -104,6 +105,27 @@ describe("resume helpers", () => {
 
     expect(normalizeTagGroups([draft], "skills")).toEqual([]);
     expect(normalizeTagGroups([draft], "skills", true)).toEqual([draft]);
+  });
+
+  it("keeps structured Skills entries while grouped tags remain the default", () => {
+    const blank = emptyState();
+    expect(blank.sectionFormats.skills).toBe("tag-groups");
+
+    const state = normalizeResume({
+      sectionOrder: ["skills"],
+      sectionFormats: { skills: "entries" },
+      skillEntries: [{
+        title: "Cloud platforms",
+        subtitle: "AWS and Azure",
+        meta: "",
+        details: "Architecture and operations",
+      }],
+    });
+
+    expect(state.sectionFormats.skills).toBe("entries");
+    expect(getSectionEntries(state, "skills")).toEqual(state.skillEntries);
+    expect(resumePlainText(state)).toContain("Cloud platforms");
+    expect(resumePlainText(state)).toContain("AWS and Azure");
   });
 
   it("exports flexible custom-section formats as readable ATS text and Word paragraphs", () => {

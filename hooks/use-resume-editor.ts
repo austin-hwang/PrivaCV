@@ -731,6 +731,14 @@ export function useResumeEditor() {
     value: string,
   ) => {
     setState((current) => {
+      if (section === "skills") {
+        return {
+          ...current,
+          skillEntries: current.skillEntries.map((entry, entryIndex) =>
+            entryIndex === index ? { ...entry, [key]: value } : entry,
+          ),
+        };
+      }
       if (isBuiltinSection(section) && section !== "skills") {
         return {
           ...current,
@@ -768,6 +776,9 @@ export function useResumeEditor() {
 
   const addEntry = (section: string) => {
     setState((current) => {
+      if (section === "skills") {
+        return { ...current, skillEntries: [...current.skillEntries, blankEntry()] };
+      }
       if (isBuiltinSection(section) && section !== "skills") {
         return { ...current, [section]: [...current[section], blankEntry()] };
       }
@@ -787,6 +798,9 @@ export function useResumeEditor() {
       ? state.sectionTitles[section]
       : state.customSections.find((custom) => custom.id === section)?.title ?? "Custom section";
     setState((current) => {
+      if (section === "skills") {
+        return { ...current, skillEntries: current.skillEntries.filter((_, entryIndex) => entryIndex !== index) };
+      }
       if (isBuiltinSection(section) && section !== "skills") {
         return { ...current, [section]: current[section].filter((_, entryIndex) => entryIndex !== index) };
       }
@@ -807,6 +821,7 @@ export function useResumeEditor() {
       if (target < 0 || target >= next.length) return current;
       const [moved] = next.splice(index, 1);
       next.splice(target, 0, moved);
+      if (section === "skills") return { ...current, skillEntries: next };
       if (isBuiltinSection(section) && section !== "skills") return { ...current, [section]: next };
       return {
         ...current,
@@ -932,6 +947,7 @@ export function useResumeEditor() {
         return {
           ...next,
           skills: "",
+          skillEntries: [],
           sectionFormats: { ...next.sectionFormats, skills: "tag-groups" },
           sectionTagGroups: { ...next.sectionTagGroups, skills: [] },
         };
@@ -979,7 +995,7 @@ export function useResumeEditor() {
     if (!state.sectionOrder.includes(section)) return;
     const sectionOrderIndex = state.sectionOrder.indexOf(section);
     const title = state.sectionTitles[section];
-    const entries = section === "skills" ? [] : state[section];
+    const entries = getSectionEntries(state, section);
     const skills = section === "skills" ? state.skills : "";
     const format = state.sectionFormats[section] ?? (section === "skills" ? "tag-groups" : "entries");
     const tagGroups = state.sectionTagGroups[section] ?? [];
@@ -996,6 +1012,7 @@ export function useResumeEditor() {
         return {
           ...next,
           skills: "",
+          skillEntries: [],
           sectionFormats: { ...next.sectionFormats, skills: "tag-groups" },
           sectionTagGroups: { ...next.sectionTagGroups, skills: [] },
         };
@@ -1019,6 +1036,11 @@ export function useResumeEditor() {
 
       if (undoableRemoval.kind === "entry") {
         const { section, index, entry } = undoableRemoval;
+        if (section === "skills") {
+          const skillEntries = [...current.skillEntries];
+          skillEntries.splice(Math.min(index, skillEntries.length), 0, entry);
+          return { ...current, skillEntries };
+        }
         if (isBuiltinSection(section) && section !== "skills") {
           const entries = [...current[section]];
           entries.splice(Math.min(index, entries.length), 0, entry);
@@ -1062,6 +1084,7 @@ export function useResumeEditor() {
         return {
           ...next,
           skills: undoableRemoval.skills,
+          skillEntries: undoableRemoval.entries,
           sectionFormats: { ...next.sectionFormats, skills: undoableRemoval.format },
           sectionTagGroups: { ...next.sectionTagGroups, skills: undoableRemoval.tagGroups },
           sectionText: { ...next.sectionText, skills: undoableRemoval.text },

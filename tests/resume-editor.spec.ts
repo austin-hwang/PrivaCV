@@ -331,6 +331,9 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await expect(essentials.getByRole("button", { name: /add details/i })).toHaveCSS("align-self", "flex-end");
   await essentials.getByRole("button", { name: /add a role/i }).click();
   await expect(page.locator("#field-experience-0-title")).toBeFocused();
+  await essentials.getByRole("button", { name: /add skills/i }).click();
+  await expect(page.locator("#add-skills-group")).toBeFocused();
+  await expect(page.locator("#review-region-skills")).toHaveClass(/ring-brand/);
   await essentials.getByRole("button", { name: /hide guide/i }).click();
   await expect(essentials).toBeHidden();
   await expect(page.getByLabel("Resume editor")).toBeVisible();
@@ -1006,11 +1009,19 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await loadSample(page);
 
   const skillsSection = page.locator('[data-editor-section="skills"]');
+  const skillsFormatPicker = skillsSection.getByRole("group", { name: "Content format" });
+  await expect(skillsFormatPicker.getByRole("button", { name: "Grouped tags format" })).toHaveAttribute("aria-pressed", "true");
+  await expect(skillsFormatPicker.getByRole("button", { name: "Structured entries format" })).toBeVisible();
   const addSkillsGroup = skillsSection.getByRole("button", { name: "Add group to Skills" });
   await expect(addSkillsGroup).toBeVisible();
   await expect(skillsSection.getByRole("button", { name: "Add group", exact: true })).toHaveCount(0);
   await addSkillsGroup.click();
   await expect(skillsSection.getByLabel("Tag group label").last()).toBeFocused();
+  await skillsFormatPicker.getByRole("button", { name: "Structured entries format" }).click();
+  await skillsSection.locator("#add-skills-entry").click();
+  await page.locator("#field-skills-0-title").fill("Cloud platforms");
+  await page.locator("#field-skills-0-subtitle").fill("AWS and Azure");
+  await expect(page.locator(".resume-sheet").getByText("Cloud platforms", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   await page.getByLabel("New Section section title").fill("Certifications");

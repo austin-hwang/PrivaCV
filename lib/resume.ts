@@ -191,6 +191,7 @@ export const resumeSchema = z.object({
   website: z.string().catch(""),
   summary: z.string().catch(""),
   skills: z.string().catch(""),
+  skillEntries: z.array(entrySchema).catch([]),
   experience: z.array(entrySchema).catch([]),
   education: z.array(entrySchema).catch([]),
   projects: z.array(entrySchema).catch([]),
@@ -290,6 +291,7 @@ export function emptyState(): ResumeState {
     website: "",
     summary: "",
     skills: "",
+    skillEntries: [],
     experience: [blankEntry()],
     education: [blankEntry()],
     projects: [],
@@ -374,6 +376,7 @@ export function normalizeResume(data: unknown): ResumeState {
   return {
     ...emptyState(),
     ...parsed,
+    skillEntries: parsed.skillEntries.map((entry) => ({ ...blankEntry(), ...entry })),
     experience: parsed.experience.map((entry) => ({ ...blankEntry(), ...entry })),
     education: parsed.education.map((entry) => ({ ...blankEntry(), ...entry })),
     projects: parsed.projects.map((entry) => ({ ...blankEntry(), ...entry })),
@@ -440,7 +443,7 @@ export function getSectionEntries(state: ResumeState, section: string): ResumeEn
   if (section === "experience") return state.experience;
   if (section === "education") return state.education;
   if (section === "projects") return state.projects;
-  if (section === "skills") return [];
+  if (section === "skills") return state.skillEntries;
   return state.customSections.find((candidate) => candidate.id === section)?.entries ?? [];
 }
 
@@ -499,6 +502,7 @@ export function hasAnyContent(state: ResumeState) {
   if (state.name || state.title || state.summary || state.skills || Object.values(state.sectionText).some(Boolean)) return true;
   if (Object.values(state.sectionTagGroups).some((groups) => groups.some((group) => group.label || group.tags.length))) return true;
   if (state.email || state.phone || state.location || state.website) return true;
+  if (state.skillEntries.some(entryHasContent)) return true;
   if (state.customSections.some((section) => section.entries.some(entryHasContent))) return true;
   return ["experience", "education", "projects"].some((section) =>
     state[section as "experience" | "education" | "projects"].some(
@@ -1033,11 +1037,7 @@ function sectionSnapshot(state: ResumeState, section: "experience" | "education"
 }
 
 function skillsSnapshot(state: ResumeState) {
-  return state.skills
-    .split("\n")
-    .map(cleanTextLine)
-    .filter(Boolean)
-    .join(" / ");
+  return sectionPlainText(state, "", "skills").join(" / ");
 }
 
 function visualStyleSnapshot(state: ResumeState) {

@@ -375,11 +375,19 @@ export function ResumeEditor() {
         label: "List relevant skills",
         description: "Group by category, e.g. Languages or Tools.",
         actionLabel: "Add skills",
-        targetId: "field-skills",
-        done: Boolean(state.skills.trim()),
+        targetId: getSectionFormat(state, "skills") === "tag-groups"
+          ? state.sectionTagGroups.skills?.[0]
+            ? `field-skills-group-${state.sectionTagGroups.skills[0].id}`
+            : "add-skills-group"
+          : getSectionFormat(state, "skills") === "entries"
+            ? state.skillEntries.length
+              ? "field-skills-0-title"
+              : "add-skills-entry"
+            : "field-skills-content",
+        done: sectionItemCount(state, "skills") > 0,
       },
     ],
-    [checks, state.experience, state.skills],
+    [checks, state],
   );
   const externalDraftChanges = useMemo(
     () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
@@ -760,9 +768,9 @@ export function ResumeEditor() {
         continue;
       }
 
-      if (format !== "entries" || section === "skills") {
+      if (format !== "entries") {
         items.push({
-          id: section === "skills" ? "field-skills" : `field-${section}-content`,
+          id: `field-${section}-content`,
           label: `${sectionTitle} content`,
           context: `${sectionTitle} · ${SECTION_FORMAT_LABELS[format]}`,
           keywords: getSectionText(state, section),
@@ -1360,7 +1368,9 @@ export function ResumeEditor() {
                 const sectionIsActive =
                   activeTarget === `section-title-${section}` ||
                   activeTarget === `field-${section}` ||
-                  activeTarget?.startsWith(`field-${section}-`);
+                  activeTarget?.startsWith(`field-${section}-`) ||
+                  activeTarget === `add-${section}-group` ||
+                  activeTarget === `add-${section}-entry`;
                 return (
                 <div
                   key={section}
@@ -1458,7 +1468,7 @@ export function ResumeEditor() {
                         >
                           <Plus /> <span className="hidden sm:inline">Add group</span>
                         </Button>
-                      ) : section !== "skills" && sectionFormat === "entries" ? (
+                      ) : sectionFormat === "entries" ? (
                         <Button
                           id={`add-${section}-entry`}
                           type="button"
@@ -1532,7 +1542,7 @@ export function ResumeEditor() {
                       aria-labelledby={`section-format-${section}`}
                       className="flex w-full overflow-x-auto rounded-md border border-input bg-background shadow-sm"
                     >
-                      {SECTION_FORMATS.filter((format) => section !== "skills" || format !== "entries").map((format, index) => (
+                      {SECTION_FORMATS.map((format, index) => (
                         <button
                           key={format}
                           type="button"
@@ -1597,14 +1607,6 @@ export function ResumeEditor() {
                       placeholder="Certification — Issuer, 2025"
                       onChange={(value) => updateSectionText(section, value)}
                       aiAssist={sectionTextAIAssist}
-                    />
-                  ) : section === "skills" ? (
-                    <TextAreaField
-                      id="field-skills"
-                      label="Skills"
-                      value={state.skills}
-                      placeholder="Choose Grouped tags for the Skills editor."
-                      onChange={(value) => updateField("skills", value)}
                     />
                   ) : (
                     <EntryList
