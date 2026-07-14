@@ -1,10 +1,10 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Sparkles, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ENTRY_SCHEMA } from "@/lib/resume-workspace";
-import { entryHasContent, isBuiltinSection, type ResumeEntry } from "@/lib/resume";
+import { entryHasContent, isBuiltinSection, type ResumeEntry, type TagGroup } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
@@ -38,7 +38,7 @@ export function FieldGroup({
       id={id}
       data-review-region={reviewRegion ? "" : undefined}
       data-field-group={groupId}
-      className={cn("scroll-mt-32 border-b transition-colors last:border-b-0 lg:scroll-mt-16", collapsed ? "pb-3" : "pb-5", className)}
+      className={cn("scroll-mt-44 border-b transition-colors last:border-b-0 lg:scroll-mt-16", collapsed ? "pb-3" : "pb-5", className)}
     >
       {/* The collapse toggle lives on the RIGHT so the title (and the fields
           below it) share one flush-left edge — a left chevron would indent the
@@ -154,6 +154,103 @@ export function TextAreaField({
         onChange={(event) => onChange(event.target.value)}
       />
       {aiAssist?.expanded ? aiAssist.content : null}
+    </div>
+  );
+}
+
+function TagGroupRow({
+  group,
+  onChange,
+  onRemove,
+}: {
+  group: TagGroup;
+  onChange: (next: TagGroup) => void;
+  onRemove: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const addTag = () => {
+    const value = draft.trim();
+    if (!value || group.tags.some((tag) => tag.toLocaleLowerCase() === value.toLocaleLowerCase())) return;
+    onChange({ ...group, tags: [...group.tags, value] });
+    setDraft("");
+  };
+
+  return (
+    <div className="grid gap-2 rounded-md border bg-background p-3">
+      <div className="flex items-center gap-2">
+        <Input
+          value={group.label}
+          onChange={(event) => onChange({ ...group, label: event.target.value })}
+          placeholder="Group label (optional)"
+          aria-label="Tag group label"
+          className="h-8 text-xs"
+        />
+        <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={`Remove ${group.label || "tag"} group`} onClick={onRemove}>
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5" aria-label={group.label ? `${group.label} tags` : "Tags"}>
+        {group.tags.map((tag) => (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`Remove ${tag}`}
+            title="Remove tag"
+          >
+            {tag}<X className="size-3" aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if ((event.key === "Enter" || event.key === ",") && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              addTag();
+            }
+          }}
+          placeholder="Add a skill, then press Enter"
+          aria-label={`Add tag to ${group.label || "group"}`}
+          className="h-8 text-xs"
+        />
+        <Button type="button" variant="outline" size="sm" className="h-8" onClick={addTag} disabled={!draft.trim()}>
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function TagGroupEditor({
+  groups,
+  onChange,
+}: {
+  groups: TagGroup[];
+  onChange: (groups: TagGroup[]) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      {groups.map((group) => (
+        <TagGroupRow
+          key={group.id}
+          group={group}
+          onChange={(next) => onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate))}
+          onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
+        />
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-fit"
+        onClick={() => onChange([...groups, { id: `group-${Date.now().toString(36)}`, label: "", tags: [] }])}
+      >
+        <Plus /> Add group
+      </Button>
     </div>
   );
 }

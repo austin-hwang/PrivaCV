@@ -61,7 +61,7 @@ export default function Home() {
   return (
     <>
       <ResumeEditor />
-      <section className="app-chrome border-t bg-card px-4 py-12 lg:px-6" aria-label="About PrivaCV">
+      <section className="public-explainer app-chrome border-t bg-card px-4 py-12 lg:px-6" aria-label="About PrivaCV">
         <div className="mx-auto grid max-w-5xl gap-10">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">About PrivaCV</p>
@@ -113,7 +113,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <footer className="app-chrome border-t px-4 py-6 text-center text-sm text-muted-foreground lg:px-6">
+      <footer className="public-explainer app-chrome border-t px-4 py-6 text-center text-sm text-muted-foreground lg:px-6">
         <Link className="hover:text-foreground" href="/about">About PrivaCV</Link><span aria-hidden="true"> · </span><Link className="hover:text-foreground" href="/privacy">Privacy</Link>
       </footer>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />

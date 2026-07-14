@@ -9,10 +9,12 @@ import {
   buildResumeChecks,
   clampTextScale,
   emptyState,
-  exportChangeSummary,
   getSectionEntries,
   hasAnyContent,
   isBuiltinSection,
+  normalizeTagGroups,
+  parseTagGroups,
+  tagGroupsToText,
   normalizeResume,
   resumeExportFingerprint,
   resumePlainText,
@@ -23,6 +25,8 @@ import {
   type ResumeEntry,
   type ResumeState,
   type ResumeTheme,
+  type SectionFormat,
+  type TagGroup,
   type OversizedResumeEntry,
 } from "@/lib/resume";
 import {
@@ -43,7 +47,6 @@ import {
   versionLabel,
   type ImportReviewState,
   type RecoveryPoint,
-  type RestoredVersionSummary,
   type ToastState,
   type VersionHistoryBackup,
   type VersionHistoryItem,
@@ -145,6 +148,9 @@ type UndoableChange =
       toastId: number;
       section: CustomSection;
       sectionOrderIndex: number;
+      format: SectionFormat;
+      tagGroups: TagGroup[];
+      text: string;
     }
   | {
       kind: "builtin-section";
@@ -154,6 +160,9 @@ type UndoableChange =
       entries: ResumeEntry[];
       skills: string;
       sectionOrderIndex: number;
+      format: SectionFormat;
+      tagGroups: TagGroup[];
+      text: string;
     }
   | {
       kind: "layout";
@@ -185,7 +194,6 @@ export function useResumeEditor() {
   const [undoableRemoval, setUndoableRemoval] = useState<UndoableChange | null>(null);
   const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
   const [recoveryPoint, setRecoveryPoint] = useState<RecoveryPoint | null>(null);
-  const [restoredVersionSummary, setRestoredVersionSummary] = useState<RestoredVersionSummary | null>(null);
   const [deletedVersion, setDeletedVersion] = useState<VersionHistoryItem | null>(null);
   const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
@@ -193,6 +201,10 @@ export function useResumeEditor() {
   const [storageIssue, setStorageIssue] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
   const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
+  // Unlike the live editor state, this is the exact draft most recently
+  // written to browser storage. It makes the autosave entry a real restore
+  // point while a newer edit is waiting for its debounce to finish.
+  const [autosavedState, setAutosavedState] = useState<ResumeState | null>(null);
   const [externalDraft, setExternalDraft] = useState<ResumeState | null>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -209,8 +221,6 @@ export function useResumeEditor() {
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
   const exportFingerprint = useMemo(() => resumeExportFingerprint(state), [state]);
-  const visibleRestoredVersionSummary =
-    restoredVersionSummary?.fingerprint === exportFingerprint ? restoredVersionSummary : null;
   const currentVersionHistoryFingerprint = exportFingerprint;
   const existingVersionForSave = useMemo(
     () => versionHistory.find((item) => versionHistoryFingerprint(item) === currentVersionHistoryFingerprint) ?? null,
@@ -297,7 +307,6 @@ export function useResumeEditor() {
     setState(recoveryPoint.state);
     setImportReview(recoveryPoint.importReview);
     setRecoveryPoint(null);
-    setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
     flash("Restored previous resume");
   };
@@ -357,17 +366,10 @@ export function useResumeEditor() {
 
   const restoreVersion = (item: VersionHistoryItem) => {
     saveRecoveryPoint(`Before restoring ${item.label}`);
-    setRestoredVersionSummary({
-      id: item.id,
-      label: item.label,
-      savedAt: item.savedAt,
-      fingerprint: item.fingerprint,
-      changes: exportChangeSummary(state, item.state),
-    });
     setState(item.state);
     setImportReview(item.importReview);
-    setDraftSourceVersionId(item.id);
-    flash("Restored saved version");
+    setDraftSourceVersionId(item.id === "autosave-copy" ? null : item.id);
+    flash(`Restored ${item.label}`);
   };
 
   const deleteVersion = (id: string) => {
@@ -376,7 +378,6 @@ export function useResumeEditor() {
     const deletedLocally = persistVersionHistory(nextHistory);
     setVersionHistory(nextHistory);
     setDeletedVersion(deleted);
-    if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
     flash(deletedLocally ? "Deleted saved version" : "Could not remove the saved version from browser storage");
   };
@@ -403,7 +404,9 @@ export function useResumeEditor() {
       const legacy = localStorage.getItem("resume-editor-data-v1");
       const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
       if (saved) {
-        setState(normalizeResume(JSON.parse(saved)));
+        const savedState = normalizeResume(JSON.parse(saved));
+        setState(savedState);
+        setAutosavedState(savedState);
         setAutosavedAt(localStorage.getItem(AUTOSAVE_TIME_KEY) ?? new Date().toISOString());
       }
       setImportReview(parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY)));
@@ -456,6 +459,7 @@ export function useResumeEditor() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         localStorage.setItem(AUTOSAVE_TIME_KEY, savedAt);
         confirmStorageAvailable();
+        setAutosavedState(normalizeResume(state));
         setAutosavedAt(savedAt);
         setAutosaveStatus("saved");
       } catch {
@@ -669,7 +673,17 @@ export function useResumeEditor() {
   }, [printBreaks, state]);
 
   const updateField = <K extends keyof ResumeState>(key: K, value: ResumeState[K]) => {
-    setState((current) => ({ ...current, [key]: value }));
+    setState((current) => {
+      if (key === "skills") {
+        const skills = String(value);
+        return {
+          ...current,
+          skills,
+          sectionTagGroups: { ...current.sectionTagGroups, skills: parseTagGroups(skills, "skills") },
+        };
+      }
+      return { ...current, [key]: value };
+    });
   };
 
   const updateEntry = (
@@ -826,6 +840,33 @@ export function useResumeEditor() {
     });
   };
 
+  const updateSectionFormat = (section: string, format: SectionFormat) => {
+    setState((current) => ({
+      ...current,
+      sectionFormats: { ...current.sectionFormats, [section]: format },
+    }));
+  };
+
+  const updateSectionTagGroups = (section: string, groups: TagGroup[]) => {
+    setState((current) => {
+      const normalized = normalizeTagGroups(groups, section);
+      return {
+        ...current,
+        sectionTagGroups: { ...current.sectionTagGroups, [section]: normalized },
+        // Keep the legacy Skills text in sync so older JSON consumers and
+        // import/export paths retain a readable representation.
+        ...(section === "skills" ? { skills: tagGroupsToText(normalized) } : {}),
+      };
+    });
+  };
+
+  const updateSectionText = (section: string, text: string) => {
+    setState((current) => ({
+      ...current,
+      sectionText: { ...current.sectionText, [section]: text },
+    }));
+  };
+
   const addCustomSection = (title = "New Section") => {
     const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     setState((current) => ({
@@ -846,7 +887,14 @@ export function useResumeEditor() {
         hiddenSections: current.hiddenSections.filter((id) => id !== section),
         sectionTitles: { ...current.sectionTitles, [section]: SECTION_LABELS[section] },
       };
-      if (section === "skills") return { ...next, skills: "" };
+      if (section === "skills") {
+        return {
+          ...next,
+          skills: "",
+          sectionFormats: { ...next.sectionFormats, skills: "tag-groups" },
+          sectionTagGroups: { ...next.sectionTagGroups, skills: [] },
+        };
+      }
       return { ...next, [section]: [blankEntry()] };
     });
     flash(`Added ${SECTION_LABELS[section]} section`);
@@ -870,9 +918,20 @@ export function useResumeEditor() {
       customSections: current.customSections.filter((custom) => custom.id !== section),
       sectionOrder: current.sectionOrder.filter((id) => id !== section),
       hiddenSections: current.hiddenSections.filter((id) => id !== section),
+      sectionFormats: Object.fromEntries(Object.entries(current.sectionFormats).filter(([id]) => id !== section)),
+      sectionTagGroups: Object.fromEntries(Object.entries(current.sectionTagGroups).filter(([id]) => id !== section)),
+      sectionText: Object.fromEntries(Object.entries(current.sectionText).filter(([id]) => id !== section)),
     }));
     const toastId = flash(`Removed ${removedSection.title || "custom"} section`, "undo");
-    setUndoableRemoval({ kind: "custom-section", toastId, section: removedSection, sectionOrderIndex });
+    setUndoableRemoval({
+      kind: "custom-section",
+      toastId,
+      section: removedSection,
+      sectionOrderIndex,
+      format: state.sectionFormats[section] ?? "entries",
+      tagGroups: state.sectionTagGroups[section] ?? [],
+      text: state.sectionText[section] ?? "",
+    });
   };
 
   const removeBuiltinSection = (section: SectionKey) => {
@@ -881,6 +940,9 @@ export function useResumeEditor() {
     const title = state.sectionTitles[section];
     const entries = section === "skills" ? [] : state[section];
     const skills = section === "skills" ? state.skills : "";
+    const format = state.sectionFormats[section] ?? (section === "skills" ? "tag-groups" : "entries");
+    const tagGroups = state.sectionTagGroups[section] ?? [];
+    const text = state.sectionText[section] ?? "";
     setState((current) => {
       if (!current.sectionOrder.includes(section)) return current;
       const next = {
@@ -889,11 +951,18 @@ export function useResumeEditor() {
         hiddenSections: current.hiddenSections.filter((id) => id !== section),
         sectionTitles: { ...current.sectionTitles, [section]: SECTION_LABELS[section] },
       };
-      if (section === "skills") return { ...next, skills: "" };
+      if (section === "skills") {
+        return {
+          ...next,
+          skills: "",
+          sectionFormats: { ...next.sectionFormats, skills: "tag-groups" },
+          sectionTagGroups: { ...next.sectionTagGroups, skills: [] },
+        };
+      }
       return { ...next, [section]: [] };
     });
     const toastId = flash(`Removed ${title || SECTION_LABELS[section]} section`, "undo");
-    setUndoableRemoval({ kind: "builtin-section", toastId, section, title, entries, skills, sectionOrderIndex });
+    setUndoableRemoval({ kind: "builtin-section", toastId, section, title, entries, skills, sectionOrderIndex, format, tagGroups, text });
   };
 
   const undoRemoval = () => {
@@ -934,6 +1003,9 @@ export function useResumeEditor() {
           ...current,
           customSections: [...current.customSections, undoableRemoval.section],
           sectionOrder,
+          sectionFormats: { ...current.sectionFormats, [undoableRemoval.section.id]: undoableRemoval.format },
+          sectionTagGroups: { ...current.sectionTagGroups, [undoableRemoval.section.id]: undoableRemoval.tagGroups },
+          sectionText: { ...current.sectionText, [undoableRemoval.section.id]: undoableRemoval.text },
         };
       }
 
@@ -945,8 +1017,22 @@ export function useResumeEditor() {
         sectionOrder,
         sectionTitles: { ...current.sectionTitles, [undoableRemoval.section]: undoableRemoval.title },
       };
-      if (undoableRemoval.section === "skills") return { ...next, skills: undoableRemoval.skills };
-      return { ...next, [undoableRemoval.section]: undoableRemoval.entries };
+      if (undoableRemoval.section === "skills") {
+        return {
+          ...next,
+          skills: undoableRemoval.skills,
+          sectionFormats: { ...next.sectionFormats, skills: undoableRemoval.format },
+          sectionTagGroups: { ...next.sectionTagGroups, skills: undoableRemoval.tagGroups },
+          sectionText: { ...next.sectionText, skills: undoableRemoval.text },
+        };
+      }
+      return {
+        ...next,
+        [undoableRemoval.section]: undoableRemoval.entries,
+        sectionFormats: { ...next.sectionFormats, [undoableRemoval.section]: undoableRemoval.format },
+        sectionTagGroups: { ...next.sectionTagGroups, [undoableRemoval.section]: undoableRemoval.tagGroups },
+        sectionText: { ...next.sectionText, [undoableRemoval.section]: undoableRemoval.text },
+      };
     });
     setUndoableRemoval(null);
     flash(
@@ -970,7 +1056,6 @@ export function useResumeEditor() {
       textScale: current.textScale,
     }));
     setImportReview(null);
-    setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
     flash("Sample loaded");
   };
@@ -979,7 +1064,6 @@ export function useResumeEditor() {
     saveRecoveryPoint("Before clearing the resume");
     setState(emptyState());
     setImportReview(null);
-    setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
     flash("Cleared");
   };
@@ -1008,8 +1092,8 @@ export function useResumeEditor() {
     setImportReview(null);
     setVersionHistory([]);
     setAutosavedAt(null);
+    setAutosavedState(null);
     setRecoveryPoint(null);
-    setRestoredVersionSummary(null);
     setDeletedVersion(null);
     setHistoryBackupToImport(null);
     setUndoableRemoval(null);
@@ -1020,10 +1104,6 @@ export function useResumeEditor() {
 
   const dismissRecoveryPoint = () => {
     setRecoveryPoint(null);
-  };
-
-  const dismissRestoredVersionSummary = () => {
-    setRestoredVersionSummary(null);
   };
 
   const toggleImportReviewItem = (itemId: string) => {
@@ -1120,7 +1200,6 @@ export function useResumeEditor() {
       saveRecoveryPoint(`Before opening ${file.name}`);
       setState(nextState);
       setImportReview(null);
-      setRestoredVersionSummary(null);
       setDraftSourceVersionId(null);
       flash("Loaded JSON");
     } catch {
@@ -1138,7 +1217,6 @@ export function useResumeEditor() {
       saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
       setState(imported.state);
       setImportReview(buildImportReview(imported.state, file.name, imported.sourceText));
-      setRestoredVersionSummary(null);
       setDraftSourceVersionId(null);
       flash("Imported PDF - please review");
     } catch (error) {
@@ -1158,7 +1236,6 @@ export function useResumeEditor() {
       saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
       setState(imported.state);
       setImportReview(buildImportReview(imported.state, file.name, imported.sourceText));
-      setRestoredVersionSummary(null);
       setDraftSourceVersionId(null);
       flash("Imported Word document - please review");
     } catch (error) {
@@ -1188,7 +1265,6 @@ export function useResumeEditor() {
       saveRecoveryPoint("Before importing pasted resume text");
       setState(imported.state);
       setImportReview(buildImportReview(imported.state, "pasted resume text", imported.sourceText));
-      setRestoredVersionSummary(null);
       setDraftSourceVersionId(null);
       setTextImportOpen(false);
       flash("Imported pasted text - please review");
@@ -1208,7 +1284,6 @@ export function useResumeEditor() {
     saveRecoveryPoint(`Before fixing the ${importReview.fileName} import with local AI`, state, importReview);
     setState(nextState);
     setImportReview(buildImportReview(nextState, importReview.fileName, importReview.sourceText));
-    setRestoredVersionSummary(null);
     setDraftSourceVersionId(null);
     flash("Applied local AI import proposal - please review every field");
     return true;
@@ -1335,6 +1410,7 @@ export function useResumeEditor() {
     applyAIImportFix,
     autosaveStatus,
     autosavedAt,
+    autosavedState,
     checks,
     clearSavedBrowserData,
     clearResume,
@@ -1347,7 +1423,6 @@ export function useResumeEditor() {
     externalDraft,
     deletedVersion,
     dismissRecoveryPoint,
-    dismissRestoredVersionSummary,
     existingVersionForSave,
     exportAnyway,
     exportCheckOpen,
@@ -1391,7 +1466,6 @@ export function useResumeEditor() {
     requestExport,
     restoreRecoveryPoint,
     restoreVersion,
-    restoredVersionSummary,
     resumeRef,
     saveJson,
     saveVersion,
@@ -1420,12 +1494,14 @@ export function useResumeEditor() {
     undoRemoval,
     updateEntry,
     updateField,
+    updateSectionFormat,
+    updateSectionTagGroups,
+    updateSectionText,
     updateSectionTitle,
     useExternalDraft,
     versionDraftLabel,
     versionDraftNote,
     versionHistory,
     versionSaveOpen,
-    visibleRestoredVersionSummary,
   };
 }

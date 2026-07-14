@@ -9,7 +9,7 @@ import {
   generateLocalAIText,
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
-import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite } from "@/lib/local-ai";
+import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, localAIRewriteMaxTokens } from "@/lib/local-ai";
 import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
 const INLINE_AI_INSTRUCTION_LIMIT = 100;
@@ -49,6 +49,7 @@ export function LocalAIInlineEdit({
     try {
       const result = await generateLocalAIText({
         messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
+        maxTokens: localAIRewriteMaxTokens(text),
         onToken: setOutput,
       });
       setOutput(cleanLocalAIRewrite(result));

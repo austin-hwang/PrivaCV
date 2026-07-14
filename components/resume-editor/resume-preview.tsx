@@ -4,6 +4,9 @@ import {
   contactHref,
   entryHasContent,
   getSectionEntries,
+  getSectionFormat,
+  getSectionTagGroups,
+  getSectionText,
   getSectionTitle,
   hasAnyContent,
   normalizeAccent,
@@ -433,20 +436,18 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
       {...(editable ? {} : previewTargetProps(`section-title-${section}`, onTargetSelect))}
     />
   ) : null;
-  if (section === "skills") {
+  const sectionFormat = getSectionFormat(state, section);
+  if (sectionFormat === "tag-groups") {
     const printBreakTarget = `section:${section}`;
-    const lines = state.skills
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (!lines.length) return null;
+    const groups = getSectionTagGroups(state, section).filter((group) => group.label || group.tags.length);
+    if (!groups.length) return null;
     return (
       <section
         className={cn("resume-section resume-section-atomic resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
-        data-resume-guide-label={title ? `${title} · Skills` : "Skills"}
+        data-resume-guide-label={title || "Tag groups"}
         data-resume-print-section={section}
         style={printBreakStyle(printBreakTarget, printBreaks)}
-        {...(editable ? {} : previewTargetProps("field-skills", onTargetSelect))}
+        {...(editable ? {} : previewTargetProps(section === "skills" ? "field-skills" : `field-${section}-content`, onTargetSelect))}
       >
         {title ? (
           <InlineText
@@ -458,24 +459,40 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
             className="resume-section-title"
           />
         ) : null}
-        <EditableList
-          editable={editable}
-          items={lines}
-          containerTag="div"
-          itemTag="div"
-          itemClassName="resume-skill-line"
-          onCommit={(items) => onEditField?.("skills", items.join("\n"))}
-          renderItem={(line) => {
-            const index = line.indexOf(":");
-            return index > -1 ? (
-              <>
-                <span className="resume-skill-cat">{line.slice(0, index).trim()}:</span> {line.slice(index + 1).trim()}
-              </>
-            ) : (
-              line
-            );
-          }}
-        />
+        <div>
+          {groups.map((group) => (
+            <div key={group.id} className="resume-skill-line">
+              {group.label ? <span className="resume-skill-cat">{group.label}:</span> : null} {group.tags.join(" · ")}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (sectionFormat === "bullets" || sectionFormat === "paragraphs" || sectionFormat === "labeled-rows") {
+    const printBreakTarget = `section:${section}`;
+    const text = getSectionText(state, section).trim();
+    if (!text) return null;
+    const targetId = `field-${section}-content`;
+    return (
+      <section
+        className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+        data-resume-print-section={section}
+        data-resume-section-has-heading={title ? "true" : "false"}
+        style={printBreakStyle(printBreakTarget, printBreaks)}
+        {...(editable ? {} : previewTargetProps(targetId, onTargetSelect))}
+      >
+        {editableHeading}
+        {sectionFormat === "bullets" ? (
+          <ul className="resume-bullets">
+            {bulletsFrom(text).map((line, index) => <li key={`${section}-${index}`}>{line}</li>)}
+          </ul>
+        ) : (
+          <div className="grid gap-1.5 text-[0.9em] leading-relaxed">
+            {text.split(sectionFormat === "paragraphs" ? /\n\s*\n/ : "\n").map((line, index) => line.trim() ? <p key={`${section}-${index}`}>{line.trim()}</p> : null)}
+          </div>
+        )}
       </section>
     );
   }

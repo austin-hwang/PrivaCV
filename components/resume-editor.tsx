@@ -45,7 +45,7 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 import { toggleTheme } from "@/components/theme-toggle";
 import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
 import { Input } from "@/components/ui/input";
-import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
+import { EntryList, FieldGroup, TagGroupEditor, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
@@ -54,7 +54,7 @@ import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/
 import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
-import { ChangeSummaryGrid, RestoredVersionCard } from "@/components/resume-editor/version-changes";
+import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   ACCENT_PRESETS,
@@ -67,6 +67,9 @@ import {
   DENSITY_LABELS,
   exportChangeSummary,
   getSectionEntries,
+  getSectionFormat,
+  getSectionTagGroups,
+  getSectionText,
   getSectionTitle,
   isSectionHidden,
   sectionItemCount,
@@ -76,11 +79,14 @@ import {
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
   normalizeAccent,
+  resumeExportFingerprint,
   RESUME_FONTS,
   RESUME_TEMPLATES,
   resumePlainText,
   resolveFontStack,
   SECTION_KEYS,
+  SECTION_FORMAT_LABELS,
+  SECTION_FORMATS,
   SECTION_LABELS,
   TEMPLATE_THEMES,
   type BulletStyle,
@@ -251,24 +257,25 @@ export function ResumeEditor() {
     tightenLayout,
     updateEntry,
     updateField,
+    updateSectionFormat,
+    updateSectionTagGroups,
+    updateSectionText,
     updateSectionTitle,
     useExternalDraft,
     toggleImportReviewItem,
     completeImportReview,
     confirmAllImportReviewItems,
-    dismissRestoredVersionSummary,
     versionHistory,
-    visibleRestoredVersionSummary,
   } = editor;
   const currentImportSourceText = importReview?.sourceText?.trim() || (importReview ? resumePlainText(state).trim() : "");
   const usingCurrentDraftForAIImport = Boolean(importReview && !importReview.sourceText?.trim() && currentImportSourceText);
-  const autosaveCopy: VersionHistoryItem | null = hasContent && editor.autosavedAt
+  const autosaveCopy: VersionHistoryItem | null = editor.autosavedAt && editor.autosavedState
     ? {
         id: "autosave-copy",
         savedAt: editor.autosavedAt,
         label: "Autosave copy",
-        fingerprint: editor.exportFingerprint,
-        state,
+        fingerprint: resumeExportFingerprint(editor.autosavedState),
+        state: editor.autosavedState,
         importReview,
       }
     : null;
@@ -299,6 +306,14 @@ export function ResumeEditor() {
     />
   ) : null;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
+  // The public explainer lives below the editor so it is present for first-time
+  // visitors and crawlers. Once someone starts a resume, keep the workspace a
+  // true app surface with its own panes instead of leaving a long marketing
+  // page underneath it to scroll into.
+  useEffect(() => {
+    document.documentElement.dataset.resumeWorkspace = workspaceHasStarted ? "active" : "";
+    return () => { delete document.documentElement.dataset.resumeWorkspace; };
+  }, [workspaceHasStarted]);
   const blankResumeGuideSteps = useMemo<BlankResumeGuideStep[]>(
     () => [
       {
@@ -848,7 +863,7 @@ export function ResumeEditor() {
                 </span>
               ) : null}
             </Button>
-            {hasContent || versionHistory.length ? (
+            {hasContent || versionHistory.length || autosaveCopy ? (
               <Button
                 type="button"
                 variant="outline"
@@ -1012,7 +1027,7 @@ export function ResumeEditor() {
             if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
           }}
           className={cn(
-            "editor-pane relative overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:px-6 lg:pb-6 lg:pt-0",
+            "editor-pane relative overflow-visible border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto lg:border-b-0 lg:px-6 lg:pb-6 lg:pt-0",
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
             editorCollapsed && "lg:hidden",
           )}
@@ -1131,14 +1146,6 @@ export function ResumeEditor() {
                 </Button>
               </CardContent>
             </Card>
-          ) : null}
-
-          {visibleRestoredVersionSummary ? (
-            <RestoredVersionCard
-              summary={visibleRestoredVersionSummary}
-              onDismiss={dismissRestoredVersionSummary}
-              onFocus={focusEditorTarget}
-            />
           ) : null}
 
           {blankWorkspaceOpen && blankResumeGuideVisible && !importReview ? (
@@ -1442,6 +1449,9 @@ export function ResumeEditor() {
                 const sectionTitle = getSectionTitle(state, section);
                 const sectionDisplayTitle = sectionTitle.trim() || "Untitled section";
                 const entries = getSectionEntries(state, section);
+                const sectionFormat = getSectionFormat(state, section);
+                const tagGroups = getSectionTagGroups(state, section);
+                const sectionText = getSectionText(state, section);
                 const sectionHidden = isSectionHidden(state, section);
                 const sectionIsActive =
                   activeTarget === `field-${section}` ||
@@ -1451,7 +1461,7 @@ export function ResumeEditor() {
                   key={section}
                   id={`edit-section-${section}`}
                   data-editor-section={section}
-                  className="scroll-mt-32 lg:scroll-mt-16"
+                  className="scroll-mt-44 lg:scroll-mt-16"
                   data-dragging={draggedSection === section || undefined}
                   data-drop-target={dropTargetSection === section && draggedSection !== section || undefined}
                   onDragEnter={(event) => {
@@ -1500,7 +1510,7 @@ export function ResumeEditor() {
                             <EyeOff className="size-3" /> Hidden
                           </button>
                         ) : null}
-                        {section !== "skills" ? (
+                        {section !== "skills" && sectionFormat === "entries" ? (
                           <Button
                             id={`add-${section}-entry`}
                             type="button"
@@ -1517,18 +1527,63 @@ export function ResumeEditor() {
                     ) : undefined
                   }
                 >
-                  {section === "skills" ? (
+                  <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+                    <label htmlFor={`section-format-${section}`}>Content format</label>
+                    <select
+                      id={`section-format-${section}`}
+                      value={sectionFormat}
+                      onChange={(event) => updateSectionFormat(section, event.target.value as typeof sectionFormat)}
+                      className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {SECTION_FORMATS.filter((format) => section !== "skills" || format !== "entries").map((format) => (
+                        <option key={format} value={format}>{SECTION_FORMAT_LABELS[format]}</option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] font-normal leading-snug text-muted-foreground">
+                      {sectionFormat === "tag-groups"
+                        ? "Use labeled groups and removable tags for concise skills, tools, languages, or competencies."
+                        : sectionFormat === "entries"
+                          ? "Use a heading, supporting details, and optional bullets for each item."
+                          : sectionFormat === "bullets"
+                            ? "Use one concise bullet per line."
+                            : sectionFormat === "paragraphs"
+                              ? "Use plain paragraphs for narrative or additional information."
+                              : "Use one concise labeled row per line, such as Credential — Issuer, Year."}
+                    </p>
+                  </div>
+                  {sectionFormat === "tag-groups" ? (
+                    <TagGroupEditor groups={tagGroups} onChange={(groups) => updateSectionTagGroups(section, groups)} />
+                  ) : sectionFormat === "bullets" ? (
+                    <TextAreaField
+                      id={`field-${section}-content`}
+                      label={`${sectionDisplayTitle} (one bullet per line)`}
+                      value={sectionText}
+                      placeholder="One concise item per line"
+                      onChange={(value) => updateSectionText(section, value)}
+                    />
+                  ) : sectionFormat === "paragraphs" ? (
+                    <TextAreaField
+                      id={`field-${section}-content`}
+                      label={`${sectionDisplayTitle} paragraphs`}
+                      value={sectionText}
+                      placeholder="Write one or more concise paragraphs."
+                      onChange={(value) => updateSectionText(section, value)}
+                    />
+                  ) : sectionFormat === "labeled-rows" ? (
+                    <TextAreaField
+                      id={`field-${section}-content`}
+                      label={`${sectionDisplayTitle} (one labeled row per line)`}
+                      value={sectionText}
+                      placeholder="Certification — Issuer, 2025"
+                      onChange={(value) => updateSectionText(section, value)}
+                    />
+                  ) : section === "skills" ? (
                     <TextAreaField
                       id="field-skills"
-                      label={'Skills (one group per line, e.g. "Languages: Python, Go")'}
+                      label="Skills"
                       value={state.skills}
-                      placeholder={"Languages: Python, JavaScript, Go\nTools: Docker, Kubernetes, AWS"}
+                      placeholder="Choose Grouped tags for the Skills editor."
                       onChange={(value) => updateField("skills", value)}
-                      aiAssist={{
-                        expanded: localAIInlineTarget?.id === "skills",
-                        onClick: () => toggleLocalAIInlineEdit({ id: "skills", label: "Skills", value: state.skills, field: "skills" }),
-                        content: localAIInlineTarget?.id === "skills" ? localAIInlinePanel : undefined,
-                      }}
                     />
                   ) : (
                     <EntryList

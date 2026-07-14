@@ -8,9 +8,10 @@ import {
   buildParserReviewMessages,
   cleanLocalAIRewrite,
   isLocalAIModelId,
+  localAIRewriteMaxTokens,
   parseLocalAIImportProposal,
 } from "@/lib/local-ai";
-import { friendlyLocalAIError, localAIChatExtraBody, localAIModelCachePath } from "@/lib/local-ai-engine";
+import { friendlyLocalAIError, hasObviousLocalAIRepetition, localAIChatExtraBody, localAIModelCachePath } from "@/lib/local-ai-engine";
 import { sampleState } from "@/lib/resume";
 
 describe("local AI helpers", () => {
@@ -57,10 +58,22 @@ describe("local AI helpers", () => {
     const user = String(messages[1].content);
 
     expect(system).toMatch(/never invent skills, numbers, employers, dates, or outcomes/i);
+    expect(system).toMatch(/do not repeat a sentence, bullet, or idea/i);
     expect(user).toContain("first-");
     expect(user).toContain("-last");
     expect(user).toContain("middle omitted for performance");
     expect(user.length).toBeLessThan(4_300);
+  });
+
+  it("gives rewrites up to a two-times expansion without allowing runaway output", () => {
+    expect(localAIRewriteMaxTokens("Improved onboarding.")).toBe(128);
+    expect(localAIRewriteMaxTokens("x".repeat(1_000))).toBe(532);
+    expect(localAIRewriteMaxTokens("x".repeat(20_000))).toBe(2_048);
+  });
+
+  it("recognizes obvious repeated model loops without flagging ordinary prose", () => {
+    expect(hasObviousLocalAIRepetition("Built reliable release tooling for distributed product teams and substantially reduced deployment risk. Built reliable release tooling for distributed product teams and substantially reduced deployment risk.")).toBe(true);
+    expect(hasObviousLocalAIRepetition("Led a migration, documented the rollout, and helped the team ship a safer release.")).toBe(false);
   });
 
   it("bounds parser comparisons and treats imported text as data", () => {

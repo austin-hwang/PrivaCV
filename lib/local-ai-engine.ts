@@ -192,6 +192,30 @@ export function localAIChatExtraBody(modelId: LocalAIModelId) {
   return modelId.startsWith("Qwen3") ? { enable_thinking: false as const } : undefined;
 }
 
+/** Detect clear end-of-response loops without rejecting ordinary repeated words. */
+export function hasObviousLocalAIRepetition(value: string) {
+  const tokens = value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  const matchesAtEnd = (phraseLength: number, repetitions: number) => {
+    const start = tokens.length - phraseLength * repetitions;
+    if (start < 0) return false;
+    const phrase = tokens.slice(start, start + phraseLength).join("\u0000");
+    for (let offset = 1; offset < repetitions; offset += 1) {
+      if (tokens.slice(start + phraseLength * offset, start + phraseLength * (offset + 1)).join("\u0000") !== phrase) return false;
+    }
+    return true;
+  };
+
+  // Two long repeated clauses or three shorter ones are very unlikely to be
+  // intentional in a resume, but common when a small model starts looping.
+  for (let phraseLength = 12; phraseLength <= Math.min(48, Math.floor(tokens.length / 2)); phraseLength += 1) {
+    if (matchesAtEnd(phraseLength, 2)) return true;
+  }
+  for (let phraseLength = 6; phraseLength <= Math.min(24, Math.floor(tokens.length / 3)); phraseLength += 1) {
+    if (matchesAtEnd(phraseLength, 3)) return true;
+  }
+  return false;
+}
+
 export async function generateLocalAIText({
   messages,
   maxTokens,
@@ -215,17 +239,27 @@ export async function generateLocalAIText({
       stream: true,
       temperature: jsonSchema ? 0 : 0.2,
       top_p: 0.9,
+      ...(jsonSchema ? {} : { repetition_penalty: 1.1 }),
       ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,
       extra_body: localAIChatExtraBody(current.modelId),
     });
     let result = "";
     let finishReason: string | null = null;
+    let repetitionStopped = false;
     for await (const chunk of chunks) {
       const choice = chunk.choices[0];
       result += choice?.delta.content ?? "";
       finishReason = choice?.finish_reason ?? finishReason;
+      if (!jsonSchema && hasObviousLocalAIRepetition(result)) {
+        current.engine.interruptGenerate();
+        repetitionStopped = true;
+        break;
+      }
       onToken?.(result);
+    }
+    if (repetitionStopped) {
+      throw new Error("The local model started repeating itself, so its draft was stopped. Try again, shorten the edit, or use a larger model.");
     }
     if (finishReason === "length") {
       throw new Error("The model response was cut off before it finished. Try a smaller edit or a larger model.");

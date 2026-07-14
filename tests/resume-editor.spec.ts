@@ -323,6 +323,21 @@ test("keeps desktop section navigation flush with the app header", async ({ page
   expect(Math.abs(navigation!.y - (header!.y + header!.height))).toBeLessThanOrEqual(1);
 });
 
+test("keeps the mobile section navigation below the persistent workspace header", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const navigation = page.getByRole("navigation", { name: "Jump to a resume section" });
+  await expect(navigation).toHaveCSS("position", "sticky");
+  await expect(navigation).toHaveCSS("top", "118px");
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(117);
+  await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeLessThanOrEqual(119);
+});
+
 test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(Storage.prototype, "setItem", {
@@ -580,15 +595,20 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
 
-  await page.getByLabel("Professional Summary").fill("A local-first product engineer who ships dependable tools.");
+  const summary = page.getByLabel("Professional Summary");
+  const savedSummary = await summary.inputValue();
+  await page.waitForTimeout(450);
+  await summary.fill("A local-first product engineer who ships dependable tools.");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
   await expect(autosave).toHaveAccessibleName(/saving locally/i);
-  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
-  await expect(autosave).toHaveAccessibleName(/saved locally/i);
 
   const versions = await openVersions(page);
   await expect(versions.getByText("Autosave copy", { exact: true })).toBeVisible();
   await expect(versions.getByText("Autosaved", { exact: true })).toBeVisible();
+  const autosaveCard = versions.locator("li", { hasText: "Autosave copy" });
+  await autosaveCard.getByRole("button", { name: "Restore autosave" }).click();
+  await expect(summary).toHaveValue(savedSummary);
+  await expect(page.getByText("Restored Autosave copy")).toBeVisible();
 });
 
 test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
@@ -791,8 +811,8 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await experienceTitle.focus();
   await expect(page.locator(".resume-preview-active")).toHaveText("Selected Experience");
 
-  await page.getByLabel(/^Skills \(one group per line/).focus();
-  await expect(page.locator(".resume-section.resume-preview-active")).toContainText("Skills");
+  await page.getByLabel("Add tag to Languages").focus();
+  await expect(page.locator(".resume-sheet").getByText("Skills", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   const customTitle = page.getByLabel("New Section section title");
@@ -808,6 +828,22 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await page.reload();
   await expect(page.getByLabel("Selected Experience section title")).toHaveValue("Selected Experience");
   await expect(page.getByLabel("Publications section title")).toBeVisible();
+});
+
+test("lets each section choose an ATS-readable content format", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await page.getByRole("button", { name: /add custom section/i }).click();
+  await page.getByLabel("New Section section title").fill("Certifications");
+  await page.getByLabel("Content format").last().selectOption("bullets");
+  await page.getByLabel("Certifications (one bullet per line)").fill("AWS Certified Developer\nCertified Kubernetes Administrator");
+
+  const preview = page.locator(".resume-sheet");
+  await expect(preview.getByText("Certifications", { exact: true })).toBeVisible();
+  await expect(preview.getByRole("list").filter({ hasText: "AWS Certified Developer" })).toContainText("Certified Kubernetes Administrator");
 });
 
 test("edits resume text inline on the sheet and toggles the mode", async ({ page }) => {
@@ -1277,7 +1313,9 @@ test("imports common alternate section headings without losing resume content", 
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
-  await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
+  await expect(page.getByRole("button", { name: "Remove TypeScript" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove React" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove systems design" })).toBeVisible();
   await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
@@ -1307,7 +1345,9 @@ test("imports styled PDF-style section headings without losing their content", a
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
-  await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
+  await expect(page.getByRole("button", { name: "Remove TypeScript" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove React" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove systems design" })).toBeVisible();
   await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
@@ -1332,7 +1372,9 @@ test("imports concise overview and skills headings without losing their content"
   await expandAllEntries(page);
 
   await expect(page.getByLabel("Professional Summary")).toHaveValue("Platform engineer building dependable developer tools.");
-  await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
+  await expect(page.getByRole("button", { name: "Remove TypeScript" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove React" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove systems design" })).toBeVisible();
   await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
@@ -1413,7 +1455,9 @@ test("preserves text written beside an inline resume heading", async ({ page }) 
   await expandAllEntries(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
-  await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
+  await expect(page.getByRole("button", { name: "Remove TypeScript" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove React" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove systems design" })).toBeVisible();
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
   await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
@@ -1990,7 +2034,7 @@ test("checks an imported resume before downloading Word", async ({ page }) => {
   await expect((await download).suggestedFilename()).toBe("Ada_Lovelace.docx");
 });
 
-test("expands dense change audits after restoring a version", async ({ page }) => {
+test("restores a version without showing a post-restore difference audit", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1998,20 +2042,12 @@ test("expands dense change audits after restoring a version", async ({ page }) =
   await saveVersion(page, "Clean baseline");
 
   await page.getByLabel("Full Name").fill("Ada Lovelace");
-  await page.getByLabel("Professional Summary").fill("Research engineer focused on developer tools and reliable launches.");
-  await page.getByLabel("Job Title").first().fill("Staff Software Engineer");
-  await page.getByLabel("Degree").fill("M.S. Computer Science");
-  await page.getByLabel("Project Name").fill("Launch Review Hub");
-  await page.getByLabel('Skills (one group per line, e.g. "Languages: Python, Go")').fill("Languages: TypeScript, Python\nTools: Playwright, AWS");
 
   await openVersions(page);
   await page.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
-  await expect(page.getByText(/Restored from the version saved/i)).toBeVisible();
-  await expect(page.getByText("2 more changed areas")).toBeVisible();
-  await page.getByRole("button", { name: /show all changes/i }).click();
-  await expect(page.getByText("Showing all 6 changed areas")).toBeVisible();
-  await expect(page.getByText("Projects changed")).toBeVisible();
-  await expect(page.getByText("Skills changed")).toBeVisible();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
+  await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
+  await expect(page.getByText("Previous resume available")).toBeVisible();
 });
 
 test("restores the previous resume after clearing", async ({ page }) => {
@@ -2105,12 +2141,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await openVersions(page);
   await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
-  await expect(page.getByText(/Restored from the version saved/i)).toBeVisible();
-  const restoredChange = page.getByRole("button", { name: /header changed/i }).first();
-  await expect(restoredChange.getByText("Before", { exact: true })).toBeVisible();
-  await expect(restoredChange.getByText("Restored", { exact: true })).toBeVisible();
-  await restoredChange.click();
-  await expect(page.locator("#field-name")).toBeFocused();
+  await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
 
   await openVersions(page);

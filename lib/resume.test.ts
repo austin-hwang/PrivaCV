@@ -75,6 +75,42 @@ describe("resume helpers", () => {
     expect(strFromU8(unzipSync(resumeDocx(state))["word/document.xml"])).toContain(bullet);
   });
 
+  it("migrates legacy skills text into editable tag groups and honors later text-only edits", () => {
+    const migrated = normalizeResume({
+      sectionOrder: ["skills"],
+      skills: "Languages: TypeScript, Go\nTools: Docker, AWS",
+    });
+
+    expect(migrated.sectionFormats.skills).toBe("tag-groups");
+    expect(migrated.sectionTagGroups.skills).toEqual([
+      { id: "skills-group-1", label: "Languages", tags: ["TypeScript", "Go"] },
+      { id: "skills-group-2", label: "Tools", tags: ["Docker", "AWS"] },
+    ]);
+    expect(migrated.skills).toBe("Languages: TypeScript, Go\nTools: Docker, AWS");
+
+    const editedByLegacyConsumer = normalizeResume({
+      ...migrated,
+      skills: "Tools: Kubernetes, Terraform",
+    });
+    expect(editedByLegacyConsumer.sectionTagGroups.skills).toEqual([
+      { id: "skills-group-1", label: "Tools", tags: ["Kubernetes", "Terraform"] },
+    ]);
+  });
+
+  it("exports flexible custom-section formats as readable ATS text and Word paragraphs", () => {
+    const state = normalizeResume({
+      sectionOrder: ["custom-certifications"],
+      customSections: [{ id: "custom-certifications", title: "Certifications", entries: [] }],
+      sectionFormats: { "custom-certifications": "bullets" },
+      sectionText: { "custom-certifications": "AWS Certified Developer\nCertified Kubernetes Administrator" },
+    });
+
+    expect(resumePlainText(state)).toContain("Certifications\n- AWS Certified Developer\n- Certified Kubernetes Administrator");
+    const document = strFromU8(unzipSync(resumeDocx(state))["word/document.xml"]);
+    expect(document).toContain("AWS Certified Developer");
+    expect(document).toContain("Certified Kubernetes Administrator");
+  });
+
   it("creates granular, portal-friendly copy fields without adding empty values", () => {
     const state = sampleState();
     state.customSections = [{

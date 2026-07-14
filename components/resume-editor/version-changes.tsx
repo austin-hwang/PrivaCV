@@ -1,13 +1,11 @@
 "use client";
 
-import { ArrowRight, Check, ChevronDown, ChevronUp, History, Undo2 } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ExportChange } from "@/lib/resume";
-import { CHANGE_PREVIEW_LIMIT, formatCheckpointTime, type RestoredVersionSummary } from "@/lib/resume-workspace";
+import { CHANGE_PREVIEW_LIMIT } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 export function VersionChangeRow({
@@ -105,54 +103,6 @@ export function ChangeSummaryGrid({
         </div>
       ) : null}
     </div>
-  );
-}
-
-export function RestoredVersionCard({
-  summary,
-  onDismiss,
-  onFocus,
-}: {
-  summary: RestoredVersionSummary;
-  onDismiss: () => void;
-  onFocus: (targetId: string) => void;
-}) {
-  return (
-    <Card className="mb-6 border-violet-300 bg-violet-50/70 dark:border-violet-500/40 dark:bg-violet-950/40">
-      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-violet-300 bg-background text-violet-800 dark:border-violet-500/50 dark:text-violet-300">
-            <Undo2 className="size-4" />
-          </span>
-          <div>
-            <CardTitle className="text-base">{summary.label}</CardTitle>
-            <CardDescription>
-              Restored from the version saved {formatCheckpointTime(summary.savedAt)}. Review what changed from the draft
-              you were editing.
-            </CardDescription>
-          </div>
-        </div>
-        <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onDismiss}>
-          Dismiss
-        </Button>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {summary.changes.length ? (
-          <ChangeSummaryGrid
-            changes={summary.changes}
-            beforeLabel="Before"
-            afterLabel="Restored"
-            onSelect={(change) => onFocus(change.targetId)}
-          />
-        ) : (
-          <Alert>
-            <Check className="h-4 w-4" />
-            <AlertTitle>No differences found</AlertTitle>
-            <AlertDescription>This checkpoint already matched the resume you were editing.</AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 

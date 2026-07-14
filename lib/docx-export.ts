@@ -4,6 +4,9 @@ import {
   contactHref,
   entryHasContent,
   getSectionEntries,
+  getSectionFormat,
+  getSectionTagGroups,
+  getSectionText,
   getSectionTitle,
   includedBulletsFrom,
   normalizeAccent,
@@ -98,10 +101,21 @@ function sectionParagraphs(state: ResumeState, section: string) {
   const title = getSectionTitle(state, section).trim();
   const heading = (text: string) =>
     paragraph(textRun(text.toUpperCase(), { bold: true, size: 22, color: accentHex(state) }), { before: 150, after: 55 });
-  if (section === "skills") {
-    const skills = state.skills.split("\n").map((line) => line.trim()).filter(Boolean);
-    if (!skills.length) return "";
-    return `${title ? heading(title) : ""}${skills.map((skill) => paragraph(textRun(skill), { after: 30 })).join("")}`;
+  const format = getSectionFormat(state, section);
+  if (format === "tag-groups") {
+    const lines = getSectionTagGroups(state, section)
+      .map((group) => [group.label, group.tags.join(", ")].filter(Boolean).join(": "))
+      .filter(Boolean);
+    if (!lines.length) return "";
+    return `${title ? heading(title) : ""}${lines.map((line) => paragraph(textRun(line), { after: 30 })).join("")}`;
+  }
+  if (format === "bullets" || format === "paragraphs" || format === "labeled-rows") {
+    const text = getSectionText(state, section).trim();
+    if (!text) return "";
+    const lines = format === "paragraphs" ? text.split(/\n\s*\n/) : text.split("\n");
+    const bullet = format === "bullets" && BULLET_STYLE_MARKERS[state.theme.bulletStyle] !== "";
+    const marker = BULLET_STYLE_MARKERS[state.theme.bulletStyle];
+    return `${title ? heading(title) : ""}${lines.filter((line) => line.trim()).map((line) => paragraph(textRun(line.trim()), { bullet, marker, after: 30 })).join("")}`;
   }
 
   const entries = getSectionEntries(state, section).filter(entryHasContent);

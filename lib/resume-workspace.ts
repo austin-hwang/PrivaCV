@@ -139,14 +139,6 @@ export type VersionHistoryMerge = {
   matchingCheckpoints: VersionHistoryItem[];
 };
 
-export type RestoredVersionSummary = {
-  id: string;
-  label: string;
-  savedAt: string;
-  fingerprint: string;
-  changes: ExportChange[];
-};
-
 export function compactDetail(value: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
   if (!cleaned) return "No text detected";

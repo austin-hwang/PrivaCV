@@ -137,6 +137,16 @@ export function normalizeAccent(value: string): string {
 
 export type SectionId = SectionKey | `custom-${string}`;
 
+export const SECTION_FORMATS = ["entries", "tag-groups", "bullets", "paragraphs", "labeled-rows"] as const;
+export type SectionFormat = (typeof SECTION_FORMATS)[number];
+export const SECTION_FORMAT_LABELS: Record<SectionFormat, string> = {
+  entries: "Structured entries",
+  "tag-groups": "Grouped tags",
+  bullets: "Bulleted list",
+  paragraphs: "Paragraphs",
+  "labeled-rows": "Labeled rows",
+};
+
 export const sectionTitlesSchema = z.object({
   education: z.string().catch(SECTION_LABELS.education),
   experience: z.string().catch(SECTION_LABELS.experience),
@@ -152,6 +162,13 @@ export const entrySchema = z.object({
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
+
+export const tagGroupSchema = z.object({
+  id: z.string().catch(""),
+  label: z.string().catch(""),
+  tags: z.array(z.string()).catch([]),
+});
+export type TagGroup = z.infer<typeof tagGroupSchema>;
 
 export const customSectionSchema = z.object({
   id: z.string(),
@@ -175,6 +192,9 @@ export const resumeSchema = z.object({
   projects: z.array(entrySchema).catch([]),
   sectionTitles: sectionTitlesSchema.catch({ ...SECTION_LABELS }),
   customSections: z.array(customSectionSchema).catch([]),
+  sectionFormats: z.record(z.string(), z.enum(SECTION_FORMATS)).catch({}),
+  sectionTagGroups: z.record(z.string(), z.array(tagGroupSchema)).catch({}),
+  sectionText: z.record(z.string(), z.string()).catch({}),
   sectionOrder: z.array(z.string()).catch([...SECTION_KEYS]),
   // Sections the person has hidden from the resume output. They stay in the
   // editor (and keep their content) but are excluded from the preview and every
@@ -271,6 +291,9 @@ export function emptyState(): ResumeState {
     projects: [],
     sectionTitles: { ...SECTION_LABELS },
     customSections: [],
+    sectionFormats: { skills: "tag-groups" },
+    sectionTagGroups: { skills: [] },
+    sectionText: {},
     sectionOrder: [...SECTION_KEYS],
     hiddenSections: [],
     template: "classic",
@@ -303,6 +326,36 @@ export function normalizeResume(data: unknown): ResumeState {
 
   // Drop hidden ids that no longer map to a section in the order.
   const hiddenSections = parsed.hiddenSections.filter((id, index, all) => order.includes(id) && all.indexOf(id) === index);
+  const sectionFormats = Object.fromEntries(
+    order.map((id) => [id, parsed.sectionFormats[id] ?? (id === "skills" ? "tag-groups" : "entries")]),
+  ) as Record<string, SectionFormat>;
+  // Skills used to be stored as one line per group (for example,
+  // "Languages: TypeScript, Go"). Convert that durable text into editable
+  // groups the first time an older draft is opened.
+  const legacySkillGroups = parseTagGroups(parsed.skills, "skills");
+  const storedSkillGroups = normalizeTagGroups(parsed.sectionTagGroups.skills ?? [], "skills");
+  // `skills` remains part of the portable JSON format. If another tool edits
+  // that text directly, prefer its new value over stale structured groups.
+  const shouldMigrateSkills = Boolean(parsed.skills.trim()) && (
+    !storedSkillGroups.length || tagGroupsToText(storedSkillGroups).trim() !== parsed.skills.trim()
+  );
+  const sectionTagGroups = Object.fromEntries(
+    order.map((id) => [
+      id,
+      normalizeTagGroups(
+        id === "skills" && shouldMigrateSkills
+          ? legacySkillGroups
+          : parsed.sectionTagGroups[id]?.length
+          ? parsed.sectionTagGroups[id]
+          : [],
+        id,
+      ),
+    ]),
+  ) as Record<string, TagGroup[]>;
+  const sectionText = Object.fromEntries(
+    order.map((id) => [id, parsed.sectionText[id]?.trim() ?? ""]),
+  ) as Record<string, string>;
+  const skills = tagGroupsToText(sectionTagGroups.skills ?? legacySkillGroups);
 
   // Resumes saved before the theme editor existed only carry `template`; map
   // that to the matching preset so they keep looking the way they did.
@@ -322,11 +375,52 @@ export function normalizeResume(data: unknown): ResumeState {
     projects: parsed.projects.map((entry) => ({ ...blankEntry(), ...entry })),
     sectionTitles: { ...SECTION_LABELS, ...parsed.sectionTitles },
     customSections,
+    sectionFormats,
+    sectionTagGroups,
+    sectionText,
+    skills,
     sectionOrder: order,
     hiddenSections,
     theme,
     textScale: clampTextScale(parsed.textScale),
   };
+}
+
+function tagGroupId(section: string, index: number) {
+  return `${section}-group-${index + 1}`;
+}
+
+export function normalizeTagGroups(groups: TagGroup[], section = "section") {
+  return groups
+    .map((group, index) => ({
+      id: group.id.trim() || tagGroupId(section, index),
+      label: group.label.trim(),
+      tags: [...new Set(group.tags.map((tag) => tag.trim()).filter(Boolean))],
+    }))
+    .filter((group) => group.label || group.tags.length);
+}
+
+export function parseTagGroups(value: string, section = "section") {
+  return normalizeTagGroups(
+    value
+      .split("\n")
+      .map((line, index) => {
+        const clean = line.trim();
+        if (!clean) return { id: "", label: "", tags: [] };
+        const separator = clean.indexOf(":");
+        const label = separator >= 0 ? clean.slice(0, separator).trim() : "";
+        const tagText = separator >= 0 ? clean.slice(separator + 1) : clean;
+        return { id: tagGroupId(section, index), label, tags: tagText.split(",") };
+      }),
+    section,
+  );
+}
+
+export function tagGroupsToText(groups: TagGroup[]) {
+  return groups
+    .map((group) => [group.label.trim(), group.tags.map((tag) => tag.trim()).filter(Boolean).join(", ")].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function isBuiltinSection(section: string): section is SectionKey {
@@ -346,6 +440,18 @@ export function getSectionEntries(state: ResumeState, section: string): ResumeEn
   return state.customSections.find((candidate) => candidate.id === section)?.entries ?? [];
 }
 
+export function getSectionFormat(state: ResumeState, section: string): SectionFormat {
+  return state.sectionFormats[section] ?? (section === "skills" ? "tag-groups" : "entries");
+}
+
+export function getSectionTagGroups(state: ResumeState, section: string) {
+  return state.sectionTagGroups[section] ?? [];
+}
+
+export function getSectionText(state: ResumeState, section: string) {
+  return state.sectionText[section] ?? "";
+}
+
 export function isSectionHidden(state: ResumeState, section: string) {
   return state.hiddenSections.includes(section);
 }
@@ -357,9 +463,10 @@ export function visibleSectionOrder(state: ResumeState) {
 
 /** How many items a section holds — entry cards, or skill lines for Skills. */
 export function sectionItemCount(state: ResumeState, section: string) {
-  if (section === "skills") {
-    return state.skills.split("\n").map((line) => line.trim()).filter(Boolean).length;
-  }
+  const format = getSectionFormat(state, section);
+  if (format === "tag-groups") return getSectionTagGroups(state, section).reduce((count, group) => count + group.tags.length, 0);
+  if (format === "bullets" || format === "labeled-rows") return getSectionText(state, section).split("\n").filter((line) => line.trim()).length;
+  if (format === "paragraphs") return getSectionText(state, section).split(/\n\s*\n/).filter((paragraph) => paragraph.trim()).length;
   return getSectionEntries(state, section).length;
 }
 
@@ -385,7 +492,8 @@ export function wordCount(text: string) {
 }
 
 export function hasAnyContent(state: ResumeState) {
-  if (state.name || state.title || state.summary || state.skills) return true;
+  if (state.name || state.title || state.summary || state.skills || Object.values(state.sectionText).some(Boolean)) return true;
+  if (Object.values(state.sectionTagGroups).some((groups) => groups.some((group) => group.label || group.tags.length))) return true;
   if (state.email || state.phone || state.location || state.website) return true;
   if (state.customSections.some((section) => section.entries.some(entryHasContent))) return true;
   return ["experience", "education", "projects"].some((section) =>
@@ -403,8 +511,12 @@ export function allBullets(state: ResumeState) {
   // Iterate visible sections so hidden sections don't count toward resume checks
   // (length, bullet length) — they aren't in the exported resume.
   return visibleSectionOrder(state)
-    .filter((section) => section !== "skills")
-    .flatMap((section) => getSectionEntries(state, section).flatMap((entry) => includedBulletsFrom(entry)));
+    .flatMap((section) => {
+      const format = getSectionFormat(state, section);
+      if (format === "bullets") return bulletsFrom(getSectionText(state, section));
+      if (format !== "entries") return [];
+      return getSectionEntries(state, section).flatMap((entry) => includedBulletsFrom(entry));
+    });
 }
 
 export function hasMeasuredEvidence(bullet: string) {
@@ -736,24 +848,31 @@ function entryPlainText(entry: ResumeEntry) {
 }
 
 function sectionPlainText(state: ResumeState, label: string, section: string) {
+  const format = getSectionFormat(state, section);
+  const heading = label ? [label] : [];
+  if (format === "tag-groups") {
+    const groups = getSectionTagGroups(state, section);
+    const lines = groups
+      .map((group) => [cleanTextLine(group.label), group.tags.map(cleanTextLine).filter(Boolean).join(", ")].filter(Boolean).join(": "))
+      .filter(Boolean);
+    return lines.length ? [...heading, ...lines] : [];
+  }
+  if (format === "bullets") {
+    const lines = bulletsFrom(getSectionText(state, section)).map((line) => `- ${cleanTextLine(line)}`);
+    return lines.length ? [...heading, ...lines] : [];
+  }
+  if (format === "paragraphs" || format === "labeled-rows") {
+    const lines = getSectionText(state, section).split("\n").map(cleanTextLine).filter(Boolean);
+    return lines.length ? [...heading, ...lines] : [];
+  }
   const entries = getSectionEntries(state, section).filter(entryHasContent);
   if (!entries.length) return [];
-  const lines = label ? [label] : [];
+  const lines = heading;
   entries.forEach((entry, index) => {
     if (index > 0) lines.push("");
     lines.push(...entryPlainText(entry));
   });
   return lines;
-}
-
-function skillsPlainText(state: ResumeState) {
-  const lines = state.skills
-    .split("\n")
-    .map(cleanTextLine)
-    .filter(Boolean);
-  if (!lines.length) return [];
-  const title = getSectionTitle(state, "skills");
-  return title ? [title, ...lines] : lines;
 }
 
 export function resumePlainText(state: ResumeState) {
@@ -767,8 +886,7 @@ export function resumePlainText(state: ResumeState) {
   ]);
   pushBlock(lines, state.summary ? ["Summary", cleanTextLine(state.summary)] : []);
   visibleSectionOrder(state).forEach((key) => {
-    if (key === "skills") pushBlock(lines, skillsPlainText(state));
-    else pushBlock(lines, sectionPlainText(state, getSectionTitle(state, key), key));
+    pushBlock(lines, sectionPlainText(state, getSectionTitle(state, key), key));
   });
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -825,9 +943,10 @@ export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[
 
   visibleSectionOrder(state).forEach((section) => {
     const sectionLabel = getSectionTitle(state, section).trim() || "Untitled section";
-    if (section === "skills") {
-      const skills = state.skills.split("\n").map(cleanTextLine).filter(Boolean).join("\n");
-      if (skills) groups.push({ id: "skills", label: sectionLabel, fields: [{ id: "skills", label: sectionLabel, text: skills }] });
+    const format = getSectionFormat(state, section);
+    if (format !== "entries") {
+      const text = sectionPlainText(state, "", section).join("\n");
+      if (text) groups.push({ id: section, label: sectionLabel, fields: [{ id: section, label: sectionLabel, text }] });
       return;
     }
     getSectionEntries(state, section)

@@ -16,8 +16,8 @@ function getScrollParent(el: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Sticky in-pane navigator on larger workspaces. On a phone it stays in the
- * document flow so it never competes with the persistent workspace header.
+ * Sticky in-pane navigator. On a phone it sits below the two-row workspace
+ * header, keeping section jumps available without covering the editor.
  * Highlights the section currently scrolled into view so it doubles as a
  * position indicator.
  */
@@ -92,7 +92,7 @@ export function SectionNav({ items, className }: { items: SectionNavItem[]; clas
       ref={navRef}
       aria-label="Jump to a resume section"
       className={cn(
-        "app-chrome -mx-4 mb-5 border-b bg-background/85 px-4 py-2 backdrop-blur lg:sticky lg:top-0 lg:z-20 lg:-mx-6 lg:px-6",
+        "app-chrome sticky top-[118px] z-40 -mx-4 mb-5 border-b bg-background/85 px-4 py-2 backdrop-blur lg:top-0 lg:z-20 lg:-mx-6 lg:px-6",
         className,
       )}
     >

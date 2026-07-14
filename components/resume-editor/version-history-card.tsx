@@ -195,16 +195,16 @@ export function VersionHistoryCard({
                         {item.note ? <p className="mt-1 max-h-9 overflow-hidden text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
                       </div>
                     </div>
-                    {!isAutosave ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>
-                          <Undo2 /> Restore
-                        </Button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)} disabled={isCurrent}>
+                        <Undo2 /> {isAutosave ? "Restore autosave" : "Restore"}
+                      </Button>
+                      {!isAutosave ? (
                         <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${item.label}`} onClick={() => onDelete(item.id)}>
                           <Trash2 />
                         </Button>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}

@@ -80,6 +80,13 @@
   animation: sheet-fade-in 160ms ease-out;
 }
 
+/* The explainer supports public discovery before a resume exists. The active
+   editor is a fixed-height workspace, so remove that document-flow content
+   after a person starts editing. */
+html[data-resume-workspace="active"] .public-explainer {
+  display: none;
+}
+
 .resume-sheet {
   position: relative;
   isolation: isolate;
