@@ -791,6 +791,7 @@ test("routes the browser print shortcut through the export review", async ({ pag
 
   await page.getByRole("button", { name: /start a blank resume/i }).click();
   await page.getByLabel("Full Name").fill("Ada Lovelace");
+  await expect(page.getByRole("button", { name: "Export PDF" })).not.toContainText(/Cmd|Ctrl/);
 
   await page.keyboard.press(process.platform === "darwin" ? "Meta+P" : "Control+P");
 
@@ -811,6 +812,9 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await experienceTitle.focus();
   await expect(page.locator(".resume-preview-active")).toHaveText("Selected Experience");
 
+  const languagesToggle = page.getByRole("button", { name: "Expand Languages tag group" });
+  await expect(page.getByLabel("Add tag to Languages")).toBeHidden();
+  await languagesToggle.click();
   await page.getByLabel("Add tag to Languages").focus();
   await expect(page.locator(".resume-sheet").getByText("Skills", { exact: true })).toBeVisible();
 
@@ -838,7 +842,7 @@ test("lets each section choose an ATS-readable content format", async ({ page })
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   await page.getByLabel("New Section section title").fill("Certifications");
-  await page.getByLabel("Content format").last().selectOption("bullets");
+  await page.getByRole("group", { name: "Content format" }).last().getByRole("button", { name: "Bulleted list format" }).click();
   await page.getByLabel("Certifications (one bullet per line)").fill("AWS Certified Developer\nCertified Kubernetes Administrator");
 
   const preview = page.locator(".resume-sheet");

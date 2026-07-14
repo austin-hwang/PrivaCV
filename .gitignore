@@ -5,6 +5,7 @@ node_modules/
 dist/
 coverage/
 test-results/
+tests/fixtures/public-resumes/downloads/
 *.tsbuildinfo
 .env*.local
 

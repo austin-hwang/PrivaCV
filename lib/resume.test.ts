@@ -382,6 +382,77 @@ describe("resume helpers", () => {
     expect(state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Analytical Engines" });
   });
 
+  it("recovers a role-before-name preamble, full state name, and bare portfolio domain", () => {
+    const state = importResumeText([
+      "Data Analyst / Business Analyst",
+      "Alex Sample",
+      "alex@example.com | (333) 222-1111 | alexsample.dev/portfolio",
+      "Seattle, Washington",
+      "",
+      "Experience",
+      "Analyst | Example Co. | 2023 - Present",
+    ].join("\n"));
+
+    expect(state).toMatchObject({
+      name: "Alex Sample",
+      title: "Data Analyst / Business Analyst",
+      email: "alex@example.com",
+      phone: "(333) 222-1111",
+      location: "Seattle, Washington",
+      website: "alexsample.dev/portfolio",
+    });
+  });
+
+  it("joins a name split across all-caps PDF lines without joining later headings", () => {
+    const state = importResumeText([
+      "ANDREY",
+      "VOLKOV",
+      "Senior Software Developer",
+      "andrey@example.com",
+      "",
+      "PROFESSIONAL EXPIRIENCE",
+      "Developer | Example Co. | 2023 - Present",
+    ].join("\n"));
+
+    expect(state).toMatchObject({
+      name: "ANDREY VOLKOV",
+      title: "Senior Software Developer",
+      experience: [expect.objectContaining({ title: "Developer", subtitle: "Example Co." })],
+    });
+  });
+
+  it("recovers a name merged onto a compact contact line", () => {
+    const state = importResumeText([
+      "Sourabh Bajaj Email: sourabh@example.com",
+      "sourabh.example.com Mobile: +1-123-456-7890",
+      "",
+      "Experience",
+      "Engineer | Example Co. | 2023 - Present",
+    ].join("\n"));
+
+    expect(state).toMatchObject({
+      name: "Sourabh Bajaj",
+      email: "sourabh@example.com",
+      phone: "+1-123-456-7890",
+      website: "sourabh.example.com",
+    });
+  });
+
+  it("prefers a line-local phone and city/state over an adjacent street address and ZIP", () => {
+    const state = importResumeText([
+      "Nicholas DeSteffen",
+      "2032 W Estes Ave., Chicago, IL 60645",
+      "(312) 914-2345",
+      "nick@example.com",
+      "",
+      "Experience",
+      "Director | Example Co. | 2020 - Present",
+    ].join("\n"));
+
+    expect(state.phone).toBe("(312) 914-2345");
+    expect(state.location).toBe("Chicago, IL");
+  });
+
   it("keeps the normalized source text available during import review", () => {
     const imported = importResumeTextWithSource("Ada Lovelace\r\n\r\nExperience\r\nEngineer | Example Co.");
 
@@ -502,6 +573,27 @@ describe("resume helpers", () => {
 
     expect(state.summary).toBe("Platform engineer building dependable developer tools.");
     expect(state.skills).toBe("TypeScript, React, systems design");
+  });
+
+  it("keeps short technology acronyms inside skills instead of inventing sections", () => {
+    const state = importResumeText([
+      "Alex Sample",
+      "alex@example.com",
+      "",
+      "Skills",
+      "Python",
+      "SQL",
+      "Software: SQLite, MySQL",
+      "AWS",
+      "Tools: Lambda, S3",
+      "",
+      "Projects",
+      "Analytics Dashboard - Personal Project - April 2020",
+      "Analyzed customer trends and visualized the results.",
+    ].join("\n"));
+
+    expect(state.skills).toContain("SQL\nSoftware: SQLite, MySQL\nAWS");
+    expect(state.customSections).toEqual([]);
   });
 
   it("keeps recognized custom PDF headings out of experience", () => {
@@ -687,6 +779,237 @@ describe("resume helpers", () => {
         meta: "Jun 2018 – Jan 2022",
         details: "Improved deployment tooling.",
       }),
+    ]);
+  });
+
+  it("keeps adjacent role-first headers separate when organizations carry the dates", () => {
+    const state = importResumeText([
+      "Ankush Singh Gandhi",
+      "ankush@example.com",
+      "",
+      "Experience",
+      "Software Developer",
+      "Desi Diaries Pvt. Ltd. | Jaipur May 2023 – Present",
+      "• Built reliable mobile features.",
+      "Flutter Developer Intern",
+      "Desi Diaries Pvt. Ltd. | Jaipur Dec 2022 – May 2023",
+      "• Improved application performance.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({
+        title: "Software Developer",
+        subtitle: "Desi Diaries Pvt. Ltd. | Jaipur",
+        meta: "May 2023 – Present",
+      }),
+      expect.objectContaining({
+        title: "Flutter Developer Intern",
+        subtitle: "Desi Diaries Pvt. Ltd. | Jaipur",
+        meta: "Dec 2022 – May 2023",
+      }),
+    ]);
+  });
+
+  it("uses role words to normalize company-first headers and keeps wrapped metrics in their bullet", () => {
+    const state = importResumeText([
+      "Manish Example",
+      "manish@example.com",
+      "",
+      "Experience",
+      "ByteCraft Technologies | Software Wizard-1 August 2023 – Present",
+      "• Reduced production issues and assisted the debug team over",
+      "100 coffee breaks per month",
+      "• Crafted reusable services.",
+      "ByteCraft Technologies | Code Apprentice January 2023 – July 2023",
+      "• Automated releases.",
+    ].join("\n"));
+
+    expect(state.experience.map((entry) => entry.title)).toEqual(["Software Wizard-1", "Code Apprentice"]);
+    expect(state.experience[0].subtitle).toBe("ByteCraft Technologies");
+    expect(state.experience[0].details).toContain("100 coffee breaks per month");
+  });
+
+  it("keeps inline language labels within a skills section", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "ada@example.com",
+      "",
+      "Skills",
+      "Languages: Python, C",
+      "Frameworks: React, Flutter",
+      "",
+      "Achievements",
+      "Awarded first place.",
+    ].join("\n"));
+
+    expect(state.skills).toContain("Languages: Python, C");
+    expect(state.skills).toContain("Frameworks: React, Flutter");
+    expect(state.customSections.map((section) => section.title)).toEqual(["Achievements"]);
+  });
+
+  it("handles comma-style month dates, related projects, page counters, and DOI-like numbers", () => {
+    const state = importResumeText([
+      "Tesla Zhang",
+      "tesla@example.com | tesla.dev",
+      "",
+      "Education",
+      "B.S. in Computer Science at Example University Aug, 2018 – Dec, 2022",
+      "",
+      "Work Experience",
+      "JetBrains Research, Remote Jan, 2020 – Dec, 2020",
+      "Implemented language tooling.",
+      "PLCT Lab, Remote Dec, 2020 – Present",
+      "Built compiler infrastructure.",
+      "",
+      "Related Projects",
+      "Aya – A programming language",
+      "• Developed the type checker.",
+      "",
+      "Misc",
+      "Open-source contributor.",
+      "",
+      "Publications",
+      "A paper. doi:10.1145/3471875.3472991.",
+      "1 / 1",
+    ].join("\n"));
+
+    expect(state.phone).toBe("");
+    expect(state.education[0]).toMatchObject({
+      title: "B.S. in Computer Science",
+      subtitle: "Example University",
+      meta: "Aug, 2018 – Dec, 2022",
+    });
+    expect(state.experience.map((entry) => entry.title)).toEqual(["JetBrains Research", "PLCT Lab"]);
+    expect(state.projects[0].title).toBe("Aya");
+    expect(state.customSections.map((section) => section.title)).toEqual(["Additional Information", "Publications"]);
+    expect(state.customSections[1].entries[0].details).not.toContain("1 / 1");
+  });
+
+  it("handles Unicode date hyphens and wrapped bullets in repeated employer-first entries", () => {
+    const state = importResumeText([
+      "Matthew Cha",
+      "matthew@example.com",
+      "",
+      "Work Experience",
+      "Car Media Group Irvine, California",
+      "Web Developer November 2023 ‑ Present",
+      "• Rebuilt a responsive interface with reusable components and",
+      "Figma mockups in an Agile work environment",
+      "• Increased conversion by 30%.",
+      "Alpine IT Remote",
+      "Software Engineer Contractor June 2023 ‑ August 2023",
+      "• Implemented authentication and role management.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({
+        title: "Web Developer",
+        subtitle: "Car Media Group Irvine, California",
+        meta: "November 2023 ‑ Present",
+        details: expect.stringContaining("Figma mockups in an Agile work environment"),
+      }),
+      expect.objectContaining({
+        title: "Software Engineer Contractor",
+        subtitle: "Alpine IT",
+        meta: "June 2023 ‑ August 2023",
+      }),
+    ]);
+  });
+
+  it("splits repeated single-date entries even when Word list markers are not literal text", () => {
+    const state = importResumeText([
+      "Alex Sample",
+      "alex@example.com",
+      "",
+      "Projects",
+      "Market Analysis - Personal Project - April 2020",
+      "Analyzed 7,000 job listings.",
+      "Benefits Dashboard - Client Project - February 2020",
+      "Created a comparison dashboard.",
+      "sentiment analysis - Research Project - December 2019",
+      "Applied regression to airline reviews.",
+    ].join("\n"));
+
+    expect(state.projects.map((project) => project.title)).toEqual([
+      "Market Analysis",
+      "Benefits Dashboard",
+      "sentiment analysis",
+    ]);
+  });
+
+  it("preserves nested bullet details without turning them into experience entries or sections", () => {
+    const state = importResumeText([
+      "Sourabh Bajaj",
+      "sourabh@example.com",
+      "",
+      "Experience",
+      "• Google Mountain View, CA",
+      "Software Engineer Oct 2016 – Present",
+      "◦ TensorFlow : Built numerical-computing APIs.",
+      "◦ Course Dashboards : Built instructor surveying tools.",
+      "• Lucena Research Atlanta, GA",
+      "Data Scientist Summer 2012 and 2013",
+      "◦ QuantDesk : Built portfolio-management services.",
+      "",
+      "Projects",
+      "• QuantSoftware Toolkit : Open source financial-analysis library.",
+    ].join("\n"));
+
+    expect(state.experience).toEqual([
+      expect.objectContaining({
+        title: "Software Engineer",
+        subtitle: "Google Mountain View, CA",
+        details: expect.stringContaining("Course Dashboards : Built instructor surveying tools."),
+      }),
+      expect.objectContaining({
+        title: "Data Scientist",
+        subtitle: "Lucena Research Atlanta, GA",
+        meta: "Summer 2012 and 2013",
+        details: "QuantDesk : Built portfolio-management services.",
+      }),
+    ]);
+    expect(state.projects).toEqual([
+      expect.objectContaining({ title: "QuantSoftware Toolkit", details: "Open source financial-analysis library." }),
+    ]);
+    expect(state.customSections).toEqual([]);
+  });
+
+  it("inherits an employer printed once above consecutive dated roles", () => {
+    const state = importResumeText([
+      "Nicholas DeSteffen",
+      "nick@example.com",
+      "",
+      "Professional Experience",
+      "BenchPrep Chicago, IL",
+      "Director of Engineering Jan 2020 – Present",
+      "• Directed the engineering department.",
+      "Lead Software Engineer Jan 2016 – Jan 2020",
+      "• Led the engineering team.",
+      "Senior Software Engineer Jan 2012 – Jan 2016",
+      "• Built the platform.",
+    ].join("\n"));
+
+    expect(state.experience.map(({ title, subtitle }) => ({ title, subtitle }))).toEqual([
+      { title: "Director of Engineering", subtitle: "BenchPrep Chicago, IL" },
+      { title: "Lead Software Engineer", subtitle: "BenchPrep Chicago, IL" },
+      { title: "Senior Software Engineer", subtitle: "BenchPrep Chicago, IL" },
+    ]);
+  });
+
+  it("attaches a shared school to consecutive dated degrees", () => {
+    const state = importResumeText([
+      "Daniel Phang",
+      "daniel@example.com",
+      "",
+      "Education",
+      "Lehigh University Bethlehem, PA",
+      "M.S. Computer Science August 2013 – May 2014",
+      "B.S. Computer Engineering August 2009 – May 2013",
+    ].join("\n"));
+
+    expect(state.education).toEqual([
+      expect.objectContaining({ title: "M.S. Computer Science", subtitle: "Lehigh University Bethlehem, PA" }),
+      expect.objectContaining({ title: "B.S. Computer Engineering", subtitle: "Lehigh University Bethlehem, PA" }),
     ]);
   });
 

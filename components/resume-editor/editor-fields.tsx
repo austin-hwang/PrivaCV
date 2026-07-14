@@ -160,10 +160,14 @@ export function TextAreaField({
 
 function TagGroupRow({
   group,
+  open,
+  onToggle,
   onChange,
   onRemove,
 }: {
   group: TagGroup;
+  open: boolean;
+  onToggle: () => void;
   onChange: (next: TagGroup) => void;
   onRemove: () => void;
 }) {
@@ -176,8 +180,35 @@ function TagGroupRow({
   };
 
   return (
-    <div className="grid gap-2 rounded-md border bg-background p-3">
-      <div className="flex items-center gap-2">
+    <div className="border-b transition-colors last:border-b-0">
+      <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={`${open ? "Collapse" : "Expand"} ${group.label || "untitled"} tag group`}
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
+        >
+          <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
+          <span className="shrink-0 truncate text-sm font-medium">{group.label.trim() || "Untitled group"}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            — {group.tags.length} {group.tags.length === 1 ? "tag" : "tags"}
+            {group.tags.length ? ` · ${group.tags.slice(0, 3).join(", ")}` : ""}
+          </span>
+        </button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/tag-group:opacity-100 group-focus-within/tag-group:opacity-100"
+          aria-label={`Remove ${group.label || "tag"} group`}
+          onClick={onRemove}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+      {open ? (
+        <div className="grid gap-2 px-3 pb-3 pt-1">
         <Input
           value={group.label}
           onChange={(event) => onChange({ ...group, label: event.target.value })}
@@ -185,42 +216,40 @@ function TagGroupRow({
           aria-label="Tag group label"
           className="h-8 text-xs"
         />
-        <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={`Remove ${group.label || "tag"} group`} onClick={onRemove}>
-          <Trash2 className="size-3.5" />
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-1.5" aria-label={group.label ? `${group.label} tags` : "Tags"}>
-        {group.tags.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })}
-            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`Remove ${tag}`}
-            title="Remove tag"
-          >
-            {tag}<X className="size-3" aria-hidden="true" />
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if ((event.key === "Enter" || event.key === ",") && !event.nativeEvent.isComposing) {
-              event.preventDefault();
-              addTag();
-            }
-          }}
-          placeholder="Add a skill, then press Enter"
-          aria-label={`Add tag to ${group.label || "group"}`}
-          className="h-8 text-xs"
-        />
-        <Button type="button" variant="outline" size="sm" className="h-8" onClick={addTag} disabled={!draft.trim()}>
-          Add
-        </Button>
-      </div>
+          <div className="flex flex-wrap gap-1.5" aria-label={group.label ? `${group.label} tags` : "Tags"}>
+            {group.tags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`Remove ${tag}`}
+                title="Remove tag"
+              >
+                {tag}<X className="size-3" aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.key === "Enter" || event.key === ",") && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  addTag();
+                }
+              }}
+              placeholder="Add a skill, then press Enter"
+              aria-label={`Add tag to ${group.label || "group"}`}
+              className="h-8 text-xs"
+            />
+            <Button type="button" variant="outline" size="sm" className="h-8" onClick={addTag} disabled={!draft.trim()}>
+              Add
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -232,16 +261,30 @@ export function TagGroupEditor({
   groups: TagGroup[];
   onChange: (groups: TagGroup[]) => void;
 }) {
+  const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => new Set());
+
   return (
     <div className="grid gap-2">
-      {groups.map((group) => (
-        <TagGroupRow
-          key={group.id}
-          group={group}
-          onChange={(next) => onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate))}
-          onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
-        />
-      ))}
+      <div className="overflow-hidden rounded-md border bg-muted/10">
+        {groups.map((group) => {
+          const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
+          return (
+            <TagGroupRow
+              key={group.id}
+              group={group}
+              open={open}
+              onToggle={() => setOpenGroupIds((current) => {
+                const next = new Set(current);
+                if (open) next.delete(group.id);
+                else next.add(group.id);
+                return next;
+              })}
+              onChange={(next) => onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate))}
+              onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
+            />
+          );
+        })}
+      </div>
       <Button
         type="button"
         variant="outline"

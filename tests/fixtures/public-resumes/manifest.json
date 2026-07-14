@@ -1,0 +1,162 @@
+[
+  {
+    "filename": "alex-data-analyst.docx",
+    "url": "https://raw.githubusercontent.com/AlexTheAnalyst/AlexTheAnalyst/master/Sample%20Resume.docx",
+    "sha256": "0a2cab0f55f2dc2c04810eddc3b67cdd6585e36a885497ecb8f79422874ded85",
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "expected": {
+      "name": "Alex Sample",
+      "title": "Data Analyst/ Business Analyst",
+      "email": "Sample@gmail.com",
+      "phone": "(333) 222 1111",
+      "location": "Dallas, TX",
+      "experienceTitles": ["Re-insurance analyst co-op", "Leasing Assitant"],
+      "educationTitles": ["Bachelor of Science in business"],
+      "projectTitles": ["Data Science Job market Eda", "Benefit Package Benchmarking dashboard", "sentiment analysis on tweets", "Customer Sales Analysis"],
+      "skillsInclude": ["SQL (SQL Server, MySQL, PostgreSQL)", "Microsoft Power BI"]
+    }
+  },
+  {
+    "filename": "alex-data-analyst-2.docx",
+    "url": "https://raw.githubusercontent.com/AlexTheAnalyst/AlexTheAnalyst/master/Sample%20Resume%202.docx",
+    "sha256": "bb6e9b73ac3df55bf890adb5f1ddd408f6f0e88164cced642af42939561963c5",
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "expected": {
+      "name": "Alex Sample",
+      "title": "Data Analyst/ Business Analyst",
+      "experienceTitles": ["Re-insurance analyst co-op", "Leasing Assitant"],
+      "projectTitles": ["Data Science Job market Eda", "Benefit Package Benchmarking dashboard", "sentiment analysis on tweets", "Customer Sales Analysis"],
+      "skillsInclude": ["SQL", "Software: SQLite, MySQL", "Excel"]
+    }
+  },
+  {
+    "filename": "matthew-cha-single-column.pdf",
+    "url": "https://github.com/user-attachments/files/16632230/Matthew.Cha.Resume.pdf",
+    "sha256": "81ed913cacd095717d974d8e735eaaef578dfa2ec1b50ee42a33a8ca12dcad9d",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Matthew Cha",
+      "email": "matthewjhcha@gmail.com",
+      "phone": "818-438-7010",
+      "website": "matthewcha.vercel.app/",
+      "experienceTitles": ["DEVELOPER", "SOFTWARE ENGiNEER CONTRACTOR", "SURVEY PROGRAMMiNG AND DATA SPECiALiST"],
+      "educationTitles": ["TECHNiCAL DiPLOMA iN SOFTWARE ENGiNEERiNG", "BACHELOR OF SCiENCE, BUSiNESS ADMiNiSTRATiON"],
+      "projectTitles": ["ChatGPT Styler GitHub", "Plan It GitHub"]
+    }
+  },
+  {
+    "filename": "dphang-latex-template.pdf",
+    "url": "https://raw.githubusercontent.com/dphang/resume/master/resume-example.pdf",
+    "sha256": "83551af0d1aecf285268beb9955e9a20bc9f8bc655dcd59e554f2deda0e5c81f",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Daniel Phang",
+      "email": "example@example.com",
+      "phone": "(000) 000-0000",
+      "location": "Seattle, Washington",
+      "website": "github.com/example-profile",
+      "experienceTitles": ["Software Engineer II", "Software Development Engineer II", "Software Development Engineer I", "Engineering Intern"],
+      "educationTitles": ["M.S. Computer Science ( GPA: 3.96/4.00)", "B.S. Computer Engineering (Minor in Economics) ( GPA: 3.77/4.00)"]
+    }
+  },
+  {
+    "filename": "susan-rindt-academic.pdf",
+    "url": "https://raw.githubusercontent.com/drrindt/resume/master/resume.pdf",
+    "sha256": "c0b2506c14ed2c9db37af83e697d7504628cc8ea113ac282527e14693efd1ab9",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Susan Rindt, PsyD",
+      "website": "http://github.com/drrindt/resume",
+      "educationTitles": ["PsyD Clinical Psychology", "MA Clinical Psychology", "BSc (Hons) Psychology"],
+      "customSectionTitles": ["Certifications", "Clinical Experience", "General Experience", "Teaching Experience", "Research Experience", "Achievements", "Professional Affiliations", "References"]
+    }
+  },
+  {
+    "filename": "sourabh-bajaj-single-column.pdf",
+    "url": "https://raw.githubusercontent.com/sb2nov/resume/master/sourabh_bajaj_resume.pdf",
+    "sha256": "90ee870e8608efd09f33794abefdf215c41b129e02733f32719dce0203b2ca23",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Sourabh Bajaj",
+      "email": "sourabh@sourabhbajaj.com",
+      "phone": "+1-123-456-7890",
+      "website": "sourabhbajaj.com",
+      "experienceTitles": ["Software Engineer", "Senior Software Engineer", "Data Scientist", "Research and Teaching Assistant"],
+      "educationTitles": ["Master of Science in Computer Science; GPA: 4.00", "Bachelor of Engineering in Electrical and Electronics; GPA: 3.66 (9.15/10.0)"],
+      "projectTitles": ["QuantSoftware Toolkit", "GitHub Visualization", "Recommendation System", "Mac Setup"],
+      "experienceDetailsInclude": ["TensorFlow", "Course Dashboards", "QuantDesk"],
+      "projectDetailsInclude": ["financial data analysis", "Git log data", "collaborative filtering"]
+    }
+  },
+  {
+    "filename": "nicholas-desteffen-single-column.pdf",
+    "url": "https://raw.githubusercontent.com/nick-desteffen/resume/master/Nicholas%20DeSteffen%20Resume.pdf",
+    "sha256": "7fb7e156d4c9b2fdfd4e8e9bc92255a13980d77a3a9c58bebeff6fcd5c5e777c",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Nicholas DeSteffen",
+      "email": "nick.desteffen@gmail.com",
+      "phone": "(312) 914-2345",
+      "location": "Chicago, IL",
+      "experienceTitles": ["Director of Engineering", "Lead Software Engineer", "Senior Software Engineer", "Senior Developer", "Co-Founder & Lead Developer", "Lead Developer", "Web Developer", "Web Developer", "Senior Consultant", "Web Developer", "IT Intern"],
+      "educationTitles": ["Bachelor of Science in Computer Information Systems"],
+      "experienceDetailsInclude": ["Directed the engineering department", "Expanded and led the engineering team", "Led multiple infrastructure migrations"]
+    }
+  },
+  {
+    "filename": "ankush-gandhi-one-page.pdf",
+    "url": "https://raw.githubusercontent.com/AnkushSinghGandhi/ats-resume-template/HEAD/resume.pdf",
+    "sha256": "f0a6fd681b860467df3d18a124c3afc64d8c0d005d626ec09eb6a78a3e66a961",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Ankush Singh Gandhi",
+      "email": "ankushsinghgandhi@gmail.com",
+      "phone": "+91-95296-39652",
+      "website": "linkedin.com/in/ankushsinghgandhi",
+      "experienceTitles": ["Software Developer", "Flutter Developer Intern"],
+      "educationTitles": ["Bachelor of Technology (B.Tech)"],
+      "projectTitles": ["Budi Travel (App)", "Happy Paws (App)", "Real-time Scheduler (Python GUI)"],
+      "skillsInclude": ["Languages: Python, C", "Frameworks: Flask, Django", "DevOps & Cloud: Docker"],
+      "experienceDetailsInclude": ["Global Data Feeds APIs", "video reels streaming"],
+      "customSectionTitles": ["Achievements"]
+    }
+  },
+  {
+    "filename": "manish-tiwari-one-page.pdf",
+    "url": "https://raw.githubusercontent.com/manish-9245/ATS-Friendly-Resume-SDE/HEAD/Software_Engineer_Resume_Template_High_ATS_Score.pdf",
+    "sha256": "21c479d8439000f4684a2a5399b93ab3f926054816db36972c7f028926cbae96",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Manish Tiwari",
+      "email": "byte.codes@gmail.com",
+      "phone": "+1 888-555-5555",
+      "location": "Silicon Valley, California",
+      "website": "linkedin.com/in/manishtiwari13",
+      "experienceTitles": ["Software Wizard-1", "Code Apprentice", "Code Padawan"],
+      "educationTitles": ["Bachelor’s in Code Compilation Engineering"],
+      "projectTitles": ["BitBuddy"],
+      "skillsInclude": ["Spell Languages C++, Python", "Magical Tools React", "Knowledge Vaults MongoDB"],
+      "experienceDetailsInclude": ["100 coffee breaks per month", "multiple databases simultaneously"],
+      "customSectionTitles": ["Achievements", "Certifications"]
+    }
+  },
+  {
+    "filename": "tesla-zhang-one-page.pdf",
+    "url": "https://raw.githubusercontent.com/ice1000/resume/master/resume.pdf",
+    "sha256": "760fdb74774a6668e6442dabece5b72b6e87d176fe911ac85b9c6b4e800df3a3",
+    "mimeType": "application/pdf",
+    "expected": {
+      "name": "Tesla Zhang",
+      "email": "ice1000kotlin@gmail.com",
+      "phone": "",
+      "website": "https://ice1000.org",
+      "experienceTitles": ["JetBrains Research", "PLCT Lab", "RisingWave Labs", "Sourcebrella Inc.", "PingCAP Inc."],
+      "educationTitles": ["B.S. in Computer Science", "Ph.D. in Computer Science"],
+      "projectTitles": ["Aya Prover", "IntelliJ Pest"],
+      "skillsInclude": ["Programming Languages: multilingual", "Kotlin/Java: 10 years", "IDE Tooling: 6 years"],
+      "experienceDetailsInclude": ["Interactive Theorem Prover Development", "pretty printing framework", "TiKV Intern"],
+      "projectDetailsInclude": ["dependent pattern matching", "Semantic-based highlighting"],
+      "customSectionTitles": ["Additional Information", "Publications"]
+    }
+  }
+]

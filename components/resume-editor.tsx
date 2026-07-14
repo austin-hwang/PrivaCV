@@ -94,6 +94,7 @@ import {
   type HeadingStyle,
   type ResumeTemplateId,
   type ResumeTheme,
+  type SectionFormat,
 } from "@/lib/resume";
 import { clearAllLocalAIData } from "@/lib/local-ai-engine";
 import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-workspace";
@@ -122,6 +123,14 @@ const LocalAIBackgroundLoader = dynamic(
 // Structured import repair is too inconsistent on the small local models.
 // Keep the implementation available, but hide its entry points until quality improves.
 const LOCAL_AI_IMPORT_FIX_ENABLED = false;
+
+const SECTION_FORMAT_SHORT_LABELS: Record<SectionFormat, string> = {
+  entries: "Entries",
+  "tag-groups": "Tags",
+  bullets: "Bullets",
+  paragraphs: "Paragraphs",
+  "labeled-rows": "Rows",
+};
 
 type LocalAIInlineTarget = {
   id: string;
@@ -908,12 +917,9 @@ export function ResumeEditor() {
               type="button"
               onClick={requestExport}
               aria-label="Export PDF"
-              title="Export PDF (Cmd/Ctrl+P)"
+              title="Export PDF"
             >
               <Printer /> <span className="hidden sm:inline">Export PDF</span>
-              <kbd className="hidden rounded border border-primary-foreground/35 px-1 py-px text-[10px] font-medium leading-none opacity-80 2xl:inline">
-                Cmd/Ctrl P
-              </kbd>
             </Button>
             <Menu>
               <MenuTrigger>
@@ -1528,17 +1534,32 @@ export function ResumeEditor() {
                   }
                 >
                   <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-                    <label htmlFor={`section-format-${section}`}>Content format</label>
-                    <select
-                      id={`section-format-${section}`}
-                      value={sectionFormat}
-                      onChange={(event) => updateSectionFormat(section, event.target.value as typeof sectionFormat)}
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    <span id={`section-format-${section}`}>Content format</span>
+                    <div
+                      role="group"
+                      aria-labelledby={`section-format-${section}`}
+                      className="flex w-full overflow-x-auto rounded-md border border-input bg-background shadow-sm"
                     >
-                      {SECTION_FORMATS.filter((format) => section !== "skills" || format !== "entries").map((format) => (
-                        <option key={format} value={format}>{SECTION_FORMAT_LABELS[format]}</option>
+                      {SECTION_FORMATS.filter((format) => section !== "skills" || format !== "entries").map((format, index) => (
+                        <button
+                          key={format}
+                          type="button"
+                          aria-pressed={sectionFormat === format}
+                          aria-label={`${SECTION_FORMAT_LABELS[format]} format`}
+                          title={SECTION_FORMAT_LABELS[format]}
+                          onClick={() => updateSectionFormat(section, format)}
+                          className={cn(
+                            "min-w-fit flex-1 border-l px-2 py-2 text-xs font-medium transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                            index === 0 && "border-l-0",
+                            sectionFormat === format
+                              ? "bg-foreground text-background"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          {SECTION_FORMAT_SHORT_LABELS[format]}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                     <p className="text-[11px] font-normal leading-snug text-muted-foreground">
                       {sectionFormat === "tag-groups"
                         ? "Use labeled groups and removable tags for concise skills, tools, languages, or competencies."
