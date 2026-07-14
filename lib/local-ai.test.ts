@@ -18,6 +18,7 @@ describe("local AI helpers", () => {
     expect(LOCAL_AI_MODELS[0].recommended).toBe(true);
     expect(LOCAL_AI_MODELS[0].id).toContain("360M");
     expect(isLocalAIModelId(LOCAL_AI_MODELS[1].id)).toBe(true);
+    expect(LOCAL_AI_MODELS.some((model) => model.id === "Qwen2.5-0.5B-Instruct-q4f16_1-MLC")).toBe(true);
     expect(isLocalAIModelId("unknown-model")).toBe(false);
   });
 

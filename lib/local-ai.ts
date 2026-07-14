@@ -13,6 +13,13 @@ export const LOCAL_AI_MODELS = [
     recommended: true,
   },
   {
+    id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+    label: "Qwen 2.5 0.5B",
+    description: "Compact multilingual option for rewrites and structured import repair.",
+    memory: "~945 MB GPU memory",
+    recommended: false,
+  },
+  {
     id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
     label: "Llama 3.2 1B",
     description: "Stronger suggestions, with a larger download and slower responses.",
