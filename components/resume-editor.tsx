@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import dynamic from "next/dynamic";
 import {
   ArrowDown,
   ArrowRight,
@@ -51,7 +52,6 @@ import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
-import { LocalAIDialog } from "@/components/resume-editor/local-ai-dialog";
 import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
@@ -91,6 +91,14 @@ import {
 } from "@/lib/resume";
 import { buildImportCoverage } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
+
+// WebLLM is a browser-only runtime (WebGPU, Cache API, and Web Workers). Keeping
+// this dialog out of the server graph prevents its large client runtime from
+// being bundled into the Cloudflare Worker while preserving on-demand use.
+const LocalAIDialog = dynamic(
+  () => import("@/components/resume-editor/local-ai-dialog").then((module) => module.LocalAIDialog),
+  { ssr: false },
+);
 
 function ThemeSegment<T extends string>({
   label,
