@@ -42,7 +42,7 @@ export function ReviewDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
-      <SheetContent aria-describedby={undefined} className="top-[120px] lg:top-[73px]">
+      <SheetContent id="tools-panel" aria-describedby={undefined} className="top-[120px] border-t lg:top-[61px]">
         <SheetHeader>
           <SheetTitle>Tools</SheetTitle>
           <SheetDescription>Review your resume and open browser tools.</SheetDescription>

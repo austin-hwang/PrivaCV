@@ -924,6 +924,38 @@ test("collapses an expanded resume entry even when one of its fields was active"
   await expect(entry.getByLabel("Job Title")).toBeHidden();
 });
 
+test("keeps light scroll surfaces and the tools panel visually connected", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("privacv-theme", "light");
+  });
+  await page.reload();
+  await page.getByRole("button", { name: /start a blank resume/i }).click();
+
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("light");
+
+  const toolsToggle = page.locator('button[aria-controls="tools-panel"]');
+  const toolsPanel = page.getByRole("dialog", { name: /^tools$/i });
+  await toolsToggle.click();
+  await expect(toolsToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(toolsPanel).toBeVisible();
+  await expect.poll(async () => page.evaluate(() => {
+    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+    const panelTop = document.getElementById("tools-panel")?.getBoundingClientRect().top ?? 0;
+    return Math.abs(panelTop - headerBottom);
+  })).toBeLessThanOrEqual(1);
+
+  await toolsToggle.click();
+  await expect(toolsToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toolsPanel).toBeHidden();
+
+  await toolsToggle.click();
+  await toolsPanel.getByRole("button", { name: /switch to night mode/i }).click();
+  expect(await page.getByRole("button", { name: "Export PDF" }).evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 255)");
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");
+});
+
 test("resizes the editor and preview with the middle divider", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

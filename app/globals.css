@@ -5,6 +5,7 @@
 @layer base {
   /* Light parity */
   :root {
+    color-scheme: light;
     --stage: 216 27% 93%;
     --background: 216 24% 96%;
     --foreground: 222 26% 10%;
@@ -37,6 +38,7 @@
 
   /* Night mode — default */
   .dark {
+    color-scheme: dark;
     --stage: 214 24% 6%;
     --background: 220 22% 8%;
     --foreground: 220 23% 92%;
@@ -45,7 +47,7 @@
     --popover: 218 19% 11%;
     --popover-foreground: 220 23% 92%;
     --primary: 217 91% 60%;
-    --primary-foreground: 220 30% 10%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 219 19% 14%;
     --secondary-foreground: 220 23% 93%;
     --muted: 219 19% 14%;
@@ -73,6 +75,10 @@
   html,
   body {
     min-height: 100%;
+  }
+
+  html {
+    @apply bg-background;
   }
 
   body {

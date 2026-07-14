@@ -854,9 +854,11 @@ export function ResumeEditor() {
           <div className="flex shrink-0 items-center gap-2">
             <Button
               type="button"
-              variant="outline"
-              onClick={() => setToolsOpen(true)}
-              aria-label="Open tools"
+              variant={toolsOpen ? "secondary" : "outline"}
+              onClick={() => setToolsOpen((open) => !open)}
+              aria-label={toolsOpen ? "Collapse tools panel" : "Open tools"}
+              aria-expanded={toolsOpen}
+              aria-controls="tools-panel"
               className="gap-2"
             >
               <SlidersHorizontal />
