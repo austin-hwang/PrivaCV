@@ -51,6 +51,7 @@ test("offers a small local AI prompt beside resume body text", async ({ page }) 
   await expect(instruction).toBeVisible();
   await expect(instruction).toHaveAttribute("maxlength", "100");
   await expect(inlineEdit.getByText("0/100", { exact: true })).toBeVisible();
+  await expect(inlineEdit.getByLabel("Suggested AI edits").getByRole("button")).toHaveCount(4);
   await expect(inlineEdit.getByRole("button", { name: /open setup/i })).toBeVisible();
   await expect(page.getByRole("dialog", { name: /local ai setup/i })).toBeHidden();
 });

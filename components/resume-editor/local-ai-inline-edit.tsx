@@ -14,6 +14,12 @@ import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
 const INLINE_AI_INSTRUCTION_LIMIT = 100;
 const INLINE_AI_OUTPUT_TOKEN_LIMIT = 100;
+const INLINE_AI_PRESETS = [
+  { label: "Concise", instruction: "Make this more concise." },
+  { label: "Proofread", instruction: "Proofread and fix grammar." },
+  { label: "Stronger impact", instruction: "Strengthen the impact without adding facts." },
+  { label: "Measurable", instruction: "Highlight measurable scope or results using only existing facts." },
+] as const;
 
 export function LocalAIInlineEdit({
   label,
@@ -73,6 +79,21 @@ export function LocalAIInlineEdit({
       </div>
 
       <div className="space-y-1">
+        <div className="flex flex-wrap gap-1.5" aria-label="Suggested AI edits">
+          {INLINE_AI_PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              disabled={generating || !ready}
+              onClick={() => setInstruction(preset.instruction)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <Input
             value={instruction}
