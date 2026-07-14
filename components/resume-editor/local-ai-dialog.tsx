@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Check, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Check, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,8 @@ import {
   getLocalAIRuntime,
   legacyLocalAIAppConfig,
   LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY,
+  loadLocalAIModel,
   localAIAppConfig,
-  setLocalAIRuntime,
 } from "@/lib/local-ai-engine";
 import {
   LOCAL_AI_MODELS,
@@ -40,7 +40,6 @@ export function LocalAIDialog({
   const [modelId, setModelId] = useState<LocalAIModelId>(LOCAL_AI_MODELS[0].id);
   const [modelState, setModelState] = useState<ModelState>("checking");
   const [deviceState, setDeviceState] = useState<DeviceState>("checking");
-  const [deviceDetail, setDeviceDetail] = useState("Checking WebGPU support…");
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +67,6 @@ export function LocalAIDialog({
       if (!window.isSecureContext || !gpu) {
         if (!active) return;
         setDeviceState("unsupported");
-        setDeviceDetail("WebGPU is unavailable. Local AI needs a secure page and a WebGPU-capable browser/device.");
         return;
       }
       try {
@@ -76,19 +74,12 @@ export function LocalAIDialog({
         if (!active) return;
         if (!adapter) {
           setDeviceState("unsupported");
-          setDeviceDetail("No compatible GPU adapter was found. Hardware acceleration may be unavailable or disabled.");
           return;
         }
         setDeviceState("supported");
-        setDeviceDetail(
-          adapter.features?.has("shader-f16")
-            ? "WebGPU is available, including 16-bit shader support."
-            : "WebGPU is available. Model speed and memory limits still vary by device.",
-        );
-      } catch (supportError) {
+      } catch {
         if (!active) return;
         setDeviceState("unsupported");
-        setDeviceDetail(friendlyLocalAIError(supportError));
       }
     };
     void check();
@@ -160,26 +151,17 @@ export function LocalAIDialog({
     setProgressText("Starting local model…");
     setError(null);
     try {
-      await disposeLocalAIRuntime();
       const webllm = await import("@mlc-ai/web-llm");
-      const worker = new Worker(new URL("../../lib/webllm.worker.ts", import.meta.url), { type: "module" });
       try {
-        const engine = await webllm.CreateWebWorkerMLCEngine(
-          worker,
+        await loadLocalAIModel({
+          webllm,
           modelId,
-          {
-            appConfig: localAIAppConfig(webllm),
-            initProgressCallback: (report) => {
-              setProgress(Math.max(0, Math.min(1, report.progress)));
-              setProgressText(report.text);
-            },
-            logLevel: "WARN",
+          onProgress: (report) => {
+            setProgress(Math.max(0, Math.min(1, report.progress)));
+            setProgressText(report.text);
           },
-          { context_window_size: 4096 },
-        );
-        setLocalAIRuntime({ engine, modelId, worker });
+        });
       } catch (loadError) {
-        worker.terminate();
         const message = loadError instanceof Error ? loadError.message : String(loadError);
         if (/TensorCopyFromBytes|arr_size\s*==\s*nbytes|size mismatch/i.test(message)) {
           try {
@@ -234,12 +216,10 @@ export function LocalAIDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Alert className="border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
-          <AlertCircle className="size-4 text-amber-800 dark:text-amber-300" />
-          <AlertTitle className="text-amber-950 dark:text-amber-100">Device support and model limitations</AlertTitle>
-          <AlertDescription className="space-y-1 text-amber-950 dark:text-amber-100/90">
-            <p>{deviceDetail}</p>
-            <p>WebGPU support, speed, and available memory vary by browser and device. Mobile and older GPUs may fail. Suggestions can be inaccurate, so every change requires your review.</p>
+        <Alert className="border-amber-300 bg-amber-50/70 pl-4 dark:border-amber-500/40 dark:bg-amber-950/40">
+          <AlertTitle className="text-amber-950 dark:text-amber-100">Local AI can vary by device</AlertTitle>
+          <AlertDescription className="text-amber-950 dark:text-amber-100/90">
+            Performance may be slower on some devices, and suggestions may be inaccurate. Review every change before applying it.
           </AlertDescription>
         </Alert>
 
@@ -286,6 +266,9 @@ export function LocalAIDialog({
           ) : null}
 
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          {deviceState === "unsupported" ? (
+            <p role="status" className="text-sm text-muted-foreground">Local AI isn&apos;t available in this browser or on this device.</p>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <Button type="button" onClick={prepareModel} disabled={deviceState !== "supported" || setupBusy || modelState === "ready"}>

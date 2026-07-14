@@ -92,7 +92,7 @@ import {
   type ResumeTheme,
 } from "@/lib/resume";
 import { clearAllLocalAIData } from "@/lib/local-ai-engine";
-import { buildImportCoverage } from "@/lib/resume-workspace";
+import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 // WebLLM is a browser-only runtime (WebGPU, Cache API, and Web Workers). Keeping
@@ -108,6 +108,10 @@ const LocalAIInlineEdit = dynamic(
 );
 const LocalAIImportFix = dynamic(
   () => import("@/components/resume-editor/local-ai-import-fix").then((module) => module.LocalAIImportFix),
+  { ssr: false },
+);
+const LocalAIBackgroundLoader = dynamic(
+  () => import("@/components/resume-editor/local-ai-background-loader").then((module) => module.LocalAIBackgroundLoader),
   { ssr: false },
 );
 
@@ -172,6 +176,8 @@ export function ResumeEditor() {
   // canvas).
   const [inlineEdit, setInlineEdit] = useState(true);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
+  const [editorPanePercent, setEditorPanePercent] = useState(50);
+  const workspaceRef = useRef<HTMLElement>(null);
   // Turn inline editing off while the browser prints so the exported PDF keeps
   // its normal markup (e.g. clickable contact links) and none of the editing
   // affordances.
@@ -256,6 +262,16 @@ export function ResumeEditor() {
   } = editor;
   const currentImportSourceText = importReview?.sourceText?.trim() || (importReview ? resumePlainText(state).trim() : "");
   const usingCurrentDraftForAIImport = Boolean(importReview && !importReview.sourceText?.trim() && currentImportSourceText);
+  const autosaveCopy: VersionHistoryItem | null = hasContent && editor.autosavedAt
+    ? {
+        id: "autosave-copy",
+        savedAt: editor.autosavedAt,
+        label: "Autosave copy",
+        fingerprint: editor.exportFingerprint,
+        state,
+        importReview,
+      }
+    : null;
   const deleteSavedBrowserData = async () => {
     setLocalAIInlineTarget(null);
     setLocalAIImportOpen(false);
@@ -377,9 +393,19 @@ export function ResumeEditor() {
   });
   // Expand whichever collapsed group holds a jump target before focusing it.
   const revealTarget = useCallback((targetId: string) => {
-    const group = document.getElementById(targetId)?.closest("[data-field-group]")?.getAttribute("data-field-group");
+    const target = document.getElementById(targetId);
+    const inferredGroup = targetId === "field-summary"
+      ? "summary"
+      : HEADER_FIELD_IDS.includes(targetId)
+        ? "header"
+        : state.sectionOrder.find((section) => targetId === `field-${section}` || targetId.startsWith(`field-${section}-`));
+    const group = target?.closest("[data-field-group]")?.getAttribute("data-field-group") ?? inferredGroup;
     if (group) expandGroup(group);
-  }, [expandGroup]);
+  }, [expandGroup, state.sectionOrder]);
+  const focusTourTarget = useCallback((targetId: string) => {
+    setActiveTarget(targetId);
+    revealTarget(targetId);
+  }, [revealTarget]);
   const editorGroupIds = ["arrange", "header", "summary", ...state.sectionOrder];
   const allCollapsed = editorGroupIds.every((groupId) => collapsedGroups.has(groupId));
 
@@ -728,6 +754,36 @@ export function ResumeEditor() {
     setDropTargetSection(null);
   };
 
+  const resizeWorkspace = useCallback((clientX: number) => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const rect = workspace.getBoundingClientRect();
+    const available = rect.width - 8;
+    if (available <= 0) return;
+    const minimumEditor = Math.min(340, available / 2);
+    const minimumPreview = Math.min(440, available / 2);
+    const next = ((clientX - rect.left) / available) * 100;
+    const minimum = (minimumEditor / available) * 100;
+    const maximum = ((available - minimumPreview) / available) * 100;
+    setEditorPanePercent(Math.min(maximum, Math.max(minimum, next)));
+  }, []);
+
+  const startWorkspaceResize = (clientX: number) => {
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    resizeWorkspace(clientX);
+    const move = (event: PointerEvent) => resizeWorkspace(event.clientX);
+    const stop = () => {
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+  };
+
   // Scale the 8.5in sheet to fit whatever width the preview column actually has,
   // on every breakpoint. Keeps the resume fully visible instead of clipping the
   // left/right edges on narrower desktop splits, and unifies the mobile path.
@@ -757,6 +813,7 @@ export function ResumeEditor() {
 
   return (
     <>
+      <LocalAIBackgroundLoader />
       <header className="app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div className="flex min-w-0 items-center gap-2">
@@ -980,7 +1037,14 @@ export function ResumeEditor() {
         </div>
       </header>
 
-      <main className={cn("app-shell grid min-h-[calc(100vh-73px)] grid-cols-1", editorCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[minmax(390px,1fr)_minmax(440px,1fr)]")}>
+      <main
+        ref={workspaceRef}
+        className={cn(
+          "app-shell grid min-h-[calc(100vh-73px)] grid-cols-1",
+          editorCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[minmax(340px,var(--editor-pane-width))_8px_minmax(440px,1fr)]",
+        )}
+        style={{ "--editor-pane-width": `${editorPanePercent}%` } as CSSProperties}
+      >
         <section
           id="resume-editor-pane"
           aria-label="Resume editor"
@@ -989,7 +1053,7 @@ export function ResumeEditor() {
             if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
           }}
           className={cn(
-            "editor-pane relative overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:border-r lg:px-6 lg:pb-6 lg:pt-0",
+            "editor-pane relative overflow-y-auto border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:border-b-0 lg:px-6 lg:pb-6 lg:pt-0",
             mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
             editorCollapsed && "lg:hidden",
           )}
@@ -1521,6 +1585,7 @@ export function ResumeEditor() {
                       aiTargetId={localAIInlineTarget?.section ? localAIInlineTarget.id : null}
                       aiPanel={localAIInlinePanel}
                       onAIEdit={toggleLocalAIInlineEdit}
+                      onEntryCollapse={() => setActiveTarget(null)}
                     />
                   )}
                 </FieldGroup>
@@ -1529,6 +1594,30 @@ export function ResumeEditor() {
             </div>
           ) : null}
         </section>
+
+        {!editorCollapsed ? (
+          <div
+            role="separator"
+            aria-label="Resize editor and preview"
+            aria-orientation="vertical"
+            aria-valuemin={34}
+            aria-valuemax={57}
+            aria-valuenow={Math.round(editorPanePercent)}
+            tabIndex={0}
+            className="group relative hidden cursor-col-resize touch-none items-center justify-center border-x bg-border/50 outline-none transition-colors hover:bg-primary/15 focus-visible:bg-primary/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:flex"
+            onPointerDown={(event) => {
+              event.preventDefault();
+              startWorkspaceResize(event.clientX);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+              event.preventDefault();
+              setEditorPanePercent((value) => Math.min(57, Math.max(34, value + (event.key === "ArrowLeft" ? -2 : 2))));
+            }}
+          >
+            <GripVertical className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+          </div>
+        ) : null}
 
         <section
           id="resume-preview-pane"
@@ -1539,73 +1628,73 @@ export function ResumeEditor() {
           aria-label="Resume preview"
         >
           <div ref={previewWrapRef} className="mx-auto flex w-full max-w-[8.5in] flex-col items-center gap-3">
-            <div className="app-chrome flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <div className="flex min-w-0 items-center gap-3">
-                {workspaceHasStarted ? (
-                  <Button
-                    type="button"
-                    variant={designOpen ? "secondary" : "outline"}
-                    size="sm"
-                    className="h-8 shrink-0 gap-1.5"
-                    aria-expanded={designOpen}
-                    aria-controls="design-panel"
-                    onClick={() => setDesignOpen((open) => !open)}
-                  >
-                    <SlidersHorizontal /> Design
-                  </Button>
-                ) : null}
-                <label className="hidden items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground sm:flex">
-                  <span className="whitespace-nowrap">Text size</span>
-                  <input
-                    id="resume-text-scale"
-                    className="min-w-24 accent-foreground"
-                    type="range"
-                    min={MIN_TEXT_SCALE}
-                    max={MAX_TEXT_SCALE}
-                    step="0.02"
-                    value={state.textScale}
-                    onChange={(event) => updateField("textScale", clampTextScale(Number(event.target.value)))}
-                    aria-label="Resume text size"
-                  />
-                  <output className="w-10 text-right tabular-nums">{Math.round(state.textScale * 100)}%</output>
-                </label>
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate text-xs text-muted-foreground">
-                    {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
-                  </p>
-                  {pageCount > 1 && canTightenLayout ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 shrink-0 px-2 text-xs"
-                      onClick={tightenLayout}
-                      title="Uses compact spacing first, then reduces text size by 2%. Your resume content stays unchanged."
-                    >
-                      {state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"}
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
+            <div className="app-chrome flex w-full items-center gap-2 overflow-x-auto pb-1">
+              {workspaceHasStarted ? (
+                <Button
+                  type="button"
+                  variant={designOpen ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-8 shrink-0 gap-1.5 px-2"
+                  aria-label="Design"
+                  aria-expanded={designOpen}
+                  aria-controls="design-panel"
+                  onClick={() => setDesignOpen((open) => !open)}
+                >
+                  <SlidersHorizontal /> <span className="hidden 2xl:inline">Design</span>
+                </Button>
+              ) : null}
+              <label className="hidden h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground sm:flex">
+                <span className="sr-only">Text size</span>
+                <input
+                  id="resume-text-scale"
+                  className="w-20 accent-foreground 2xl:w-24"
+                  type="range"
+                  min={MIN_TEXT_SCALE}
+                  max={MAX_TEXT_SCALE}
+                  step="0.02"
+                  value={state.textScale}
+                  onChange={(event) => updateField("textScale", clampTextScale(Number(event.target.value)))}
+                  aria-label="Resume text size"
+                />
+                <output className="w-9 text-right tabular-nums">{Math.round(state.textScale * 100)}%</output>
+              </label>
+              <p className="shrink-0 text-xs text-muted-foreground">
+                {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
+              </p>
+              {pageCount > 1 && canTightenLayout ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+                  onClick={tightenLayout}
+                  aria-label={state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"}
+                  title="Uses compact spacing first, then reduces text size by 2%. Your resume content stays unchanged."
+                >
+                  <ChevronsDownUp />
+                  <span className="hidden 2xl:inline">{state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}</span>
+                </Button>
+              ) : null}
+              <div className="ml-auto flex shrink-0 items-center gap-2">
                 {importReview ? (
                   <Button
                     type="button"
                     variant={localAIImportOpen ? "secondary" : "outline"}
                     size="sm"
-                    className="gap-1.5"
+                    className="h-8 gap-1.5 px-2"
+                    aria-label="Fix import with AI"
                     disabled={!currentImportSourceText}
                     onClick={() => setLocalAIImportOpen(true)}
                     title={importReview.sourceText ? "Remap the original extracted text with local AI" : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"}
                   >
-                    <Sparkles /> Fix import with AI
+                    <Sparkles /> <span className="hidden 2xl:inline">Fix import with AI</span>
                   </Button>
                 ) : null}
                 <Button
                   type="button"
                   variant={inlineEdit ? "default" : "outline"}
                   size="sm"
-                  className="hidden gap-1.5 lg:inline-flex"
+                  className="hidden h-8 gap-1.5 px-2 lg:inline-flex"
                   aria-pressed={inlineEdit}
                   aria-label={inlineEdit ? "Editing on sheet (click to turn off)" : "Edit on sheet (click to turn on)"}
                   onClick={() => setInlineEdit((value) => !value)}
@@ -1614,17 +1703,17 @@ export function ResumeEditor() {
                   <Pencil />
                   {inlineEdit ? (
                     <>
-                      <span aria-hidden className="size-1.5 rounded-full bg-current" /> Editing
+                      <span aria-hidden className="size-1.5 rounded-full bg-current" /> <span className="hidden 2xl:inline">Editing</span>
                     </>
                   ) : (
-                    "Edit"
+                    <span className="hidden 2xl:inline">Edit</span>
                   )}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="hidden lg:inline-flex"
+                  className="hidden size-8 lg:inline-flex"
                   aria-pressed={editorCollapsed}
                   aria-label={editorCollapsed ? "Show editor" : "Hide editor"}
                   title={editorCollapsed ? "Show the editor panel" : "Hide the editor panel for a focused canvas"}
@@ -1720,6 +1809,7 @@ export function ResumeEditor() {
         onOpenChange={setVersionsOpen}
         hasContent={hasContent}
         versions={editor.versionHistory}
+        autosave={autosaveCopy}
         currentFingerprint={editor.exportFingerprint}
         storageIssue={storageIssue}
         deletedVersion={editor.deletedVersion}
@@ -1742,7 +1832,7 @@ export function ResumeEditor() {
         index={reviewTour?.index ?? 0}
         onIndexChange={(nextIndex) => setReviewTour((current) => (current ? { ...current, index: nextIndex } : current))}
         onClose={() => setReviewTour(null)}
-        onFocusStep={revealTarget}
+        onFocusStep={focusTourTarget}
         onFinish={() => {
           if (reviewTour?.kind === "import") completeImportReview();
           setReviewTour(null);

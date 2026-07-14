@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("local AI setup stays explicit and warns about device limits", async ({ page }) => {
+test("local AI setup stays explicit and gives a concise quality disclaimer", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "gpu", {
       configurable: true,
@@ -22,7 +22,8 @@ test("local AI setup stays explicit and warns about device limits", async ({ pag
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("Nothing downloads automatically");
-  await expect(dialog).toContainText("WebGPU support, speed, and available memory vary");
+  await expect(dialog).toContainText("Performance may be slower on some devices");
+  await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
 
@@ -61,6 +62,15 @@ test("places import repair by the preview and keeps it gated on local setup", as
 
   const fixButton = page.getByRole("button", { name: /fix import with ai/i });
   await expect(fixButton).toBeEnabled();
+  const editButton = page.getByRole("button", { name: /edit(?:ing)? on sheet/i });
+  const hideEditorButton = page.getByRole("button", { name: /hide editor/i });
+  const [fixBox, editBox, hideBox] = await Promise.all([
+    fixButton.boundingBox(),
+    editButton.boundingBox(),
+    hideEditorButton.boundingBox(),
+  ]);
+  expect(Math.abs(fixBox!.y - editBox!.y)).toBeLessThan(2);
+  expect(Math.abs(fixBox!.y - hideBox!.y)).toBeLessThanOrEqual(2);
   await fixButton.click();
   const repair = page.getByRole("region", { name: /fix import with local ai/i });
   await expect(repair).toContainText(/original extracted text stays in this browser/i);

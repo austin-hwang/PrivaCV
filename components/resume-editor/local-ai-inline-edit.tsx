@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import {
   friendlyLocalAIError,
   generateLocalAIText,
-  getLocalAIRuntime,
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
 import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite } from "@/lib/local-ai";
+import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
 export function LocalAIInlineEdit({
   label,
@@ -29,7 +29,7 @@ export function LocalAIInlineEdit({
   const [output, setOutput] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const ready = Boolean(getLocalAIRuntime());
+  const ready = useLocalAIReady();
 
   useEffect(() => () => interruptLocalAIGeneration(), []);
 

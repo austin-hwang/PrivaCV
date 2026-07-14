@@ -585,6 +585,10 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveAccessibleName(/saving locally/i);
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
+
+  const versions = await openVersions(page);
+  await expect(versions.getByText("Autosave copy", { exact: true })).toBeVisible();
+  await expect(versions.getByText("Autosaved", { exact: true })).toBeVisible();
 });
 
 test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
@@ -865,6 +869,37 @@ test("collapses editor sections to shorten a long resume", async ({ page }) => {
   await expect(page.getByLabel("Full Name")).toBeVisible();
 });
 
+test("collapses an expanded resume entry even when one of its fields was active", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const entry = page.locator('[data-editor-section="experience"] [data-editor-entry]').first();
+  const toggle = entry.locator("[data-entry-toggle]");
+  await entry.getByLabel("Job Title").focus();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(entry.getByLabel("Job Title")).toBeHidden();
+});
+
+test("resizes the editor and preview with the middle divider", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const editorPane = page.locator("#resume-editor-pane");
+  const divider = page.getByRole("separator", { name: /resize editor and preview/i });
+  await expect(divider).toBeVisible();
+  const before = await editorPane.boundingBox();
+  await divider.focus();
+  await page.keyboard.press("ArrowRight");
+  const after = await editorPane.boundingBox();
+  expect(after!.width).toBeGreaterThan(before!.width);
+});
+
 test("expands a collapsed section when a jump targets a field inside it", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -1125,7 +1160,6 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
-  await expandAllEntries(page);
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   const banner = page.locator("#import-review-panel");
@@ -1152,6 +1186,7 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
   await tour.getByRole("button", { name: /^next/i }).click();
 
   await expect(tour.getByText("Experience entry 1")).toBeVisible();
+  await expect(page.getByLabel("Job Title").first()).toBeVisible();
   await tour.getByRole("button", { name: /confirm this field/i }).click();
   await tour.getByRole("button", { name: /^next/i }).click();
 
@@ -1182,7 +1217,7 @@ test("keeps an unfinished import review after a browser refresh", async ({ page 
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("Ada Lovelace");
   const storedReview = await page.evaluate(() => localStorage.getItem("resume-editor-import-review-v1"));
   expect(storedReview).toContain('"items"');
-  expect(storedReview).not.toContain('"sourceText"');
+  expect(storedReview).toContain('"sourceText"');
 
   await page.reload();
 
@@ -2200,9 +2235,9 @@ test("keeps every checkpoint without a save limit", async ({ page }) => {
   }
 
   const versions = await openVersions(page);
-  // No cap: all seven checkpoints (plus their thumbnails) remain available.
+  // No cap: all seven checkpoints and the live autosave copy remain available.
   await expect(versions.getByText("7 checkpoints saved")).toBeVisible();
-  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(7);
+  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(8);
   await expect(versions.getByText("Checkpoint 1", { exact: true })).toBeVisible();
   await expect(versions.getByText("Checkpoint 7", { exact: true })).toBeVisible();
 });

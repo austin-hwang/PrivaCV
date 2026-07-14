@@ -11,8 +11,9 @@ import {
   getLocalAIRuntime,
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
-import { buildImportRepairMessages, parseLocalAIImportProposal } from "@/lib/local-ai";
+import { buildImportRepairMessages, LOCAL_AI_IMPORT_JSON_SCHEMA, parseLocalAIImportProposal } from "@/lib/local-ai";
 import { exportChangeSummary, resumePlainText, type ResumeState } from "@/lib/resume";
+import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
 export function LocalAIImportFix({
   sourceText,
@@ -33,7 +34,7 @@ export function LocalAIImportFix({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
-  const ready = Boolean(getLocalAIRuntime());
+  const ready = useLocalAIReady();
   const changes = proposal ? exportChangeSummary(currentState, proposal) : [];
 
   useEffect(() => () => interruptLocalAIGeneration(), []);
@@ -47,7 +48,7 @@ export function LocalAIImportFix({
       const output = await generateLocalAIText({
         messages: buildImportRepairMessages({ sourceText, currentState }),
         maxTokens: 1_300,
-        json: true,
+        jsonSchema: LOCAL_AI_IMPORT_JSON_SCHEMA,
       });
       setProposal(parseLocalAIImportProposal(output, currentState));
     } catch (repairError) {

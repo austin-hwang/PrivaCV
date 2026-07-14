@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LOCAL_AI_MODELS,
+  LOCAL_AI_IMPORT_JSON_SCHEMA,
   buildImportRepairMessages,
   buildPromptedLocalRewriteMessages,
   buildLocalRewriteMessages,
@@ -18,6 +19,13 @@ describe("local AI helpers", () => {
     expect(LOCAL_AI_MODELS[0].id).toContain("360M");
     expect(isLocalAIModelId(LOCAL_AI_MODELS[1].id)).toBe(true);
     expect(isLocalAIModelId("unknown-model")).toBe(false);
+  });
+
+  it("provides WebLLM a string JSON schema for structured import repair", () => {
+    const schema = JSON.parse(LOCAL_AI_IMPORT_JSON_SCHEMA);
+    expect(typeof LOCAL_AI_IMPORT_JSON_SCHEMA).toBe("string");
+    expect(schema.required).toEqual(expect.arrayContaining(["name", "experience", "education", "projects"]));
+    expect(schema.properties.experience.items.required).toEqual(["title", "subtitle", "meta", "details"]);
   });
 
   it("explains how to recover from a truncated cached model shard", () => {

@@ -171,6 +171,7 @@ export function EntryList({
   aiTargetId,
   aiPanel,
   onAIEdit,
+  onEntryCollapse,
 }: {
   section: string;
   sectionLabel: string;
@@ -185,6 +186,7 @@ export function EntryList({
   aiTargetId?: string | null;
   aiPanel?: ReactNode;
   onAIEdit?: (target: { id: string; label: string; value: string; section: string; index: number }) => void;
+  onEntryCollapse?: (section: string, index: number) => void;
 }) {
   const schema = isBuiltinSection(section) && section !== "skills"
     ? ENTRY_SCHEMA[section]
@@ -203,6 +205,7 @@ export function EntryList({
       else next.add(index);
       return next;
     });
+    if (open) onEntryCollapse?.(section, index);
     // Opening a row drops the cursor straight into it — one click to edit.
     if (!open) window.setTimeout(() => document.getElementById(`${prefix}${index}-title`)?.focus(), 0);
   };

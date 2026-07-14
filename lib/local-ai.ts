@@ -107,6 +107,40 @@ const importContentSchema = z.object({
   projects: z.array(importEntrySchema),
 });
 
+const importEntryJSONSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    subtitle: { type: "string" },
+    meta: { type: "string" },
+    details: { type: "string" },
+  },
+  required: ["title", "subtitle", "meta", "details"],
+  additionalProperties: false,
+};
+
+export const LOCAL_AI_IMPORT_JSON_SCHEMA = JSON.stringify({
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    title: { type: "string" },
+    email: { type: "string" },
+    phone: { type: "string" },
+    location: { type: "string" },
+    website: { type: "string" },
+    summary: { type: "string" },
+    skills: { type: "string" },
+    experience: { type: "array", items: importEntryJSONSchema },
+    education: { type: "array", items: importEntryJSONSchema },
+    projects: { type: "array", items: importEntryJSONSchema },
+  },
+  required: [
+    "name", "title", "email", "phone", "location", "website", "summary", "skills",
+    "experience", "education", "projects",
+  ],
+  additionalProperties: false,
+});
+
 function importContentSnapshot(state: ResumeState) {
   return {
     name: state.name,

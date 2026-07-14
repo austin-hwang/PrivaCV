@@ -48,6 +48,7 @@ export function VersionHistoryCard({
   onOpenChange,
   hasContent,
   versions,
+  autosave,
   currentFingerprint,
   storageIssue,
   deletedVersion,
@@ -63,6 +64,7 @@ export function VersionHistoryCard({
   onOpenChange: (open: boolean) => void;
   hasContent: boolean;
   versions: VersionHistoryItem[];
+  autosave: VersionHistoryItem | null;
   currentFingerprint: string;
   storageIssue: boolean;
   deletedVersion: VersionHistoryItem | null;
@@ -76,18 +78,19 @@ export function VersionHistoryCard({
 }) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLocaleLowerCase();
+  const allVersions = useMemo(() => autosave ? [autosave, ...versions] : versions, [autosave, versions]);
   const visibleVersions = useMemo(
     () =>
       normalizedQuery
-        ? versions.filter((item) =>
+        ? allVersions.filter((item) =>
             [item.label, item.note, item.state.name, item.state.title]
               .filter((value): value is string => Boolean(value))
               .some((value) => value.toLocaleLowerCase().includes(normalizedQuery)),
           )
-        : versions,
-    [normalizedQuery, versions],
+        : allVersions,
+    [allVersions, normalizedQuery],
   );
-  const showingFilteredVersions = visibleVersions.length !== versions.length;
+  const showingFilteredVersions = visibleVersions.length !== allVersions.length;
 
   return (
     <Dialog
@@ -104,7 +107,8 @@ export function VersionHistoryCard({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-5 py-3">
           <p className="text-sm text-muted-foreground">
-            {versions.length} {versions.length === 1 ? "checkpoint" : "checkpoints"} saved
+            <span>{versions.length} {versions.length === 1 ? "checkpoint" : "checkpoints"} saved</span>
+            {autosave ? <span> · Autosave copy available</span> : null}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" onClick={onSave} disabled={!hasContent}>
@@ -129,7 +133,7 @@ export function VersionHistoryCard({
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          {versions.length ? (
+          {allVersions.length ? (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div className="relative min-w-0 flex-1 sm:max-w-sm">
                 <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -155,7 +159,7 @@ export function VersionHistoryCard({
                 ) : null}
               </div>
               <p className="text-xs text-muted-foreground" aria-live="polite">
-                {showingFilteredVersions ? `Showing ${visibleVersions.length} of ${versions.length}` : "Showing all saved versions"}
+                {showingFilteredVersions ? `Showing ${visibleVersions.length} of ${allVersions.length}` : "Showing all saved versions"}
               </p>
             </div>
           ) : null}
@@ -175,6 +179,7 @@ export function VersionHistoryCard({
           {visibleVersions.length ? (
             <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {visibleVersions.map((item) => {
+                const isAutosave = item.id === "autosave-copy";
                 const isCurrent = item.fingerprint === currentFingerprint;
                 return (
                   <li key={item.id} className="rounded-lg border bg-card p-3 shadow-sm">
@@ -184,25 +189,27 @@ export function VersionHistoryCard({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="truncate text-sm font-semibold">{item.label}</p>
-                          {isCurrent ? <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px]">Current</Badge> : null}
+                          {isAutosave ? <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px]">Autosaved</Badge> : isCurrent ? <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px]">Current</Badge> : null}
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">{formatCheckpointTime(item.savedAt)} · {versionHeadline(item.state)}</p>
                         {item.note ? <p className="mt-1 max-h-9 overflow-hidden text-xs leading-snug text-muted-foreground">{item.note}</p> : null}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>
-                        <Undo2 /> Restore
-                      </Button>
-                      <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${item.label}`} onClick={() => onDelete(item.id)}>
-                        <Trash2 />
-                      </Button>
-                    </div>
+                    {!isAutosave ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => onRestore(item)}>
+                          <Undo2 /> Restore
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${item.label}`} onClick={() => onDelete(item.id)}>
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
             </ul>
-          ) : versions.length ? (
+          ) : allVersions.length ? (
             <div className="grid min-h-56 place-items-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
               <div>
                 <Search className="mx-auto mb-3 size-6 text-muted-foreground" />

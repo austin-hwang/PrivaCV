@@ -52,6 +52,8 @@ import {
   type VersionHistoryItem,
 } from "@/lib/resume-workspace";
 
+const AUTOSAVE_TIME_KEY = "resume-editor-autosave-time-v1";
+
 function downloadJsonFile(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   downloadFile(blob, filename);
@@ -194,6 +196,7 @@ export function useResumeEditor() {
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
+  const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
   const [externalDraft, setExternalDraft] = useState<ResumeState | null>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
@@ -411,7 +414,10 @@ export function useResumeEditor() {
     try {
       const legacy = localStorage.getItem("resume-editor-data-v1");
       const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
-      if (saved) setState(normalizeResume(JSON.parse(saved)));
+      if (saved) {
+        setState(normalizeResume(JSON.parse(saved)));
+        setAutosavedAt(localStorage.getItem(AUTOSAVE_TIME_KEY) ?? new Date().toISOString());
+      }
       setImportReview(parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY)));
       setExportCheckpoint(parseExportCheckpoint(localStorage.getItem(EXPORT_CHECKPOINT_KEY)));
       setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
@@ -458,8 +464,11 @@ export function useResumeEditor() {
     setAutosaveStatus("saving");
     const timer = window.setTimeout(() => {
       try {
+        const savedAt = new Date().toISOString();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(AUTOSAVE_TIME_KEY, savedAt);
         confirmStorageAvailable();
+        setAutosavedAt(savedAt);
         setAutosaveStatus("saved");
       } catch {
         reportStorageIssue();
@@ -999,6 +1008,7 @@ export function useResumeEditor() {
       localStorage.removeItem(IMPORT_REVIEW_KEY);
       localStorage.removeItem(EXPORT_CHECKPOINT_KEY);
       localStorage.removeItem(VERSION_HISTORY_KEY);
+      localStorage.removeItem(AUTOSAVE_TIME_KEY);
       localStorage.removeItem("resume-editor-role-focus-v1");
       localStorage.removeItem("resume-editor-role-focus-label-v1");
       confirmStorageAvailable();
@@ -1010,6 +1020,7 @@ export function useResumeEditor() {
     setImportReview(null);
     setExportCheckpoint(null);
     setVersionHistory([]);
+    setAutosavedAt(null);
     setRecoveryPoint(null);
     setRestoredVersionSummary(null);
     setDeletedVersion(null);
@@ -1350,6 +1361,7 @@ export function useResumeEditor() {
     applicationCopyOpen,
     applyAIImportFix,
     autosaveStatus,
+    autosavedAt,
     checks,
     clearSavedBrowserData,
     clearResume,
