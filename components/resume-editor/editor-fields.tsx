@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Sparkles, Trash2, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, type DragEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -173,14 +173,18 @@ export function TextAreaField({
 }
 
 function TagGroupRow({
+  targetId,
   group,
   open,
+  active,
   onToggle,
   onChange,
   onRemove,
 }: {
+  targetId: string;
   group: TagGroup;
   open: boolean;
+  active: boolean;
   onToggle: () => void;
   onChange: (next: TagGroup) => void;
   onRemove: () => void;
@@ -194,7 +198,15 @@ function TagGroupRow({
   };
 
   return (
-    <div className="border-b transition-colors last:border-b-0">
+    <div
+      id={targetId}
+      data-editor-tag-group=""
+      tabIndex={-1}
+      className={cn(
+        "scroll-mt-44 border-b transition-colors last:border-b-0 lg:scroll-mt-16",
+        active && "bg-brand-soft/10 ring-1 ring-inset ring-brand/30",
+      )}
+    >
       <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
         <button
           type="button"
@@ -223,14 +235,14 @@ function TagGroupRow({
       </div>
       {open ? (
         <div className="grid gap-2 px-3 pb-3 pt-1">
-        <Input
-          id={`tag-group-${group.id}-label`}
-          value={group.label}
-          onChange={(event) => onChange({ ...group, label: event.target.value })}
-          placeholder="Group label (optional)"
-          aria-label="Tag group label"
-          className="h-8 text-xs"
-        />
+          <Input
+            id={`tag-group-${group.id}-label`}
+            value={group.label}
+            onChange={(event) => onChange({ ...group, label: event.target.value })}
+            placeholder="Group label (optional)"
+            aria-label="Tag group label"
+            className="h-8 text-xs"
+          />
           <div className="flex flex-wrap gap-1.5" aria-label={group.label ? `${group.label} tags` : "Tags"}>
             {group.tags.map((tag) => (
               <button
@@ -270,10 +282,14 @@ function TagGroupRow({
 }
 
 export function TagGroupEditor({
+  section,
   groups,
+  activeTarget,
   onChange,
 }: {
+  section: string;
   groups: TagGroup[];
+  activeTarget?: string | null;
   onChange: (groups: TagGroup[]) => void;
 }) {
   const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => new Set());
@@ -285,11 +301,14 @@ export function TagGroupEditor({
       ) : null}
       {groups.map((group) => {
         const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
+        const targetId = `field-${section}-group-${group.id}`;
         return (
           <TagGroupRow
             key={group.id}
+            targetId={targetId}
             group={group}
             open={open}
+            active={activeTarget === targetId}
             onToggle={() => setOpenGroupIds((current) => {
               const next = new Set(current);
               if (open) next.delete(group.id);
@@ -341,8 +360,45 @@ export function EntryList({
   // Which entries the person has manually opened. An entry is also shown open
   // when it's empty (nothing to summarize yet) or holds the active field.
   const [openIndexes, setOpenIndexes] = useState<Set<number>>(() => new Set());
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const prefix = `field-${section}-`;
   const activeIndex = activeTarget?.startsWith(prefix) ? Number(activeTarget.slice(prefix.length).split("-")[0]) : -1;
+
+  const finishEntryDrag = () => {
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  const startEntryDrag = (event: DragEvent<HTMLElement>, index: number, label: string) => {
+    event.dataTransfer.effectAllowed = "move";
+    const value = JSON.stringify({ section, index });
+    event.dataTransfer.setData("application/x-resume-entry", value);
+    event.dataTransfer.setData("text/plain", `entry:${value}`);
+
+    const dragImage = document.createElement("div");
+    dragImage.textContent = `Moving ${label}`;
+    Object.assign(dragImage.style, {
+      position: "fixed",
+      top: "-1000px",
+      left: "-1000px",
+      display: "flex",
+      alignItems: "center",
+      border: "1px solid rgb(148 163 184)",
+      borderRadius: "6px",
+      background: "white",
+      boxShadow: "0 8px 20px rgb(15 23 42 / 22%)",
+      padding: "8px 12px",
+      color: "rgb(15 23 42)",
+      fontSize: "13px",
+      fontWeight: "600",
+    });
+    document.body.append(dragImage);
+    event.dataTransfer.setDragImage(dragImage, 18, 18);
+    window.setTimeout(() => dragImage.remove(), 0);
+    setDraggedIndex(index);
+    setDropTargetIndex(null);
+  };
 
   const toggle = (index: number, open: boolean) => {
     setOpenIndexes((prev) => {
@@ -378,9 +434,24 @@ export function EntryList({
             data-review-region=""
             data-editor-entry=""
             data-editor-entry-index={index}
-            className="group/entry border-b transition-colors last:border-b-0"
+            data-dragging={draggedIndex === index || undefined}
+            data-drop-target={dropTargetIndex === index && draggedIndex !== index || undefined}
+            className={cn(
+              "group/entry border-b transition-colors last:border-b-0",
+              draggedIndex === index && "opacity-45 ring-2 ring-inset ring-muted-foreground/20",
+              dropTargetIndex === index && draggedIndex !== index && "bg-primary/5 ring-2 ring-inset ring-primary/25",
+            )}
+            onDragEnter={(event) => {
+              if (draggedIndex !== null && (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain"))) {
+                setDropTargetIndex(index);
+              }
+            }}
             onDragOver={(event) => {
-              if (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
+              if (draggedIndex !== null && (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain"))) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                setDropTargetIndex(index);
+              }
             }}
             onDrop={(event) => {
               const customData = event.dataTransfer.getData("application/x-resume-entry");
@@ -394,6 +465,8 @@ export function EntryList({
                 if (dragged.section === section && dragged.index !== index) onReorder(section, dragged.index, index);
               } catch {
                 // Ignore drag data from outside the editor.
+              } finally {
+                finishEntryDrag();
               }
             }}
           >
@@ -415,12 +488,8 @@ export function EntryList({
                   aria-hidden="true"
                   title="Drag to reorder; use the move buttons for keyboard reordering"
                   className="inline-flex size-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
-                  onDragStart={(event) => {
-                    event.dataTransfer.effectAllowed = "move";
-                    const value = JSON.stringify({ section, index });
-                    event.dataTransfer.setData("application/x-resume-entry", value);
-                    event.dataTransfer.setData("text/plain", `entry:${value}`);
-                  }}
+                  onDragStart={(event) => startEntryDrag(event, index, primary)}
+                  onDragEnd={finishEntryDrag}
                 >
                   <GripVertical className="size-4" />
                 </span>
@@ -430,8 +499,7 @@ export function EntryList({
                   size="icon"
                   className="size-7"
                   aria-label="Move entry up"
-                  aria-keyshortcuts="Alt+Shift+ArrowUp"
-                  title="Move entry up (Alt+Shift+Up while focused in this entry)"
+                  title="Move entry up"
                   disabled={index === 0}
                   onClick={() => onMove(section, index, -1)}
                 >
@@ -443,8 +511,7 @@ export function EntryList({
                   size="icon"
                   className="size-7"
                   aria-label="Move entry down"
-                  aria-keyshortcuts="Alt+Shift+ArrowDown"
-                  title="Move entry down (Alt+Shift+Down while focused in this entry)"
+                  title="Move entry down"
                   disabled={index === entries.length - 1}
                   onClick={() => onMove(section, index, 1)}
                 >

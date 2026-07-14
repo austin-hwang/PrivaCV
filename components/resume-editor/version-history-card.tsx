@@ -184,8 +184,10 @@ export function VersionHistoryCard({
                 return (
                   <li key={item.id} className="rounded-lg border bg-card p-3 shadow-sm">
                     <VersionThumbnail item={item} />
-                    <div className="mt-3 flex items-start gap-2">
-                      <History className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <div data-version-heading className="mt-3 grid grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-2">
+                      <span data-version-icon className="flex size-5 items-center justify-center" aria-hidden="true">
+                        <History className="size-4 text-muted-foreground" />
+                      </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="truncate text-sm font-semibold">{item.label}</p>

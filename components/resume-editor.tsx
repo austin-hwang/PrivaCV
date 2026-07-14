@@ -21,7 +21,6 @@ import {
   FileText,
   GripVertical,
   Import as ImportIcon,
-  Keyboard,
   Loader2,
   MoreHorizontal,
   Palette,
@@ -31,6 +30,7 @@ import {
   Plus,
   Printer,
   RotateCcw,
+  Search,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -55,6 +55,7 @@ import { VersionHistoryCard } from "@/components/resume-editor/version-history-c
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
 import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
+import { ResumeNavigator, type ResumeNavigatorItem } from "@/components/resume-editor/resume-navigator";
 import { StartPanel } from "@/components/resume-editor/start-panel";
 import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
@@ -99,7 +100,7 @@ import {
   type SectionFormat,
 } from "@/lib/resume";
 import { clearAllLocalAIData } from "@/lib/local-ai-engine";
-import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-workspace";
+import { buildImportCoverage, ENTRY_SCHEMA, type VersionHistoryItem } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 // WebLLM is a browser-only runtime (WebGPU, Cache API, and Web Workers). Keeping
@@ -209,13 +210,15 @@ export function ResumeEditor() {
   const [previewScale, setPreviewScale] = useState(1);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
+  const [blankTemplatePreview, setBlankTemplatePreview] = useState<ResumeTemplateId | null>(null);
   const [blankResumeGuideVisible, setBlankResumeGuideVisible] = useState(false);
   // Collapsed editor groups (by group id) so a long resume is quick to scan and
   // scroll without hunting through every open section.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [navigatorQuery, setNavigatorQuery] = useState("");
   const [destructiveAction, setDestructiveAction] = useState<"clear" | "delete-all" | null>(null);
   const [localAIOpen, setLocalAIOpen] = useState(false);
   const [localAIInlineTarget, setLocalAIInlineTarget] = useState<LocalAIInlineTarget | null>(null);
@@ -340,10 +343,11 @@ export function ResumeEditor() {
     />
   ) : null;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
-  // The public explainer lives below the editor so it is present for first-time
-  // visitors and crawlers. Once someone starts a resume, keep the workspace a
-  // true app surface with its own panes instead of leaving a long marketing
-  // page underneath it to scroll into.
+  const previewState = blankTemplatePreview
+    ? { ...state, template: blankTemplatePreview, theme: TEMPLATE_THEMES[blankTemplatePreview] }
+    : state;
+  // Mark the document while the editor is active so app-only layout rules can
+  // respond without coupling the public footer to editor state.
   useEffect(() => {
     document.documentElement.dataset.resumeWorkspace = workspaceHasStarted ? "active" : "";
     return () => { delete document.documentElement.dataset.resumeWorkspace; };
@@ -401,6 +405,7 @@ export function ResumeEditor() {
   }, [importReview]);
 
   const startBlankResume = (template = state.template) => {
+    setBlankTemplatePreview(null);
     updateField("template", template);
     updateField("theme", TEMPLATE_THEMES[template]);
     setBlankWorkspaceOpen(true);
@@ -611,77 +616,25 @@ export function ResumeEditor() {
     window.setTimeout(() => focusFromExportCheck(targetId), 0);
   };
 
-  // Keep common tailoring actions within reach for keyboard-first editing.
-  // The shortcut is deliberately scoped to the form editor so it cannot steal
-  // ordinary typing or inline editing on the resume sheet.
   useEffect(() => {
-    const focusShortcutTarget = (targetId: string) => {
-      setActiveTarget(targetId);
-      // The affected field is already in the open section that has focus. Wait
-      // for its React update, then focus it directly—without the longer guided
-      // review delay that could otherwise override a user's next action.
-      window.setTimeout(() => focusCheckTarget(targetId), 0);
-    };
-
-    const handleEditorShortcut = (event: KeyboardEvent) => {
+    const handleNavigateShortcut = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
         event.repeat ||
-        event.metaKey ||
-        event.ctrlKey ||
-        !event.altKey ||
-        !event.shiftKey
+        event.altKey ||
+        (!event.metaKey && !event.ctrlKey) ||
+        event.key.toLocaleLowerCase() !== "k" ||
+        !workspaceHasStarted
       ) {
         return;
       }
-
-      const focused = document.activeElement;
-      if (!(focused instanceof HTMLElement) || !focused.closest("#resume-editor-pane")) return;
-
-      // Section-card headers and their editor bodies share one section wrapper,
-      // so tailoring shortcuts work whether focus is in the title or the content.
-      const sectionElement = focused.closest<HTMLElement>("[data-editor-section], [data-arrange-section]");
-      const section = sectionElement?.dataset.editorSection ?? sectionElement?.dataset.arrangeSection;
-      if (!section) return;
-
-      if (event.code === "KeyN") {
-        if (section === "skills") return;
-        event.preventDefault();
-        const nextIndex = getSectionEntries(state, section).length;
-        expandGroup(section);
-        addEntry(section);
-        focusShortcutTarget(`field-${section}-${nextIndex}-title`);
-        return;
-      }
-
-      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-      const direction = event.key === "ArrowUp" ? -1 : 1;
-      const entryElement = focused.closest<HTMLElement>("[data-editor-entry]");
-
-      if (entryElement) {
-        const entryIndex = Number(entryElement.dataset.editorEntryIndex);
-        const entries = getSectionEntries(state, section);
-        const targetIndex = entryIndex + direction;
-        if (!Number.isInteger(entryIndex) || targetIndex < 0 || targetIndex >= entries.length) return;
-        event.preventDefault();
-        const fieldMatch = focused.id.match(new RegExp(`^field-${section}-${entryIndex}-(title|subtitle|meta|details)$`));
-        const field = fieldMatch?.[1] ?? "title";
-        moveEntry(section, entryIndex, direction);
-        focusShortcutTarget(`field-${section}-${targetIndex}-${field}`);
-        return;
-      }
-
-      const sectionIndex = state.sectionOrder.indexOf(section);
-      const targetIndex = sectionIndex + direction;
-      if (targetIndex < 0 || targetIndex >= state.sectionOrder.length) return;
       event.preventDefault();
-      moveSection(section, direction);
-      focusShortcutTarget(`section-title-${section}`);
+      setNavigatorOpen(true);
     };
 
-    window.addEventListener("keydown", handleEditorShortcut);
-    return () => window.removeEventListener("keydown", handleEditorShortcut);
-  }, [addEntry, expandGroup, focusCheckTarget, moveEntry, moveSection, state]);
+    window.addEventListener("keydown", handleNavigateShortcut);
+    return () => window.removeEventListener("keydown", handleNavigateShortcut);
+  }, [workspaceHasStarted]);
 
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
   const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
@@ -769,6 +722,68 @@ export function ResumeEditor() {
         })),
       ]
     : [];
+  const navigatorItems = useMemo<ResumeNavigatorItem[]>(() => {
+    if (!workspaceHasStarted) return [];
+    const items: ResumeNavigatorItem[] = [
+      { id: "field-name", label: "Full name", context: "Header", keywords: state.name },
+      { id: "field-title", label: "Title / role", context: "Header", keywords: state.title },
+      { id: "field-email", label: "Email", context: "Header", keywords: state.email },
+      { id: "field-phone", label: "Phone", context: "Header", keywords: state.phone },
+      { id: "field-location", label: "Location", context: "Header", keywords: state.location },
+      { id: "field-website", label: "Website / LinkedIn", context: "Header", keywords: state.website },
+      { id: "field-summary", label: "Professional summary", context: "Summary", keywords: state.summary },
+    ];
+
+    for (const section of state.sectionOrder) {
+      const sectionTitle = getSectionTitle(state, section).trim() || "Untitled section";
+      const format = getSectionFormat(state, section);
+      items.push({
+        id: `section-title-${section}`,
+        label: `${sectionTitle} section title`,
+        context: "Section heading",
+      });
+
+      if (format === "tag-groups") {
+        getSectionTagGroups(state, section).forEach((group, index) => {
+          items.push({
+            id: `field-${section}-group-${group.id}`,
+            label: group.label.trim() || `Group ${index + 1}`,
+            context: `${sectionTitle} · Group`,
+            keywords: group.tags.join(" "),
+          });
+        });
+        continue;
+      }
+
+      if (format !== "entries" || section === "skills") {
+        items.push({
+          id: section === "skills" ? "field-skills" : `field-${section}-content`,
+          label: `${sectionTitle} content`,
+          context: `${sectionTitle} · ${SECTION_FORMAT_LABELS[format]}`,
+          keywords: getSectionText(state, section),
+        });
+        continue;
+      }
+
+      const schema = section in ENTRY_SCHEMA
+        ? ENTRY_SCHEMA[section as keyof typeof ENTRY_SCHEMA]
+        : { title: "Title", subtitle: "Organization / context", meta: "Dates / details", details: "Highlights" };
+      getSectionEntries(state, section).forEach((entry, index) => {
+        const entryLabel = entry.title.trim() || entry.subtitle.trim() || `Entry ${index + 1}`;
+        const context = `${sectionTitle} · ${entryLabel}`;
+        const keywords = `${entry.title} ${entry.subtitle} ${entry.meta} ${entry.details}`;
+        (Object.keys(schema) as (keyof typeof schema)[]).forEach((field) => {
+          items.push({
+            id: `field-${section}-${index}-${field}`,
+            label: schema[field],
+            context,
+            keywords,
+          });
+        });
+      });
+    }
+    return items;
+  }, [state, workspaceHasStarted]);
 
   const startSectionDrag = (event: DragEvent<HTMLElement>, section: string, title: string) => {
     event.dataTransfer.effectAllowed = "move";
@@ -934,7 +949,7 @@ export function ResumeEditor() {
                 )}
                 <span className="hidden sm:inline">Versions</span>
                 {versionHistory.length ? (
-                  <span className="hidden min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums sm:inline">
+                  <span className="hidden h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold leading-none tabular-nums sm:inline-flex">
                     {versionHistory.length}
                   </span>
                 ) : null}
@@ -999,12 +1014,6 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuItem
                   destructive
-                  onSelect={() => setDestructiveAction("clear")}
-                >
-                  <RotateCcw /> Clear
-                </MenuItem>
-                <MenuItem
-                  destructive
                   onSelect={() => setDestructiveAction("delete-all")}
                 >
                   <Trash2 /> Delete all data
@@ -1054,7 +1063,9 @@ export function ResumeEditor() {
           aria-label="Resume editor"
           onFocusCapture={(event) => {
             const target = event.target as HTMLElement;
-            if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
+            const tagGroup = target.closest<HTMLElement>("[data-editor-tag-group]");
+            if (tagGroup?.id) setActiveTarget(tagGroup.id);
+            else if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
           }}
           className={cn(
             "editor-pane relative overflow-visible border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto lg:border-b-0 lg:px-6 lg:pb-6 lg:pt-0",
@@ -1079,6 +1090,7 @@ export function ResumeEditor() {
               onOpenJson={() => jsonInputRef.current?.click()}
               onOpenCheckpointBackup={() => historyBackupInputRef.current?.click()}
               onStartBlank={startBlankResume}
+              onPreviewBlank={setBlankTemplatePreview}
             />
           ) : null}
 
@@ -1200,9 +1212,9 @@ export function ResumeEditor() {
                 variant="ghost"
                 size="sm"
                 className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-                onClick={() => setShortcutsOpen(true)}
+                onClick={() => setNavigatorOpen(true)}
               >
-                <Keyboard /> Shortcuts
+                <Search /> Navigate
               </Button>
               <Button
                 type="button"
@@ -1212,6 +1224,15 @@ export function ResumeEditor() {
                 onClick={() => setCollapsedGroups(allCollapsed ? new Set() : new Set(editorGroupIds))}
               >
                 {allCollapsed ? <ChevronsUpDown /> : <ChevronsDownUp />} {allCollapsed ? "Expand all" : "Collapse all"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDestructiveAction("clear")}
+              >
+                <RotateCcw /> Clear
               </Button>
             </div>
           ) : null}
@@ -1439,8 +1460,6 @@ export function ResumeEditor() {
                           variant="ghost"
                           size="sm"
                           className="h-8 shrink-0 px-2"
-                          aria-keyshortcuts="Alt+Shift+N"
-                          title="Add entry (Alt+Shift+N when focused in this section)"
                           onClick={() => {
                             expandGroup(section);
                             addEntry(section);
@@ -1541,7 +1560,12 @@ export function ResumeEditor() {
                     </p>
                   </div>
                   {sectionFormat === "tag-groups" ? (
-                    <TagGroupEditor groups={tagGroups} onChange={(groups) => updateSectionTagGroups(section, groups)} />
+                    <TagGroupEditor
+                      section={section}
+                      groups={tagGroups}
+                      activeTarget={activeTarget}
+                      onChange={(groups) => updateSectionTagGroups(section, groups)}
+                    />
                   ) : sectionFormat === "bullets" ? (
                     <TextAreaField
                       id={`field-${section}-content`}
@@ -1759,7 +1783,7 @@ export function ResumeEditor() {
                   {inlineEdit ? (
                     <>
                       <Pencil />
-                      <span aria-hidden className="size-1.5 rounded-full bg-current" /> <span>Editing</span>
+                      <span>Editing</span>
                     </>
                   ) : (
                     <><Eye /> <span>View only</span></>
@@ -1801,7 +1825,7 @@ export function ResumeEditor() {
             ) : null}
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
               <ResumePreview
-                state={state}
+                state={previewState}
                 pageCount={pageCount}
                 pageGuides={pageGuides}
                 printBreaks={printBreaks}
@@ -1858,34 +1882,14 @@ export function ResumeEditor() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Keyboard shortcuts</DialogTitle>
-            <DialogDescription>
-              Use these while focus is in the form editor. The visible buttons remain available for every action.
-            </DialogDescription>
-          </DialogHeader>
-          <dl className="grid gap-3 text-sm">
-            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
-              <dt>Add an entry in this section</dt>
-              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Alt + Shift + N</kbd></dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
-              <dt>Move the focused entry</dt>
-              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Alt + Shift + ↑ / ↓</kbd></dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
-              <dt>Move the current section</dt>
-              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Alt + Shift + ↑ / ↓</kbd></dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2">
-              <dt>Review and export PDF</dt>
-              <dd><kbd className="rounded border bg-background px-1.5 py-0.5 text-xs font-medium">Cmd / Ctrl + P</kbd></dd>
-            </div>
-          </dl>
-        </DialogContent>
-      </Dialog>
+      <ResumeNavigator
+        open={navigatorOpen}
+        onOpenChange={setNavigatorOpen}
+        items={navigatorItems}
+        query={navigatorQuery}
+        onQueryChange={setNavigatorQuery}
+        onSelect={focusEditorTarget}
+      />
 
       <ReviewDrawer
         editor={editor}
@@ -1901,9 +1905,9 @@ export function ResumeEditor() {
           setToolsOpen(false);
           setLocalAIOpen(true);
         }}
-        onOpenShortcuts={() => {
+        onOpenNavigator={() => {
           setToolsOpen(false);
-          setShortcutsOpen(true);
+          setNavigatorOpen(true);
         }}
         isDarkTheme={isDarkTheme}
         onToggleTheme={() => setIsDarkTheme(toggleTheme())}

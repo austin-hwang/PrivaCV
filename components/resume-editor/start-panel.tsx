@@ -18,6 +18,7 @@ type StartPanelProps = {
   onOpenJson: () => void;
   onOpenCheckpointBackup: () => void;
   onStartBlank: (template?: ResumeTemplateId) => void;
+  onPreviewBlank: (template: ResumeTemplateId | null) => void;
 };
 
 export function StartPanel({
@@ -29,6 +30,7 @@ export function StartPanel({
   onOpenJson,
   onOpenCheckpointBackup,
   onStartBlank,
+  onPreviewBlank,
 }: StartPanelProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -45,18 +47,17 @@ export function StartPanel({
               </p>
             </div>
             <div className="mt-auto grid gap-2">
-              <Button type="button" className="justify-start" onClick={onImportText}>
-                <ClipboardPaste /> Paste resume text
-              </Button>
               <Button
                 type="button"
-                variant="outline"
                 aria-label="Import a file"
                 className="justify-start"
                 onClick={onImportFile}
                 disabled={isImporting}
               >
                 <Upload /> {isImporting ? "Importing…" : "Import a file (PDF or Word)"}
+              </Button>
+              <Button type="button" variant="outline" className="justify-start" onClick={onImportText}>
+                <ClipboardPaste /> Paste resume text
               </Button>
             </div>
           </div>
@@ -69,7 +70,7 @@ export function StartPanel({
                 Begin from a blank, ATS-ready draft.
               </p>
             </div>
-            <Menu className="mt-auto">
+            <Menu className="mt-auto" onOpenChange={(open) => { if (!open) onPreviewBlank(null); }}>
               <MenuTrigger>
                 <Button type="button" variant="secondary" className="w-full justify-start">
                   <FileText /> Start a blank resume <ChevronDown className="ml-auto" />
@@ -81,6 +82,7 @@ export function StartPanel({
                   <MenuItem
                     key={template.id}
                     className="items-start"
+                    onHighlight={() => onPreviewBlank(template.id)}
                     onSelect={() => onStartBlank(template.id)}
                   >
                     <span>
@@ -93,6 +95,9 @@ export function StartPanel({
                 ))}
               </MenuContent>
             </Menu>
+            <p className="text-xs leading-snug text-muted-foreground">
+              You can change the layout and theme later from Design.
+            </p>
           </div>
         </div>
 

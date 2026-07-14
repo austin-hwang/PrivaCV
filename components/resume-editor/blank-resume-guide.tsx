@@ -77,7 +77,7 @@ export function BlankResumeGuide({
                 type="button"
                 variant={step.done ? "ghost" : "outline"}
                 size="sm"
-                className="mt-auto w-fit"
+                className="mt-auto w-fit self-end"
                 onClick={() => onFocus(step.targetId)}
               >
                 {step.done ? "Review" : step.actionLabel} {!step.done ? <ArrowRight /> : null}

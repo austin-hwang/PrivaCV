@@ -1232,14 +1232,14 @@ export function plainTextStats(text: string) {
 
 export function sampleState(): ResumeState {
   return normalizeResume({
-    name: "Maya Patel",
+    name: "John Doe",
     title: "Product Operations Manager",
-    email: "maya.patel@example.com",
+    email: "john.doe@example.com",
     phone: "(555) 014-7823",
     location: "Chicago, IL",
-    website: "linkedin.com/in/mayapatel",
+    website: "linkedin.com/in/johndoe",
     summary:
-      "Product operations leader with 7 years of experience turning customer insights into scalable workflows, clearer metrics, and faster launches across growing teams.",
+      "Product operations leader with 8 years of experience turning customer insights into scalable workflows, clearer metrics, and faster launches across growing teams.",
     experience: [
       {
         title: "Product Operations Manager",
@@ -1255,12 +1255,25 @@ export function sampleState(): ResumeState {
         details:
           "Automated weekly reporting, saving 8 hours of manual work each month.\nMapped fulfillment bottlenecks and helped improve on-time delivery by 18%.",
       },
+      {
+        title: "Operations Coordinator",
+        subtitle: "Civic Works - Chicago, IL",
+        meta: "Jun 2017 - Jun 2019",
+        details:
+          "Coordinated launch plans across sales, support, and operations for 15 regional programs.\nStandardized vendor tracking and reduced late deliverables by 22%.",
+      },
     ],
     education: [
       {
         title: "B.A. in Economics",
         subtitle: "University of Illinois Chicago - Chicago, IL",
         meta: "2015 - 2019",
+        details: "",
+      },
+      {
+        title: "Certificate in Data Analytics",
+        subtitle: "City Colleges of Chicago - Chicago, IL",
+        meta: "2020",
         details: "",
       },
     ],
@@ -1272,8 +1285,15 @@ export function sampleState(): ResumeState {
         details:
           "Analyzed transit and grocery-access data for a community nonprofit and presented three expansion priorities to its board.",
       },
+      {
+        title: "Launch Readiness Playbook",
+        subtitle: "Cross-functional Program Lead",
+        meta: "2024",
+        details:
+          "Created a reusable launch checklist and ownership model adopted by five product teams.",
+      },
     ],
     skills:
-      "Analysis: SQL, Excel, Tableau\nOperations: Process mapping, KPI design, Experiment planning\nTools: Airtable, Jira, Notion",
+      "Analysis: SQL, Excel, Tableau\nOperations: Process mapping, KPI design, Experiment planning\nMethods: Customer research, Launch planning, Workflow design\nTools: Airtable, Jira, Notion",
   });
 }

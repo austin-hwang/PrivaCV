@@ -133,8 +133,8 @@ describe("resume helpers", () => {
     const certification = groups.find((group) => group.id === "custom-certifications-0");
 
     expect(groups.find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Full name", text: "Maya Patel" }),
-      expect.objectContaining({ label: "Email", text: "maya.patel@example.com" }),
+      expect.objectContaining({ label: "Full name", text: "John Doe" }),
+      expect.objectContaining({ label: "Email", text: "john.doe@example.com" }),
     ]));
     expect(experience?.fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: "Job title" }),
@@ -155,11 +155,11 @@ describe("resume helpers", () => {
       "word/document.xml",
       "word/_rels/document.xml.rels",
     ]));
-    expect(document).toContain("Maya Patel");
+    expect(document).toContain("John Doe");
     expect(document).toContain("EXPERIENCE");
     expect(document).toContain("•");
-    expect(relationships).toContain("mailto:maya.patel@example.com");
-    expect(relationships).toContain("https://linkedin.com/in/mayapatel");
+    expect(relationships).toContain("mailto:john.doe@example.com");
+    expect(relationships).toContain("https://linkedin.com/in/johndoe");
   });
 
   it("extracts Word paragraphs locally before using the normal resume parser", () => {
@@ -170,14 +170,14 @@ describe("resume helpers", () => {
     const text = extractDocxText(resumeDocx(state).buffer);
 
     expect(docxParagraphsFromXml(document)).toEqual(expect.arrayContaining([
-      "Maya Patel",
+      "John Doe",
       "Senior Product Engineer",
       "EXPERIENCE",
     ]));
-    expect(text).toContain("Maya Patel");
+    expect(text).toContain("John Doe");
     const imported = importResumeText(text);
     expect(imported).toMatchObject({
-      name: "Maya Patel",
+      name: "John Doe",
       title: "Senior Product Engineer",
     });
     expect(imported.experience).toEqual(expect.arrayContaining([
@@ -1286,7 +1286,7 @@ describe("resume helpers", () => {
     const state = sampleState();
     const text = resumePlainText(state);
 
-    expect(text).toContain("Maya Patel");
+    expect(text).toContain("John Doe");
     expect(text.indexOf("Education")).toBeLessThan(text.indexOf("Experience"));
     expect(text).toContain("- Rebuilt intake and prioritization across four teams, reducing request turnaround by 35%.");
   });
@@ -1368,7 +1368,7 @@ describe("resume helpers", () => {
 
     expect(evidence).toMatchObject({
       ok: false,
-      detail: "2 of 6 experience or project bullets show scope or results",
+      detail: "3 of 9 experience or project bullets show scope or results",
       actionLabel: "Strengthen a bullet",
       targetId: "field-experience-0-details",
     });
@@ -1654,7 +1654,7 @@ describe("resume helpers", () => {
   it("summarizes version content badges from normalized resume content", () => {
     expect(versionContentBadges(emptyState())).toEqual(["Empty draft"]);
     expect(versionContentBadges(sampleState())).toEqual(
-      expect.arrayContaining(["2 roles", "1 education", "1 project", "3 skill lines"]),
+      expect.arrayContaining(["3 roles", "2 education", "2 projects", "4 skill lines"]),
     );
   });
 });

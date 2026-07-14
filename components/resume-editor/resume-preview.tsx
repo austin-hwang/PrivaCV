@@ -443,11 +443,10 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
     if (!groups.length) return null;
     return (
       <section
-        className={cn("resume-section resume-section-atomic resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+        className={cn("resume-section resume-section-atomic", sectionActive && "resume-preview-section-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
         data-resume-guide-label={title || "Tag groups"}
         data-resume-print-section={section}
         style={printBreakStyle(printBreakTarget, printBreaks)}
-        {...(editable ? {} : previewTargetProps(section === "skills" ? "field-skills" : `field-${section}-content`, onTargetSelect))}
       >
         {title ? (
           <InlineText
@@ -456,15 +455,24 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
             value={title}
             placeholder="Skills"
             onCommit={(value) => onEditSectionTitle?.(section, value)}
-            className="resume-section-title"
+            className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")}
+            {...(editable ? {} : previewTargetProps(`section-title-${section}`, onTargetSelect))}
           />
         ) : null}
         <div>
-          {groups.map((group) => (
-            <div key={group.id} className="resume-skill-line">
-              {group.label ? <span className="resume-skill-cat">{group.label}:</span> : null} {group.tags.join(" · ")}
-            </div>
-          ))}
+          {groups.map((group) => {
+            const targetId = `field-${section}-group-${group.id}`;
+            return (
+              <div
+                key={group.id}
+                className={cn("resume-skill-line resume-preview-target", activeTarget === targetId && "resume-preview-active")}
+                aria-label={`Edit ${group.label.trim() || "untitled"} group in ${title || "section"}`}
+                {...previewTargetProps(targetId, onTargetSelect)}
+              >
+                {group.label ? <span className="resume-skill-cat">{group.label}:</span> : null} {group.tags.join(" · ")}
+              </div>
+            );
+          })}
         </div>
       </section>
     );

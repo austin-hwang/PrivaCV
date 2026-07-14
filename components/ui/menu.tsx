@@ -22,8 +22,12 @@ function useMenu() {
  * Lightweight click-away dropdown. Kept dependency-free (no extra Radix package)
  * since the menu only holds secondary toolbar actions.
  */
-export function Menu({ children, className }: { children: React.ReactNode; className?: string }) {
-  const [open, setOpen] = React.useState(false);
+export function Menu({ children, className, onOpenChange }: { children: React.ReactNode; className?: string; onOpenChange?: (open: boolean) => void }) {
+  const [open, setOpenState] = React.useState(false);
+  const setOpen = React.useCallback((nextOpen: boolean) => {
+    setOpenState(nextOpen);
+    onOpenChange?.(nextOpen);
+  }, [onOpenChange]);
   const ref = React.useRef<HTMLDivElement>(null);
   const menuId = React.useId();
   const contentId = `menu-content-${menuId}`;
@@ -43,7 +47,7 @@ export function Menu({ children, className }: { children: React.ReactNode; class
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   return (
     <MenuContext.Provider value={{ open, setOpen, contentId, triggerId }}>
@@ -151,12 +155,14 @@ export function MenuContent({ children, className, align = "end" }: { children: 
 export function MenuItem({
   children,
   onSelect,
+  onHighlight,
   disabled,
   destructive,
   className,
 }: {
   children: React.ReactNode;
   onSelect?: () => void;
+  onHighlight?: () => void;
   disabled?: boolean;
   destructive?: boolean;
   className?: string;
@@ -176,6 +182,8 @@ export function MenuItem({
         setOpen(false);
         onSelect?.();
       }}
+      onPointerEnter={onHighlight}
+      onFocus={onHighlight}
     >
       {children}
     </button>

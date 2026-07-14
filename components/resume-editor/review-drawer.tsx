@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardCheck, ClipboardCopy, Cpu, Keyboard, MessageSquarePlus, Moon, Sun } from "lucide-react";
+import { ClipboardCheck, ClipboardCopy, Cpu, MessageSquarePlus, Moon, Search, Sun } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,7 +14,7 @@ export function ReviewDrawer({
   onOpenApplicationCopy,
   onOpenLocalAI,
   localAIEnabled,
-  onOpenShortcuts,
+  onOpenNavigator,
   isDarkTheme,
   onToggleTheme,
   feedbackUrl,
@@ -26,7 +26,7 @@ export function ReviewDrawer({
   onOpenApplicationCopy: () => void;
   onOpenLocalAI: () => void;
   localAIEnabled: boolean;
-  onOpenShortcuts: () => void;
+  onOpenNavigator: () => void;
   isDarkTheme: boolean;
   onToggleTheme: () => void;
   feedbackUrl: string | null;
@@ -92,11 +92,11 @@ export function ReviewDrawer({
                   <span className="block text-xs font-normal text-muted-foreground">Change the editor appearance on this device.</span>
                 </span>
               </Button>
-              <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenShortcuts}>
-                <Keyboard />
+              <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenNavigator}>
+                <Search />
                 <span>
-                  <span className="block text-sm font-semibold">Keyboard shortcuts</span>
-                  <span className="block text-xs font-normal text-muted-foreground">See faster ways to edit and export.</span>
+                  <span className="block text-sm font-semibold">Navigate resume</span>
+                  <span className="block text-xs font-normal text-muted-foreground">Jump directly to any field with Cmd or Ctrl + K.</span>
                 </span>
               </Button>
               {feedbackUrl ? (
