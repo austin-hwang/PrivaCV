@@ -25,10 +25,12 @@ export const CUSTOM_SECTION_PRESETS = [
 ] as const;
 
 export const RESUME_TEMPLATES = [
-  { id: "classic", label: "Classic", description: "Traditional serif layout with ruled headings." },
-  { id: "minimal", label: "Minimal", description: "Clean sans-serif layout with understated dividers." },
-  { id: "modern", label: "Modern", description: "Contemporary hierarchy with a restrained accent." },
-  { id: "compact", label: "Compact", description: "Denser layout for resumes with more experience." },
+  { id: "classic", label: "Classic", description: "Traditional serif type, left-aligned header, and ruled sections." },
+  { id: "minimal", label: "Minimal", description: "Airy sans-serif type with plain headings and clean dash bullets." },
+  { id: "modern", label: "Modern", description: "Centered header, navy accent bars, and contemporary sans-serif type." },
+  { id: "compact", label: "Compact", description: "Dense Calibri layout with underlined headings for longer resumes." },
+  { id: "executive", label: "Executive", description: "Centered Georgia header with refined burgundy rules." },
+  { id: "technical", label: "Technical", description: "Tight Arial layout with teal dividers and scannable sections." },
 ] as const;
 
 export type ResumeTemplateId = (typeof RESUME_TEMPLATES)[number]["id"];
@@ -112,9 +114,11 @@ export type ResumeTheme = z.infer<typeof themeSchema>;
 /** Each template preset is simply a professional starting point for the theme. */
 export const TEMPLATE_THEMES: Record<ResumeTemplateId, ResumeTheme> = {
   classic: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "comfortable", bulletStyle: "disc" },
-  minimal: { font: "inter", accent: "#334155", headerAlign: "left", headerDivider: false, headingStyle: "underline", density: "comfortable", bulletStyle: "disc" },
-  modern: { font: "inter", accent: "#1f3a5f", headerAlign: "left", headerDivider: true, headingStyle: "bar", density: "comfortable", bulletStyle: "disc" },
-  compact: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "compact", bulletStyle: "disc" },
+  minimal: { font: "inter", accent: "#334155", headerAlign: "left", headerDivider: false, headingStyle: "plain", density: "comfortable", bulletStyle: "dash" },
+  modern: { font: "inter", accent: "#1f3a5f", headerAlign: "center", headerDivider: true, headingStyle: "bar", density: "cozy", bulletStyle: "circle" },
+  compact: { font: "calibri", accent: "#111827", headerAlign: "left", headerDivider: true, headingStyle: "underline", density: "compact", bulletStyle: "dash" },
+  executive: { font: "georgia", accent: "#7f1d3a", headerAlign: "center", headerDivider: true, headingStyle: "ruled", density: "comfortable", bulletStyle: "circle" },
+  technical: { font: "arial", accent: "#0f5f5c", headerAlign: "left", headerDivider: true, headingStyle: "underline", density: "cozy", bulletStyle: "disc" },
 };
 
 export function defaultTheme(): ResumeTheme {
@@ -200,7 +204,7 @@ export const resumeSchema = z.object({
   // editor (and keep their content) but are excluded from the preview and every
   // export until shown again.
   hiddenSections: z.array(z.string()).catch([]),
-  template: z.enum(["classic", "minimal", "modern", "compact"]).catch("classic"),
+  template: z.enum(["classic", "minimal", "modern", "compact", "executive", "technical"]).catch("classic"),
   theme: themeSchema.catch(() => defaultTheme()),
   textScale: z.number().catch(1),
 });

@@ -43,9 +43,11 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
-  await expect(modelSelect).toHaveValue("Qwen3-1.7B-q4f16_1-MLC");
-  await expect(dialog.getByText(/Qwen 3 1\.7B:/)).toBeVisible();
-  await expect(dialog).toContainText("Best balance of rewrite quality");
+  await expect(modelSelect).toHaveValue("Llama-3.2-3B-Instruct-q4f16_1-MLC");
+  await expect(dialog.getByText(/Llama 3\.2 3B:/)).toBeVisible();
+  await expect(dialog).toContainText("Recommended for stronger rewrites");
+  await expect(dialog.getByRole("option", { name: /Phi-4 Mini.*3\.4 GB/i })).toHaveCount(1);
+  await expect(dialog.getByRole("option", { name: /DeepSeek R1 Llama 8B.*5\.0 GB/i })).toHaveCount(1);
   await expect(dialog.getByRole("option", { name: /SmolLM2|Qwen 3 0\.6B/i })).toHaveCount(0);
 
   await page.waitForTimeout(250);

@@ -1,10 +1,24 @@
 export const LOCAL_AI_MODELS = [
   {
-    id: "Qwen3-1.7B-q4f16_1-MLC",
-    label: "Qwen 3 1.7B",
-    description: "Best balance of rewrite quality and support across WebGPU devices.",
-    memory: "~2.0 GB GPU memory",
+    id: "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+    label: "Llama 3.2 3B",
+    description: "Recommended for stronger rewrites on most modern WebGPU devices.",
+    memory: "~2.3 GB GPU memory",
     recommended: true,
+  },
+  {
+    id: "Phi-4-mini-instruct-q4f16_1-MLC",
+    label: "Phi-4 Mini",
+    description: "Higher-capability option for devices with more available GPU memory.",
+    memory: "~3.4 GB GPU memory",
+    recommended: false,
+  },
+  {
+    id: "DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC",
+    label: "DeepSeek R1 Llama 8B",
+    description: "Reasoning-focused option for high-memory devices; edits can be significantly slower.",
+    memory: "~5.0 GB GPU memory",
+    recommended: false,
   },
   {
     id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",

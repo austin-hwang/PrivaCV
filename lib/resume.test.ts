@@ -27,6 +27,7 @@ import {
   summarizeBulletOpenings,
   summarizeEvidence,
   RESUME_TEMPLATES,
+  TEMPLATE_THEMES,
 } from "@/lib/resume";
 import {
   detectSection,
@@ -373,7 +374,15 @@ describe("resume helpers", () => {
       "minimal",
       "modern",
       "compact",
+      "executive",
+      "technical",
     ]);
+    expect(new Set(Object.values(TEMPLATE_THEMES).map((theme) => JSON.stringify(theme))).size).toBe(RESUME_TEMPLATES.length);
+    expect(TEMPLATE_THEMES.minimal).toMatchObject({ headingStyle: "plain", bulletStyle: "dash" });
+    expect(TEMPLATE_THEMES.modern).toMatchObject({ headerAlign: "center", headingStyle: "bar", density: "cozy" });
+    expect(TEMPLATE_THEMES.compact).toMatchObject({ font: "calibri", headingStyle: "underline", density: "compact" });
+    expect(TEMPLATE_THEMES.executive).toMatchObject({ font: "georgia", accent: "#7f1d3a", headerAlign: "center" });
+    expect(TEMPLATE_THEMES.technical).toMatchObject({ font: "arial", accent: "#0f5f5c", density: "cozy" });
   });
 
   it("imports pasted resume text with line-ending cleanup", () => {

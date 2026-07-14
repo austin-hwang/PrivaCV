@@ -87,6 +87,9 @@ export function ResumeEditorOverlays({
     (item) => !importReview.reviewedItemIds?.includes(item.id),
   );
   const applicationCopy = applicationCopyGroups(editor.state);
+  const backupUniqueCount = mergedHistoryBackup.incomingUnique.length;
+  const backupMatchCount = mergedHistoryBackup.matchingCheckpoints.length;
+  const hasNewBackupCheckpoints = backupUniqueCount > 0;
   const toggleApplicationField = (fieldId: string) => {
     setExpandedApplicationFields((current) => {
       const next = new Set(current);
@@ -313,63 +316,93 @@ export function ResumeEditorOverlays({
       <Dialog open={Boolean(historyBackupToImport)} onOpenChange={(open) => !open && setHistoryBackupToImport(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add saved checkpoints from backup</DialogTitle>
+            <DialogTitle>{hasNewBackupCheckpoints ? "Add saved checkpoints from backup" : "Checkpoints already added"}</DialogTitle>
             <DialogDescription>
-              Merges into your local history; your current resume stays open.
+              {hasNewBackupCheckpoints
+                ? "Add new checkpoints to your local history; your current resume stays open."
+                : "Every checkpoint in this backup already matches your local history."}
             </DialogDescription>
           </DialogHeader>
           {historyBackupToImport ? (
-            <div className="grid gap-3">
-              <Alert>
-                <History className="h-4 w-4" />
-                <AlertTitle>
-                  {mergedHistoryBackup.incomingUnique.length
-                    ? `${mergedHistoryBackup.incomingUnique.length} unique ${mergedHistoryBackup.incomingUnique.length === 1 ? "checkpoint" : "checkpoints"} ready to add`
-                    : "No new checkpoints to add"}
-                </AlertTitle>
-                <AlertDescription>
-                  Unique checkpoints are merged into this browser&apos;s local history. After merging, {mergedHistoryBackup.checkpoints.length} will be available here.
-                </AlertDescription>
-              </Alert>
-              <div className="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md border bg-muted/30 p-3">
-                {mergedHistoryBackup.incomingUnique.map((checkpoint) => (
-                  <Badge key={checkpoint.id} variant="outline" className="max-w-full truncate">
-                    {checkpoint.label}
-                  </Badge>
-                ))}
-                {!mergedHistoryBackup.incomingUnique.length ? (
-                  <span className="text-sm text-muted-foreground">Every checkpoint in this backup already has a local match.</span>
+            hasNewBackupCheckpoints ? (
+              <div className="grid gap-3">
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div data-checkpoint-summary className="flex items-start gap-3">
+                    <History data-checkpoint-summary-icon className="mt-0.5 size-4 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium leading-snug">
+                        {backupUniqueCount} new {backupUniqueCount === 1 ? "checkpoint" : "checkpoints"} ready to add
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        After adding, {mergedHistoryBackup.checkpoints.length} {mergedHistoryBackup.checkpoints.length === 1 ? "checkpoint" : "checkpoints"} will be available in this browser.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="ml-7 mt-3 flex max-h-32 flex-wrap gap-2 overflow-y-auto">
+                    {mergedHistoryBackup.incomingUnique.map((checkpoint) => (
+                      <Badge key={checkpoint.id} variant="outline" className="max-w-full truncate bg-background">
+                        {checkpoint.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                {backupMatchCount ? (
+                  <div className="rounded-lg border bg-muted/20 p-4">
+                    <div data-checkpoint-summary className="flex items-start gap-3">
+                      <Check data-checkpoint-summary-icon className="mt-0.5 size-4 shrink-0 text-success" />
+                      <div className="min-w-0">
+                        <p className="font-medium leading-snug">
+                          {backupMatchCount} {backupMatchCount === 1 ? "checkpoint is" : "checkpoints are"} already here
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Existing matches will not be duplicated.</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
+                            <Badge key={checkpoint.id} variant="outline" className="max-w-full bg-background">
+                              {checkpoint.label}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : null}
               </div>
-              {mergedHistoryBackup.matchingCheckpoints.length ? (
-                <Alert className="border-brand/40 bg-brand/10">
-                  <Check className="h-4 w-4" />
-                  <AlertTitle>
-                    {mergedHistoryBackup.matchingCheckpoints.length} {mergedHistoryBackup.matchingCheckpoints.length === 1 ? "checkpoint already matches" : "checkpoints already match"} this browser
-                  </AlertTitle>
-                  <AlertDescription className="space-y-2">
-                    <span>Matching drafts are kept as-is instead of duplicated.</span>
-                    <span className="flex flex-wrap gap-2">
+            ) : (
+              <div className="rounded-lg border border-success/30 bg-success/10 p-4">
+                <div data-checkpoint-summary className="flex items-start gap-3">
+                  <Check data-checkpoint-summary-icon className="mt-0.5 size-4 shrink-0 text-success" />
+                  <div className="min-w-0">
+                    <p className="font-medium leading-snug">All checkpoints are already in this browser</p>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      {backupMatchCount} matching {backupMatchCount === 1 ? "checkpoint was" : "checkpoints were"} kept as-is. No duplicates were added.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
-                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-brand/40 bg-background text-foreground">
+                        <Badge key={checkpoint.id} variant="outline" className="max-w-full bg-background">
                           {checkpoint.label}
                         </Badge>
                       ))}
-                    </span>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-            </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
           ) : null}
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">Nothing is uploaded or sent anywhere.</span>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setHistoryBackupToImport(null)}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={importVersionHistoryBackup}>
-                <History /> Add checkpoints
-              </Button>
+              {hasNewBackupCheckpoints ? (
+                <>
+                  <Button type="button" variant="outline" onClick={() => setHistoryBackupToImport(null)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={importVersionHistoryBackup}>
+                    <History /> Add {backupUniqueCount} {backupUniqueCount === 1 ? "checkpoint" : "checkpoints"}
+                  </Button>
+                </>
+              ) : (
+                <Button type="button" onClick={() => setHistoryBackupToImport(null)}>Done</Button>
+              )}
             </div>
           </DialogFooter>
         </DialogContent>

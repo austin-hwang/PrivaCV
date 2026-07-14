@@ -13,29 +13,54 @@ import {
   parseLocalAIImportProposal,
   validateLocalAIRewrite,
 } from "@/lib/local-ai";
-import { friendlyLocalAIError, hasObviousLocalAIRepetition, localAIChatExtraBody, localAIChatSampling, localAIModelCachePath } from "@/lib/local-ai-engine";
+import { friendlyLocalAIError, hasObviousLocalAIRepetition, localAIChatExtraBody, localAIChatSampling, localAIMaxTokensForModel, localAIMessagesForModel, localAIModelCachePath } from "@/lib/local-ai-engine";
 import { sampleState } from "@/lib/resume";
 
 describe("local AI helpers", () => {
-  it("uses Qwen 3 1.7B by default and recognizes only supported choices", () => {
+  it("uses Llama 3.2 3B by default and recognizes only supported choices", () => {
     expect(LOCAL_AI_MODELS[0].recommended).toBe(true);
-    expect(LOCAL_AI_MODELS[0].id).toBe("Qwen3-1.7B-q4f16_1-MLC");
+    expect(LOCAL_AI_MODELS[0].id).toBe("Llama-3.2-3B-Instruct-q4f16_1-MLC");
     expect(isLocalAIModelId(LOCAL_AI_MODELS[1].id)).toBe(true);
+    expect(isLocalAIModelId("Phi-4-mini-instruct-q4f16_1-MLC")).toBe(true);
+    expect(isLocalAIModelId("DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC")).toBe(true);
+    expect(isLocalAIModelId("Qwen3-1.7B-q4f16_1-MLC")).toBe(false);
     expect(isLocalAIModelId("Qwen3-0.6B-q4f16_1-MLC")).toBe(false);
     expect(isLocalAIModelId("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBe(false);
     expect(isLocalAIModelId("unknown-model")).toBe(false);
   });
 
-  it("uses Qwen 3 for direct edits without spending the short response on reasoning", () => {
-    expect(localAIChatExtraBody("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ enable_thinking: false });
-    expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ temperature: 0.7, top_p: 0.8, presence_penalty: 1.5 });
+  it("uses conservative sampling for direct Llama edits", () => {
+    expect(localAIChatExtraBody("Llama-3.2-3B-Instruct-q4f16_1-MLC")).toBeUndefined();
+    expect(localAIChatSampling("Llama-3.2-3B-Instruct-q4f16_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
     expect(localAIChatExtraBody("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toBeUndefined();
     expect(localAIChatSampling("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
-    expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC", true)).toEqual({ temperature: 0, top_p: 0.9 });
+    expect(localAIChatSampling("Phi-4-mini-instruct-q4f16_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
+    expect(localAIChatSampling("DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC")).toEqual({ temperature: 0.6, top_p: 0.95 });
+    expect(localAIChatSampling("Llama-3.2-3B-Instruct-q4f16_1-MLC", true)).toEqual({ temperature: 0, top_p: 0.9 });
   });
 
-  it("uses a Qwen-specific cache path without invalidating the lower-memory fallback", () => {
-    expect(localAIModelCachePath("Qwen3-1.7B-q4f16_1-MLC")).toBe("webllm-cache-v2-qwen3");
+  it("moves DeepSeek instructions into the user message and allows a reasoning budget", () => {
+    const messages = localAIMessagesForModel(
+      "DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC",
+      [
+        { role: "system", content: "Rewrite without inventing facts." },
+        { role: "user", content: "Make this concise: Coordinated planning meetings." },
+      ],
+    );
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({ role: "user" });
+    expect(String(messages[0].content)).toContain("Rewrite without inventing facts.");
+    expect(String(messages[0].content)).toContain("Make this concise");
+    expect(localAIMaxTokensForModel("DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC", 128)).toBe(512);
+    expect(localAIMaxTokensForModel("DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC", 1_900)).toBe(2_048);
+    expect(localAIMaxTokensForModel("DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC", 128, true)).toBe(128);
+    expect(localAIMaxTokensForModel("Phi-4-mini-instruct-q4f16_1-MLC", 128)).toBe(128);
+  });
+
+  it("uses the current cache path for both Llama choices", () => {
+    expect(localAIModelCachePath("Llama-3.2-3B-Instruct-q4f16_1-MLC")).toBe("webllm-cache-v2");
+    expect(localAIModelCachePath("Phi-4-mini-instruct-q4f16_1-MLC")).toBe("webllm-cache-v2");
+    expect(localAIModelCachePath("DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC")).toBe("webllm-cache-v2");
     expect(localAIModelCachePath("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toBe("webllm-cache-v2");
   });
 

@@ -52,24 +52,24 @@ describe("local AI model proxy", () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
   });
 
-  test("proxies Qwen 3 while keeping the cache version out of the Hugging Face path", async () => {
+  test("proxies Llama 3B while keeping the cache version out of the Hugging Face path", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }),
     );
     await GET(
       new Request(
-        "https://resume.test/api/local-ai/models/Qwen3-1.7B-q4f16_1-MLC/resolve/main/webllm-cache-v2-qwen3/tensor-cache.json",
+        "https://resume.test/api/local-ai/models/Llama-3.2-3B-Instruct-q4f16_1-MLC/resolve/main/webllm-cache-v2/tensor-cache.json",
       ),
       {
         params: Promise.resolve({
-          modelId: "Qwen3-1.7B-q4f16_1-MLC",
-          file: ["webllm-cache-v2-qwen3", "tensor-cache.json"],
+          modelId: "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+          file: ["webllm-cache-v2", "tensor-cache.json"],
         }),
       },
     );
 
     expect(String(fetchSpy.mock.calls[0][0])).toBe(
-      "https://huggingface.co/mlc-ai/Qwen3-1.7B-q4f16_1-MLC/resolve/main/tensor-cache.json",
+      "https://huggingface.co/mlc-ai/Llama-3.2-3B-Instruct-q4f16_1-MLC/resolve/main/tensor-cache.json",
     );
   });
 });

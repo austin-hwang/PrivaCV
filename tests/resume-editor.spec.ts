@@ -311,9 +311,17 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await page.getByRole("menuitem", { name: /modern/i }).hover();
   await expect(preview).toHaveClass(/resume-template-modern/);
   await expect(preview).toHaveAttribute("data-divider", "on");
+  await expect(preview).toHaveAttribute("data-header-align", "center");
   await page.getByRole("menuitem", { name: /compact/i }).hover();
   await expect(preview).toHaveClass(/resume-template-compact/);
   await expect(preview).toHaveAttribute("data-density", "compact");
+  await expect(preview).toHaveCSS("font-family", /Calibri/);
+  await page.getByRole("menuitem", { name: /executive/i }).hover();
+  await expect(preview).toHaveClass(/resume-template-executive/);
+  await expect(preview.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await page.getByRole("menuitem", { name: /technical/i }).hover();
+  await expect(preview).toHaveClass(/resume-template-technical/);
+  await expect(preview).toHaveCSS("font-family", /Arial/);
   await page.getByRole("menuitem", { name: /classic/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Start fresh")).toBeHidden();
@@ -352,6 +360,8 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await page.getByLabel("Resume preset").selectOption("modern");
   await expect(sheet).toHaveAttribute("data-heading", "bar");
   await expect(sheet).toHaveAttribute("data-divider", "on");
+  await expect(sheet).toHaveAttribute("data-header-align", "center");
+  await expect(sheet).toHaveAttribute("data-bullet", "circle");
   await expect(sheet).toHaveCSS("font-family", /Inter/);
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(31, 58, 95)");
 
@@ -2549,7 +2559,7 @@ test("imports a checkpoint history backup without replacing the current resume",
   const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
   await expect(backupDialog).toBeVisible();
   await expect(backupDialog.getByText("Platform baseline")).toBeVisible();
-  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
+  await backupDialog.getByRole("button", { name: /add 1 checkpoint/i }).click();
 
   await expect(page.getByText("Added 1 checkpoint")).toBeVisible();
   await expect(page.getByText("I have a resume")).toBeVisible();
@@ -2580,13 +2590,23 @@ test("makes matching checkpoint backups explicit before merging", async ({ page 
     buffer: Buffer.from(backup),
   });
 
-  const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
-  await expect(backupDialog.getByText("No new checkpoints to add")).toBeVisible();
-  await expect(backupDialog.getByText("1 checkpoint already matches this browser")).toBeVisible();
-  await expect(backupDialog.getByText("Matching drafts are kept as-is instead of duplicated.")).toBeVisible();
-  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
+  const backupDialog = page.getByRole("dialog", { name: /checkpoints already added/i });
+  await expect(backupDialog.getByText("All checkpoints are already in this browser")).toBeVisible();
+  await expect(backupDialog.getByText("1 matching checkpoint was kept as-is. No duplicates were added.")).toBeVisible();
+  await expect(backupDialog.getByText("Platform baseline", { exact: true })).toBeVisible();
+  const checkpointSummary = backupDialog.locator("[data-checkpoint-summary]");
+  await expect(checkpointSummary).toHaveCSS("display", "flex");
+  expect(await checkpointSummary.locator("[data-checkpoint-summary-icon]").boundingBox()).toEqual(
+    expect.objectContaining({ y: expect.any(Number) }),
+  );
+  await expect.poll(async () => {
+    const icon = await checkpointSummary.locator("[data-checkpoint-summary-icon]").boundingBox();
+    const heading = await checkpointSummary.getByText("All checkpoints are already in this browser").boundingBox();
+    return icon && heading ? Math.abs(icon.y - heading.y) : 999;
+  }).toBeLessThan(6);
+  await backupDialog.getByRole("button", { name: /^done$/i }).click();
+  await expect(backupDialog).toBeHidden();
 
-  await expect(page.getByText("All backup checkpoints are already saved")).toBeVisible();
   const versions = await openVersions(page);
   await expect(versions.getByText("Platform baseline", { exact: true })).toHaveCount(1);
 });
@@ -2623,8 +2643,8 @@ test("merges every checkpoint from a large imported backup without a limit", asy
   });
 
   const backupDialog = page.getByRole("dialog", { name: /add saved checkpoints from backup/i });
-  await expect(backupDialog.getByText("7 unique checkpoints ready to add")).toBeVisible();
-  await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
+  await expect(backupDialog.getByText("7 new checkpoints ready to add")).toBeVisible();
+  await backupDialog.getByRole("button", { name: /add 7 checkpoints/i }).click();
   await expect(page.getByText("Added 7 checkpoints")).toBeVisible();
 
   // No cap: the oldest imported checkpoint is kept alongside the newest.

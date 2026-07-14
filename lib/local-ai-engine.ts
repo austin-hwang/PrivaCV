@@ -11,7 +11,6 @@ let runtime: LocalAIRuntime | null = null;
 let loadingRuntime: { modelId: LocalAIModelId; worker: Worker; token: object; promise: Promise<LocalAIRuntime> } | null = null;
 let generating = false;
 const LOCAL_AI_CACHE_PATH_VERSION = "webllm-cache-v2";
-const QWEN3_CACHE_PATH_VERSION = "webllm-cache-v2-qwen3";
 export const LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY = "resume-editor-local-ai-cache-v2-migrated";
 const WEBLLM_CACHE_NAMES = ["webllm/model", "webllm/config", "webllm/wasm", "tvmjs"];
 export const LOCAL_AI_RUNTIME_CHANGE_EVENT = "resume-editor-local-ai-runtime-change";
@@ -41,8 +40,8 @@ function appConfigForModelPath(
   };
 }
 
-export function localAIModelCachePath(modelId: LocalAIModelId) {
-  return modelId.startsWith("Qwen3") ? QWEN3_CACHE_PATH_VERSION : LOCAL_AI_CACHE_PATH_VERSION;
+export function localAIModelCachePath(_modelId: LocalAIModelId) {
+  return LOCAL_AI_CACHE_PATH_VERSION;
 }
 
 export function localAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
@@ -188,14 +187,51 @@ export function interruptLocalAIGeneration() {
   generating = false;
 }
 
-export function localAIChatExtraBody(modelId: LocalAIModelId) {
-  return modelId.startsWith("Qwen3") ? { enable_thinking: false as const } : undefined;
+export function localAIChatExtraBody(_modelId: LocalAIModelId) {
+  return undefined;
 }
 
-export function localAIChatSampling(modelId: LocalAIModelId, jsonMode = false) {
+export function localAIChatSampling(_modelId: LocalAIModelId, jsonMode = false) {
   if (jsonMode) return { temperature: 0, top_p: 0.9 };
-  if (modelId.startsWith("Qwen3")) return { temperature: 0.7, top_p: 0.8, presence_penalty: 1.5 };
+  if (_modelId.startsWith("DeepSeek-R1")) return { temperature: 0.6, top_p: 0.95 };
   return { temperature: 0.2, top_p: 0.9 };
+}
+
+/** DeepSeek R1 is trained to follow instructions from the user message rather than a system message. */
+export function localAIMessagesForModel(
+  modelId: LocalAIModelId,
+  messages: ChatCompletionMessageParam[],
+) {
+  if (!modelId.startsWith("DeepSeek-R1")) return messages;
+  const systemInstructions = messages
+    .filter((message) => message.role === "system" && typeof message.content === "string")
+    .map((message) => message.content)
+    .join("\n\n")
+    .trim();
+  if (!systemInstructions) return messages;
+
+  const withoutSystem = messages.filter((message) => message.role !== "system");
+  const firstUserIndex = withoutSystem.findIndex(
+    (message) => message.role === "user" && typeof message.content === "string",
+  );
+  if (firstUserIndex < 0) {
+    return [{ role: "user" as const, content: systemInstructions }, ...withoutSystem];
+  }
+  return withoutSystem.map((message, index) =>
+    index === firstUserIndex && message.role === "user" && typeof message.content === "string"
+      ? { ...message, content: `${systemInstructions}\n\n${message.content}` }
+      : message,
+  );
+}
+
+/** Leave room for DeepSeek's optional reasoning before a short visible rewrite. */
+export function localAIMaxTokensForModel(
+  modelId: LocalAIModelId,
+  maxTokens: number | undefined,
+  jsonMode = false,
+) {
+  if (maxTokens === undefined || jsonMode || !modelId.startsWith("DeepSeek-R1")) return maxTokens;
+  return Math.min(2_048, Math.max(512, maxTokens + 384));
 }
 
 /** Detect clear end-of-response loops without rejecting ordinary repeated words. */
@@ -240,13 +276,15 @@ export async function generateLocalAIText({
   generating = true;
   try {
     await current.engine.resetChat();
-    const sampling = localAIChatSampling(current.modelId, Boolean(jsonSchema));
+    const jsonMode = Boolean(jsonSchema);
+    const sampling = localAIChatSampling(current.modelId, jsonMode);
+    const completionMaxTokens = localAIMaxTokensForModel(current.modelId, maxTokens, jsonMode);
     const chunks = await current.engine.chat.completions.create({
-      messages,
+      messages: localAIMessagesForModel(current.modelId, messages),
       stream: true,
       ...sampling,
-      ...(jsonSchema || current.modelId.startsWith("Qwen3") ? {} : { repetition_penalty: 1.1 }),
-      ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+      ...(jsonSchema || current.modelId.startsWith("DeepSeek-R1") ? {} : { repetition_penalty: 1.1 }),
+      ...(completionMaxTokens === undefined ? {} : { max_tokens: completionMaxTokens }),
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,
       extra_body: localAIChatExtraBody(current.modelId),
     });
