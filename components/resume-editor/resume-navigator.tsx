@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type KeyboardEvent } from "react";
+import { useMemo, useRef, type KeyboardEvent } from "react";
 import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ export function ResumeNavigator({
   onQueryChange: (query: string) => void;
   onSelect: (id: string) => void;
 }) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const filteredItems = useMemo(() => {
     const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     if (!terms.length) return items;
@@ -60,7 +61,14 @@ export function ResumeNavigator({
       onOpenChange(nextOpen);
       if (!nextOpen) onQueryChange("");
     }}>
-      <DialogContent data-resume-navigator className="max-w-xl gap-0 overflow-hidden p-0">
+      <DialogContent
+        data-resume-navigator
+        className="max-w-xl gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          window.requestAnimationFrame(() => searchInputRef.current?.focus());
+        }}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Navigate resume</DialogTitle>
           <DialogDescription>Search for a resume field and move focus directly to it.</DialogDescription>
@@ -68,7 +76,7 @@ export function ResumeNavigator({
         <div className="relative border-b">
           <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            autoFocus
+            ref={searchInputRef}
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             onKeyDown={(event) => {
@@ -110,8 +118,8 @@ export function ResumeNavigator({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground">
-          <span><kbd className="font-medium text-foreground">Cmd / Ctrl + K</kbd> navigate</span>
-          <span><kbd className="font-medium text-foreground">Cmd / Ctrl + P</kbd> review and print</span>
+          <span className="inline-flex items-center gap-1.5"><kbd className="font-medium text-foreground">Cmd / Ctrl + K</kbd><span>navigate</span></span>
+          <span className="inline-flex items-center gap-1.5"><kbd className="font-medium text-foreground">Cmd / Ctrl + P</kbd><span>review and print</span></span>
         </div>
       </DialogContent>
     </Dialog>

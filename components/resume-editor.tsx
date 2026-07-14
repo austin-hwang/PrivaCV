@@ -615,6 +615,11 @@ export function ResumeEditor() {
     revealTarget(targetId);
     window.setTimeout(() => focusFromExportCheck(targetId), 0);
   };
+  const toggleNavigator = useCallback(() => setNavigatorOpen((current) => !current), []);
+
+  useEffect(() => {
+    if (!navigatorOpen) setNavigatorQuery("");
+  }, [navigatorOpen]);
 
   useEffect(() => {
     const handleNavigateShortcut = (event: KeyboardEvent) => {
@@ -629,12 +634,12 @@ export function ResumeEditor() {
         return;
       }
       event.preventDefault();
-      setNavigatorOpen(true);
+      toggleNavigator();
     };
 
     window.addEventListener("keydown", handleNavigateShortcut);
     return () => window.removeEventListener("keydown", handleNavigateShortcut);
-  }, [workspaceHasStarted]);
+  }, [toggleNavigator, workspaceHasStarted]);
 
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
   const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
@@ -1212,7 +1217,7 @@ export function ResumeEditor() {
                 variant="ghost"
                 size="sm"
                 className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-                onClick={() => setNavigatorOpen(true)}
+                onClick={toggleNavigator}
               >
                 <Search /> Navigate
               </Button>

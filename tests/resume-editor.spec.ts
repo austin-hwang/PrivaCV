@@ -1252,9 +1252,19 @@ test("navigates to any resume field with Cmd or Ctrl K", async ({ page }) => {
   await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
   const dialog = page.getByRole("dialog", { name: /navigate resume/i });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Search resume fields").fill("Business Operations Analyst company");
+  const search = dialog.getByLabel("Search resume fields");
+  await expect(search).toBeFocused();
+  await expect(dialog).toHaveCSS("z-index", "80");
+  await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
+  await search.fill("Business Operations Analyst company");
   await dialog.getByRole("option", { name: /Company Experience · Business Operations Analyst/i }).click();
   await expect(experience.locator('#field-experience-1-subtitle')).toBeFocused();
+
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
+  await expect(dialog).toBeVisible();
+  await expect(search).toBeFocused();
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
+  await expect(dialog).toBeHidden();
 
   const navigate = page.getByRole("button", { name: /^navigate$/i });
   const editorUtilities = navigate.locator("..");

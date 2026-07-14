@@ -9,7 +9,7 @@ import {
   generateLocalAIText,
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
-import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, localAIRewriteMaxTokens, validateLocalAIRewrite } from "@/lib/local-ai";
+import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, isLocalAIRewriteUnchanged, localAIRewriteMaxTokens, validateLocalAIRewrite } from "@/lib/local-ai";
 import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
 const INLINE_AI_INSTRUCTION_LIMIT = 100;
@@ -36,6 +36,7 @@ export function LocalAIInlineEdit({
   const [instruction, setInstruction] = useState("");
   const [output, setOutput] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ready = useLocalAIReady();
 
@@ -44,20 +45,31 @@ export function LocalAIInlineEdit({
   const generate = async () => {
     if (!instruction.trim() || !text.trim() || generating) return;
     setGenerating(true);
+    setRetrying(false);
     setOutput("");
     setError(null);
     try {
-      const result = await generateLocalAIText({
+      let result = await generateLocalAIText({
         messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
         maxTokens: localAIRewriteMaxTokens(text),
         onToken: (value) => setOutput(cleanLocalAIRewrite(value)),
       });
+      if (isLocalAIRewriteUnchanged(text, result)) {
+        setOutput("");
+        setRetrying(true);
+        result = await generateLocalAIText({
+          messages: buildPromptedLocalRewriteMessages({ label, text, instruction, retryAfterEcho: true }),
+          maxTokens: localAIRewriteMaxTokens(text),
+          onToken: (value) => setOutput(cleanLocalAIRewrite(value)),
+        });
+      }
       setOutput(validateLocalAIRewrite(text, result));
     } catch (generationError) {
       setOutput("");
       setError(friendlyLocalAIError(generationError));
     } finally {
       setGenerating(false);
+      setRetrying(false);
     }
   };
 
@@ -127,7 +139,7 @@ export function LocalAIInlineEdit({
           {output || generating ? (
             <div className="space-y-2" aria-live="polite">
               <div className="max-h-44 overflow-y-auto whitespace-pre-wrap rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed">
-                {output || <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> Editing locally…</span>}
+                {output || <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}</span>}
               </div>
               {!generating && output.trim() ? (
                 <div className="flex flex-wrap items-center gap-2">

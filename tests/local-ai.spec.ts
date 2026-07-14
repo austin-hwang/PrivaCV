@@ -32,12 +32,18 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /local ai/i }).click();
 
   const dialog = page.getByRole("dialog");
+  const modelSelect = dialog.getByRole("combobox", { name: /model/i });
+  await expect(dialog).toBeVisible();
+  await expect(modelSelect).toBeEnabled();
+  await expect(modelSelect).toBeFocused();
+  await expect(dialog).toHaveCSS("z-index", "80");
+  await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
   await expect(dialog).toContainText("Nothing downloads automatically");
   await expect(dialog).toContainText("Performance may be slower on some devices");
   await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
-  await expect(dialog.getByRole("combobox", { name: /model/i })).toHaveValue("Qwen3-1.7B-q4f16_1-MLC");
+  await expect(modelSelect).toHaveValue("Qwen3-1.7B-q4f16_1-MLC");
   await expect(dialog.getByText(/Qwen 3 1\.7B:/)).toBeVisible();
   await expect(dialog).toContainText("Best balance of rewrite quality");
   await expect(dialog.getByRole("option", { name: /SmolLM2|Qwen 3 0\.6B/i })).toHaveCount(0);

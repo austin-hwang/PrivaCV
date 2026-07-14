@@ -7,6 +7,7 @@ import {
   buildLocalRewriteMessages,
   buildParserReviewMessages,
   cleanLocalAIRewrite,
+  isLocalAIRewriteUnchanged,
   isLocalAIModelId,
   localAIRewriteMaxTokens,
   parseLocalAIImportProposal,
@@ -27,7 +28,7 @@ describe("local AI helpers", () => {
 
   it("uses Qwen 3 for direct edits without spending the short response on reasoning", () => {
     expect(localAIChatExtraBody("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ enable_thinking: false });
-    expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ temperature: 0.7, top_p: 0.8 });
+    expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ temperature: 0.7, top_p: 0.8, presence_penalty: 1.5 });
     expect(localAIChatExtraBody("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toBeUndefined();
     expect(localAIChatSampling("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
     expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC", true)).toEqual({ temperature: 0, top_p: 0.9 });
@@ -123,6 +124,7 @@ describe("local AI helpers", () => {
     expect(() => validateLocalAIRewrite("Built interfaces.", "<think></think>\nBuilt interfaces.")).toThrow(
       /original text unchanged/i,
     );
+    expect(isLocalAIRewriteUnchanged("• Built interfaces.\n• Led testing.", "- Built   interfaces.\n- Led testing.")).toBe(true);
   });
 
   it("keeps a custom inline edit localized and bounded", () => {
@@ -147,6 +149,18 @@ describe("local AI helpers", () => {
     expect(user).toContain("start-");
     expect(user).toContain("-end");
     expect(user.length).toBeLessThan(4_800);
+
+    const retryMessages = buildPromptedLocalRewriteMessages({
+      label: "Professional summary",
+      text: "Responsible for leading product launches.",
+      instruction: "Make this more direct.",
+      retryAfterEcho: true,
+    });
+    expect(retryMessages).toHaveLength(4);
+    expect(String(retryMessages[0].content)).toMatch(/previous attempt copied the source text/i);
+    expect(retryMessages[1].role).toBe("user");
+    expect(retryMessages[2]).toEqual(expect.objectContaining({ role: "assistant" }));
+    expect(String(retryMessages[3].content)).toMatch(/rewrite from scratch using different wording and syntax/i);
   });
 
   it("builds a bounded structured import repair request", () => {

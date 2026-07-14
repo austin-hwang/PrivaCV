@@ -194,7 +194,7 @@ export function localAIChatExtraBody(modelId: LocalAIModelId) {
 
 export function localAIChatSampling(modelId: LocalAIModelId, jsonMode = false) {
   if (jsonMode) return { temperature: 0, top_p: 0.9 };
-  if (modelId.startsWith("Qwen3")) return { temperature: 0.7, top_p: 0.8 };
+  if (modelId.startsWith("Qwen3")) return { temperature: 0.7, top_p: 0.8, presence_penalty: 1.5 };
   return { temperature: 0.2, top_p: 0.9 };
 }
 
@@ -245,7 +245,7 @@ export async function generateLocalAIText({
       messages,
       stream: true,
       ...sampling,
-      ...(jsonSchema ? {} : { repetition_penalty: 1.1 }),
+      ...(jsonSchema || current.modelId.startsWith("Qwen3") ? {} : { repetition_penalty: 1.1 }),
       ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,
       extra_body: localAIChatExtraBody(current.modelId),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,7 @@ export function LocalAIDialog({
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const modelSelectRef = useRef<HTMLSelectElement>(null);
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === modelId) ?? LOCAL_AI_MODELS[0];
   const lowMemoryDevice = typeof navigator !== "undefined" && (navigator as NavigatorWithGPU).deviceMemory !== undefined
     ? ((navigator as NavigatorWithGPU).deviceMemory ?? 8) <= 4
@@ -201,10 +202,17 @@ export function LocalAIDialog({
 
   const isCached = modelState === "cached" || modelState === "ready";
   const setupBusy = modelState === "checking" || modelState === "loading" || modelState === "removing";
+  const modelSelectionBusy = modelState === "loading" || modelState === "removing";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className="max-w-2xl"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          window.requestAnimationFrame(() => modelSelectRef.current?.focus());
+        }}
+      >
         <DialogHeader>
           <div className="flex items-center gap-2 pr-8">
             <Sparkles className="size-5" aria-hidden="true" />
@@ -239,8 +247,9 @@ export function LocalAIDialog({
           <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
             Model
             <select
+              ref={modelSelectRef}
               value={modelId}
-              disabled={setupBusy}
+              disabled={modelSelectionBusy}
               onChange={(event) => changeModel(event.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
