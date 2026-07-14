@@ -21,7 +21,15 @@ function getScrollParent(el: HTMLElement): HTMLElement | null {
  * Highlights the section currently scrolled into view so it doubles as a
  * position indicator.
  */
-export function SectionNav({ items, className }: { items: SectionNavItem[]; className?: string }) {
+export function SectionNav({
+  items,
+  className,
+  onJump,
+}: {
+  items: SectionNavItem[];
+  className?: string;
+  onJump?: (id: string) => void;
+}) {
   const navRef = useRef<HTMLElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const idsKey = items.map((item) => item.id).join("|");
@@ -84,6 +92,7 @@ export function SectionNav({ items, className }: { items: SectionNavItem[]; clas
 
   const jump = (id: string) => {
     setActiveId(id);
+    onJump?.(id);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 

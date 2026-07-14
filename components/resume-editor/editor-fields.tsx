@@ -12,6 +12,7 @@ type TextInputType = "email" | "tel" | "text" | "url";
 export function FieldGroup({
   id,
   title,
+  header,
   actions,
   children,
   className,
@@ -20,9 +21,12 @@ export function FieldGroup({
   collapsible,
   collapsed,
   onToggleCollapsed,
+  card,
 }: {
   id?: string;
   title: ReactNode;
+  /** Replaces the standard title/action row for richer section-card controls. */
+  header?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -32,35 +36,45 @@ export function FieldGroup({
   collapsible?: boolean;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  card?: boolean;
 }) {
   return (
     <section
       id={id}
       data-review-region={reviewRegion ? "" : undefined}
       data-field-group={groupId}
-      className={cn("scroll-mt-44 border-b transition-colors last:border-b-0 lg:scroll-mt-16", collapsed ? "pb-3" : "pb-5", className)}
+      className={cn(
+        "scroll-mt-44 transition-colors lg:scroll-mt-16",
+        card ? "rounded-lg border bg-background p-3" : "border-b last:border-b-0",
+        !card && (collapsed ? "pb-3" : "pb-5"),
+        className,
+      )}
     >
-      {/* The collapse toggle lives on the RIGHT so the title (and the fields
-          below it) share one flush-left edge — a left chevron would indent the
-          title past its own content and look misaligned. */}
-      <div className={cn("flex items-center justify-between gap-3", collapsed ? "mb-0" : "mb-3")}>
-        <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-        <div className="flex shrink-0 items-center gap-1">
-          {actions}
-          {collapsible ? (
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? "Expand section" : "Collapse section"}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ChevronRight className={cn("size-4 transition-transform", !collapsed && "rotate-90")} />
-            </button>
-          ) : null}
-        </div>
-      </div>
-      <div className={cn("space-y-3", collapsed && "hidden")}>{children}</div>
+      {header ?? (
+        <>
+          {/* The collapse toggle lives on the RIGHT so the title (and the fields
+              below it) share one flush-left edge — a left chevron would indent the
+              title past its own content and look misaligned. */}
+          <div className={cn("flex items-center justify-between gap-3", collapsed ? "mb-0" : "mb-3")}>
+            <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
+            <div className="flex shrink-0 items-center gap-1">
+              {actions}
+              {collapsible ? (
+                <button
+                  type="button"
+                  onClick={onToggleCollapsed}
+                  aria-expanded={!collapsed}
+                  aria-label={collapsed ? "Expand section" : "Collapse section"}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ChevronRight className={cn("size-4 transition-transform", !collapsed && "rotate-90")} />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
+      <div className={cn("space-y-3", header && !collapsed && "mt-3 border-t pt-3", collapsed && "hidden")}>{children}</div>
     </section>
   );
 }

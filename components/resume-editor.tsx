@@ -430,7 +430,7 @@ export function ResumeEditor() {
     setActiveTarget(targetId);
     revealTarget(targetId);
   }, [revealTarget]);
-  const editorGroupIds = ["arrange", "header", "summary", ...state.sectionOrder];
+  const editorGroupIds = ["header", "summary", ...state.sectionOrder];
   const allCollapsed = editorGroupIds.every((groupId) => collapsedGroups.has(groupId));
 
   // Appearance controls live behind the preview toolbar's "Design" button so
@@ -613,18 +613,17 @@ export function ResumeEditor() {
       const focused = document.activeElement;
       if (!(focused instanceof HTMLElement) || !focused.closest("#resume-editor-pane")) return;
 
-      // Section titles now live in the Manage sections list, so reorder shortcuts
-      // must work from a manage row (data-arrange-section) as well as from inside
-      // a section editor (data-editor-section).
+      // Section-card headers and their editor bodies share one section wrapper,
+      // so tailoring shortcuts work whether focus is in the title or the content.
       const sectionElement = focused.closest<HTMLElement>("[data-editor-section], [data-arrange-section]");
       const section = sectionElement?.dataset.editorSection ?? sectionElement?.dataset.arrangeSection;
-      const inArrangeList = Boolean(sectionElement?.dataset.arrangeSection && !sectionElement?.dataset.editorSection);
       if (!section) return;
 
       if (event.code === "KeyN") {
-        if (section === "skills" || inArrangeList) return;
+        if (section === "skills") return;
         event.preventDefault();
         const nextIndex = getSectionEntries(state, section).length;
+        expandGroup(section);
         addEntry(section);
         focusShortcutTarget(`field-${section}-${nextIndex}-title`);
         return;
@@ -657,7 +656,7 @@ export function ResumeEditor() {
 
     window.addEventListener("keydown", handleEditorShortcut);
     return () => window.removeEventListener("keydown", handleEditorShortcut);
-  }, [addEntry, focusCheckTarget, moveEntry, moveSection, state]);
+  }, [addEntry, expandGroup, focusCheckTarget, moveEntry, moveSection, state]);
 
   const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
   const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
@@ -1165,7 +1164,16 @@ export function ResumeEditor() {
           ) : null}
           </div>
 
-          {workspaceHasStarted ? <SectionNav items={navItems} /> : null}
+          {workspaceHasStarted ? (
+            <SectionNav
+              items={navItems}
+              onJump={(targetId) => {
+                if (targetId === "edit-header") expandGroup("header");
+                else if (targetId === "edit-summary") expandGroup("summary");
+                else if (targetId.startsWith("edit-section-")) expandGroup(targetId.slice("edit-section-".length));
+              }}
+            />
+          ) : null}
 
           {workspaceHasStarted ? (
             <div className="-mt-2 mb-1 flex justify-end gap-1">
@@ -1192,187 +1200,6 @@ export function ResumeEditor() {
 
           {workspaceHasStarted ? (
             <div className="space-y-6">
-              <FieldGroup title="Manage sections" {...groupProps("arrange")}>
-                <p className="text-xs leading-snug text-muted-foreground">
-                  Reorder, add, or remove sections. The preview updates immediately.
-                </p>
-                <div className="mt-3 space-y-2" id="section-order-controls" tabIndex={-1}>
-                  {state.sectionOrder.map((section, sectionIndex) => {
-                    const title = getSectionTitle(state, section);
-                    const displayTitle = title.trim() || "Untitled section";
-                    const custom = !isBuiltinSection(section);
-                    const hidden = isSectionHidden(state, section);
-                    const count = sectionItemCount(state, section);
-                    return (
-                      <div
-                        key={section}
-                        data-arrange-section={section}
-                        data-dragging={draggedSection === section || undefined}
-                        data-drop-target={dropTargetSection === section && draggedSection !== section || undefined}
-                        className={cn(
-                          "flex items-center gap-2 rounded-md border bg-background p-2 transition-[background-color,border-color,box-shadow,opacity] hover:bg-muted/30",
-                          draggedSection === section && "opacity-45 ring-2 ring-muted-foreground/20",
-                          dropTargetSection === section && draggedSection !== section && "border-primary bg-primary/5 ring-2 ring-primary/25",
-                        )}
-                        onDragEnter={(event) => {
-                          if (draggedSection && (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain"))) {
-                            setDropTargetSection(section);
-                          }
-                        }}
-                        onDragOver={(event) => {
-                          if (draggedSection && (event.dataTransfer.types.includes("application/x-resume-section") || event.dataTransfer.types.includes("text/plain"))) {
-                            event.preventDefault();
-                            event.dataTransfer.dropEffect = "move";
-                            setDropTargetSection(section);
-                          }
-                        }}
-                        onDrop={(event) => {
-                          const customData = event.dataTransfer.getData("application/x-resume-section");
-                          const plainData = event.dataTransfer.getData("text/plain");
-                          if (!customData && !plainData.startsWith("section:")) return;
-                          const draggedSection = customData || plainData.replace(/^section:/, "");
-                          if (draggedSection === section) return;
-                          event.preventDefault();
-                          reorderSection(draggedSection, sectionIndex);
-                          finishSectionDrag();
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => focusEditorTarget(`edit-section-${section}`)}
-                          title={`Jump to ${displayTitle}`}
-                          aria-label={`Jump to ${displayTitle}`}
-                          className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {sectionIndex + 1}
-                        </button>
-                        <span
-                          draggable
-                          aria-hidden="true"
-                          title="Drag to reorder; use the section move buttons for keyboard reordering"
-                          className="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing"
-                          onDragStart={(event) => startSectionDrag(event, section, title)}
-                          onDragEnd={finishSectionDrag}
-                        >
-                          <GripVertical className="size-4" />
-                        </span>
-                        <Input
-                          id={`section-title-${section}`}
-                          value={title}
-                          aria-label={title.trim() ? `${title} section title` : "Untitled section title"}
-                          onChange={(event) => updateSectionTitle(section, event.target.value)}
-                          className={cn(
-                            "h-8 min-w-0 flex-1 border-transparent bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted/60 focus-visible:border-input focus-visible:bg-background",
-                            hidden && "text-muted-foreground line-through",
-                          )}
-                        />
-                        {count > 0 ? (
-                          <span
-                            className={cn("shrink-0 tabular-nums text-xs text-muted-foreground", hidden && "opacity-60")}
-                            title={`${count} ${count === 1 ? "item" : "items"}`}
-                          >
-                            ({count})
-                          </span>
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 shrink-0"
-                          aria-label={`Move ${displayTitle} up`}
-                          disabled={sectionIndex === 0}
-                          onClick={() => moveSection(section, -1)}
-                        >
-                          <ArrowUp />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 shrink-0"
-                          aria-label={`Move ${displayTitle} down`}
-                          disabled={sectionIndex === state.sectionOrder.length - 1}
-                          onClick={() => moveSection(section, 1)}
-                        >
-                          <ArrowDown />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                          aria-label={hidden ? `Show ${displayTitle} section in resume` : `Hide ${displayTitle} section from resume`}
-                          aria-pressed={hidden}
-                          title={hidden ? "Show in resume" : "Hide from resume"}
-                          onClick={() => toggleSectionHidden(section)}
-                        >
-                          {hidden ? <EyeOff /> : <Eye />}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                          aria-label={`Remove ${displayTitle} section`}
-                          title="Remove section (Undo available)"
-                          onClick={() => (custom ? removeCustomSection(section) : removeBuiltinSection(section))}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 rounded-md border border-dashed bg-muted/20 p-3">
-                  <p className="text-sm font-medium">Add a section</p>
-                  <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                    Choose a familiar heading or make your own.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {removedBuiltinSections.map((section) => (
-                      <Button
-                        key={section}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          addBuiltinSection(section);
-                          focusEditorTarget(`section-title-${section}`);
-                        }}
-                      >
-                        <Plus /> {SECTION_LABELS[section]}
-                      </Button>
-                    ))}
-                    {CUSTOM_SECTION_PRESETS.map((title) => (
-                      <Button
-                        key={title}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const id = addCustomSection(title);
-                          focusEditorTarget(`section-title-${id}`);
-                        }}
-                      >
-                        <Plus /> {title}
-                      </Button>
-                    ))}
-                    <Button
-                      id="add-custom-section"
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        const id = addCustomSection();
-                        focusEditorTarget(`section-title-${id}`);
-                      }}
-                    >
-                      <Plus /> Add custom section
-                    </Button>
-                  </div>
-                </div>
-              </FieldGroup>
               <FieldGroup id="edit-header" title="Header" reviewRegion className={cn(headerActive && ACTIVE_SECTION_CLASS)} {...groupProps("header")}>
                 <TextField
                   id="field-name"
@@ -1453,15 +1280,30 @@ export function ResumeEditor() {
                 />
               </FieldGroup>
 
+              <section id="section-order-controls" tabIndex={-1} className="scroll-mt-44 space-y-3 lg:scroll-mt-16">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Resume sections</h2>
+                    <p className="mt-1 text-xs leading-snug text-muted-foreground">Drag to reorder. Expand a section to edit it.</p>
+                  </div>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {state.sectionOrder.length} {state.sectionOrder.length === 1 ? "section" : "sections"}
+                  </span>
+                </div>
+
               {state.sectionOrder.map((section, sectionIndex) => {
                 const sectionTitle = getSectionTitle(state, section);
                 const sectionDisplayTitle = sectionTitle.trim() || "Untitled section";
+                const customSection = !isBuiltinSection(section);
                 const entries = getSectionEntries(state, section);
                 const sectionFormat = getSectionFormat(state, section);
                 const tagGroups = getSectionTagGroups(state, section);
                 const sectionText = getSectionText(state, section);
                 const sectionHidden = isSectionHidden(state, section);
+                const sectionCount = sectionItemCount(state, section);
+                const sectionCollapsed = collapsedGroups.has(section);
                 const sectionIsActive =
+                  activeTarget === `section-title-${section}` ||
                   activeTarget === `field-${section}` ||
                   activeTarget?.startsWith(`field-${section}-`);
                 return (
@@ -1469,6 +1311,7 @@ export function ResumeEditor() {
                   key={section}
                   id={`edit-section-${section}`}
                   data-editor-section={section}
+                  data-arrange-section={section}
                   className="scroll-mt-44 lg:scroll-mt-16"
                   data-dragging={draggedSection === section || undefined}
                   data-drop-target={dropTargetSection === section && draggedSection !== section || undefined}
@@ -1497,42 +1340,115 @@ export function ResumeEditor() {
                 >
                 <FieldGroup
                   {...groupProps(section)}
+                  card
                   reviewRegion={section === "skills"}
                   className={cn(
                     sectionIsActive && ACTIVE_SECTION_CLASS,
                     sectionHidden && "opacity-60",
-                    draggedSection === section && "rounded-md opacity-45",
-                    dropTargetSection === section && draggedSection !== section && "rounded-md bg-primary/5 px-3 pt-3 ring-2 ring-primary/25",
+                    draggedSection === section && "opacity-45 ring-2 ring-muted-foreground/20",
+                    dropTargetSection === section && draggedSection !== section && "border-primary bg-primary/5 ring-2 ring-primary/25",
                   )}
                   title={sectionDisplayTitle}
-                  actions={
-                    sectionHidden || section !== "skills" ? (
-                      <div className="flex items-center gap-2">
-                        {sectionHidden ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleSectionHidden(section)}
-                            title="Show in resume"
-                            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            <EyeOff className="size-3" /> Hidden
-                          </button>
-                        ) : null}
-                        {section !== "skills" && sectionFormat === "entries" ? (
+                  header={
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span
+                        draggable
+                        aria-hidden="true"
+                        title="Drag to reorder; keyboard move actions are in the section menu"
+                        className="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                        onDragStart={(event) => startSectionDrag(event, section, sectionTitle)}
+                        onDragEnd={finishSectionDrag}
+                      >
+                        <GripVertical className="size-4" />
+                      </span>
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold tabular-nums text-muted-foreground">
+                        {sectionIndex + 1}
+                      </span>
+                      <Input
+                        id={`section-title-${section}`}
+                        value={sectionTitle}
+                        aria-label={sectionTitle.trim() ? `${sectionTitle} section title` : "Untitled section title"}
+                        onChange={(event) => updateSectionTitle(section, event.target.value)}
+                        className={cn(
+                          "h-8 min-w-20 flex-1 border-transparent bg-transparent px-2 text-sm font-semibold shadow-none hover:bg-muted/60 focus-visible:border-input focus-visible:bg-background",
+                          sectionHidden && "text-muted-foreground line-through",
+                        )}
+                      />
+                      {sectionCount > 0 ? (
+                        <span
+                          className="hidden shrink-0 tabular-nums text-xs text-muted-foreground sm:inline"
+                          title={`${sectionCount} ${sectionCount === 1 ? "item" : "items"}`}
+                        >
+                          ({sectionCount})
+                        </span>
+                      ) : null}
+                      {section !== "skills" && sectionFormat === "entries" ? (
+                        <Button
+                          id={`add-${section}-entry`}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 shrink-0 px-2"
+                          aria-keyshortcuts="Alt+Shift+N"
+                          title="Add entry (Alt+Shift+N when focused in this section)"
+                          onClick={() => {
+                            expandGroup(section);
+                            addEntry(section);
+                          }}
+                        >
+                          <Plus /> <span className="hidden sm:inline">Add</span>
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                        aria-label={sectionHidden ? `Show ${sectionDisplayTitle} section in resume` : `Hide ${sectionDisplayTitle} section from resume`}
+                        aria-pressed={sectionHidden}
+                        title={sectionHidden ? "Show in resume" : "Hide from resume"}
+                        onClick={() => toggleSectionHidden(section)}
+                      >
+                        {sectionHidden ? <EyeOff /> : <Eye />}
+                      </Button>
+                      <Menu>
+                        <MenuTrigger>
                           <Button
-                            id={`add-${section}-entry`}
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            aria-keyshortcuts="Alt+Shift+N"
-                            title="Add entry (Alt+Shift+N when focused in this section)"
-                            onClick={() => addEntry(section)}
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 shrink-0"
+                            aria-label={`More actions for ${sectionDisplayTitle}`}
                           >
-                            <Plus /> Add
+                            <MoreHorizontal />
                           </Button>
-                        ) : null}
-                      </div>
-                    ) : undefined
+                        </MenuTrigger>
+                        <MenuContent>
+                          <MenuItem disabled={sectionIndex === 0} onSelect={() => moveSection(section, -1)}>
+                            <ArrowUp /> Move section up
+                          </MenuItem>
+                          <MenuItem disabled={sectionIndex === state.sectionOrder.length - 1} onSelect={() => moveSection(section, 1)}>
+                            <ArrowDown /> Move section down
+                          </MenuItem>
+                          <MenuSeparator />
+                          <MenuItem
+                            destructive
+                            onSelect={() => (customSection ? removeCustomSection(section) : removeBuiltinSection(section))}
+                          >
+                            <Trash2 /> Remove section
+                          </MenuItem>
+                        </MenuContent>
+                      </Menu>
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(section)}
+                        aria-expanded={!sectionCollapsed}
+                        aria-label={sectionCollapsed ? `Expand ${sectionDisplayTitle}` : `Collapse ${sectionDisplayTitle}`}
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <ChevronRight className={cn("size-4 transition-transform", !sectionCollapsed && "rotate-90")} />
+                      </button>
+                    </div>
                   }
                 >
                   <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
@@ -1628,6 +1544,56 @@ export function ResumeEditor() {
                 </FieldGroup>
                 </div>
               );})}
+
+                <div className="rounded-lg border border-dashed bg-muted/20 p-3">
+                  <p className="text-sm font-medium">Add a section</p>
+                  <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                    Choose a familiar heading or make your own.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {removedBuiltinSections.map((section) => (
+                      <Button
+                        key={section}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          addBuiltinSection(section);
+                          focusEditorTarget(`section-title-${section}`);
+                        }}
+                      >
+                        <Plus /> {SECTION_LABELS[section]}
+                      </Button>
+                    ))}
+                    {CUSTOM_SECTION_PRESETS.map((title) => (
+                      <Button
+                        key={title}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const id = addCustomSection(title);
+                          focusEditorTarget(`section-title-${id}`);
+                        }}
+                      >
+                        <Plus /> {title}
+                      </Button>
+                    ))}
+                    <Button
+                      id="add-custom-section"
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        const id = addCustomSection();
+                        focusEditorTarget(`section-title-${id}`);
+                      }}
+                    >
+                      <Plus /> Add custom section
+                    </Button>
+                  </div>
+                </div>
+              </section>
             </div>
           ) : null}
         </section>

@@ -36,6 +36,12 @@ async function openTools(page: Page) {
   }
 }
 
+async function removeSection(page: Page, title: string) {
+  const section = page.locator("[data-editor-section]").filter({ has: page.getByLabel(`${title} section title`) });
+  await section.getByRole("button", { name: `More actions for ${title}` }).click();
+  await page.getByRole("menuitem", { name: "Remove section" }).click();
+}
+
 /** Appearance controls live in an inline panel behind the preview "Design" button. */
 async function openDesign(page: Page) {
   const panel = page.locator("#design-panel");
@@ -901,6 +907,16 @@ test("collapses editor sections to shorten a long resume", async ({ page }) => {
   await header.getByRole("button", { name: /expand section/i }).click();
   await expect(page.getByLabel("Full Name")).toBeVisible();
 
+  // Reorder controls and editing now share one section card: its title remains
+  // available while the full-width editor body is collapsed.
+  const experience = page.locator('[data-editor-section="experience"]');
+  await experience.getByRole("button", { name: "Collapse Experience" }).click();
+  await expect(experience.getByLabel("Experience section title")).toBeVisible();
+  await expect(experience.getByLabel("Job Title").first()).toBeHidden();
+  await page.getByRole("navigation", { name: /jump to a resume section/i }).getByRole("button", { name: "Experience", exact: true }).click();
+  await expect(experience.getByLabel("Job Title").first()).toBeVisible();
+  await expect(page.getByText("Manage sections", { exact: true })).toBeHidden();
+
   // Collapse all / expand all toggles every group at once.
   await page.getByRole("button", { name: /collapse all/i }).click();
   await expect(page.getByLabel("Full Name")).toBeHidden();
@@ -1010,7 +1026,7 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
   await page.getByRole("button", { name: /add custom section/i }).click();
   const sectionTitle = page.getByLabel("New Section section title");
   await sectionTitle.fill("Publications");
-  await page.getByRole("button", { name: "Remove Publications section" }).click();
+  await removeSection(page, "Publications");
   await expect(sectionTitle).toBeHidden();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Publications section" })).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
@@ -1037,6 +1053,9 @@ test("reorders resume sections by dragging their handles", async ({ page }) => {
   await page.reload();
   await loadSample(page);
 
+  // Compact the unified cards so both source and destination stay in view
+  // during the pointer gesture.
+  await page.getByRole("button", { name: /collapse all/i }).click();
   await page.locator('[data-arrange-section="skills"] [draggable="true"]').dragTo(page.locator('[data-arrange-section="education"]'));
 
   const headings = page.locator(".resume-sheet .resume-section-title");
@@ -1111,7 +1130,7 @@ test("keeps blank titles blank and lets users remove and restore default section
   await expect(page.getByLabel("Untitled section title")).toHaveValue("");
   await expect(page.locator(".resume-sheet .resume-section-title").filter({ hasText: "Experience" })).toBeHidden();
 
-  await page.getByRole("button", { name: "Remove Education section" }).click();
+  await removeSection(page, "Education");
   await expect(page.locator('[data-editor-section="education"]')).toBeHidden();
   await expect(page.getByRole("button", { name: "Education", exact: true })).toBeVisible();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Education section" })).toBeVisible();
@@ -1119,7 +1138,7 @@ test("keeps blank titles blank and lets users remove and restore default section
   await expandAllEntries(page);
   await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.S. in Computer Science");
 
-  await page.getByRole("button", { name: "Remove Education section" }).click();
+  await removeSection(page, "Education");
   await page.getByRole("button", { name: "Education", exact: true }).click();
   await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("");
 });
