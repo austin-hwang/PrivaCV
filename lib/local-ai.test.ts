@@ -7,7 +7,6 @@ import {
   buildLocalRewriteMessages,
   buildParserReviewMessages,
   cleanLocalAIRewrite,
-  inlineAIOutputTokenLimit,
   isLocalAIModelId,
   parseLocalAIImportProposal,
 } from "@/lib/local-ai";
@@ -92,12 +91,6 @@ describe("local AI helpers", () => {
     expect(cleanLocalAIRewrite("Here is the concise rewrite: Built accessible interfaces.")).toBe(
       "Built accessible interfaces.",
     );
-  });
-
-  it("allows a complete localized rewrite without unbounded small-model output", () => {
-    expect(inlineAIOutputTokenLimit("Short summary.")).toBe(192);
-    expect(inlineAIOutputTokenLimit("x".repeat(900))).toBe(396);
-    expect(inlineAIOutputTokenLimit("x".repeat(4_000))).toBe(768);
   });
 
   it("keeps a custom inline edit localized and bounded", () => {

@@ -199,7 +199,7 @@ export async function generateLocalAIText({
   onToken,
 }: {
   messages: ChatCompletionMessageParam[];
-  maxTokens: number;
+  maxTokens?: number;
   jsonSchema?: string;
   onToken?: (text: string) => void;
 }) {
@@ -215,7 +215,7 @@ export async function generateLocalAIText({
       stream: true,
       temperature: jsonSchema ? 0 : 0.2,
       top_p: 0.9,
-      max_tokens: maxTokens,
+      ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,
       extra_body: localAIChatExtraBody(current.modelId),
     });

@@ -65,13 +65,6 @@ export function buildPromptedLocalRewriteMessages({
   ];
 }
 
-export function inlineAIOutputTokenLimit(text: string) {
-  // English resume text commonly averages 3–4 characters per token. Give the
-  // model enough room to preserve the original field plus a small margin,
-  // while keeping a firm ceiling for lower-memory devices.
-  return Math.min(768, Math.max(192, Math.ceil(text.trim().length / 3) + 96));
-}
-
 const importEntrySchema = z.object({
   title: z.string(),
   subtitle: z.string(),
