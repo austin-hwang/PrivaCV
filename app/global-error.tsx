@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ErrorRetryButton } from "@/components/error-retry-button";
 
 type GlobalErrorPageProps = {
   error: Error & { digest?: string };
@@ -22,9 +23,10 @@ export default function GlobalErrorPage({ error, reset }: GlobalErrorPageProps) 
             <p style={{ margin: "12px 0 0", color: "#5e6670", fontSize: "14px", lineHeight: 1.55 }}>
               Something unexpected interrupted this page. Your saved resume data stays in this browser. Try again to continue.
             </p>
-            <button type="button" onClick={reset} style={{ marginTop: "24px", minHeight: "36px", border: 0, borderRadius: "6px", background: "#28303d", color: "#fff", cursor: "pointer", padding: "8px 16px", fontSize: "14px", fontWeight: 600 }}>
-              Try again
-            </button>
+            <ErrorRetryButton
+              reset={reset}
+              style={{ marginTop: "24px", minHeight: "36px", border: 0, borderRadius: "6px", background: "#28303d", color: "#fff", cursor: "pointer", padding: "8px 16px", fontSize: "14px", fontWeight: 600 }}
+            />
           </section>
         </main>
       </body>
