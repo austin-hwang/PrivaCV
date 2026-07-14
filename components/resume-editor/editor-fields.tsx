@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Sparkles, Trash2, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,6 +224,7 @@ function TagGroupRow({
       {open ? (
         <div className="grid gap-2 px-3 pb-3 pt-1">
         <Input
+          id={`tag-group-${group.id}-label`}
           value={group.label}
           onChange={(event) => onChange({ ...group, label: event.target.value })}
           placeholder="Group label (optional)"
@@ -278,36 +279,28 @@ export function TagGroupEditor({
   const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => new Set());
 
   return (
-    <div className="grid gap-2">
-      <div className="overflow-hidden rounded-md border bg-muted/10">
-        {groups.map((group) => {
-          const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
-          return (
-            <TagGroupRow
-              key={group.id}
-              group={group}
-              open={open}
-              onToggle={() => setOpenGroupIds((current) => {
-                const next = new Set(current);
-                if (open) next.delete(group.id);
-                else next.add(group.id);
-                return next;
-              })}
-              onChange={(next) => onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate))}
-              onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
-            />
-          );
-        })}
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="w-fit"
-        onClick={() => onChange([...groups, { id: `group-${Date.now().toString(36)}`, label: "", tags: [] }])}
-      >
-        <Plus /> Add group
-      </Button>
+    <div className="overflow-hidden rounded-md border bg-muted/10">
+      {!groups.length ? (
+        <p className="p-3 text-xs text-muted-foreground">No groups yet. Add one from the section header.</p>
+      ) : null}
+      {groups.map((group) => {
+        const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
+        return (
+          <TagGroupRow
+            key={group.id}
+            group={group}
+            open={open}
+            onToggle={() => setOpenGroupIds((current) => {
+              const next = new Set(current);
+              if (open) next.delete(group.id);
+              else next.add(group.id);
+              return next;
+            })}
+            onChange={(next) => onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate))}
+            onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
+          />
+        );
+      })}
     </div>
   );
 }

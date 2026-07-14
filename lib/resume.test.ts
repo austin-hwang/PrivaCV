@@ -20,6 +20,7 @@ import {
   exportChangeSummary,
   includedBulletsFrom,
   normalizeResume,
+  normalizeTagGroups,
   resumeExportFingerprint,
   resumePlainText,
   sampleState,
@@ -95,6 +96,13 @@ describe("resume helpers", () => {
     expect(editedByLegacyConsumer.sectionTagGroups.skills).toEqual([
       { id: "skills-group-1", label: "Tools", tags: ["Kubernetes", "Terraform"] },
     ]);
+  });
+
+  it("keeps a blank tag-group draft only while the live editor requests it", () => {
+    const draft = { id: "group-draft", label: "", tags: [] };
+
+    expect(normalizeTagGroups([draft], "skills")).toEqual([]);
+    expect(normalizeTagGroups([draft], "skills", true)).toEqual([draft]);
   });
 
   it("exports flexible custom-section formats as readable ATS text and Word paragraphs", () => {

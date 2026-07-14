@@ -303,12 +303,15 @@ export function ResumeEditor() {
       key={localAIInlineTarget.id}
       label={localAIInlineTarget.label}
       text={localAIInlineTarget.value}
+      context={resumePlainText(state).replace(localAIInlineTarget.value, "").trim()}
       onClose={() => setLocalAIInlineTarget(null)}
       onOpenSetup={() => setLocalAIOpen(true)}
       onApply={(value) => {
         if (localAIInlineTarget.field) updateField(localAIInlineTarget.field, value);
         else if (localAIInlineTarget.section !== undefined && localAIInlineTarget.index !== undefined) {
           updateEntry(localAIInlineTarget.section, localAIInlineTarget.index, "details", value);
+        } else if (localAIInlineTarget.section !== undefined) {
+          updateSectionText(localAIInlineTarget.section, value);
         }
         setLocalAIInlineTarget(null);
       }}
@@ -1302,6 +1305,17 @@ export function ResumeEditor() {
                 const sectionHidden = isSectionHidden(state, section);
                 const sectionCount = sectionItemCount(state, section);
                 const sectionCollapsed = collapsedGroups.has(section);
+                const sectionTextAITargetId = `section-text:${section}`;
+                const sectionTextAIAssist = {
+                  expanded: localAIInlineTarget?.id === sectionTextAITargetId,
+                  onClick: () => toggleLocalAIInlineEdit({
+                    id: sectionTextAITargetId,
+                    label: `${sectionDisplayTitle} · ${SECTION_FORMAT_LABELS[sectionFormat]}`,
+                    value: sectionText,
+                    section,
+                  }),
+                  content: localAIInlineTarget?.id === sectionTextAITargetId ? localAIInlinePanel : undefined,
+                };
                 const sectionIsActive =
                   activeTarget === `section-title-${section}` ||
                   activeTarget === `field-${section}` ||
@@ -1382,7 +1396,27 @@ export function ResumeEditor() {
                           ({sectionCount})
                         </span>
                       ) : null}
-                      {section !== "skills" && sectionFormat === "entries" ? (
+                      {sectionFormat === "tag-groups" ? (
+                        <Button
+                          id={`add-${section}-group`}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 shrink-0 px-2"
+                          aria-label={`Add group to ${sectionDisplayTitle}`}
+                          onClick={() => {
+                            const groupId = `group-${Date.now().toString(36)}`;
+                            expandGroup(section);
+                            updateSectionTagGroups(section, [
+                              ...tagGroups,
+                              { id: groupId, label: "", tags: [] },
+                            ]);
+                            window.setTimeout(() => document.getElementById(`tag-group-${groupId}-label`)?.focus(), 0);
+                          }}
+                        >
+                          <Plus /> <span className="hidden sm:inline">Add group</span>
+                        </Button>
+                      ) : section !== "skills" && sectionFormat === "entries" ? (
                         <Button
                           id={`add-${section}-entry`}
                           type="button"
@@ -1499,6 +1533,7 @@ export function ResumeEditor() {
                       value={sectionText}
                       placeholder="One concise item per line"
                       onChange={(value) => updateSectionText(section, value)}
+                      aiAssist={sectionTextAIAssist}
                     />
                   ) : sectionFormat === "paragraphs" ? (
                     <TextAreaField
@@ -1507,6 +1542,7 @@ export function ResumeEditor() {
                       value={sectionText}
                       placeholder="Write one or more concise paragraphs."
                       onChange={(value) => updateSectionText(section, value)}
+                      aiAssist={sectionTextAIAssist}
                     />
                   ) : sectionFormat === "labeled-rows" ? (
                     <TextAreaField
@@ -1515,6 +1551,7 @@ export function ResumeEditor() {
                       value={sectionText}
                       placeholder="Certification — Issuer, 2025"
                       onChange={(value) => updateSectionText(section, value)}
+                      aiAssist={sectionTextAIAssist}
                     />
                   ) : section === "skills" ? (
                     <TextAreaField

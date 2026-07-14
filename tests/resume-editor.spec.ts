@@ -846,10 +846,26 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await page.reload();
   await loadSample(page);
 
+  const skillsSection = page.locator('[data-editor-section="skills"]');
+  const addSkillsGroup = skillsSection.getByRole("button", { name: "Add group to Skills" });
+  await expect(addSkillsGroup).toBeVisible();
+  await expect(skillsSection.getByRole("button", { name: "Add group", exact: true })).toHaveCount(0);
+  await addSkillsGroup.click();
+  await expect(skillsSection.getByLabel("Tag group label").last()).toBeFocused();
+
   await page.getByRole("button", { name: /add custom section/i }).click();
   await page.getByLabel("New Section section title").fill("Certifications");
-  await page.getByRole("group", { name: "Content format" }).last().getByRole("button", { name: "Bulleted list format" }).click();
+  const customSection = page.locator('[data-editor-section^="custom-"]').last();
+  const formatPicker = customSection.getByRole("group", { name: "Content format" });
+  await formatPicker.getByRole("button", { name: "Bulleted list format" }).click();
   await page.getByLabel("Certifications (one bullet per line)").fill("AWS Certified Developer\nCertified Kubernetes Administrator");
+  await expect(customSection.getByRole("button", { name: "Open local AI text editor" })).toBeVisible();
+
+  for (const format of ["Paragraphs format", "Labeled rows format"]) {
+    await formatPicker.getByRole("button", { name: format }).click();
+    await expect(customSection.getByRole("button", { name: "Open local AI text editor" })).toBeVisible();
+  }
+  await formatPicker.getByRole("button", { name: "Bulleted list format" }).click();
 
   const preview = page.locator(".resume-sheet");
   await expect(preview.getByText("Certifications", { exact: true })).toBeVisible();

@@ -849,7 +849,10 @@ export function useResumeEditor() {
 
   const updateSectionTagGroups = (section: string, groups: TagGroup[]) => {
     setState((current) => {
-      const normalized = normalizeTagGroups(groups, section);
+      // Keep a newly added blank group in the live editor long enough for the
+      // person to name it. Full resume normalization still drops abandoned
+      // empty groups when data is loaded or exported.
+      const normalized = normalizeTagGroups(groups, section, true);
       return {
         ...current,
         sectionTagGroups: { ...current.sectionTagGroups, [section]: normalized },

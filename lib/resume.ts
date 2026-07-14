@@ -390,14 +390,14 @@ function tagGroupId(section: string, index: number) {
   return `${section}-group-${index + 1}`;
 }
 
-export function normalizeTagGroups(groups: TagGroup[], section = "section") {
+export function normalizeTagGroups(groups: TagGroup[], section = "section", keepEmpty = false) {
   return groups
     .map((group, index) => ({
       id: group.id.trim() || tagGroupId(section, index),
       label: group.label.trim(),
       tags: [...new Set(group.tags.map((tag) => tag.trim()).filter(Boolean))],
     }))
-    .filter((group) => group.label || group.tags.length);
+    .filter((group) => keepEmpty || group.label || group.tags.length);
 }
 
 export function parseTagGroups(value: string, section = "section") {
