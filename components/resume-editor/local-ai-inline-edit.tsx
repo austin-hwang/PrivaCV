@@ -9,11 +9,10 @@ import {
   generateLocalAIText,
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
-import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite } from "@/lib/local-ai";
+import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, inlineAIOutputTokenLimit } from "@/lib/local-ai";
 import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
 const INLINE_AI_INSTRUCTION_LIMIT = 100;
-const INLINE_AI_OUTPUT_TOKEN_LIMIT = 100;
 const INLINE_AI_PRESETS = [
   { label: "Concise", instruction: "Make this more concise." },
   { label: "Proofread", instruction: "Proofread and fix grammar." },
@@ -50,11 +49,12 @@ export function LocalAIInlineEdit({
     try {
       const result = await generateLocalAIText({
         messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
-        maxTokens: INLINE_AI_OUTPUT_TOKEN_LIMIT,
+        maxTokens: inlineAIOutputTokenLimit(text),
         onToken: setOutput,
       });
       setOutput(cleanLocalAIRewrite(result));
     } catch (generationError) {
+      setOutput("");
       setError(friendlyLocalAIError(generationError));
     } finally {
       setGenerating(false);

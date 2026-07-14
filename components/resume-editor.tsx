@@ -988,7 +988,7 @@ export function ResumeEditor() {
                   onSelect={() => {
                     if (
                       window.confirm(
-                        "Delete this resume, every saved local checkpoint, and all downloaded Local AI model files in this browser? This also removes Local AI settings, import-review excerpts, and last-export status. Save JSON first if you want to keep a copy.",
+                        "Delete this resume, every saved local checkpoint, and all downloaded Local AI model files in this browser? This also removes Local AI settings and import-review excerpts. Save JSON first if you want to keep a copy.",
                       )
                     ) {
                       setBlankWorkspaceOpen(false);

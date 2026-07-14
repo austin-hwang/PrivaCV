@@ -220,9 +220,15 @@ export async function generateLocalAIText({
       extra_body: localAIChatExtraBody(current.modelId),
     });
     let result = "";
+    let finishReason: string | null = null;
     for await (const chunk of chunks) {
-      result += chunk.choices[0]?.delta.content ?? "";
+      const choice = chunk.choices[0];
+      result += choice?.delta.content ?? "";
+      finishReason = choice?.finish_reason ?? finishReason;
       onToken?.(result);
+    }
+    if (finishReason === "length") {
+      throw new Error("The model response was cut off before it finished. Try a smaller edit or a larger model.");
     }
     return result;
   } finally {

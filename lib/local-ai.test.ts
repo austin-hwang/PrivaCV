@@ -7,6 +7,7 @@ import {
   buildLocalRewriteMessages,
   buildParserReviewMessages,
   cleanLocalAIRewrite,
+  inlineAIOutputTokenLimit,
   isLocalAIModelId,
   parseLocalAIImportProposal,
 } from "@/lib/local-ai";
@@ -83,6 +84,20 @@ describe("local AI helpers", () => {
   it("removes common wrappers before a rewrite can be applied", () => {
     expect(cleanLocalAIRewrite('Revised text: "Built accessible interfaces."')).toBe("Built accessible interfaces.");
     expect(cleanLocalAIRewrite("```text\nLed the migration.\n```")).toBe("Led the migration.");
+    expect(
+      cleanLocalAIRewrite(
+        "Here's a revised version of the text, with a focus on conciseness and impact:\n\nBuilt accessible interfaces used across the product.",
+      ),
+    ).toBe("Built accessible interfaces used across the product.");
+    expect(cleanLocalAIRewrite("Here is the concise rewrite: Built accessible interfaces.")).toBe(
+      "Built accessible interfaces.",
+    );
+  });
+
+  it("allows a complete localized rewrite without unbounded small-model output", () => {
+    expect(inlineAIOutputTokenLimit("Short summary.")).toBe(192);
+    expect(inlineAIOutputTokenLimit("x".repeat(900))).toBe(396);
+    expect(inlineAIOutputTokenLimit("x".repeat(4_000))).toBe(768);
   });
 
   it("keeps a custom inline edit localized and bounded", () => {
@@ -96,6 +111,9 @@ describe("local AI helpers", () => {
 
     expect(system).toMatch(/change only what the requested edit requires/i);
     expect(system).toMatch(/never invent skills, numbers, employers, dates, or outcomes/i);
+    expect(system).toMatch(/start immediately with the replacement/i);
+    expect(user).toMatch(/do not say what you changed/i);
+    expect(user).toMatch(/do not end with an unfinished sentence/i);
     expect(user).toContain("start-");
     expect(user).toContain("-end");
     expect(user.length).toBeLessThan(4_800);
