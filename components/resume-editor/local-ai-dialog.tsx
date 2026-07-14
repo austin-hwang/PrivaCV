@@ -56,7 +56,25 @@ function friendlyLocalAIError(error: unknown) {
   if (/memory|allocation|device lost|buffer/i.test(message)) {
     return "The model ran out of available GPU memory. Close other heavy tabs or try the smaller model.";
   }
+  if (/cors|failed to fetch|network|fetch/i.test(message)) {
+    return "The model download could not be reached. Check your connection or browser privacy settings, then try again.";
+  }
   return message || "Local AI could not start.";
+}
+
+function localAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
+  return {
+    ...webllm.prebuiltAppConfig,
+    model_list: webllm.prebuiltAppConfig.model_list
+      .filter((model) => isLocalAIModelId(model.model_id))
+      .map((model) => ({
+        ...model,
+        model: new URL(
+          `/api/local-ai/models/${encodeURIComponent(model.model_id)}/resolve/main/`,
+          window.location.origin,
+        ).href,
+      })),
+  };
 }
 
 async function disposeRuntime() {
@@ -202,8 +220,8 @@ export function LocalAIDialog({
       setModelState("checking");
       setError(null);
       try {
-        const { hasModelInCache } = await import("@mlc-ai/web-llm");
-        const cached = await hasModelInCache(modelId);
+        const webllm = await import("@mlc-ai/web-llm");
+        const cached = await webllm.hasModelInCache(modelId, localAIAppConfig(webllm));
         if (active) setModelState(cached ? "cached" : "not-cached");
       } catch (cacheError) {
         if (!active) return;
@@ -248,13 +266,14 @@ export function LocalAIDialog({
     setError(null);
     try {
       await disposeRuntime();
-      const { CreateWebWorkerMLCEngine } = await import("@mlc-ai/web-llm");
+      const webllm = await import("@mlc-ai/web-llm");
       const worker = new Worker(new URL("../../lib/webllm.worker.ts", import.meta.url), { type: "module" });
       try {
-        const engine = await CreateWebWorkerMLCEngine(
+        const engine = await webllm.CreateWebWorkerMLCEngine(
           worker,
           modelId,
           {
+            appConfig: localAIAppConfig(webllm),
             initProgressCallback: (report) => {
               setProgress(Math.max(0, Math.min(1, report.progress)));
               setProgressText(report.text);
@@ -283,8 +302,8 @@ export function LocalAIDialog({
     setError(null);
     try {
       if (runtime?.modelId === modelId) await disposeRuntime();
-      const { deleteModelAllInfoInCache } = await import("@mlc-ai/web-llm");
-      await deleteModelAllInfoInCache(modelId);
+      const webllm = await import("@mlc-ai/web-llm");
+      await webllm.deleteModelAllInfoInCache(modelId, localAIAppConfig(webllm));
       setModelState("not-cached");
       setProgress(0);
       setProgressText("");
@@ -381,7 +400,7 @@ export function LocalAIDialog({
             <div>
               <h3 id="local-ai-setup-title" className="text-sm font-semibold">1. Prepare a model</h3>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                Nothing downloads automatically. Your first setup fetches public model files from MLC/Hugging Face, then caches them in this browser. Loading a cached model still takes a moment each visit.
+                Nothing downloads automatically. Your first setup streams public model files from MLC/Hugging Face through this site, then caches them in this browser. Resume content is never included in those requests. Loading a cached model still takes a moment each visit.
               </p>
             </div>
             <Badge variant={modelState === "ready" ? "secondary" : "outline"} className={modelState === "ready" ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-200" : undefined}>
