@@ -49,6 +49,7 @@ export function VersionHistoryCard({
   hasContent,
   versions,
   currentFingerprint,
+  storageIssue,
   deletedVersion,
   onSave,
   onSaveBackup,
@@ -63,6 +64,7 @@ export function VersionHistoryCard({
   hasContent: boolean;
   versions: VersionHistoryItem[];
   currentFingerprint: string;
+  storageIssue: boolean;
   deletedVersion: VersionHistoryItem | null;
   onSave: () => void;
   onSaveBackup: () => void;
@@ -116,6 +118,15 @@ export function VersionHistoryCard({
             </Button>
           </div>
         </div>
+
+        {storageIssue ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50/70 px-5 py-3 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100">
+            <p>Browser storage is unavailable. Versions shown here may not survive a refresh.</p>
+            <Button type="button" variant="outline" size="sm" className="border-amber-400 bg-background dark:border-amber-500/50" onClick={onSaveBackup} disabled={!versions.length}>
+              <Download /> Back up versions now
+            </Button>
+          </div>
+        ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {versions.length ? (

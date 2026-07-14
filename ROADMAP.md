@@ -164,7 +164,12 @@ ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 - Let users keep lightweight browser-only checkpoints so job-specific tailoring
   feels reversible without accounts or cloud storage. Checkpoints no longer
   displace an older draft merely because an arbitrary slot limit is met, while
-  portable backup/import remains available for browser-storage limits.
+  portable backup/import remains available for browser-storage limits. If
+  storage rejects a checkpoint, the app now keeps it visible for the active
+  session, explains that it will not survive a refresh, and immediately
+  downloads a portable checkpoint backup rather than falsely confirming a
+  local save. Reassess storage capacity and history performance with larger
+  real histories before adding sync or accounts.
 - Make saved drafts quick to scan, find, restore, or undo when users are
   deciding which tailored version to continue. Version history now opens in a
   dedicated visual workspace with a first-page thumbnail for each checkpoint

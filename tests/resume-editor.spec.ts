@@ -329,6 +329,30 @@ test("warns clearly and offers a JSON backup when browser autosave fails", async
   await expect((await download).suggestedFilename()).toBe("Jane_Doe.json");
 });
 
+test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Storage.prototype, "setItem", {
+      configurable: true,
+      value: () => {
+        throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+      },
+    });
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await loadSample(page);
+
+  const versions = await openVersions(page);
+  await expect(versions.getByText(/versions shown here may not survive a refresh/i)).toBeVisible();
+  await versions.getByRole("button", { name: /save current version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Tailored product role");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await expect((await download).suggestedFilename()).toBe("Jane_Doe-checkpoints.json");
+  await expect(page.getByText("Browser storage unavailable — checkpoint backup downloaded", { exact: true })).toBeVisible();
+  await expect(page.getByText("Tailored product role", { exact: true })).toBeVisible();
+});
+
 test("keeps secondary toolbar actions usable from the keyboard", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

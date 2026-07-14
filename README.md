@@ -215,6 +215,14 @@ the resume in its current order and exposes small, copy-ready fields for the
 common application-form prompts. Use **Review Text** when a portal accepts one
 complete plain-text resume instead.
 
+## Keeping saved versions portable
+
+Versions stay in this browser by design. Use **Versions → Back up** to save
+all checkpoints in one JSON file before changing devices or clearing browser
+data. If the browser cannot save a checkpoint (for example, its storage is
+full or disabled), PrivaCV keeps it visible for the current tab and
+immediately downloads that checkpoint backup instead of claiming it was saved.
+
 ## Importing a PDF
 
 Click **Import PDF** and choose a text-based resume PDF. The app extracts text

@@ -1566,6 +1566,7 @@ export function ResumeEditor() {
         hasContent={hasContent}
         versions={editor.versionHistory}
         currentFingerprint={editor.exportFingerprint}
+        storageIssue={storageIssue}
         deletedVersion={editor.deletedVersion}
         onSave={editor.openVersionSave}
         onSaveBackup={editor.saveVersionHistoryBackup}

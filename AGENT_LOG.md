@@ -1,5 +1,31 @@
 # Agent Log
 
+## 2026-07-13 — Keep version checkpoints trustworthy when browser storage fails
+
+## Product review
+
+- **Finding:** PrivaCV deliberately permits unlimited browser-only checkpoints,
+  but a full or disabled browser store could reject a new version after the UI
+  had already said it was saved. The general JSON backup warning protected the
+  active draft but did not protect a newly labeled checkpoint and its notes.
+- **Options considered:** Cap version history again, move history to an
+  account, or make the existing portable backup an immediate save fallback.
+  The fallback won because it preserves unrestricted local tailoring without
+  overstating browser-storage reliability or weakening the privacy model.
+- **Expected user benefit:** A tailored version is either actually saved in
+  the browser or is immediately downloaded as a portable checkpoint backup;
+  people are not left with a misleading success state before closing a tab.
+
+## Changes
+
+- Version save, restore, delete, and backup import now attempt browser
+  persistence at the user action boundary and use precise feedback on failure.
+- A failed checkpoint save keeps the checkpoint visible for the active session
+  and downloads a checkpoint-backup JSON file immediately.
+- Version history now shows an in-context storage warning and an explicit
+  **Back up versions now** action whenever browser persistence is unavailable.
+
+
 ## 2026-07-13 — Give shared-device users a complete local-data exit
 
 ## Product review

@@ -265,6 +265,23 @@ export function useResumeEditor() {
     setStorageIssue(false);
   }, []);
 
+  /**
+   * Version checkpoints can grow much faster than the active draft. Write
+   * them synchronously at the action boundary so a person never receives a
+   * false "saved" confirmation when the browser has run out of room.
+   */
+  const persistVersionHistory = useCallback((nextHistory: VersionHistoryItem[]) => {
+    try {
+      if (nextHistory.length) localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(nextHistory));
+      else localStorage.removeItem(VERSION_HISTORY_KEY);
+      confirmStorageAvailable();
+      return true;
+    } catch {
+      reportStorageIssue();
+      return false;
+    }
+  }, [confirmStorageAvailable, reportStorageIssue]);
+
   const saveRecoveryPoint = useCallback(
     (
       label: string,
@@ -327,10 +344,24 @@ export function useResumeEditor() {
       state: normalizeResume(state),
       importReview,
     };
-    setVersionHistory((current) => [entry, ...current]);
+    const nextHistory = [entry, ...versionHistory];
+    const saved = persistVersionHistory(nextHistory);
+    // Keep the checkpoint visible for this session even when browser storage
+    // is unavailable, but also give the person a durable copy immediately.
+    setVersionHistory(nextHistory);
     setDraftSourceVersionId(entry.id);
     setVersionSaveOpen(false);
-    flash("Version saved locally");
+    if (saved) {
+      flash("Version saved locally");
+    } else {
+      downloadJsonFile({
+        format: VERSION_HISTORY_BACKUP_FORMAT,
+        version: VERSION_HISTORY_BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        checkpoints: nextHistory,
+      } satisfies VersionHistoryBackup, `${safeResumeFilename(state.name || "resume")}-checkpoints.json`);
+      flash("Browser storage unavailable — checkpoint backup downloaded");
+    }
   };
 
   const restoreVersion = (item: VersionHistoryItem) => {
@@ -350,21 +381,23 @@ export function useResumeEditor() {
 
   const deleteVersion = (id: string) => {
     const deleted = versionHistory.find((item) => item.id === id) ?? null;
-    setVersionHistory((current) => current.filter((item) => item.id !== id));
+    const nextHistory = versionHistory.filter((item) => item.id !== id);
+    const deletedLocally = persistVersionHistory(nextHistory);
+    setVersionHistory(nextHistory);
     setDeletedVersion(deleted);
     if (restoredVersionSummary?.id === id) setRestoredVersionSummary(null);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
-    flash("Deleted saved version");
+    flash(deletedLocally ? "Deleted saved version" : "Could not remove the saved version from browser storage");
   };
 
   const undoDeleteVersion = () => {
     if (!deletedVersion) return;
-    setVersionHistory((current) =>
-      [deletedVersion, ...current.filter((item) => item.id !== deletedVersion.id)]
-        .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime()),
-    );
+    const nextHistory = [deletedVersion, ...versionHistory.filter((item) => item.id !== deletedVersion.id)]
+      .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime());
+    const restoredLocally = persistVersionHistory(nextHistory);
+    setVersionHistory(nextHistory);
     setDeletedVersion(null);
-    flash("Restored deleted checkpoint");
+    flash(restoredLocally ? "Restored deleted checkpoint" : "Checkpoint restored for this session only");
   };
 
   const focusCheckTarget = (targetId: string) => {
@@ -483,13 +516,8 @@ export function useResumeEditor() {
 
   useEffect(() => {
     if (!loaded) return;
-    try {
-      if (versionHistory.length) localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(versionHistory));
-      else localStorage.removeItem(VERSION_HISTORY_KEY);
-    } catch {
-      reportStorageIssue();
-    }
-  }, [loaded, reportStorageIssue, versionHistory]);
+    persistVersionHistory(versionHistory);
+  }, [loaded, persistVersionHistory, versionHistory]);
 
   useEffect(() => {
     if (!toast) return;
@@ -1059,17 +1087,18 @@ export function useResumeEditor() {
       ),
     ).length;
     const matchingCount = mergedHistoryBackup.matchingCheckpoints.length;
+    const saved = persistVersionHistory(mergedHistoryBackup.checkpoints);
     setVersionHistory(mergedHistoryBackup.checkpoints);
     setHistoryBackupToImport(null);
     setDeletedVersion(null);
     setDraftSourceVersionId(null);
-    flash(
+    const message =
       importedCount
         ? `Added ${importedCount} ${importedCount === 1 ? "checkpoint" : "checkpoints"}${
             matchingCount ? ` · ${matchingCount} already saved` : ""
           }`
-        : "All backup checkpoints are already saved",
-    );
+        : "All backup checkpoints are already saved";
+    flash(saved ? message : `${message} · not saved to this browser`);
   };
 
   const openJson = async (file: File | undefined) => {
