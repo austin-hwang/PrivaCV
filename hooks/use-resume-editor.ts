@@ -469,8 +469,8 @@ export function useResumeEditor() {
   }, [confirmStorageAvailable, externalDraft, loaded, reportStorageIssue, state]);
 
   // A refresh should never turn an unreviewed import into an ordinary draft.
-  // Persist the compact checklist with its source excerpts, but deliberately
-  // omit the full extracted source so local storage stays bounded.
+  // Persist the checklist with a bounded copy of its extracted source so local
+  // parser repair remains available after a refresh.
   useEffect(() => {
     if (!loaded) return;
     try {

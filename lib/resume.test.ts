@@ -720,7 +720,7 @@ describe("resume helpers", () => {
     });
   });
 
-  it("keeps an interrupted import review reload-safe without storing its complete source text", () => {
+  it("keeps an interrupted import review and its source reload-safe", () => {
     const sourceText = [
       "Ada Lovelace",
       "ada@example.com",
@@ -733,11 +733,11 @@ describe("resume helpers", () => {
     const stored = storedImportReview({ ...review, reviewedItemIds: ["contact"] });
     const restored = parseStoredImportReview(JSON.stringify(stored));
 
-    expect(stored).not.toHaveProperty("sourceText");
+    expect(stored.sourceText).toBe(sourceText);
     expect(stored.draftFingerprint).toMatch(/^.+-.+-.+$/);
     expect(restored).toMatchObject({ fileName: "ada-resume.txt", reviewedItemIds: ["contact"] });
     expect(restored?.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: "contact" })]));
-    expect(restored?.sourceText).toBeUndefined();
+    expect(restored?.sourceText).toBe(sourceText);
     expect(restored?.coverage?.find((item) => item.id === "experience")?.sourceExcerpt).toContain("Built reliable systems.");
   });
 

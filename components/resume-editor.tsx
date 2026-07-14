@@ -80,6 +80,7 @@ import {
   normalizeAccent,
   RESUME_FONTS,
   RESUME_TEMPLATES,
+  resumePlainText,
   resolveFontStack,
   SECTION_KEYS,
   SECTION_LABELS,
@@ -90,6 +91,7 @@ import {
   type ResumeTemplateId,
   type ResumeTheme,
 } from "@/lib/resume";
+import { clearAllLocalAIData } from "@/lib/local-ai-engine";
 import { buildImportCoverage } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
@@ -252,6 +254,15 @@ export function ResumeEditor() {
     versionHistory,
     visibleRestoredVersionSummary,
   } = editor;
+  const currentImportSourceText = importReview?.sourceText?.trim() || (importReview ? resumePlainText(state).trim() : "");
+  const usingCurrentDraftForAIImport = Boolean(importReview && !importReview.sourceText?.trim() && currentImportSourceText);
+  const deleteSavedBrowserData = async () => {
+    setLocalAIInlineTarget(null);
+    setLocalAIImportOpen(false);
+    setLocalAIOpen(false);
+    await clearAllLocalAIData();
+    clearSavedBrowserData();
+  };
   const toggleLocalAIInlineEdit = (target: LocalAIInlineTarget) => {
     setLocalAIInlineTarget((current) => current?.id === target.id ? null : target);
   };
@@ -926,12 +937,12 @@ export function ResumeEditor() {
                   onSelect={() => {
                     if (
                       window.confirm(
-                        "Delete this resume and every saved local checkpoint in this browser? This also removes import-review excerpts and last-export status. Save JSON first if you want to keep a copy.",
+                        "Delete this resume, every saved local checkpoint, and all downloaded Local AI model files in this browser? This also removes Local AI settings, import-review excerpts, and last-export status. Save JSON first if you want to keep a copy.",
                       )
                     ) {
                       setBlankWorkspaceOpen(false);
                       setBlankResumeGuideVisible(false);
-                      clearSavedBrowserData();
+                      void deleteSavedBrowserData();
                     }
                   }}
                 >
@@ -1583,9 +1594,9 @@ export function ResumeEditor() {
                     variant={localAIImportOpen ? "secondary" : "outline"}
                     size="sm"
                     className="gap-1.5"
-                    disabled={!importReview.sourceText}
+                    disabled={!currentImportSourceText}
                     onClick={() => setLocalAIImportOpen(true)}
-                    title={importReview.sourceText ? "Remap the original extracted text with local AI" : "Re-import the source file to make its original text available"}
+                    title={importReview.sourceText ? "Remap the original extracted text with local AI" : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"}
                   >
                     <Sparkles /> Fix import with AI
                   </Button>
@@ -1631,10 +1642,11 @@ export function ResumeEditor() {
                 {designControls}
               </div>
             ) : null}
-            {localAIImportOpen && importReview?.sourceText ? (
+            {localAIImportOpen && importReview && currentImportSourceText ? (
               <LocalAIImportFix
-                sourceText={importReview.sourceText}
+                sourceText={currentImportSourceText}
                 currentState={state}
+                usingCurrentDraft={usingCurrentDraftForAIImport}
                 onClose={() => setLocalAIImportOpen(false)}
                 onOpenSetup={() => setLocalAIOpen(true)}
                 onApply={(proposal) => {

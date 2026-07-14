@@ -85,11 +85,12 @@ export type ImportReviewState = {
 };
 
 /**
- * A compact, reload-safe representation of an import review. The complete
- * extracted source can be much larger than a normal localStorage budget, and
- * the checklist already keeps the small source excerpts needed for review.
+ * A reload-safe representation of an import review. Extracted source is kept
+ * locally so parser repair remains available after a refresh.
  */
-export type StoredImportReview = Omit<ImportReviewState, "sourceText">;
+export type StoredImportReview = ImportReviewState;
+
+const MAX_STORED_IMPORT_SOURCE_LENGTH = 250_000;
 
 /**
  * A compact, deterministic identity for associating a review checklist with
@@ -257,10 +258,8 @@ function limitedString(value: unknown, maximum = 2_000) {
 }
 
 /**
- * Restores only well-formed review metadata from browser storage. This is
- * deliberately narrower than a version checkpoint: it excludes the complete
- * extracted source while retaining the local excerpts and coverage prompts
- * needed to finish an interrupted review after a refresh.
+ * Restores only well-formed review metadata and a bounded extracted source
+ * from browser storage.
  */
 export function parseStoredImportReview(value: string | null): ImportReviewState | null {
   if (!value) return null;
@@ -321,6 +320,9 @@ export function parseStoredImportReview(value: string | null): ImportReviewState
             .map((id) => limitedString(id, 160))
             .filter((id): id is string => typeof id === "string" && itemIds.has(id))
         : [],
+      ...(limitedString(parsed.sourceText, MAX_STORED_IMPORT_SOURCE_LENGTH)?.trim()
+        ? { sourceText: limitedString(parsed.sourceText, MAX_STORED_IMPORT_SOURCE_LENGTH)?.trim() }
+        : {}),
       ...(coverage ? { coverage } : {}),
     };
   } catch {
@@ -328,10 +330,10 @@ export function parseStoredImportReview(value: string | null): ImportReviewState
   }
 }
 
-/** Drops full extracted source text before persisting a review in localStorage. */
+/** Keeps enough local source text for parser repair without risking an unbounded storage entry. */
 export function storedImportReview(importReview: ImportReviewState): StoredImportReview {
-  const { sourceText: _sourceText, ...review } = importReview;
-  return review;
+  const sourceText = importReview.sourceText?.trim().slice(0, MAX_STORED_IMPORT_SOURCE_LENGTH);
+  return { ...importReview, ...(sourceText ? { sourceText } : {}) };
 }
 
 export function parseVersionHistory(value: string | null, limit = Number.POSITIVE_INFINITY): VersionHistoryItem[] {

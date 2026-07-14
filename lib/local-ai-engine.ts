@@ -1,5 +1,5 @@
 import type { ChatCompletionMessageParam, MLCEngineInterface } from "@mlc-ai/web-llm";
-import { isLocalAIModelId, type LocalAIModelId } from "@/lib/local-ai";
+import { isLocalAIModelId, LOCAL_AI_MODEL_STORAGE_KEY, type LocalAIModelId } from "@/lib/local-ai";
 
 type LocalAIRuntime = {
   engine: MLCEngineInterface;
@@ -10,6 +10,8 @@ type LocalAIRuntime = {
 let runtime: LocalAIRuntime | null = null;
 let generating = false;
 const LOCAL_AI_CACHE_PATH_VERSION = "webllm-cache-v2";
+export const LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY = "resume-editor-local-ai-cache-v2-migrated";
+const WEBLLM_CACHE_NAMES = ["webllm/model", "webllm/config", "webllm/wasm", "tvmjs"];
 
 function appConfigForModelPath(
   webllm: typeof import("@mlc-ai/web-llm"),
@@ -56,6 +58,25 @@ export async function disposeLocalAIRuntime() {
     // The worker may already be unavailable after a WebGPU/device failure.
   } finally {
     current.worker.terminate();
+  }
+}
+
+export async function clearAllLocalAIData() {
+  await disposeLocalAIRuntime();
+  if (typeof caches !== "undefined") {
+    const names = await caches.keys().catch(() => []);
+    await Promise.allSettled(
+      names
+        .filter((name) => WEBLLM_CACHE_NAMES.includes(name) || name.startsWith("webllm/"))
+        .map((name) => caches.delete(name)),
+    );
+  }
+  try {
+    localStorage.removeItem(LOCAL_AI_MODEL_STORAGE_KEY);
+    localStorage.removeItem(LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY);
+  } catch {
+    // Clearing resume storage still proceeds if browser privacy settings block
+    // access to optional Local AI preferences.
   }
 }
 

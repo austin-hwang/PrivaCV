@@ -20,12 +20,14 @@ export function LocalAIImportFix({
   onApply,
   onClose,
   onOpenSetup,
+  usingCurrentDraft,
 }: {
   sourceText: string;
   currentState: ResumeState;
   onApply: (state: ResumeState) => void;
   onClose: () => void;
   onOpenSetup: () => void;
+  usingCurrentDraft?: boolean;
 }) {
   const [proposal, setProposal] = useState<ResumeState | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -66,7 +68,11 @@ export function LocalAIImportFix({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="local-ai-import-fix-title" className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-violet-600 dark:text-violet-300" /> Fix import with local AI</h2>
-          <p className="mt-1 text-xs text-muted-foreground">The original extracted text stays in this browser. The model remaps it into resume fields, then you review the proposal before applying.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {usingCurrentDraft
+              ? "The original extracted text is no longer available after the earlier browser session, so the model will reorganize the current parsed draft. Re-import the source file first if text was omitted."
+              : "The original extracted text stays in this browser. The model remaps it into resume fields, then you review the proposal before applying."}
+          </p>
         </div>
         <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onClose} aria-label="Close AI import fix"><X /></Button>
       </div>

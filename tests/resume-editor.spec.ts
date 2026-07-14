@@ -2108,6 +2108,12 @@ test("deletes every saved resume record from a shared browser", async ({ page })
   await page.evaluate(() => {
     localStorage.setItem("resume-editor-import-review-v1", JSON.stringify({ fileName: "resume.pdf", items: [] }));
     localStorage.setItem("resume-editor-last-export-v1", JSON.stringify({ fingerprint: "current", exportedAt: new Date().toISOString(), pageCount: 1, issueCount: 0 }));
+    localStorage.setItem("resume-editor-local-ai-model-v1", "test-model");
+    localStorage.setItem("resume-editor-local-ai-cache-v2-migrated", "1");
+  });
+  await page.evaluate(async () => {
+    const cache = await caches.open("webllm/model");
+    await cache.put("https://resume.test/model-shard.bin", new Response(new Uint8Array([1, 2, 3])));
   });
 
   await openMenu(page);
@@ -2121,7 +2127,17 @@ test("deletes every saved resume record from a shared browser", async ({ page })
     history: localStorage.getItem("resume-editor-version-history-v1"),
     review: localStorage.getItem("resume-editor-import-review-v1"),
     export: localStorage.getItem("resume-editor-last-export-v1"),
-  }))).toEqual({ draft: null, history: null, review: null, export: null });
+    localAIModel: localStorage.getItem("resume-editor-local-ai-model-v1"),
+    localAIMigration: localStorage.getItem("resume-editor-local-ai-cache-v2-migrated"),
+  }))).toEqual({
+    draft: null,
+    history: null,
+    review: null,
+    export: null,
+    localAIModel: null,
+    localAIMigration: null,
+  });
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).filter((name) => name.startsWith("webllm/")))).toEqual([]);
 
   await page.reload();
   await expect(page.getByText("I have a resume")).toBeVisible();

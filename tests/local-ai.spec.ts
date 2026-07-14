@@ -66,3 +66,31 @@ test("places import repair by the preview and keeps it gated on local setup", as
   await expect(repair).toContainText(/original extracted text stays in this browser/i);
   await expect(repair.getByRole("button", { name: /open setup/i })).toBeVisible();
 });
+
+test("keeps import repair available for a legacy review whose source was not persisted", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com\n\nExperience\nEngineer | Analytical Engines | 2022-Present\nBuilt reliable systems.",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-import-review-v1"))).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).not.toBeNull();
+  await page.evaluate(() => {
+    const key = "resume-editor-import-review-v1";
+    const review = JSON.parse(localStorage.getItem(key) ?? "{}");
+    delete review.sourceText;
+    localStorage.setItem(key, JSON.stringify(review));
+  });
+  await page.reload();
+
+  const fixButton = page.getByRole("button", { name: /fix import with ai/i });
+  await expect(fixButton).toBeEnabled();
+  await fixButton.click();
+  await expect(page.getByRole("region", { name: /fix import with local ai/i })).toContainText(
+    /model will reorganize the current parsed draft/i,
+  );
+});
