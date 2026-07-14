@@ -4,7 +4,7 @@ import openNextWorker from "./.open-next/worker.js";
 import { LOCAL_AI_MODELS } from "./lib/local-ai-models";
 
 const MODEL_PROXY_PREFIX = "/api/local-ai/models/";
-const MODEL_CACHE_PATH_VERSION = "webllm-cache-v2";
+const MODEL_CACHE_PATH_VERSIONS = new Set(["webllm-cache-v2", "webllm-cache-v2-qwen3"]);
 const APPROVED_MODEL_IDS = new Set<string>(LOCAL_AI_MODELS.map((model) => model.id));
 const SAFE_FILE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 const FORWARDED_REQUEST_HEADERS = ["if-modified-since", "if-none-match", "range"];
@@ -39,7 +39,7 @@ async function proxyModelFile(request: Request) {
   const pathname = new URL(request.url).pathname;
   const segments = pathname.slice(MODEL_PROXY_PREFIX.length).split("/").map(decodePathSegment);
   const [modelId, resolveSegment, mainSegment, ...requestedFile] = segments;
-  const file = requestedFile[0] === MODEL_CACHE_PATH_VERSION ? requestedFile.slice(1) : requestedFile;
+  const file = MODEL_CACHE_PATH_VERSIONS.has(requestedFile[0] ?? "") ? requestedFile.slice(1) : requestedFile;
   if (
     !modelId ||
     !APPROVED_MODEL_IDS.has(modelId) ||
@@ -48,7 +48,10 @@ async function proxyModelFile(request: Request) {
     !file.length ||
     file.some((segment) => !segment || !SAFE_FILE_SEGMENT.test(segment))
   ) {
-    return new Response("Model file not found.", { status: 404 });
+    return new Response("Model file not found.", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const upstreamUrl = new URL(

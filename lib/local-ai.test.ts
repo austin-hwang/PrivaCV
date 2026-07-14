@@ -10,7 +10,7 @@ import {
   isLocalAIModelId,
   parseLocalAIImportProposal,
 } from "@/lib/local-ai";
-import { friendlyLocalAIError, localAIChatExtraBody } from "@/lib/local-ai-engine";
+import { friendlyLocalAIError, localAIChatExtraBody, localAIModelCachePath } from "@/lib/local-ai-engine";
 import { sampleState } from "@/lib/resume";
 
 describe("local AI helpers", () => {
@@ -25,6 +25,11 @@ describe("local AI helpers", () => {
   it("uses Qwen 3 for direct edits without spending the short response on reasoning", () => {
     expect(localAIChatExtraBody("Qwen3-0.6B-q4f16_1-MLC")).toEqual({ enable_thinking: false });
     expect(localAIChatExtraBody("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBeUndefined();
+  });
+
+  it("uses a Qwen-specific cache path without invalidating the smaller default model", () => {
+    expect(localAIModelCachePath("Qwen3-0.6B-q4f16_1-MLC")).toBe("webllm-cache-v2-qwen3");
+    expect(localAIModelCachePath("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBe("webllm-cache-v2");
   });
 
   it("provides WebLLM a string JSON schema for structured import repair", () => {

@@ -1,7 +1,7 @@
 import { isLocalAIModelId } from "@/lib/local-ai-models";
 
 const HUGGING_FACE_MODEL_ROOT = "https://huggingface.co/mlc-ai/";
-const MODEL_CACHE_PATH_VERSION = "webllm-cache-v2";
+const MODEL_CACHE_PATH_VERSIONS = new Set(["webllm-cache-v2", "webllm-cache-v2-qwen3"]);
 const SAFE_FILE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 const FORWARDED_REQUEST_HEADERS = ["if-modified-since", "if-none-match", "range"];
 const FORWARDED_RESPONSE_HEADERS = [
@@ -19,7 +19,7 @@ export async function GET(
   { params }: { params: Promise<{ modelId: string; file: string[] }> },
 ) {
   const { modelId, file } = await params;
-  const upstreamFile = file[0] === MODEL_CACHE_PATH_VERSION ? file.slice(1) : file;
+  const upstreamFile = MODEL_CACHE_PATH_VERSIONS.has(file[0]) ? file.slice(1) : file;
   if (!isLocalAIModelId(modelId) || !upstreamFile.length || upstreamFile.some((segment) => !SAFE_FILE_SEGMENT.test(segment))) {
     return new Response("Model file not found.", {
       status: 404,

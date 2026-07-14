@@ -58,12 +58,12 @@ describe("local AI model proxy", () => {
     );
     await GET(
       new Request(
-        "https://resume.test/api/local-ai/models/Qwen3-0.6B-q4f16_1-MLC/resolve/main/webllm-cache-v2/tensor-cache.json",
+        "https://resume.test/api/local-ai/models/Qwen3-0.6B-q4f16_1-MLC/resolve/main/webllm-cache-v2-qwen3/tensor-cache.json",
       ),
       {
         params: Promise.resolve({
           modelId: "Qwen3-0.6B-q4f16_1-MLC",
-          file: ["webllm-cache-v2", "tensor-cache.json"],
+          file: ["webllm-cache-v2-qwen3", "tensor-cache.json"],
         }),
       },
     );

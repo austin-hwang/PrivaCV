@@ -11,6 +11,7 @@ let runtime: LocalAIRuntime | null = null;
 let loadingRuntime: { modelId: LocalAIModelId; worker: Worker; token: object; promise: Promise<LocalAIRuntime> } | null = null;
 let generating = false;
 const LOCAL_AI_CACHE_PATH_VERSION = "webllm-cache-v2";
+const QWEN3_CACHE_PATH_VERSION = "webllm-cache-v2-qwen3";
 export const LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY = "resume-editor-local-ai-cache-v2-migrated";
 const WEBLLM_CACHE_NAMES = ["webllm/model", "webllm/config", "webllm/wasm", "tvmjs"];
 export const LOCAL_AI_RUNTIME_CHANGE_EVENT = "resume-editor-local-ai-runtime-change";
@@ -21,28 +22,35 @@ function announceRuntimeChange() {
 
 function appConfigForModelPath(
   webllm: typeof import("@mlc-ai/web-llm"),
-  pathSuffix: string,
+  pathSuffixForModel: (modelId: LocalAIModelId) => string,
 ) {
   return {
     ...webllm.prebuiltAppConfig,
     model_list: webllm.prebuiltAppConfig.model_list
       .filter((model) => isLocalAIModelId(model.model_id))
-      .map((model) => ({
-        ...model,
-        model: new URL(
-          `/api/local-ai/models/${encodeURIComponent(model.model_id)}/resolve/main/${pathSuffix}`,
-          window.location.origin,
-        ).href,
-      })),
+      .map((model) => {
+        const pathSuffix = pathSuffixForModel(model.model_id as LocalAIModelId);
+        return {
+          ...model,
+          model: new URL(
+            `/api/local-ai/models/${encodeURIComponent(model.model_id)}/resolve/main/${pathSuffix}`,
+            window.location.origin,
+          ).href,
+        };
+      }),
   };
 }
 
+export function localAIModelCachePath(modelId: LocalAIModelId) {
+  return modelId.startsWith("Qwen3") ? QWEN3_CACHE_PATH_VERSION : LOCAL_AI_CACHE_PATH_VERSION;
+}
+
 export function localAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
-  return appConfigForModelPath(webllm, `${LOCAL_AI_CACHE_PATH_VERSION}/`);
+  return appConfigForModelPath(webllm, (modelId) => `${localAIModelCachePath(modelId)}/`);
 }
 
 export function legacyLocalAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
-  return appConfigForModelPath(webllm, "");
+  return appConfigForModelPath(webllm, () => "");
 }
 
 export function getLocalAIRuntime() {
