@@ -340,6 +340,8 @@ test("keeps secondary toolbar actions usable from the keyboard", async ({ page }
 
   await expect(page.getByRole("menuitem", { name: /^paste text$/i })).toBeFocused();
   await page.keyboard.press("End");
+  await expect(page.getByRole("menuitem", { name: /delete saved browser data/i })).toBeFocused();
+  await page.keyboard.press("ArrowUp");
   await expect(page.getByRole("menuitem", { name: /^clear$/i })).toBeFocused();
   await page.keyboard.press("Escape");
 
@@ -2031,6 +2033,38 @@ test("restores the previous resume after clearing", async ({ page }) => {
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByText("Previous resume available")).toBeHidden();
+});
+
+test("deletes every saved resume record from a shared browser", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await saveVersion(page, "Shared computer draft");
+
+  // Seed the other privacy-sensitive browser-only records without opening the
+  // print dialog or an import review during this focused destructive-flow test.
+  await page.evaluate(() => {
+    localStorage.setItem("resume-editor-import-review-v1", JSON.stringify({ fileName: "resume.pdf", items: [] }));
+    localStorage.setItem("resume-editor-last-export-v1", JSON.stringify({ fingerprint: "current", exportedAt: new Date().toISOString(), pageCount: 1, issueCount: 0 }));
+  });
+
+  await openMenu(page);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("menuitem", { name: /delete saved browser data/i }).click();
+
+  await expect(page.getByText("I have a resume")).toBeVisible();
+  await expect(page.getByText("Deleted saved browser data")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => ({
+    draft: localStorage.getItem("resume-editor-data-v2"),
+    history: localStorage.getItem("resume-editor-version-history-v1"),
+    review: localStorage.getItem("resume-editor-import-review-v1"),
+    export: localStorage.getItem("resume-editor-last-export-v1"),
+  }))).toEqual({ draft: null, history: null, review: null, export: null });
+
+  await page.reload();
+  await expect(page.getByText("I have a resume")).toBeVisible();
+  await expect(page.getByText("Shared computer draft")).toBeHidden();
 });
 
 test("saves and restores a named local version history checkpoint", async ({ page }) => {

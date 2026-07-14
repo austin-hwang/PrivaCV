@@ -5,6 +5,13 @@
 Build the fastest privacy-first resume editor for people who want a clean,
 ATS-friendly PDF without accounts, subscriptions, watermarks, or layout anxiety.
 
+## Recent decisions
+
+- Keep the local-first privacy promise usable on shared devices: Clear remains
+  reversible for ordinary drafting, while a separate explicit action removes
+  the active draft and all browser-only resume records. Reassess only if user
+  feedback shows that a protected backup/export step is needed before deletion.
+
 ## MVP
 
 - Local-first Next.js editor that runs without a backend.

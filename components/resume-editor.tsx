@@ -157,6 +157,7 @@ export function ResumeEditor() {
     addBuiltinSection,
     addEntry,
     autosaveStatus,
+    clearSavedBrowserData,
     checks,
     clearResume,
     dismissRecoveryPoint,
@@ -839,6 +840,22 @@ export function ResumeEditor() {
                   }}
                 >
                   <RotateCcw /> Clear
+                </MenuItem>
+                <MenuItem
+                  destructive
+                  onSelect={() => {
+                    if (
+                      window.confirm(
+                        "Delete this resume and every saved local checkpoint in this browser? This also removes import-review excerpts and last-export status. Save JSON first if you want to keep a copy.",
+                      )
+                    ) {
+                      setBlankWorkspaceOpen(false);
+                      setBlankResumeGuideVisible(false);
+                      clearSavedBrowserData();
+                    }
+                  }}
+                >
+                  <Trash2 /> Delete saved browser data
                 </MenuItem>
               </MenuContent>
             </Menu>

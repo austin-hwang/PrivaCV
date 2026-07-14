@@ -200,6 +200,9 @@ export function useResumeEditor() {
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLDivElement>(null);
   const requestExportRef = useRef<() => void>(() => undefined);
+  // A deliberate privacy reset should not immediately recreate an empty draft
+  // in browser storage. The next actual edit resumes normal autosave.
+  const skipNextAutosaveRef = useRef(false);
 
   const hasContent = hasAnyContent(state);
   const checks = useMemo(() => buildResumeChecks(state, pageCount, oversizedEntry), [oversizedEntry, pageCount, state]);
@@ -414,6 +417,11 @@ export function useResumeEditor() {
       setAutosaveStatus("conflict");
       return;
     }
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      setAutosaveStatus("saved");
+      return;
+    }
     setAutosaveStatus("saving");
     const timer = window.setTimeout(() => {
       try {
@@ -476,7 +484,8 @@ export function useResumeEditor() {
   useEffect(() => {
     if (!loaded) return;
     try {
-      localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(versionHistory));
+      if (versionHistory.length) localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(versionHistory));
+      else localStorage.removeItem(VERSION_HISTORY_KEY);
     } catch {
       reportStorageIssue();
     }
@@ -937,6 +946,39 @@ export function useResumeEditor() {
     flash("Cleared");
   };
 
+  /**
+   * Remove resume content and the related browser-only records together. This
+   * is intentionally separate from Clear, whose recovery point is useful when
+   * someone merely wants to start over while keeping their local work safe.
+   */
+  const clearSavedBrowserData = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("resume-editor-data-v1");
+      localStorage.removeItem(IMPORT_REVIEW_KEY);
+      localStorage.removeItem(EXPORT_CHECKPOINT_KEY);
+      localStorage.removeItem(VERSION_HISTORY_KEY);
+      localStorage.removeItem("resume-editor-role-focus-v1");
+      localStorage.removeItem("resume-editor-role-focus-label-v1");
+      confirmStorageAvailable();
+    } catch {
+      reportStorageIssue();
+    }
+    skipNextAutosaveRef.current = true;
+    setState(emptyState());
+    setImportReview(null);
+    setExportCheckpoint(null);
+    setVersionHistory([]);
+    setRecoveryPoint(null);
+    setRestoredVersionSummary(null);
+    setDeletedVersion(null);
+    setHistoryBackupToImport(null);
+    setUndoableRemoval(null);
+    setExternalDraft(null);
+    setDraftSourceVersionId(null);
+    flash("Deleted saved browser data");
+  };
+
   const dismissRecoveryPoint = () => {
     setRecoveryPoint(null);
   };
@@ -1251,6 +1293,7 @@ export function useResumeEditor() {
     applicationCopyOpen,
     autosaveStatus,
     checks,
+    clearSavedBrowserData,
     clearResume,
     copyApplicationField,
     copyPlainText,

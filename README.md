@@ -153,6 +153,10 @@ subscriptions, watermarks, or backend storage.
   when needed. If the same editor is open in two tabs, a different draft saved
   in the other tab pauses autosave here and asks which draft to keep rather
   than silently overwriting either version.
+- **Clear** keeps a short recovery point for an accidental reset. On a shared
+  computer, **More actions → Delete saved browser data** instead removes the
+  open draft, local checkpoints, import-review excerpts, and last-export
+  status together; save JSON first if any of that work should be retained.
 - Clean print stylesheet for browser Save as PDF.
 
 ## Stack

@@ -1,5 +1,46 @@
 # Agent Log
 
+## 2026-07-13 — Give shared-device users a complete local-data exit
+
+## Product review
+
+- **Finding:** Competitive research reinforced that local-first privacy is a
+  meaningful differentiator, but PrivaCV's **Clear** action intentionally kept
+  checkpoints, import-review excerpts, and export metadata so a draft could be
+  recovered. That is useful while drafting but leaves sensitive resume records
+  behind on a shared computer.
+- **Options considered:** Make Clear permanently destructive, add accounts or
+  cloud deletion, or introduce an explicit local-data deletion path. The
+  explicit path won because it preserves the forgiving normal workflow while
+  giving people a complete, understandable privacy exit without changing the
+  browser-only model.
+- **Expected user benefit:** Someone finishing on a shared device can remove
+  their resume and all associated local records in one deliberate action,
+  instead of having to discover separate versions and review remnants.
+
+## Changes
+
+- Added **More actions → Delete saved browser data**, with a clear irreversible
+  confirmation that recommends saving JSON first.
+- Removed the active draft, legacy draft, checkpoints, unfinished import-review
+  excerpts, last-export snapshot, recovery state, and retired Role Focus keys.
+- Prevented an empty autosave record from being recreated immediately after
+  deletion; a subsequent real edit resumes normal local autosave.
+- Kept **Clear** recoverable, and updated keyboard coverage so both destructive
+  menu actions remain reachable.
+- Updated README and roadmap guidance for shared-device use.
+
+## Verification
+
+- Passed `pnpm typecheck`, `pnpm lint`, `pnpm test` (67 tests), focused
+  Chromium coverage for deletion and keyboard navigation, `pnpm build`, and
+  `git diff --check`.
+- A full 85-test Chromium attempt passed its initial tests but the local
+  Playwright web server later stopped accepting connections; the resulting
+  failures were `ERR_CONNECTION_REFUSED`, not product assertions. Reassess the
+  local test-server stability separately before treating a full-suite rerun as
+  complete.
+
 ## 2026-07-13 — Keep pasted canvas edits clean
 
 ## Product review
