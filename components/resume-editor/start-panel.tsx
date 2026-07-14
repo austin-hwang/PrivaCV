@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronRight, ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RESUME_TEMPLATES, type ResumeTemplateId } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
@@ -35,20 +35,14 @@ export function StartPanel({
 
   return (
     <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="text-2xl">Start from a resume you have—or a clean page.</CardTitle>
-        <CardDescription>
-          Everything stays on this device. You review every field before you export.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         <div className="grid gap-3 sm:grid-cols-2">
           {/* Path 1 — bring an existing resume in and review it. */}
           <div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
             <div>
               <p className="text-sm font-semibold">I have a resume</p>
               <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                Import it locally, then review every field before exporting.
+                Import and review each field.
               </p>
             </div>
             <div className="mt-auto grid gap-2">
@@ -73,7 +67,7 @@ export function StartPanel({
             <div>
               <p className="text-sm font-semibold">Start fresh</p>
               <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                Open a clean, ATS-readable draft and begin with your contact details.
+                Begin from a blank, ATS-ready draft.
               </p>
             </div>
             <Button type="button" variant="secondary" className="mt-auto justify-start" onClick={() => onStartBlank()}>
@@ -91,7 +85,7 @@ export function StartPanel({
           >
             <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", moreOpen && "rotate-90")} />
             More options
-            <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, checkpoint backup, layout</span>
+            <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, backup, layouts</span>
           </button>
 
           {moreOpen ? (

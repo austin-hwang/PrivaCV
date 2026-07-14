@@ -33,7 +33,7 @@ async function openDesign(page: Page) {
 }
 
 async function openVersions(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /see each saved resume before changing course/i });
+  const dialog = page.getByRole("dialog", { name: /version history/i });
   if (!(await dialog.isVisible().catch(() => false))) {
     await page.getByRole("button", { name: /version history/i }).click();
     await expect(dialog).toBeVisible();
@@ -42,7 +42,7 @@ async function openVersions(page: Page) {
 }
 
 async function closeVersions(page: Page) {
-  await page.getByRole("dialog", { name: /see each saved resume before changing course/i }).getByRole("button", { name: "Close" }).click();
+  await page.getByRole("dialog", { name: /version history/i }).getByRole("button", { name: "Close" }).click();
 }
 
 async function saveVersion(page: Page, label: string) {
@@ -359,7 +359,6 @@ test("helps first-time users choose the right private import route", async ({ pa
   // PDF and Word share one importer that routes on the file itself.
   await expect(page.getByRole("button", { name: /^import a file$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /^start a blank resume$/i })).toBeVisible();
-  await expect(page.getByText("You review every field before you export.")).toBeVisible();
 
   // Secondary routes stay tucked away until asked for.
   await expect(page.getByRole("button", { name: /open saved json/i })).toBeHidden();
@@ -404,7 +403,7 @@ test("keeps an oversized PDF import local and gives a clear recovery path", asyn
   });
 
   await expect(page.getByText("This PDF is too large to import locally. Try copying the resume text instead.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /start from a resume you have/i })).toBeVisible();
+  await expect(page.getByText("I have a resume")).toBeVisible();
 });
 
 test("imports an editable Word resume locally and keeps its review deliberate", async ({ page }) => {
@@ -525,23 +524,6 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   expect(wordPath).toBeTruthy();
   const wordContents = unzipSync(new Uint8Array(await readFile(wordPath!)));
   expect(strFromU8(wordContents["word/document.xml"])).toContain("Jane Doe");
-});
-
-test("keeps a deselected tailoring bullet out of the preview and reviewed text", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-
-  const omitted = "Mentored a team of 5 engineers and established code review standards.";
-  const selector = page.getByLabel(new RegExp(`Include bullet 2: ${omitted}`));
-  await selector.uncheck();
-  await expect(page.locator(".resume-sheet")).not.toContainText(omitted);
-  await expect(page.getByText("2 of 3 bullets are included in your preview and downloads.")).toBeVisible();
-
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /review text/i }).click();
-  await expect(page.locator("textarea[readonly]")).not.toContainText(omitted);
 });
 
 test("makes local autosave visible while an edited resume is being stored", async ({ page }) => {
@@ -1073,7 +1055,7 @@ test("keeps the whole page from scrolling away during import review", async ({ p
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation\nB.S. Mathematics | Cambridge | 2018",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
-  await expect(page.getByText("Import review")).toBeVisible();
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
 
   // The editor pane scrolls internally; the document itself must stay pinned to
   // the viewport. A regression here let absolutely-positioned children escape
@@ -1091,7 +1073,7 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
 
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
-  await expect(importDialog.getByText("OCR'd scanned PDF")).toBeVisible();
+  await expect(importDialog.getByText("scanned PDF")).toBeVisible();
   await expect(importDialog.getByText("Nothing is uploaded or sent anywhere.")).toBeVisible();
   await importDialog.getByLabel("Resume text").fill(
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation",
@@ -1101,7 +1083,6 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   const banner = page.locator("#import-review-panel");
   await expect(banner.getByText("Review the imported fields")).toBeVisible();
-  await expect(banner.getByText("Import review")).toBeVisible();
   await expect(banner.getByRole("button", { name: /finish review/i })).toBeDisabled();
 
   // The review is a guided walkthrough: each suggested field is highlighted in
@@ -1344,7 +1325,7 @@ test("preserves text written beside an inline resume heading", async ({ page }) 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
-  await expect(page.getByText("Import review")).toBeVisible();
+  await expect(page.getByText("Review the imported fields")).toBeVisible();
 });
 
 test("quickly corrects company-first imported experience entries", async ({ page }) => {
@@ -1599,7 +1580,7 @@ test("gently prompts for specific action openings while preserving truthful bull
 
   await page.locator("#field-experience-0-details").fill("Responsible for release planning.\nBuilt a deployment workflow for 3 teams.\nWorked on incident response.");
 
-  await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Starting with what you did can make the contribution easier to scan; keep the wording truthful.")).toBeVisible();
+  await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Lead with the action, and keep it truthful.")).toBeVisible();
 });
 
 test("keeps mobile editing focused while leaving review tools one tap away", async ({ browser }) => {
@@ -1916,7 +1897,7 @@ test("checks an imported resume before downloading Word", async ({ page }) => {
   await page.getByRole("menuitem", { name: /download word/i }).click();
 
   const exportDialog = page.getByRole("dialog", { name: /review before downloading/i });
-  await expect(exportDialog).toContainText("Word download check");
+  await expect(exportDialog).toContainText("Review before downloading");
   await expect(exportDialog.getByText("Imported fields still need review")).toBeVisible();
   await expect(exportDialog.getByRole("button", { name: /export anyway/i })).toHaveCount(0);
 
@@ -2026,7 +2007,7 @@ test("expands dense change audits after export and restore", async ({ page }) =>
 
   await openVersions(page);
   await page.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
-  await expect(page.getByText("Checkpoint restored")).toBeVisible();
+  await expect(page.getByText(/Restored from the version saved/i)).toBeVisible();
   await expect(page.getByText("2 more changed areas")).toBeVisible();
   await page.getByRole("button", { name: /show all changes/i }).click();
   await expect(page.getByText("Showing all 6 changed areas")).toBeVisible();
@@ -2045,11 +2026,11 @@ test("restores the previous resume after clearing", async ({ page }) => {
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("menuitem", { name: /^clear$/i }).click();
 
-  await expect(page.getByText("Restore point saved")).toBeVisible();
+  await expect(page.getByText("Previous resume available")).toBeVisible();
   await page.getByRole("button", { name: /restore previous/i }).click();
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
-  await expect(page.getByText("Restore point saved")).toBeHidden();
+  await expect(page.getByText("Previous resume available")).toBeHidden();
 });
 
 test("saves and restores a named local version history checkpoint", async ({ page }) => {
@@ -2077,13 +2058,13 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await openVersions(page);
   await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Jane Doe");
-  await expect(page.getByText("Checkpoint restored")).toBeVisible();
+  await expect(page.getByText(/Restored from the version saved/i)).toBeVisible();
   const restoredChange = page.getByRole("button", { name: /header changed/i }).first();
   await expect(restoredChange.getByText("Before", { exact: true })).toBeVisible();
   await expect(restoredChange.getByText("Restored", { exact: true })).toBeVisible();
   await restoredChange.click();
   await expect(page.locator("#field-name")).toBeFocused();
-  await expect(page.getByText("Restore point saved")).toBeVisible();
+  await expect(page.getByText("Previous resume available")).toBeVisible();
 
   await openVersions(page);
   await page.getByRole("button", { name: /delete original software resume/i }).click();
@@ -2186,7 +2167,7 @@ test("imports a checkpoint history backup without replacing the current resume",
     .not.toBeNull();
   await page.evaluate(() => localStorage.clear());
   await page.goto("/");
-  await expect(page.getByText("Start from a resume you have—or a clean page.")).toBeVisible();
+  await expect(page.getByText("I have a resume")).toBeVisible();
   await page.locator("#history-backup-input").setInputFiles({
     name: "resume-checkpoints.json",
     mimeType: "application/json",
@@ -2199,7 +2180,7 @@ test("imports a checkpoint history backup without replacing the current resume",
   await backupDialog.getByRole("button", { name: /add checkpoints/i }).click();
 
   await expect(page.getByText("Added 1 checkpoint")).toBeVisible();
-  await expect(page.getByText("Start from a resume you have—or a clean page.")).toBeVisible();
+  await expect(page.getByText("I have a resume")).toBeVisible();
   const versions = await openVersions(page);
   await expect(versions.getByText("Platform baseline").first()).toBeVisible();
 });

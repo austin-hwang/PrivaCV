@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Download, History, Save, Search, Trash2, Undo2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import {
@@ -95,13 +95,9 @@ export function VersionHistoryCard({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="flex h-[min(900px,calc(100dvh-2rem))] max-w-6xl flex-col gap-0 overflow-hidden p-0" aria-describedby="version-history-description">
+      <DialogContent className="flex h-[min(900px,calc(100dvh-2rem))] max-w-6xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-5 py-5 pr-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Version history</p>
-          <DialogTitle>See each saved resume before changing course.</DialogTitle>
-          <DialogDescription id="version-history-description">
-            Browser-only checkpoints. Each card shows the first page as it will read, so labels are not your only clue.
-          </DialogDescription>
+          <DialogTitle>Version history</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-5 py-3">
@@ -200,7 +196,7 @@ export function VersionHistoryCard({
               <div>
                 <Search className="mx-auto mb-3 size-6 text-muted-foreground" />
                 <p className="font-semibold">No saved versions match “{query.trim()}”</p>
-                <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Try a checkpoint name, note, or the resume name and title shown on a card.</p>
+                <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Search by checkpoint name, note, or resume title.</p>
                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setQuery("")}>
                   Clear search
                 </Button>
@@ -211,7 +207,7 @@ export function VersionHistoryCard({
               <div>
                 <History className="mx-auto mb-3 size-6 text-muted-foreground" />
                 <p className="font-semibold">No saved versions yet</p>
-                <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Save a checkpoint before a meaningful rewrite so you can see and restore the earlier resume later.</p>
+                <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Save a checkpoint to restore this version later.</p>
               </div>
             </div>
           )}

@@ -79,6 +79,22 @@ export const DENSITY_LABELS: Record<Density, string> = {
   compact: "Compact",
 };
 
+export const BULLET_STYLES = ["disc", "circle", "dash", "none"] as const;
+export type BulletStyle = (typeof BULLET_STYLES)[number];
+export const BULLET_STYLE_LABELS: Record<BulletStyle, string> = {
+  disc: "Bullet",
+  circle: "Circle",
+  dash: "Dash",
+  none: "None",
+};
+/** Literal marker for export paths that can't use CSS list markers (DOCX). */
+export const BULLET_STYLE_MARKERS: Record<BulletStyle, string> = {
+  disc: "•",
+  circle: "◦",
+  dash: "–",
+  none: "",
+};
+
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 export const themeSchema = z.object({
@@ -88,16 +104,17 @@ export const themeSchema = z.object({
   headerDivider: z.boolean().catch(false),
   headingStyle: z.enum(HEADING_STYLES).catch("ruled"),
   density: z.enum(DENSITIES).catch("comfortable"),
+  bulletStyle: z.enum(BULLET_STYLES).catch("disc"),
 });
 
 export type ResumeTheme = z.infer<typeof themeSchema>;
 
 /** Each template preset is simply a professional starting point for the theme. */
 export const TEMPLATE_THEMES: Record<ResumeTemplateId, ResumeTheme> = {
-  classic: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "comfortable" },
-  minimal: { font: "inter", accent: "#334155", headerAlign: "left", headerDivider: false, headingStyle: "underline", density: "comfortable" },
-  modern: { font: "inter", accent: "#1f3a5f", headerAlign: "left", headerDivider: true, headingStyle: "bar", density: "comfortable" },
-  compact: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "compact" },
+  classic: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "comfortable", bulletStyle: "disc" },
+  minimal: { font: "inter", accent: "#334155", headerAlign: "left", headerDivider: false, headingStyle: "underline", density: "comfortable", bulletStyle: "disc" },
+  modern: { font: "inter", accent: "#1f3a5f", headerAlign: "left", headerDivider: true, headingStyle: "bar", density: "comfortable", bulletStyle: "disc" },
+  compact: { font: "merriweather", accent: "#111827", headerAlign: "left", headerDivider: false, headingStyle: "ruled", density: "compact", bulletStyle: "disc" },
 };
 
 export function defaultTheme(): ResumeTheme {
@@ -132,10 +149,6 @@ export const entrySchema = z.object({
   subtitle: z.string().catch(""),
   meta: z.string().catch(""),
   details: z.string().catch(""),
-  // A tailored draft can omit a lower-relevance bullet without deleting it
-  // from the local master resume. Indexes keep duplicate bullet wording
-  // independently selectable.
-  excludedBulletIndexes: z.array(z.number().int().nonnegative()).optional().catch([]),
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
@@ -236,7 +249,7 @@ export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
 export function blankEntry(): ResumeEntry {
-  return { title: "", subtitle: "", meta: "", details: "", excludedBulletIndexes: [] };
+  return { title: "", subtitle: "", meta: "", details: "" };
 }
 
 export function emptyState(): ResumeState {
@@ -336,10 +349,9 @@ export function bulletsFrom(details: string) {
     .filter(Boolean);
 }
 
-/** Returns the bullets that belong in the current tailored version. */
+/** Returns every bullet for an entry (previews and exports show them all). */
 export function includedBulletsFrom(entry: ResumeEntry) {
-  const excluded = new Set(entry.excludedBulletIndexes ?? []);
-  return bulletsFrom(entry.details).filter((_, index) => !excluded.has(index));
+  return bulletsFrom(entry.details);
 }
 
 export function wordCount(text: string) {
@@ -801,21 +813,18 @@ const ENTRY_FIELD_LABELS: Record<
     subtitle: "Company",
     meta: "Dates",
     details: "Achievements",
-    excludedBulletIndexes: "Included bullets",
   },
   education: {
     title: "Degree",
     subtitle: "School",
     meta: "Dates / location",
     details: "Details",
-    excludedBulletIndexes: "Included bullets",
   },
   projects: {
     title: "Project name",
     subtitle: "Technologies / role",
     meta: "Dates / link",
     details: "Description",
-    excludedBulletIndexes: "Included bullets",
   },
 };
 
@@ -870,6 +879,7 @@ function visualStyleSnapshot(state: ResumeState) {
     state.theme.headerDivider ? "Header divider" : "No header divider",
     heading,
     density,
+    `${BULLET_STYLE_LABELS[state.theme.bulletStyle]} bullets`,
   ].join(" · ");
 }
 
@@ -882,6 +892,7 @@ function visualStyleChangeLabels(previous: ResumeState, current: ResumeState) {
   if (previous.theme.headerDivider !== current.theme.headerDivider) labels.push("Header divider");
   if (previous.theme.headingStyle !== current.theme.headingStyle) labels.push("Heading style");
   if (previous.theme.density !== current.theme.density) labels.push("Spacing density");
+  if (previous.theme.bulletStyle !== current.theme.bulletStyle) labels.push("Bullet style");
   return labels;
 }
 

@@ -107,10 +107,9 @@ export function ResumeEditorOverlays({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Local text import</DialogDescription>
             <DialogTitle>Paste the resume you already have</DialogTitle>
             <DialogDescription>
-              Paste text copied from a document, LinkedIn, or an OCR&apos;d scanned PDF. PrivaCV structures it in this browser, then asks you to review the suggested fields.
+              Paste text from a document, LinkedIn, or scanned PDF. We&apos;ll extract the fields for your review.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -148,10 +147,9 @@ export function ResumeEditorOverlays({
       <Dialog open={textReviewOpen} onOpenChange={setTextReviewOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Plain-text export</DialogDescription>
             <DialogTitle>Review before copying</DialogTitle>
             <DialogDescription>
-              This is the exact ATS-friendly text that will be copied for job applications and recruiter portals. You can also download the same content as a simple, editable Word document.
+              ATS-friendly text for job applications. Copy it, or download as Word.
             </DialogDescription>
           </DialogHeader>
           {plainText ? (
@@ -189,10 +187,9 @@ export function ResumeEditorOverlays({
       >
         <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Application copy</DialogDescription>
             <DialogTitle>Copy exactly what each portal asks for</DialogTitle>
             <DialogDescription>
-              Copy a contact field, role, achievement list, or section without retyping. Everything stays in this browser.
+              Copy any field or section, ready to paste into applications.
             </DialogDescription>
           </DialogHeader>
           {applicationCopy.length ? (
@@ -260,10 +257,9 @@ export function ResumeEditorOverlays({
       <Dialog open={versionSaveOpen} onOpenChange={setVersionSaveOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Version history</DialogDescription>
             <DialogTitle>Name this checkpoint</DialogTitle>
             <DialogDescription>
-              Give this snapshot a name so the right draft is easy to find and restore later.
+              Add a label and optional note.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -317,10 +313,9 @@ export function ResumeEditorOverlays({
       <Dialog open={Boolean(historyBackupToImport)} onOpenChange={(open) => !open && setHistoryBackupToImport(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">Checkpoint backup</DialogDescription>
             <DialogTitle>Add saved checkpoints from backup</DialogTitle>
             <DialogDescription>
-              Your current resume stays open. Imported checkpoints are merged with this browser&apos;s local history.
+              Merges into your local history; your current resume stays open.
             </DialogDescription>
           </DialogHeader>
           {historyBackupToImport ? (
@@ -383,9 +378,6 @@ export function ResumeEditorOverlays({
       <Dialog open={exportCheckOpen} onOpenChange={setExportCheckOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogDescription className="font-semibold uppercase tracking-[0.16em]">
-              {pendingExportFormat === "docx" ? "Word download check" : "PDF export check"}
-            </DialogDescription>
             <DialogTitle>Review before {pendingExportFormat === "docx" ? "downloading" : "exporting"}</DialogTitle>
             <DialogDescription>
               Fix the highest-impact items now, or continue if you have already reviewed the resume yourself.

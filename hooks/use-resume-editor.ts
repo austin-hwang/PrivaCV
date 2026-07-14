@@ -649,9 +649,7 @@ export function useResumeEditor() {
         return {
           ...current,
           [section]: current[section].map((entry, entryIndex) =>
-            entryIndex === index
-              ? { ...entry, [key]: value, ...(key === "details" ? { excludedBulletIndexes: [] } : {}) }
-              : entry,
+            entryIndex === index ? { ...entry, [key]: value } : entry,
           ),
         };
       }
@@ -662,36 +660,9 @@ export function useResumeEditor() {
             ? {
               ...custom,
               entries: custom.entries.map((entry, entryIndex) =>
-                entryIndex === index
-                  ? { ...entry, [key]: value, ...(key === "details" ? { excludedBulletIndexes: [] } : {}) }
-                  : entry,
+                entryIndex === index ? { ...entry, [key]: value } : entry,
               ),
             }
-            : custom,
-        ),
-      };
-    });
-  };
-
-  const toggleEntryBullet = (section: string, index: number, bulletIndex: number) => {
-    setState((current) => {
-      const toggle = (entry: ResumeEntry) => {
-        const excluded = new Set(entry.excludedBulletIndexes ?? []);
-        if (excluded.has(bulletIndex)) excluded.delete(bulletIndex);
-        else excluded.add(bulletIndex);
-        return { ...entry, excludedBulletIndexes: [...excluded].sort((first, second) => first - second) };
-      };
-      if (isBuiltinSection(section) && section !== "skills") {
-        return {
-          ...current,
-          [section]: current[section].map((entry, entryIndex) => entryIndex === index ? toggle(entry) : entry),
-        };
-      }
-      return {
-        ...current,
-        customSections: current.customSections.map((custom) =>
-          custom.id === section
-            ? { ...custom, entries: custom.entries.map((entry, entryIndex) => entryIndex === index ? toggle(entry) : entry) }
             : custom,
         ),
       };
@@ -1359,7 +1330,6 @@ export function useResumeEditor() {
     tightenLayout,
     toast,
     toggleImportReviewItem,
-    toggleEntryBullet,
     confirmAllImportReviewItems,
     completeImportReview,
     undoDeleteVersion,

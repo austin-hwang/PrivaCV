@@ -62,6 +62,7 @@ export function GuidedReview({
   onIndexChange,
   onClose,
   onFinish,
+  onFocusStep,
   finishLabel = "Done",
   finishDisabled = false,
   modal = false,
@@ -74,6 +75,9 @@ export function GuidedReview({
   onIndexChange: (index: number) => void;
   onClose: () => void;
   onFinish: () => void;
+  /** Called with the step's target id before scrolling — the host uses it to
+      expand a collapsed section so the target is visible/measurable. */
+  onFocusStep?: (targetId: string) => void;
   finishLabel?: string;
   finishDisabled?: boolean;
   /** Dim + block everything except the highlighted region and this card. */
@@ -90,6 +94,11 @@ export function GuidedReview({
   const [offscreenDirection, setOffscreenDirection] = useState<"above" | "below" | null>(null);
   const [cardPos, setCardPos] = useState<{ top: number; left: number; placement: "below" | "above" | "bottom" | "right" } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  // True while a step change is scrolling its target into view. During this
+  // window we hold the previous frame instead of snapping the card to the
+  // offscreen (bottom) fallback and then jumping it back — the source of the
+  // jitter when moving between steps.
+  const settlingRef = useRef(false);
   const step = steps[index];
 
   useEffect(() => setMounted(true), []);
@@ -105,18 +114,29 @@ export function GuidedReview({
   const targetId = step?.targetId;
   useEffect(() => {
     if (!open || !targetId) return;
+    // Expand a collapsed section (if the host wired it up) so the target is
+    // visible and measurable before we frame and scroll to it.
+    onFocusStep?.(targetId);
+    // Hold the previous frame until the target is scrolled into place.
+    settlingRef.current = true;
     // Animate the ring toward the new target, then settle so subsequent scroll
     // repositioning is instant.
     setAnimate(true);
     const settle = window.setTimeout(() => setAnimate(false), 220);
     const timer = window.setTimeout(() => {
       resolveRegionEl(targetId)?.scrollIntoView({ block: "center" });
+      // Re-measure once the scroll has landed, then reveal the card at its final
+      // position in a single move.
+      window.requestAnimationFrame(() => {
+        settlingRef.current = false;
+        repositionRef.current();
+      });
     }, 30);
     return () => {
       window.clearTimeout(timer);
       window.clearTimeout(settle);
     };
-  }, [open, targetId]);
+  }, [open, targetId, onFocusStep]);
 
   // Keep the ring + card positioned over the moving target while the tour is open.
   const reposition = useCallback(() => {
@@ -138,6 +158,9 @@ export function GuidedReview({
     // person scrolls the active field away, then leave the tour card available
     // with a direct route back to the exact field.
     if (!isInViewport) {
+      // Mid step-change we're about to scroll this target into view; hold the
+      // current frame instead of flashing the card to the bottom and back.
+      if (settlingRef.current) return;
       setRect((prev) => (prev === null ? prev : null));
       setCardPos((prev) => {
         const width = Math.min(CARD_WIDTH, vw - 24);
@@ -195,6 +218,13 @@ export function GuidedReview({
     }
     setPos({ top, left, placement });
   }, [step]);
+
+  // Keep a stable handle to the latest reposition so the step-change effect can
+  // re-measure after scrolling without taking `reposition` (which changes every
+  // step) as a dependency — that would re-run and re-scroll on every host
+  // re-render, e.g. when a step's action rebuilds the steps array.
+  const repositionRef = useRef(reposition);
+  repositionRef.current = reposition;
 
   useLayoutEffect(() => {
     if (!open || !targetId) return;
@@ -325,7 +355,7 @@ export function GuidedReview({
         {offscreenDirection ? (
           <div className="mt-3 rounded-md border bg-muted/40 p-2.5">
             <p className="text-xs leading-snug text-muted-foreground">
-              The current field is {offscreenDirection}. Return to it to continue this step.
+              The field is {offscreenDirection}. Scroll back to continue.
             </p>
             <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={returnToTarget}>
               Return to field

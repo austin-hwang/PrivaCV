@@ -35,9 +35,6 @@ export function BlankResumeGuide({
     <Card className="mb-5 border-sky-200 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/40" aria-label="Blank resume essentials">
       <CardHeader className="flex-col gap-2 space-y-0 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-900 dark:text-sky-300">
-            Build the essentials
-          </CardDescription>
           <CardTitle className="text-base">
             {complete ? "Your first draft has the basics." : "Start with the parts a recruiter needs first."}
           </CardTitle>

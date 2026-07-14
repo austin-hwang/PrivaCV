@@ -54,17 +54,26 @@ import {
 } from "@/lib/resume-workspace";
 
 describe("resume helpers", () => {
-  it("keeps omitted tailoring bullets in the local draft but out of every exported copy path", () => {
-    const state = sampleState();
-    const omitted = "Mentored a team of 5 engineers and established code review standards.";
-    state.experience[0].excludedBulletIndexes = [1];
+  it("drops the legacy excludedBulletIndexes field from older saved resumes and shows every bullet", () => {
+    const base = sampleState();
+    const bullet = "Mentored a team of 5 engineers and established code review standards.";
+    // A resume saved while the removed "Tailor this version" control excluded a
+    // bullet still carries the field; normalizing must strip it and keep every
+    // bullet visible everywhere.
+    const state = normalizeResume({
+      ...base,
+      experience: base.experience.map((entry, index) =>
+        index === 0 ? { ...entry, excludedBulletIndexes: [1] } : entry,
+      ),
+    });
 
-    expect(includedBulletsFrom(state.experience[0])).not.toContain(omitted);
-    expect(resumePlainText(state)).not.toContain(omitted);
+    expect((state.experience[0] as Record<string, unknown>).excludedBulletIndexes).toBeUndefined();
+    expect(includedBulletsFrom(state.experience[0])).toContain(bullet);
+    expect(resumePlainText(state)).toContain(bullet);
     expect(applicationCopyGroups(state).find((group) => group.id === "experience-0")?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Achievements", text: expect.not.stringContaining(omitted) }),
+      expect.objectContaining({ label: "Achievements", text: expect.stringContaining(bullet) }),
     ]));
-    expect(strFromU8(unzipSync(resumeDocx(state))["word/document.xml"])).not.toContain(omitted);
+    expect(strFromU8(unzipSync(resumeDocx(state))["word/document.xml"])).toContain(bullet);
   });
 
   it("creates granular, portal-friendly copy fields without adding empty values", () => {

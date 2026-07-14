@@ -125,9 +125,6 @@ export function RestoredVersionCard({
             <Undo2 className="size-4" />
           </span>
           <div>
-            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-violet-900 dark:text-violet-300">
-              Checkpoint restored
-            </CardDescription>
             <CardTitle className="text-base">{summary.label}</CardTitle>
             <CardDescription>
               Restored from the version saved {formatCheckpointTime(summary.savedAt)}. Review what changed from the draft

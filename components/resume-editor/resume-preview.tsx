@@ -6,7 +6,6 @@ import {
   getSectionEntries,
   getSectionTitle,
   hasAnyContent,
-  includedBulletsFrom,
   normalizeAccent,
   resolveFontStack,
   type ResumeState,
@@ -230,6 +229,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
       data-header-align={state.theme.headerAlign}
       data-divider={state.theme.headerDivider ? "on" : "off"}
       data-density={state.theme.density}
+      data-bullet={state.theme.bulletStyle}
     >
       {Array.from({ length: pages }, (_, index) => (
         <div
@@ -276,7 +276,7 @@ function EmptyResumePreview() {
         <div className="resume-empty-role" />
         <ul className="resume-bullets">
           <li>Lead with measurable impact, scope, and outcomes.</li>
-          <li>Keep each bullet concise enough to scan quickly.</li>
+          <li>Keep bullets concise and scannable.</li>
         </ul>
       </section>
       <section className="resume-section">
@@ -540,16 +540,12 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
             />
           ) : null}
           {(() => {
-            const allEntryBullets = bulletsFrom(entry.details);
-            const includedBullets = includedBulletsFrom(entry);
-            if (!includedBullets.length) return null;
+            const bullets = bulletsFrom(entry.details);
+            if (!bullets.length) return null;
             return (
               <EditableList
-                // Editing only the visible subset would overwrite retained
-                // master bullets. Use the full Highlights field while a
-                // tailored filter is active; changing it restores all bullets.
-                editable={editable && includedBullets.length === allEntryBullets.length}
-                items={includedBullets}
+                editable={editable}
+                items={bullets}
                 className="resume-bullets"
                 onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n"))}
               />

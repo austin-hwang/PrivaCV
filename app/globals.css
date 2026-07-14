@@ -351,6 +351,30 @@
   margin-bottom: 1px;
 }
 
+/* Bullet marker style (theme.bulletStyle). disc is the default handled above. */
+.resume-sheet[data-bullet="circle"] .resume-bullets {
+  list-style-type: circle;
+}
+
+.resume-sheet[data-bullet="dash"] .resume-bullets {
+  list-style: none;
+}
+
+.resume-sheet[data-bullet="dash"] .resume-bullets li {
+  position: relative;
+}
+
+.resume-sheet[data-bullet="dash"] .resume-bullets li::before {
+  content: "–";
+  position: absolute;
+  left: -14px;
+}
+
+.resume-sheet[data-bullet="none"] .resume-bullets {
+  padding-left: 0;
+  list-style: none;
+}
+
 .resume-skill-line {
   margin-bottom: 2px;
 }
@@ -363,11 +387,16 @@
 }
 
 .resume-preview-target:hover {
-  background: rgb(224 242 254 / 55%);
+  /* Use background-color (not the `background` shorthand) so the
+     `background-clip: content-box` set on a broken element is preserved — the
+     shorthand would reset it to border-box and paint across the page break. */
+  background-color: rgb(224 242 254 / 55%);
 }
 
 .resume-preview-active {
-  background: rgb(186 230 253 / 58%);
+  /* background-color (not shorthand): keep any `background-clip: content-box`
+     from .resume-print-break-before so the highlight doesn't span the break. */
+  background-color: rgb(186 230 253 / 58%);
   box-shadow: 0 0 0 3px rgb(14 165 233 / 22%);
 }
 

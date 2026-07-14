@@ -58,6 +58,8 @@ import {
   ACCENT_PRESETS,
   clampTextScale,
   entryHasContent,
+  BULLET_STYLE_LABELS,
+  BULLET_STYLES,
   CUSTOM_SECTION_PRESETS,
   DENSITIES,
   DENSITY_LABELS,
@@ -76,6 +78,7 @@ import {
   SECTION_KEYS,
   SECTION_LABELS,
   TEMPLATE_THEMES,
+  type BulletStyle,
   type Density,
   type HeadingStyle,
   type ResumeTemplateId,
@@ -200,7 +203,6 @@ export function ResumeEditor() {
     updateSectionTitle,
     useExternalDraft,
     toggleImportReviewItem,
-    toggleEntryBullet,
     completeImportReview,
     confirmAllImportReviewItems,
     dismissRestoredVersionSummary,
@@ -213,7 +215,7 @@ export function ResumeEditor() {
       {
         id: "contact",
         label: "Add contact details",
-        description: "Name, email, phone, and location make it easy to follow up.",
+        description: "Name, email, phone, and location.",
         actionLabel: "Add details",
         targetId: "field-name",
         done: checks.find((check) => check.id === "contact")?.ok ?? false,
@@ -221,7 +223,7 @@ export function ResumeEditor() {
       {
         id: "experience",
         label: "Describe recent work",
-        description: "Start with a role and a few specific achievements.",
+        description: "Add a recent role and its key achievements.",
         actionLabel: "Add a role",
         targetId: "field-experience-0-title",
         done: state.experience.some((entry) => entryHasContent(entry) && Boolean(entry.details.trim())),
@@ -229,7 +231,7 @@ export function ResumeEditor() {
       {
         id: "skills",
         label: "List relevant skills",
-        description: "Use short groups such as Languages or Tools.",
+        description: "Group by category, e.g. Languages or Tools.",
         actionLabel: "Add skills",
         targetId: "field-skills",
         done: Boolean(state.skills.trim()),
@@ -395,7 +397,7 @@ export function ResumeEditor() {
       >
         <ChevronRight className={cn("size-3.5 transition-transform", designAdvancedOpen && "rotate-90")} />
         Advanced
-        <span className="font-normal">header, density, headings, divider</span>
+        <span className="font-normal">header, density, headings, bullets, divider</span>
       </button>
 
       {designAdvancedOpen ? (
@@ -423,6 +425,13 @@ export function ResumeEditor() {
             value={state.theme.headingStyle}
             options={HEADING_STYLES.map((style) => ({ value: style as HeadingStyle, label: HEADING_STYLE_LABELS[style] }))}
             onChange={(headingStyle) => updateTheme({ headingStyle })}
+          />
+
+          <ThemeSegment
+            label="Bullet style"
+            value={state.theme.bulletStyle}
+            options={BULLET_STYLES.map((style) => ({ value: style as BulletStyle, label: BULLET_STYLE_LABELS[style] }))}
+            onChange={(bulletStyle) => updateTheme({ bulletStyle })}
           />
 
           <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
@@ -936,12 +945,9 @@ export function ResumeEditor() {
             <Card className="mb-6 border-sky-200 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/40">
               <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-900 dark:text-sky-300">
-                    Restore point saved
-                  </CardDescription>
-                  <CardTitle className="text-base">You can go back to the previous resume.</CardTitle>
+                  <CardTitle className="text-base">Previous resume available</CardTitle>
                   <CardDescription>
-                    {recoveryPoint.label}. This recovery point stays in this browser tab until you dismiss or restore it.
+                    {recoveryPoint.label}. Stays until you restore or dismiss it.
                   </CardDescription>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -961,12 +967,9 @@ export function ResumeEditor() {
               <CardHeader className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900 dark:text-amber-300">
-                      Import review
-                    </CardDescription>
                     <CardTitle className="text-base">Review the imported fields</CardTitle>
                     <CardDescription>
-                      Imported from {importReview.fileName}. Step through each suggested field, edit anything that looks off, and confirm it.
+                      Imported from {importReview.fileName}. Check each field and confirm.
                     </CardDescription>
                   </div>
                   <Badge variant="outline" className="shrink-0 border-amber-300 bg-background tabular-nums text-amber-950 dark:border-amber-500/50 dark:text-amber-200">
@@ -1328,7 +1331,6 @@ export function ResumeEditor() {
                       onReorder={reorderEntry}
                       onRemove={removeEntry}
                       onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
-                      onToggleBullet={toggleEntryBullet}
                     />
                   )}
                 </FieldGroup>
@@ -1567,6 +1569,7 @@ export function ResumeEditor() {
         index={reviewTour?.index ?? 0}
         onIndexChange={(nextIndex) => setReviewTour((current) => (current ? { ...current, index: nextIndex } : current))}
         onClose={() => setReviewTour(null)}
+        onFocusStep={revealTarget}
         onFinish={() => {
           if (reviewTour?.kind === "import") completeImportReview();
           setReviewTour(null);

@@ -43,7 +43,7 @@ export function ReviewDrawer({
       <SheetContent aria-describedby={undefined} className="top-[120px] lg:top-[73px]">
         <SheetHeader>
           <SheetTitle>Review tools</SheetTitle>
-          <SheetDescription>Keep editing on the left; everything here updates live as you type.</SheetDescription>
+          <SheetDescription>Edit on the left. These tools update as you type.</SheetDescription>
         </SheetHeader>
 
         <div className="flex gap-1.5 border-b px-4 py-2.5">

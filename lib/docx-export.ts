@@ -1,5 +1,6 @@
 import { strToU8, zipSync } from "fflate";
 import {
+  BULLET_STYLE_MARKERS,
   contactHref,
   entryHasContent,
   getSectionEntries,
@@ -42,7 +43,7 @@ function textRun(value: string, options: { bold?: boolean; size?: number; color?
   return `<w:r>${properties ? `<w:rPr>${properties}</w:rPr>` : ""}<w:t xml:space=\"preserve\">${escapeXml(value)}</w:t></w:r>`;
 }
 
-function paragraph(content: string, options: { alignment?: "center"; before?: number; after?: number; bullet?: boolean } = {}) {
+function paragraph(content: string, options: { alignment?: "center"; before?: number; after?: number; bullet?: boolean; marker?: string } = {}) {
   const properties = [
     options.alignment ? `<w:jc w:val=\"${options.alignment}\"/>` : "",
     options.before || options.after
@@ -50,7 +51,7 @@ function paragraph(content: string, options: { alignment?: "center"; before?: nu
       : "",
     options.bullet ? '<w:ind w:left="360" w:hanging="180"/>' : "",
   ].join("");
-  const bulletRun = options.bullet ? textRun("•\t") : "";
+  const bulletRun = options.bullet ? textRun(`${options.marker ?? "•"}\t`) : "";
   return `<w:p>${properties ? `<w:pPr>${properties}</w:pPr>` : ""}${bulletRun}${content}</w:p>`;
 }
 
@@ -75,7 +76,7 @@ function contactRuns(state: ResumeState, relationships: DocxRelationship[]) {
     .join("");
 }
 
-function entryParagraphs(entry: ResumeEntry) {
+function entryParagraphs(entry: ResumeEntry, bulletMarker: string) {
   const parts = [
     entry.title ? textRun(entry.title, { bold: true }) : "",
     entry.subtitle ? textRun(`${entry.title ? " | " : ""}${entry.subtitle}`) : "",
@@ -83,7 +84,12 @@ function entryParagraphs(entry: ResumeEntry) {
   ].join("");
   const bullets = includedBulletsFrom(entry);
   const heading = parts ? paragraph(parts, { after: bullets.length ? 20 : 90 }) : "";
-  const details = bullets.map((bullet) => paragraph(textRun(bullet), { bullet: true, after: 24 })).join("");
+  // A "none" style drops the marker and its hanging indent — the line becomes a
+  // plain paragraph so it reads as an unmarked list.
+  const bulleted = bulletMarker !== "";
+  const details = bullets
+    .map((bullet) => paragraph(textRun(bullet), { bullet: bulleted, marker: bulletMarker, after: 24 }))
+    .join("");
   return `${heading}${details}`;
 }
 
@@ -99,7 +105,8 @@ function sectionParagraphs(state: ResumeState, section: string) {
 
   const entries = getSectionEntries(state, section).filter(entryHasContent);
   if (!entries.length) return "";
-  return `${title ? heading(title) : ""}${entries.map(entryParagraphs).join("")}`;
+  const bulletMarker = BULLET_STYLE_MARKERS[state.theme.bulletStyle];
+  return `${title ? heading(title) : ""}${entries.map((entry) => entryParagraphs(entry, bulletMarker)).join("")}`;
 }
 
 function documentXml(state: ResumeState, relationships: DocxRelationship[]) {
