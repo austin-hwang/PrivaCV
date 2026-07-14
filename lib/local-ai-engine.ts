@@ -9,8 +9,12 @@ type LocalAIRuntime = {
 
 let runtime: LocalAIRuntime | null = null;
 let generating = false;
+const LOCAL_AI_CACHE_PATH_VERSION = "webllm-cache-v2";
 
-export function localAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
+function appConfigForModelPath(
+  webllm: typeof import("@mlc-ai/web-llm"),
+  pathSuffix: string,
+) {
   return {
     ...webllm.prebuiltAppConfig,
     model_list: webllm.prebuiltAppConfig.model_list
@@ -18,11 +22,19 @@ export function localAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
       .map((model) => ({
         ...model,
         model: new URL(
-          `/api/local-ai/models/${encodeURIComponent(model.model_id)}/resolve/main/`,
+          `/api/local-ai/models/${encodeURIComponent(model.model_id)}/resolve/main/${pathSuffix}`,
           window.location.origin,
         ).href,
       })),
   };
+}
+
+export function localAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
+  return appConfigForModelPath(webllm, `${LOCAL_AI_CACHE_PATH_VERSION}/`);
+}
+
+export function legacyLocalAIAppConfig(webllm: typeof import("@mlc-ai/web-llm")) {
+  return appConfigForModelPath(webllm, "");
 }
 
 export function getLocalAIRuntime() {

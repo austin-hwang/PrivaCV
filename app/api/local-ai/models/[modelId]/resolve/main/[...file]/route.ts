@@ -1,6 +1,7 @@
 import { isLocalAIModelId } from "@/lib/local-ai";
 
 const HUGGING_FACE_MODEL_ROOT = "https://huggingface.co/mlc-ai/";
+const MODEL_CACHE_PATH_VERSION = "webllm-cache-v2";
 const SAFE_FILE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 const FORWARDED_REQUEST_HEADERS = ["if-modified-since", "if-none-match", "range"];
 const FORWARDED_RESPONSE_HEADERS = [
@@ -18,12 +19,13 @@ export async function GET(
   { params }: { params: Promise<{ modelId: string; file: string[] }> },
 ) {
   const { modelId, file } = await params;
-  if (!isLocalAIModelId(modelId) || !file.length || file.some((segment) => !SAFE_FILE_SEGMENT.test(segment))) {
+  const upstreamFile = file[0] === MODEL_CACHE_PATH_VERSION ? file.slice(1) : file;
+  if (!isLocalAIModelId(modelId) || !upstreamFile.length || upstreamFile.some((segment) => !SAFE_FILE_SEGMENT.test(segment))) {
     return new Response("Model file not found.", { status: 404 });
   }
 
   const upstreamUrl = new URL(
-    `${encodeURIComponent(modelId)}/resolve/main/${file.map(encodeURIComponent).join("/")}`,
+    `${encodeURIComponent(modelId)}/resolve/main/${upstreamFile.map(encodeURIComponent).join("/")}`,
     HUGGING_FACE_MODEL_ROOT,
   );
   const upstreamHeaders = new Headers();

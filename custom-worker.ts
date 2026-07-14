@@ -3,6 +3,7 @@
 import openNextWorker from "./.open-next/worker.js";
 
 const MODEL_PROXY_PREFIX = "/api/local-ai/models/";
+const MODEL_CACHE_PATH_VERSION = "webllm-cache-v2";
 const APPROVED_MODEL_IDS = new Set([
   "SmolLM2-360M-Instruct-q4f32_1-MLC",
   "Llama-3.2-1B-Instruct-q4f16_1-MLC",
@@ -39,7 +40,8 @@ async function proxyModelFile(request: Request) {
 
   const pathname = new URL(request.url).pathname;
   const segments = pathname.slice(MODEL_PROXY_PREFIX.length).split("/").map(decodePathSegment);
-  const [modelId, resolveSegment, mainSegment, ...file] = segments;
+  const [modelId, resolveSegment, mainSegment, ...requestedFile] = segments;
+  const file = requestedFile[0] === MODEL_CACHE_PATH_VERSION ? requestedFile.slice(1) : requestedFile;
   if (
     !modelId ||
     !APPROVED_MODEL_IDS.has(modelId) ||

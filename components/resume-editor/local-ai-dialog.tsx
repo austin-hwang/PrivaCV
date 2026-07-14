@@ -10,6 +10,7 @@ import {
   disposeLocalAIRuntime,
   friendlyLocalAIError,
   getLocalAIRuntime,
+  legacyLocalAIAppConfig,
   localAIAppConfig,
   setLocalAIRuntime,
 } from "@/lib/local-ai-engine";
@@ -19,6 +20,8 @@ import {
   isLocalAIModelId,
   type LocalAIModelId,
 } from "@/lib/local-ai";
+
+const LOCAL_AI_CACHE_MIGRATION_KEY = "resume-editor-local-ai-cache-v2-migrated";
 
 type ModelState = "checking" | "not-cached" | "cached" | "loading" | "ready" | "removing" | "error";
 type DeviceState = "checking" | "supported" | "unsupported";
@@ -107,6 +110,25 @@ export function LocalAIDialog({
       setError(null);
       try {
         const webllm = await import("@mlc-ai/web-llm");
+        let migrated = false;
+        try {
+          migrated = localStorage.getItem(LOCAL_AI_CACHE_MIGRATION_KEY) === "1";
+        } catch {
+          // The versioned model URL still bypasses old cache entries when
+          // localStorage is unavailable.
+        }
+        if (!migrated) {
+          await Promise.allSettled(
+            LOCAL_AI_MODELS.map((model) =>
+              webllm.deleteModelAllInfoInCache(model.id, legacyLocalAIAppConfig(webllm)),
+            ),
+          );
+          try {
+            localStorage.setItem(LOCAL_AI_CACHE_MIGRATION_KEY, "1");
+          } catch {
+            // Cache cleanup is best effort; the new URL is the hard boundary.
+          }
+        }
         const cached = await webllm.hasModelInCache(modelId, localAIAppConfig(webllm));
         if (active) setModelState(cached ? "cached" : "not-cached");
       } catch (cacheError) {
