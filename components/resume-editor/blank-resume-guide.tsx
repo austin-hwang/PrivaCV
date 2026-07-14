@@ -40,7 +40,7 @@ export function BlankResumeGuide({
           </CardTitle>
           <CardDescription>
             {complete
-              ? "Use Resume Check before export to polish the details that matter for this application."
+              ? "Use Resume Review before export to polish the details that matter for this application."
               : "These are guideposts, not requirements. Add other sections whenever they strengthen your story."}
           </CardDescription>
         </div>

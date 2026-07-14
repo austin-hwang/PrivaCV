@@ -732,7 +732,7 @@ export function ResumeEditor() {
     .map((check) => ({
       id: check.id,
       targetId: check.targetId,
-      eyebrow: "Resume check",
+      eyebrow: "Resume review",
       title: check.label,
       description: check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
       tone: (check.advisory ? "info" : check.ok ? "ok" : "warn") as GuidedReviewStep["tone"],
@@ -955,6 +955,9 @@ export function ResumeEditor() {
                 <MenuItem onSelect={() => setTextImportOpen(true)}>
                   <ClipboardPaste /> Paste resume text
                 </MenuItem>
+                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
+                  <FileJson /> Open saved JSON
+                </MenuItem>
               </MenuContent>
             </Menu>
             <Menu>
@@ -987,16 +990,7 @@ export function ResumeEditor() {
                 </Button>
               </MenuTrigger>
               <MenuContent>
-                <MenuLabel>More tools</MenuLabel>
-                <MenuItem onSelect={() => setApplicationCopyOpen(true)} disabled={!hasContent}>
-                  <ClipboardCopy /> Copy for applications
-                </MenuItem>
-                <MenuSeparator />
-                <MenuLabel>Files & data</MenuLabel>
-                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
-                  <FileJson /> Open JSON
-                </MenuItem>
-                <MenuSeparator />
+                <MenuLabel>Workspace data</MenuLabel>
                 <MenuItem onSelect={() => {
                   setBlankResumeGuideVisible(false);
                   loadSample();
@@ -1901,8 +1895,11 @@ export function ResumeEditor() {
         editor={editor}
         open={toolsOpen}
         onOpenChange={setToolsOpen}
-        onFocusTarget={focusEditorTarget}
         onStartChecksReview={startChecksTour}
+        onOpenApplicationCopy={() => {
+          setToolsOpen(false);
+          setApplicationCopyOpen(true);
+        }}
         localAIEnabled={localAIEnabled}
         onOpenLocalAI={() => {
           setToolsOpen(false);
@@ -1947,7 +1944,7 @@ export function ResumeEditor() {
 
       <GuidedReview
         open={Boolean(reviewTour) && tourSteps.length > 0}
-        title={reviewTour?.kind === "import" ? "Import review" : "Resume check"}
+        title={reviewTour?.kind === "import" ? "Import review" : "Resume review"}
         steps={tourSteps}
         index={reviewTour?.index ?? 0}
         onIndexChange={(nextIndex) => setReviewTour((current) => (current ? { ...current, index: nextIndex } : current))}

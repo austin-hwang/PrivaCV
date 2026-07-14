@@ -67,6 +67,26 @@ async function openTools(page: Page) {
   }
 }
 
+async function openResumeReview(page: Page) {
+  await openTools(page);
+  const tools = page.getByRole("dialog", { name: /^tools$/i });
+  await tools.getByRole("button", { name: /resume review/i }).click();
+  const tour = page.getByRole("dialog", { name: /guided review/i });
+  await expect(tour).toBeVisible();
+  return tour;
+}
+
+async function advanceReviewTo(tour: Locator, text: string | RegExp) {
+  const match = () => tour.getByText(text, { exact: typeof text === "string" }).first();
+  for (let step = 0; step < 12; step += 1) {
+    if (await match().isVisible().catch(() => false)) return;
+    const next = tour.getByRole("button", { name: /^next/i });
+    if (!(await next.isVisible().catch(() => false))) break;
+    await next.click();
+  }
+  await expect(match()).toBeVisible();
+}
+
 async function removeSection(page: Page, title: string) {
   const section = page.locator("[data-editor-section]").filter({ has: page.getByLabel(`${title} section title`) });
   await section.getByRole("button", { name: `More actions for ${title}` }).click();
@@ -433,6 +453,8 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await expect(page.getByRole("menuitem", { name: /upload pdf or word/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /paste resume text/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /open saved json/i })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(importTrigger).toBeFocused();
 
@@ -447,7 +469,9 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await trigger.focus();
   await page.keyboard.press("ArrowDown");
 
-  await expect(page.getByRole("menuitem", { name: /^open json$/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /^sample$/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /copy for applications/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /open saved json/i })).toHaveCount(0);
   await page.keyboard.press("End");
   await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();
   await page.keyboard.press("ArrowUp");
@@ -615,7 +639,7 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
 
   await openTools(page);
-  await expect(page.getByText("Resume Check", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /resume review/i })).toBeVisible();
 
   await openExport(page);
   await page.getByRole("menuitem", { name: /copy resume text/i }).click();
@@ -729,8 +753,8 @@ test("offers copy-ready application fields without making users retype resume de
   await page.reload();
   await loadSample(page);
 
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /copy for applications/i }).click();
+  await openTools(page);
+  await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /copy for applications/i }).click();
 
   const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
   await expect(dialog).toBeVisible();
@@ -772,8 +796,8 @@ test("copies application fields when the browser rejects async clipboard access"
     });
   });
 
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /copy for applications/i }).click();
+  await openTools(page);
+  await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /copy for applications/i }).click();
   const dialog = page.getByRole("dialog", { name: /copy exactly what each portal asks for/i });
   await dialog.getByRole("button", { name: /copy job title/i }).first().click();
 
@@ -811,9 +835,9 @@ test("flags a single resume entry that would continue onto another printed page"
   ).join("\n");
   await page.locator("#field-experience-0-details").fill(longEntry);
 
-  await openTools(page);
-  await expect(page.getByText("Experience entry 1 exceeds one printable page")).toBeVisible();
-  await page.getByRole("button", { name: /shorten entry/i }).click();
+  const review = await openResumeReview(page);
+  await advanceReviewTo(review, /Experience entry 1 exceeds one printable page/);
+  await review.getByRole("button", { name: /shorten entry/i }).click();
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
@@ -1067,12 +1091,12 @@ test("expands a collapsed section when a jump targets a field inside it", async 
   await page.reload();
   await loadSample(page);
   await page.getByLabel("Email").fill("not-an-email");
-  await openTools(page);
 
-  // Collapse everything, then jump from the direct, actionable Resume Check.
+  // Collapse everything, then jump from the guided Resume Review.
   await page.getByRole("button", { name: /collapse all/i }).click();
-  const drawer = page.getByRole("dialog", { name: /^tools$/i });
-  await drawer.getByRole("button", { name: /fix contact/i }).click();
+  const review = await openResumeReview(page);
+  await advanceReviewTo(review, "Contact");
+  await review.getByRole("button", { name: /fix contact/i }).click();
 
   // The containing group re-expands and its field is focused.
   await expect
@@ -1224,9 +1248,9 @@ test("keeps a summary optional when the resume already has experience detail", a
 
   await page.getByLabel("Professional Summary").fill("");
 
-  await openTools(page);
-  await expect(page.getByText("Optional — experience leads")).toBeVisible();
-  await expect(page.getByRole("button", { name: /add optional summary/i })).toBeVisible();
+  const review = await openResumeReview(page);
+  await advanceReviewTo(review, /Optional — experience leads/);
+  await expect(review.getByRole("button", { name: /add optional summary/i })).toBeVisible();
   await expect(page.getByText("Missing summary")).toBeHidden();
 });
 
@@ -1237,12 +1261,10 @@ test("walks resume checks with a guided highlight tour from the tools drawer", a
   await loadSample(page);
   await page.getByLabel("Phone").fill("");
 
-  await openTools(page);
-  await page.getByRole("button", { name: /review \d+ suggestions?/i }).click();
+  const tour = await openResumeReview(page);
 
   // The drawer gives way to the guided tour, highlighting one check at a time.
   await expect(page.getByRole("dialog", { name: /^tools$/i })).toBeHidden();
-  const tour = page.getByRole("dialog", { name: /guided review/i });
   await expect(tour).toBeVisible();
   await expect(tour.getByText(/Step 1 of/)).toBeVisible();
 
@@ -1836,9 +1858,9 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
   await loadSample(page);
 
   await page.getByLabel("Phone").fill("");
-  await openTools(page);
-  await expect(page.getByText("Missing contact details can make a strong resume impossible to follow up on.")).toBeVisible();
-  await page.getByRole("button", { name: /fix contact/i }).click();
+  const review = await openResumeReview(page);
+  await advanceReviewTo(review, /Missing contact details can make a strong resume impossible to follow up on/);
+  await review.getByRole("button", { name: /fix contact/i }).click();
 
   await expect(page.locator("#field-phone")).toBeFocused();
 });
@@ -1854,9 +1876,9 @@ test("guides users to add measurable evidence without requiring every bullet to 
   );
   await expect(page.getByText(/bullets? show measurable scope or results\./i)).toHaveCount(0);
 
-  await openTools(page);
-  await expect(page.getByText("Not every bullet needs a number, but measurable scope or results make your strongest work more credible at a glance.")).toBeVisible();
-  await page.getByRole("button", { name: /strengthen a bullet/i }).click();
+  const review = await openResumeReview(page);
+  await advanceReviewTo(review, /Not every bullet needs a number, but measurable scope or results/);
+  await review.getByRole("button", { name: /strengthen a bullet/i }).click();
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
@@ -1877,7 +1899,10 @@ test("keeps mobile editing focused while keeping utilities in the tools drawer",
   await openTools(page);
   const tools = page.getByRole("dialog", { name: /^tools$/i });
   await expect(tools).toBeVisible();
-  await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
+  await expect(tools).toHaveCSS("overflow-y", "auto");
+  await expect(tools.getByRole("heading", { name: "Tools" }).locator("..").locator("..")).toHaveCSS("position", "static");
+  await expect(tools.getByRole("button", { name: /resume review/i })).toContainText("Ready to export");
+  await expect(tools.getByRole("button", { name: /copy for applications/i })).toBeVisible();
   await expect(tools.getByRole("button", { name: /local ai/i })).toHaveCount(0);
   await expect(tools.getByText("Resume checks run in this browser.")).toBeVisible();
   await expect(tools.getByRole("button", { name: /switch to (?:light|night) mode/i })).toBeVisible();

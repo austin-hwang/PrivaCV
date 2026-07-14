@@ -18,6 +18,16 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   });
 
   await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith("webllm/") || name === "tvmjs")
+        .map((name) => caches.delete(name)),
+    );
+  });
+  await page.reload();
   await page.getByRole("button", { name: /open tools/i }).click();
   await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /local ai/i }).click();
 
@@ -25,7 +35,7 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toContainText("Nothing downloads automatically");
   await expect(dialog).toContainText("Performance may be slower on some devices");
   await expect(dialog).toContainText("suggestions may be inaccurate");
-  await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
   await dialog.getByRole("combobox", { name: /model/i }).selectOption("Qwen3-0.6B-q4f16_1-MLC");
   await expect(dialog.getByText(/Qwen 3 0\.6B:/)).toBeVisible();
