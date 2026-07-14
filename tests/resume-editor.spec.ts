@@ -1647,36 +1647,12 @@ test("guides users to add measurable evidence without requiring every bullet to 
   await page.locator("#field-experience-0-details").fill(
     "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.",
   );
+  await expect(page.getByText(/bullets? show measurable scope or results\./i)).toHaveCount(0);
 
   await openTools(page);
   await expect(page.getByText("Not every bullet needs a number, but measurable scope or results make your strongest work more credible at a glance.")).toBeVisible();
   await page.getByRole("button", { name: /strengthen a bullet/i }).click();
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
-});
-
-test("shows an in-context evidence cue for the bullets being edited", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-
-  await page.locator("#field-experience-0-details").fill(
-    "Migrated the payment flow for 2 teams.\nMentored engineers through a release.\nReduced support tickets by 30%.",
-  );
-
-  await expect(page.getByText("2 of 3 bullets show measurable scope or results.")).toBeVisible();
-  await expect(page.getByText("Review bullet 2. Add a truthful scale or outcome where you know it; not every bullet needs a number.")).toBeVisible();
-});
-
-test("gently prompts for specific action openings while preserving truthful bullet writing", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-
-  await page.locator("#field-experience-0-details").fill("Responsible for release planning.\nBuilt a deployment workflow for 3 teams.\nWorked on incident response.");
-
-  await expect(page.getByText("Consider a more specific opening for bullet 1, bullet 3. Lead with the action, and keep it truthful.")).toBeVisible();
 });
 
 test("keeps mobile editing focused while leaving review tools one tap away", async ({ browser }) => {

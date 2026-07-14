@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ENTRY_SCHEMA } from "@/lib/resume-workspace";
-import { entryHasContent, isBuiltinSection, summarizeBulletOpenings, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
+import { entryHasContent, isBuiltinSection, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
@@ -191,7 +191,6 @@ export function EntryList({
   const schema = isBuiltinSection(section) && section !== "skills"
     ? ENTRY_SCHEMA[section]
     : { title: "Title", subtitle: "Organization / context", meta: "Dates / details", details: "Highlights" };
-  const supportsEvidenceReview = section === "experience" || section === "projects";
   // Which entries the person has manually opened. An entry is also shown open
   // when it's empty (nothing to summarize yet) or holds the active field.
   const [openIndexes, setOpenIndexes] = useState<Set<number>>(() => new Set());
@@ -221,14 +220,6 @@ export function EntryList({
   return (
     <div className="overflow-hidden rounded-md border bg-muted/10">
       {entries.map((entry, index) => {
-        const evidence = supportsEvidenceReview ? summarizeEvidence(entry.details) : null;
-        const openings = supportsEvidenceReview ? summarizeBulletOpenings(entry.details) : null;
-        const reviewLabel = evidence?.unmeasuredIndexes.length
-          ? `Review ${evidence.unmeasuredIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
-          : null;
-        const openingReviewLabel = openings?.vagueOpeningIndexes.length
-          ? `Consider a more specific opening for ${openings.vagueOpeningIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
-          : null;
         const empty = !entryHasContent(entry);
         const open = openIndexes.has(index) || empty || activeIndex === index;
         const primary = entry.title.trim() || entry.subtitle.trim() || "Untitled entry";
@@ -375,34 +366,6 @@ export function EntryList({
                     content: aiTargetId === `${section}:${index}` ? aiPanel : undefined,
                   } : undefined}
                 />
-                {evidence?.bulletCount ? (
-                  <div
-                    className={cn(
-                      "rounded-md border px-3 py-2 text-xs leading-snug",
-                      evidence.unmeasuredIndexes.length
-                        ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100"
-                        : "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100",
-                    )}
-                    aria-live="polite"
-                  >
-                    <p className="font-semibold">
-                      {evidence.measuredCount} of {evidence.bulletCount} {evidence.bulletCount === 1 ? "bullet shows" : "bullets show"}{" "}
-                      measurable scope or results.
-                    </p>
-                    {reviewLabel ? (
-                      <p className="mt-1 text-muted-foreground">
-                        {reviewLabel}. Add a truthful scale or outcome where you know it; not every bullet needs a number.
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-muted-foreground">Each bullet includes a concrete scope or result.</p>
-                    )}
-                    {openingReviewLabel ? (
-                      <p className="mt-1 text-muted-foreground">
-                        {openingReviewLabel}. Lead with the action, and keep it truthful.
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
             ) : null}
           </div>
