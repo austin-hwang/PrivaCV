@@ -56,26 +56,40 @@ async function proxyModelFile(request: Request) {
     "https://huggingface.co/mlc-ai/",
   );
 
-  const filename = file.at(-1);
-  if (filename !== "mlc-chat-config.json" && filename !== "tensor-cache.json") {
-    // Cloudflare's fetch connection to Hugging Face's Xet bridge can close a
-    // successful large response early. Redirect weight/tokenizer downloads to
-    // the model host instead; Hugging Face supplies CORS headers for these
-    // public files, and WebLLM still caches the completed response locally.
-    return new Response(null, {
-      status: 307,
-      headers: {
-        "Cache-Control": "no-store",
-        Location: upstreamUrl.href,
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  }
-
   const upstreamHeaders = new Headers();
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = request.headers.get(name);
     if (value) upstreamHeaders.set(name, value);
+  }
+
+  const filename = file.at(-1);
+  if (filename?.endsWith(".bin")) {
+    // Cloudflare's connection to Hugging Face's Xet bridge can close a large
+    // streamed response early. Resolve the short Hugging Face pointer inside
+    // the Worker, then send the browser directly to Xet, whose signed response
+    // has working CORS for the app origin.
+    try {
+      const pointer = await fetch(upstreamUrl, {
+        method: "HEAD",
+        redirect: "manual",
+        signal: request.signal,
+      });
+      const location = pointer.headers.get("location");
+      if (!location) throw new Error("The model host did not provide a download URL.");
+      return new Response(null, {
+        status: 307,
+        headers: {
+          "Cache-Control": "no-store",
+          Location: new URL(location, upstreamUrl).href,
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch {
+      return new Response("The model host is temporarily unavailable.", {
+        status: 502,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
   }
 
   let upstream: Response;
@@ -100,10 +114,12 @@ async function proxyModelFile(request: Request) {
   }
   responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-  // Bypass Next/OpenNext's Node response conversion for multi-hundred-MB model
-  // shards. Passing the native fetch body through keeps the stream attached to
-  // the Cloudflare request for its full lifetime without buffering it in memory.
-  return new Response(upstream.body, {
+  // Tokenizers and manifests are small enough to buffer. Doing so detaches the
+  // browser response from Cloudflare's upstream stream, which can otherwise
+  // end early even though the upstream status is 200.
+  const body = request.method === "HEAD" ? null : await upstream.arrayBuffer();
+  if (body) responseHeaders.set("Content-Length", String(body.byteLength));
+  return new Response(body, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: responseHeaders,
