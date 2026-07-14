@@ -845,12 +845,23 @@ export function useResumeEditor() {
       const next = {
         ...current,
         sectionOrder: [...current.sectionOrder, section],
+        // A freshly (re)added section should be visible.
+        hiddenSections: current.hiddenSections.filter((id) => id !== section),
         sectionTitles: { ...current.sectionTitles, [section]: SECTION_LABELS[section] },
       };
       if (section === "skills") return { ...next, skills: "" };
       return { ...next, [section]: [blankEntry()] };
     });
     flash(`Added ${SECTION_LABELS[section]} section`);
+  };
+
+  const toggleSectionHidden = (section: string) => {
+    setState((current) => {
+      const hidden = new Set(current.hiddenSections);
+      if (hidden.has(section)) hidden.delete(section);
+      else hidden.add(section);
+      return { ...current, hiddenSections: [...hidden] };
+    });
   };
 
   const removeCustomSection = (section: string) => {
@@ -861,6 +872,7 @@ export function useResumeEditor() {
       ...current,
       customSections: current.customSections.filter((custom) => custom.id !== section),
       sectionOrder: current.sectionOrder.filter((id) => id !== section),
+      hiddenSections: current.hiddenSections.filter((id) => id !== section),
     }));
     const toastId = flash(`Removed ${removedSection.title || "custom"} section`, "undo");
     setUndoableRemoval({ kind: "custom-section", toastId, section: removedSection, sectionOrderIndex });
@@ -877,6 +889,7 @@ export function useResumeEditor() {
       const next = {
         ...current,
         sectionOrder: current.sectionOrder.filter((id) => id !== section),
+        hiddenSections: current.hiddenSections.filter((id) => id !== section),
         sectionTitles: { ...current.sectionTitles, [section]: SECTION_LABELS[section] },
       };
       if (section === "skills") return { ...next, skills: "" };
@@ -1376,6 +1389,7 @@ export function useResumeEditor() {
     removeBuiltinSection,
     reorderEntry,
     reorderSection,
+    toggleSectionHidden,
     requestExport,
     restoreRecoveryPoint,
     restoreVersion,

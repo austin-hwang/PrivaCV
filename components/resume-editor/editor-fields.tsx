@@ -1,11 +1,10 @@
 import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Trash2 } from "lucide-react";
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ENTRY_SCHEMA } from "@/lib/resume-workspace";
-import { isBuiltinSection, summarizeBulletOpenings, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
+import { entryHasContent, isBuiltinSection, summarizeBulletOpenings, summarizeEvidence, type ResumeEntry } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
@@ -136,6 +135,7 @@ export function EntryList({
   section,
   sectionLabel,
   entries,
+  activeTarget,
   onUpdate,
   onMove,
   onReorder,
@@ -145,6 +145,8 @@ export function EntryList({
   section: string;
   sectionLabel: string;
   entries: ResumeEntry[];
+  /** Field id currently being edited; its entry is auto-expanded. */
+  activeTarget?: string | null;
   onUpdate: (section: string, index: number, key: keyof ResumeEntry, value: string) => void;
   onMove: (section: string, index: number, direction: -1 | 1) => void;
   onReorder: (section: string, index: number, target: number) => void;
@@ -155,6 +157,22 @@ export function EntryList({
     ? ENTRY_SCHEMA[section]
     : { title: "Title", subtitle: "Organization / context", meta: "Dates / details", details: "Highlights" };
   const supportsEvidenceReview = section === "experience" || section === "projects";
+  // Which entries the person has manually opened. An entry is also shown open
+  // when it's empty (nothing to summarize yet) or holds the active field.
+  const [openIndexes, setOpenIndexes] = useState<Set<number>>(() => new Set());
+  const prefix = `field-${section}-`;
+  const activeIndex = activeTarget?.startsWith(prefix) ? Number(activeTarget.slice(prefix.length).split("-")[0]) : -1;
+
+  const toggle = (index: number, open: boolean) => {
+    setOpenIndexes((prev) => {
+      const next = new Set(prev);
+      if (open) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+    // Opening a row drops the cursor straight into it — one click to edit.
+    if (!open) window.setTimeout(() => document.getElementById(`${prefix}${index}-title`)?.focus(), 0);
+  };
 
   if (!entries.length) {
     return (
@@ -165,7 +183,7 @@ export function EntryList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="overflow-hidden rounded-md border bg-muted/10">
       {entries.map((entry, index) => {
         const evidence = supportsEvidenceReview ? summarizeEvidence(entry.details) : null;
         const openings = supportsEvidenceReview ? summarizeBulletOpenings(entry.details) : null;
@@ -175,14 +193,18 @@ export function EntryList({
         const openingReviewLabel = openings?.vagueOpeningIndexes.length
           ? `Consider a more specific opening for ${openings.vagueOpeningIndexes.map((item) => `bullet ${item + 1}`).join(", ")}`
           : null;
+        const empty = !entryHasContent(entry);
+        const open = openIndexes.has(index) || empty || activeIndex === index;
+        const primary = entry.title.trim() || entry.subtitle.trim() || "Untitled entry";
+        const secondary = [entry.title.trim() && entry.subtitle.trim(), entry.meta.trim()].filter(Boolean).join(" · ");
 
         return (
-          <Card
+          <div
             key={index}
             data-review-region=""
             data-editor-entry=""
             data-editor-entry-index={index}
-            className="bg-muted/20 shadow-none transition-colors"
+            className="group/entry border-b transition-colors last:border-b-0"
             onDragOver={(event) => {
               if (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain")) event.preventDefault();
             }}
@@ -201,14 +223,23 @@ export function EntryList({
               }
             }}
           >
-            <CardContent className="space-y-3 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 pr-1.5 hover:bg-muted/30">
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => toggle(index, open)}
+                className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
+              >
+                <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
+                <span className="shrink-0 truncate text-sm font-medium">{primary}</span>
+                {secondary ? <span className="truncate text-xs text-muted-foreground">— {secondary}</span> : null}
+              </button>
+              <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/entry:opacity-100 group-focus-within/entry:opacity-100">
                 <span
                   draggable
                   aria-hidden="true"
                   title="Drag to reorder; use the move buttons for keyboard reordering"
-                  className="inline-flex size-9 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                  className="inline-flex size-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
                   onDragStart={(event) => {
                     event.dataTransfer.effectAllowed = "move";
                     const value = JSON.stringify({ section, index });
@@ -220,8 +251,9 @@ export function EntryList({
                 </span>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
+                  className="size-7"
                   aria-label="Move entry up"
                   aria-keyshortcuts="Alt+Shift+ArrowUp"
                   title="Move entry up (Alt+Shift+Up while focused in this entry)"
@@ -232,8 +264,9 @@ export function EntryList({
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
+                  className="size-7"
                   aria-label="Move entry down"
                   aria-keyshortcuts="Alt+Shift+ArrowDown"
                   title="Move entry down (Alt+Shift+Down while focused in this entry)"
@@ -242,84 +275,89 @@ export function EntryList({
                 >
                   <ArrowDown />
                 </Button>
-              </div>
-              <div className="flex items-center gap-1">
                 {section === "experience" ? (
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    size="icon"
+                    className="size-7"
                     onClick={() => onSwapTitleAndSubtitle(index)}
                     aria-label="Switch role and employer"
                     title="Swap job title and company"
                   >
-                    <ArrowLeftRight /> Swap
+                    <ArrowLeftRight />
                   </Button>
                 ) : null}
-                <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(section, index)}>
-                  <Trash2 /> Remove
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-muted-foreground hover:text-foreground"
+                  aria-label="Remove entry"
+                  title="Remove entry (Undo available)"
+                  onClick={() => onRemove(section, index)}
+                >
+                  <Trash2 />
                 </Button>
               </div>
             </div>
-            {section === "experience" ? (
-              <p className="-mt-1 text-xs leading-snug text-muted-foreground">
-                Swap role and company if they were imported in the wrong order.
-              </p>
-            ) : null}
-            <TextField
-              id={`field-${section}-${index}-title`}
-              label={schema.title}
-              value={entry.title}
-              onChange={(value) => onUpdate(section, index, "title", value)}
-            />
-            <TextField
-              id={`field-${section}-${index}-subtitle`}
-              label={schema.subtitle}
-              value={entry.subtitle}
-              onChange={(value) => onUpdate(section, index, "subtitle", value)}
-            />
-            <TextField
-              id={`field-${section}-${index}-meta`}
-              label={schema.meta}
-              value={entry.meta}
-              onChange={(value) => onUpdate(section, index, "meta", value)}
-            />
-            <TextAreaField
-              id={`field-${section}-${index}-details`}
-              label={schema.details}
-              value={entry.details}
-              onChange={(value) => onUpdate(section, index, "details", value)}
-            />
-            {evidence?.bulletCount ? (
-              <div
-                className={cn(
-                  "rounded-md border px-3 py-2 text-xs leading-snug",
-                  evidence.unmeasuredIndexes.length
-                    ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100"
-                    : "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100",
-                )}
-                aria-live="polite"
-              >
-                <p className="font-semibold">
-                  {evidence.measuredCount} of {evidence.bulletCount} {evidence.bulletCount === 1 ? "bullet shows" : "bullets show"}{" "}
-                  measurable scope or results.
-                </p>
-                {reviewLabel ? (
-                  <p className="mt-1 text-muted-foreground">
-                    {reviewLabel}. Add a truthful scale or outcome where you know it; not every bullet needs a number.
-                  </p>
-                ) : (
-                  <p className="mt-1 text-muted-foreground">Each bullet includes a concrete scope or result.</p>
-                )}
-                {openingReviewLabel ? (
-                  <p className="mt-1 text-muted-foreground">
-                    {openingReviewLabel}. Lead with the action, and keep it truthful.
-                  </p>
+            {open ? (
+              <div className="space-y-3 px-3 pb-3 pt-1">
+                <TextField
+                  id={`field-${section}-${index}-title`}
+                  label={schema.title}
+                  value={entry.title}
+                  onChange={(value) => onUpdate(section, index, "title", value)}
+                />
+                <TextField
+                  id={`field-${section}-${index}-subtitle`}
+                  label={schema.subtitle}
+                  value={entry.subtitle}
+                  onChange={(value) => onUpdate(section, index, "subtitle", value)}
+                />
+                <TextField
+                  id={`field-${section}-${index}-meta`}
+                  label={schema.meta}
+                  value={entry.meta}
+                  onChange={(value) => onUpdate(section, index, "meta", value)}
+                />
+                <TextAreaField
+                  id={`field-${section}-${index}-details`}
+                  label={schema.details}
+                  value={entry.details}
+                  onChange={(value) => onUpdate(section, index, "details", value)}
+                />
+                {evidence?.bulletCount ? (
+                  <div
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-xs leading-snug",
+                      evidence.unmeasuredIndexes.length
+                        ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100"
+                        : "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100",
+                    )}
+                    aria-live="polite"
+                  >
+                    <p className="font-semibold">
+                      {evidence.measuredCount} of {evidence.bulletCount} {evidence.bulletCount === 1 ? "bullet shows" : "bullets show"}{" "}
+                      measurable scope or results.
+                    </p>
+                    {reviewLabel ? (
+                      <p className="mt-1 text-muted-foreground">
+                        {reviewLabel}. Add a truthful scale or outcome where you know it; not every bullet needs a number.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-muted-foreground">Each bullet includes a concrete scope or result.</p>
+                    )}
+                    {openingReviewLabel ? (
+                      <p className="mt-1 text-muted-foreground">
+                        {openingReviewLabel}. Lead with the action, and keep it truthful.
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             ) : null}
-            </CardContent>
-          </Card>
+          </div>
         );
       })}
     </div>

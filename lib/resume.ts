@@ -176,6 +176,10 @@ export const resumeSchema = z.object({
   sectionTitles: sectionTitlesSchema.catch({ ...SECTION_LABELS }),
   customSections: z.array(customSectionSchema).catch([]),
   sectionOrder: z.array(z.string()).catch([...SECTION_KEYS]),
+  // Sections the person has hidden from the resume output. They stay in the
+  // editor (and keep their content) but are excluded from the preview and every
+  // export until shown again.
+  hiddenSections: z.array(z.string()).catch([]),
   template: z.enum(["classic", "minimal", "modern", "compact"]).catch("classic"),
   theme: themeSchema.catch(() => defaultTheme()),
   textScale: z.number().catch(1),
@@ -268,6 +272,7 @@ export function emptyState(): ResumeState {
     sectionTitles: { ...SECTION_LABELS },
     customSections: [],
     sectionOrder: [...SECTION_KEYS],
+    hiddenSections: [],
     template: "classic",
     theme: defaultTheme(),
     textScale: 1,
@@ -296,6 +301,9 @@ export function normalizeResume(data: unknown): ResumeState {
     if (!order.includes(id)) order.push(id);
   });
 
+  // Drop hidden ids that no longer map to a section in the order.
+  const hiddenSections = parsed.hiddenSections.filter((id, index, all) => order.includes(id) && all.indexOf(id) === index);
+
   // Resumes saved before the theme editor existed only carry `template`; map
   // that to the matching preset so they keep looking the way they did.
   const hasStoredTheme = Boolean(data && typeof data === "object" && "theme" in (data as Record<string, unknown>));
@@ -315,6 +323,7 @@ export function normalizeResume(data: unknown): ResumeState {
     sectionTitles: { ...SECTION_LABELS, ...parsed.sectionTitles },
     customSections,
     sectionOrder: order,
+    hiddenSections,
     theme,
     textScale: clampTextScale(parsed.textScale),
   };
@@ -335,6 +344,23 @@ export function getSectionEntries(state: ResumeState, section: string): ResumeEn
   if (section === "projects") return state.projects;
   if (section === "skills") return [];
   return state.customSections.find((candidate) => candidate.id === section)?.entries ?? [];
+}
+
+export function isSectionHidden(state: ResumeState, section: string) {
+  return state.hiddenSections.includes(section);
+}
+
+/** Section ids in order, minus any the person has hidden from the resume. */
+export function visibleSectionOrder(state: ResumeState) {
+  return state.sectionOrder.filter((section) => !isSectionHidden(state, section));
+}
+
+/** How many items a section holds — entry cards, or skill lines for Skills. */
+export function sectionItemCount(state: ResumeState, section: string) {
+  if (section === "skills") {
+    return state.skills.split("\n").map((line) => line.trim()).filter(Boolean).length;
+  }
+  return getSectionEntries(state, section).length;
 }
 
 export function clampTextScale(value: number) {
@@ -374,11 +400,11 @@ export function entryHasContent(entry: ResumeEntry) {
 }
 
 export function allBullets(state: ResumeState) {
-  return ["experience", "education", "projects"].flatMap((section) =>
-    state[section as "experience" | "education" | "projects"].flatMap((entry) =>
-      includedBulletsFrom(entry),
-    ),
-  ).concat(state.customSections.flatMap((section) => section.entries.flatMap((entry) => includedBulletsFrom(entry))));
+  // Iterate visible sections so hidden sections don't count toward resume checks
+  // (length, bullet length) — they aren't in the exported resume.
+  return visibleSectionOrder(state)
+    .filter((section) => section !== "skills")
+    .flatMap((section) => getSectionEntries(state, section).flatMap((entry) => includedBulletsFrom(entry)));
 }
 
 export function hasMeasuredEvidence(bullet: string) {
@@ -504,11 +530,13 @@ export function summarizeBulletOpenings(details: string): BulletOpeningSummary {
 }
 
 function evidenceBullets(state: ResumeState) {
-  return (["experience", "projects"] as const).flatMap((section) =>
-    state[section].flatMap((entry, index) =>
-      bulletsFrom(entry.details).map((bullet) => ({ section, index, bullet })),
-    ),
-  );
+  return (["experience", "projects"] as const)
+    .filter((section) => !isSectionHidden(state, section))
+    .flatMap((section) =>
+      state[section].flatMap((entry, index) =>
+        bulletsFrom(entry.details).map((bullet) => ({ section, index, bullet })),
+      ),
+    );
 }
 
 export function buildResumeChecks(
@@ -535,7 +563,7 @@ export function buildResumeChecks(
   const summaryWords = wordCount(state.summary);
   const totalWords = wordCount(resumePlainText(state));
   const firstBulletTarget =
-    state.sectionOrder
+    visibleSectionOrder(state)
       .filter((section) => section !== "skills")
       .map((section) => [section, getSectionEntries(state, section).findIndex(entryHasContent)] as const)
       .find(([, index]) => index >= 0) ?? ["experience", state.experience.length ? 0 : -1];
@@ -715,7 +743,7 @@ export function resumePlainText(state: ResumeState) {
     [state.email, state.phone, state.location, state.website].map(cleanTextLine).filter(Boolean).join(" | "),
   ]);
   pushBlock(lines, state.summary ? ["Summary", cleanTextLine(state.summary)] : []);
-  state.sectionOrder.forEach((key) => {
+  visibleSectionOrder(state).forEach((key) => {
     if (key === "skills") pushBlock(lines, skillsPlainText(state));
     else pushBlock(lines, sectionPlainText(state, getSectionTitle(state, key), key));
   });
@@ -772,7 +800,7 @@ export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[
   const summary = applicationCopyValue(state.summary);
   if (summary) groups.push({ id: "summary", label: "Summary", fields: [{ id: "summary", label: "Summary", text: summary }] });
 
-  state.sectionOrder.forEach((section) => {
+  visibleSectionOrder(state).forEach((section) => {
     const sectionLabel = getSectionTitle(state, section).trim() || "Untitled section";
     if (section === "skills") {
       const skills = state.skills.split("\n").map(cleanTextLine).filter(Boolean).join("\n");

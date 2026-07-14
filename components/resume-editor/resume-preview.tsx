@@ -7,6 +7,7 @@ import {
   getSectionTitle,
   hasAnyContent,
   normalizeAccent,
+  visibleSectionOrder,
   resolveFontStack,
   type ResumeState,
 } from "@/lib/resume";
@@ -346,7 +347,7 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
           {...(editable ? {} : previewTargetProps("field-summary", onTargetSelect))}
         />
       ) : null}
-      {state.sectionOrder.map((section) => (
+      {visibleSectionOrder(state).map((section) => (
         <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} editable={editable} onEditField={onEditField} onEditSectionTitle={onEditSectionTitle} onEditEntry={onEditEntry} />
       ))}
     </>

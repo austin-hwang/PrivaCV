@@ -8,6 +8,7 @@ import {
   includedBulletsFrom,
   normalizeAccent,
   resolveDocxFont,
+  visibleSectionOrder,
   type ResumeEntry,
   type ResumeState,
 } from "@/lib/resume";
@@ -117,7 +118,7 @@ function documentXml(state: ResumeState, relationships: DocxRelationship[]) {
     state.title ? paragraph(textRun(state.title, { size: 22 }), { alignment: align, after: 25 }) : "",
     contacts ? paragraph(contacts, { alignment: align, after: 120 }) : "",
     state.summary ? paragraph(textRun(state.summary), { after: 90 }) : "",
-    ...state.sectionOrder.map((section) => sectionParagraphs(state, section)),
+    ...visibleSectionOrder(state).map((section) => sectionParagraphs(state, section)),
   ].join("");
 
   return `${XML_DECLARATION}<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><w:body>${body}<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/><w:pgMar w:top=\"1008\" w:right=\"1008\" w:bottom=\"1008\" w:left=\"1008\" w:header=\"720\" w:footer=\"720\" w:gutter=\"0\"/></w:sectPr></w:body></w:document>`;

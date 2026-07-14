@@ -10,9 +10,22 @@ async function openMenu(page: Page) {
   await page.getByRole("button", { name: /^more actions$/i }).click();
 }
 
+// Entries render as collapsed one-line summaries by default. Open every
+// collapsed entry so its fields are present for interaction/assertions.
+async function expandAllEntries(page: Page) {
+  // Wait for entries to render (e.g. just after an import) before expanding.
+  await page.locator("[data-editor-entry]").first().waitFor({ state: "attached", timeout: 3000 }).catch(() => {});
+  for (let i = 0; i < 40; i += 1) {
+    const collapsed = page.locator('[data-editor-entry] button[aria-expanded="false"]');
+    if ((await collapsed.count()) === 0) break;
+    await collapsed.first().click();
+  }
+}
+
 async function loadSample(page: Page) {
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^sample$/i }).click();
+  await expandAllEntries(page);
 }
 
 async function openTools(page: Page) {
@@ -614,6 +627,7 @@ test("keeps required import review when using an imported draft from another tab
     "• Built reliable systems.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
   await expect(otherTab.locator("#import-review-panel")).toBeVisible();
   await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
 
@@ -877,7 +891,7 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
   await loadSample(page);
 
   const experience = page.locator('[data-editor-section="experience"]');
-  await experience.getByRole("button", { name: /^remove$/i }).first().click();
+  await experience.getByRole("button", { name: /remove entry/i }).first().click();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" })).toBeVisible();
   await expect(experience.getByLabel("Job Title").first()).toHaveValue("Software Engineer");
   await page.getByRole("button", { name: /^undo$/i }).click();
@@ -992,6 +1006,7 @@ test("keeps blank titles blank and lets users remove and restore default section
   await expect(page.getByRole("button", { name: "Education", exact: true })).toBeVisible();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Education section" })).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
+  await expandAllEntries(page);
   await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.S. in Computer Science");
 
   await page.getByRole("button", { name: "Remove Education section" }).click();
@@ -1051,6 +1066,7 @@ test("locks the editor behind a modal import review so the highlight can't scrol
     `Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n${experienceBullets}\n\nEducation\nB.S. Mathematics | Cambridge | 2018`,
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
   await page.getByRole("button", { name: /start walkthrough/i }).click();
 
   const tour = page.getByRole("dialog", { name: /guided review/i });
@@ -1081,6 +1097,7 @@ test("keeps the whole page from scrolling away during import review", async ({ p
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation\nB.S. Mathematics | Cambridge | 2018",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
   await expect(page.getByText("Review the imported fields")).toBeVisible();
 
   // The editor pane scrolls internally; the document itself must stay pinned to
@@ -1105,6 +1122,7 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.\n\nEducation",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   const banner = page.locator("#import-review-panel");
@@ -1155,6 +1173,7 @@ test("keeps an unfinished import review after a browser refresh", async ({ page 
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
   await expect(page.locator("#import-review-panel")).toBeVisible();
 
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("Ada Lovelace");
@@ -1183,6 +1202,7 @@ test("lets someone deliberately confirm a clean imported draft without repetitiv
     "Ada Lovelace\nada@example.com\n\nExperience\nPlatform Engineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   const banner = page.locator("#import-review-panel");
   const confirmAll = banner.getByRole("button", { name: /i reviewed all imported fields/i });
@@ -1215,6 +1235,7 @@ test("imports common alternate section headings without losing resume content", 
     "TypeScript, React, systems design",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
@@ -1244,6 +1265,7 @@ test("imports styled PDF-style section headings without losing their content", a
     "TypeScript, React, systems design",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Staff Engineer");
@@ -1269,6 +1291,7 @@ test("imports concise overview and skills headings without losing their content"
     "TypeScript, React, systems design",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Professional Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
@@ -1291,6 +1314,7 @@ test("keeps an employer-first dated PDF header editable as the right role and em
     "• Led dependable platform work.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Job Title", { exact: true }).first()).toHaveValue("Senior Product Engineer");
   await expect(page.getByLabel("Company", { exact: true }).first()).toHaveValue("Northstar Labs");
@@ -1315,6 +1339,7 @@ test("requires review of imported specialty-section entries", async ({ page }) =
     "Certified Kubernetes Administrator | Cloud Native Computing Foundation | 2026",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Certified Kubernetes Administrator");
 
@@ -1347,6 +1372,7 @@ test("preserves text written beside an inline resume heading", async ({ page }) 
     "• Built reliable systems.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Summary")).toHaveValue("Platform engineer building dependable developer tools.");
   await expect(page.locator("#field-skills")).toHaveValue("TypeScript, React, systems design");
@@ -1370,6 +1396,7 @@ test("quickly corrects company-first imported experience entries", async ({ page
     "• Built reliable systems.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   const title = page.getByLabel("Job Title", { exact: true }).first();
   const company = page.getByLabel("Company", { exact: true }).first();
@@ -1400,6 +1427,7 @@ test("asks users to review every imported experience entry", async ({ page }) =>
     "• Improved deployment tooling.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   // Both roles are parsed as separate entries, each surfaced for review.
   await expect(page.getByLabel("Job Title", { exact: true }).nth(0)).toHaveValue("Staff Engineer");
@@ -1429,6 +1457,7 @@ test("keeps adjacent roles separate when dates are on their own lines", async ({
     "• Improved deployment tooling.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Job Title", { exact: true }).nth(0)).toHaveValue("Staff Engineer");
   await expect(page.getByLabel("Job Title", { exact: true }).nth(1)).toHaveValue("Software Engineer");
@@ -1454,6 +1483,7 @@ test("keeps compact education entries separate when dates are on their own lines
     "2012 – 2016",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await expect(page.getByLabel("Degree", { exact: true }).nth(0)).toHaveValue("Master of Science in Computer Science");
   await expect(page.getByLabel("Degree", { exact: true }).nth(1)).toHaveValue("Bachelor of Science in Mathematics");
@@ -1472,6 +1502,7 @@ test("keeps mobile import review focused on the next editable field", async ({ b
     "Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
   );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   // On a phone the review is the same guided walkthrough, with the card pinned
   // to the bottom so it never crowds the highlighted field.
@@ -1509,6 +1540,7 @@ test("calls out a specialty heading when import cannot reconstruct its entries",
     "Certifications",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   // The banner flags that a found source section was not imported.
   await expect(page.locator("#import-review-panel")).toContainText(/not imported/i);
@@ -1889,6 +1921,7 @@ test("keeps import confirmation explicit in the export checkpoint", async ({ pag
     "• Built reliable systems.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await page.getByRole("button", { name: /export pdf/i }).click();
   const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
@@ -1918,6 +1951,7 @@ test("checks an imported resume before downloading Word", async ({ page }) => {
     "• Built reliable systems.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expandAllEntries(page);
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /download word/i }).click();
