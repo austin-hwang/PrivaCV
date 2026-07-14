@@ -227,7 +227,7 @@ export function LocalAIDialog({
             <div>
               <h3 id="local-ai-setup-title" className="text-sm font-semibold">Prepare a model</h3>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                Nothing downloads automatically. Setup streams public model files from MLC/Hugging Face through this site and caches them in this browser. Resume content is never included in download requests.
+                Nothing downloads automatically. Setup downloads public model files from MLC/Hugging Face and caches them in this browser. Resume content is never included in download requests.
               </p>
             </div>
             <Badge variant={modelState === "ready" ? "secondary" : "outline"} className={modelState === "ready" ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-200" : undefined}>

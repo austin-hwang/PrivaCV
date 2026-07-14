@@ -55,6 +55,23 @@ async function proxyModelFile(request: Request) {
     `${encodeURIComponent(modelId)}/resolve/main/${file.map((segment) => encodeURIComponent(segment!)).join("/")}`,
     "https://huggingface.co/mlc-ai/",
   );
+
+  const filename = file.at(-1);
+  if (filename !== "mlc-chat-config.json" && filename !== "tensor-cache.json") {
+    // Cloudflare's fetch connection to Hugging Face's Xet bridge can close a
+    // successful large response early. Redirect weight/tokenizer downloads to
+    // the model host instead; Hugging Face supplies CORS headers for these
+    // public files, and WebLLM still caches the completed response locally.
+    return new Response(null, {
+      status: 307,
+      headers: {
+        "Cache-Control": "no-store",
+        Location: upstreamUrl.href,
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
+
   const upstreamHeaders = new Headers();
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = request.headers.get(name);

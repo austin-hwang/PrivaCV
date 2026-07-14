@@ -9,7 +9,7 @@ const compat = new FlatCompat({
 const config = [
   ...compat.extends("next/core-web-vitals"),
   {
-    ignores: [".next/**", "coverage/**", "playwright-report/**", "test-results/**"],
+    ignores: [".next/**", ".open-next/**", "coverage/**", "playwright-report/**", "test-results/**"],
   },
 ];
 
