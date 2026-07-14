@@ -13,6 +13,7 @@ import {
   ChevronsUpDown,
   ClipboardCopy,
   ClipboardPaste,
+  Cpu,
   Download,
   Eye,
   EyeOff,
@@ -50,6 +51,7 @@ import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
+import { LocalAIDialog } from "@/components/resume-editor/local-ai-dialog";
 import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { StartPanel } from "@/components/resume-editor/start-panel";
@@ -156,6 +158,7 @@ export function ResumeEditor() {
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [localAIOpen, setLocalAIOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [designAdvancedOpen, setDesignAdvancedOpen] = useState(false);
   // Mirrors the theme so the mobile ⋯ menu item can name the opposite mode.
@@ -720,6 +723,14 @@ export function ResumeEditor() {
                 </a>
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocalAIOpen(true)}
+              className="hidden gap-2 xl:inline-flex"
+            >
+              <Cpu /> Local AI
+            </Button>
             {hasContent || versionHistory.length ? (
               <Button
                 type="button"
@@ -825,6 +836,11 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuItem onSelect={() => jsonInputRef.current?.click()}>
                   <FileJson /> Open JSON
+                </MenuItem>
+                <MenuSeparator />
+                <MenuLabel>Private assistance</MenuLabel>
+                <MenuItem onSelect={() => setLocalAIOpen(true)}>
+                  <Cpu /> Local AI (WebLLM)
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
@@ -1595,6 +1611,15 @@ export function ResumeEditor() {
         onOpenChange={setToolsOpen}
         onFocusTarget={focusEditorTarget}
         onStartChecksReview={startChecksTour}
+      />
+
+      <LocalAIDialog
+        open={localAIOpen}
+        onOpenChange={setLocalAIOpen}
+        state={state}
+        importSourceText={importReview?.sourceText}
+        onUpdateField={(field, value) => updateField(field, value)}
+        onUpdateEntry={(section, index, value) => updateEntry(section, index, "details", value)}
       />
 
       <VersionHistoryCard

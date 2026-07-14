@@ -9,12 +9,15 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   // Next.js evaluates its development client bundle. Keep that allowance out
-  // of production, where the editor's static bundle does not need it.
-  `script-src 'self' 'unsafe-inline'${developmentScriptSource}`,
+  // of production. WebLLM compiles its model runtime from WebAssembly only
+  // after a user explicitly prepares a local model.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${developmentScriptSource}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",
-  "connect-src 'self'",
+  // These are WebLLM's model manifest/weight hosts. Keeping the list explicit
+  // preserves the local editor's narrow network boundary.
+  "connect-src 'self' https://huggingface.co https://*.hf.co https://*.xethub.hf.co https://raw.githubusercontent.com",
   "frame-src 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",

@@ -209,6 +209,9 @@ test("protects the local workspace with production response security headers", a
   expect(response.ok()).toBeTruthy();
   expect(headers["content-security-policy"]).toContain("default-src 'self'");
   expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(headers["content-security-policy"]).toContain("'wasm-unsafe-eval'");
+  expect(headers["content-security-policy"]).toContain("https://huggingface.co");
+  expect(headers["content-security-policy"]).toContain("https://raw.githubusercontent.com");
   expect(headers["content-security-policy"]).toContain("worker-src 'self' blob:");
   expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
   expect(headers["cross-origin-resource-policy"]).toBe("same-origin");
