@@ -180,6 +180,10 @@ export function interruptLocalAIGeneration() {
   generating = false;
 }
 
+export function localAIChatExtraBody(modelId: LocalAIModelId) {
+  return modelId.startsWith("Qwen3") ? { enable_thinking: false as const } : undefined;
+}
+
 export async function generateLocalAIText({
   messages,
   maxTokens,
@@ -205,6 +209,7 @@ export async function generateLocalAIText({
       top_p: 0.9,
       max_tokens: maxTokens,
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,
+      extra_body: localAIChatExtraBody(current.modelId),
     });
     let result = "";
     for await (const chunk of chunks) {

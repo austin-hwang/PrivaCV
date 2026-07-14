@@ -26,9 +26,9 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
-  await dialog.getByRole("combobox", { name: /model/i }).selectOption("Qwen2.5-0.5B-Instruct-q4f16_1-MLC");
-  await expect(dialog.getByText(/Qwen 2\.5 0\.5B:/)).toBeVisible();
-  await expect(dialog).toContainText("Compact multilingual option");
+  await dialog.getByRole("combobox", { name: /model/i }).selectOption("Qwen3-0.6B-q4f16_1-MLC");
+  await expect(dialog.getByText(/Qwen 3 0\.6B:/)).toBeVisible();
+  await expect(dialog).toContainText("Newer multilingual option");
 
   await page.waitForTimeout(250);
   expect(modelRequests).toEqual([]);

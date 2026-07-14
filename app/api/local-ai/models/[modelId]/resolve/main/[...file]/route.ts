@@ -21,7 +21,10 @@ export async function GET(
   const { modelId, file } = await params;
   const upstreamFile = file[0] === MODEL_CACHE_PATH_VERSION ? file.slice(1) : file;
   if (!isLocalAIModelId(modelId) || !upstreamFile.length || upstreamFile.some((segment) => !SAFE_FILE_SEGMENT.test(segment))) {
-    return new Response("Model file not found.", { status: 404 });
+    return new Response("Model file not found.", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const upstreamUrl = new URL(

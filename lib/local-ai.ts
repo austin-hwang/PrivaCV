@@ -13,10 +13,10 @@ export const LOCAL_AI_MODELS = [
     recommended: true,
   },
   {
-    id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
-    label: "Qwen 2.5 0.5B",
-    description: "Compact multilingual option for rewrites and structured import repair.",
-    memory: "~945 MB GPU memory",
+    id: "Qwen3-0.6B-q4f16_1-MLC",
+    label: "Qwen 3 0.6B",
+    description: "Newer multilingual option with stronger rewrite quality than the smallest model.",
+    memory: "~1.4 GB GPU memory",
     recommended: false,
   },
   {
