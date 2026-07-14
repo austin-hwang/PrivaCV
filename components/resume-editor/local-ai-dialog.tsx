@@ -159,6 +159,15 @@ export function LocalAIDialog({
         setLocalAIRuntime({ engine, modelId, worker });
       } catch (loadError) {
         worker.terminate();
+        const message = loadError instanceof Error ? loadError.message : String(loadError);
+        if (/TensorCopyFromBytes|arr_size\s*==\s*nbytes|size mismatch/i.test(message)) {
+          try {
+            await webllm.deleteModelAllInfoInCache(modelId, localAIAppConfig(webllm));
+          } catch {
+            // Keep the original load error; the user can still remove the
+            // download manually if browser storage cleanup was blocked.
+          }
+        }
         throw loadError;
       }
       setProgress(1);

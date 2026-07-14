@@ -9,6 +9,7 @@ import {
   isLocalAIModelId,
   parseLocalAIImportProposal,
 } from "@/lib/local-ai";
+import { friendlyLocalAIError } from "@/lib/local-ai-engine";
 import { sampleState } from "@/lib/resume";
 
 describe("local AI helpers", () => {
@@ -17,6 +18,14 @@ describe("local AI helpers", () => {
     expect(LOCAL_AI_MODELS[0].id).toContain("360M");
     expect(isLocalAIModelId(LOCAL_AI_MODELS[1].id)).toBe(true);
     expect(isLocalAIModelId("unknown-model")).toBe(false);
+  });
+
+  it("explains how to recover from a truncated cached model shard", () => {
+    expect(
+      friendlyLocalAIError(
+        new Error("InternalError: Check failed: arr_size == nbytes (131334144 vs. 253952): TensorCopyFromBytes: size mismatch"),
+      ),
+    ).toMatch(/cached files were removed.*download the model again/i);
   });
 
   it("builds a bounded rewrite request that forbids invented claims", () => {

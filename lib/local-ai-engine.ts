@@ -91,6 +91,9 @@ export async function generateLocalAIText({
 
 export function friendlyLocalAIError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
+  if (/TensorCopyFromBytes|arr_size\s*==\s*nbytes|size mismatch/i.test(message)) {
+    return "The model download was incomplete and its cached files were removed. Download the model again.";
+  }
   if (/webgpu|gpu adapter|navigator\.gpu/i.test(message)) {
     return "WebGPU could not start on this browser or device. Try an up-to-date browser with hardware acceleration enabled.";
   }
