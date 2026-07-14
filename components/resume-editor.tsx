@@ -115,6 +115,10 @@ const LocalAIBackgroundLoader = dynamic(
   { ssr: false },
 );
 
+// Structured import repair is too inconsistent on the small local models.
+// Keep the implementation available, but hide its entry points until quality improves.
+const LOCAL_AI_IMPORT_FIX_ENABLED = false;
+
 type LocalAIInlineTarget = {
   id: string;
   label: string;
@@ -1676,7 +1680,7 @@ export function ResumeEditor() {
                 </Button>
               ) : null}
               <div className="ml-auto flex shrink-0 items-center gap-2">
-                {importReview ? (
+                {LOCAL_AI_IMPORT_FIX_ENABLED && importReview ? (
                   <Button
                     type="button"
                     variant={localAIImportOpen ? "secondary" : "outline"}
@@ -1731,7 +1735,7 @@ export function ResumeEditor() {
                 {designControls}
               </div>
             ) : null}
-            {localAIImportOpen && importReview && currentImportSourceText ? (
+            {LOCAL_AI_IMPORT_FIX_ENABLED && localAIImportOpen && importReview && currentImportSourceText ? (
               <LocalAIImportFix
                 sourceText={currentImportSourceText}
                 currentState={state}

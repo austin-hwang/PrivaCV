@@ -12,6 +12,9 @@ import {
 import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite } from "@/lib/local-ai";
 import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 
+const INLINE_AI_INSTRUCTION_LIMIT = 100;
+const INLINE_AI_OUTPUT_TOKEN_LIMIT = 100;
+
 export function LocalAIInlineEdit({
   label,
   text,
@@ -41,7 +44,7 @@ export function LocalAIInlineEdit({
     try {
       const result = await generateLocalAIText({
         messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
-        maxTokens: 260,
+        maxTokens: INLINE_AI_OUTPUT_TOKEN_LIMIT,
         onToken: setOutput,
       });
       setOutput(cleanLocalAIRewrite(result));
@@ -69,26 +72,32 @@ export function LocalAIInlineEdit({
         </Button>
       </div>
 
-      <div className="flex gap-2">
-        <Input
-          value={instruction}
-          onChange={(event) => setInstruction(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-              event.preventDefault();
-              void generate();
-            }
-          }}
-          disabled={generating || !ready}
-          placeholder="e.g. Make this more concise"
-          aria-label={`AI edit instruction for ${label}`}
-          className="bg-background"
-        />
-        {generating ? (
-          <Button type="button" variant="outline" size="sm" onClick={stop}><Square /> Stop</Button>
-        ) : (
-          <Button type="button" size="sm" onClick={() => void generate()} disabled={!ready || !instruction.trim()}><Sparkles /> Edit</Button>
-        )}
+      <div className="space-y-1">
+        <div className="flex gap-2">
+          <Input
+            value={instruction}
+            maxLength={INLINE_AI_INSTRUCTION_LIMIT}
+            onChange={(event) => setInstruction(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                void generate();
+              }
+            }}
+            disabled={generating || !ready}
+            placeholder="e.g. Make this more concise"
+            aria-label={`AI edit instruction for ${label}`}
+            className="bg-background"
+          />
+          {generating ? (
+            <Button type="button" variant="outline" size="sm" onClick={stop}><Square /> Stop</Button>
+          ) : (
+            <Button type="button" size="sm" onClick={() => void generate()} disabled={!ready || !instruction.trim()}><Sparkles /> Edit</Button>
+          )}
+        </div>
+        <p className="text-right text-[10px] font-normal tabular-nums text-muted-foreground">
+          {instruction.length}/{INLINE_AI_INSTRUCTION_LIMIT}
+        </p>
       </div>
 
       {ready ? (
