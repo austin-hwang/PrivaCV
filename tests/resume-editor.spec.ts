@@ -1350,7 +1350,7 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   const banner = page.locator("#import-review-panel");
   await expect(banner.getByText("Review the imported fields")).toBeVisible();
-  await expect(banner.getByRole("button", { name: /finish review/i })).toBeDisabled();
+  await expect(banner.getByRole("button", { name: /finish review/i })).toBeEnabled();
 
   // The review is a guided walkthrough: each suggested field is highlighted in
   // turn with its source context, and confirmation stays deliberate.
@@ -1415,7 +1415,7 @@ test("keeps an unfinished import review after a browser refresh", async ({ page 
   await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
 });
 
-test("lets someone deliberately confirm a clean imported draft without repetitive clicks", async ({ page }) => {
+test("lets someone finish review of a clean imported draft without repetitive clicks", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1429,12 +1429,9 @@ test("lets someone deliberately confirm a clean imported draft without repetitiv
   await expandAllEntries(page);
 
   const banner = page.locator("#import-review-panel");
-  const confirmAll = banner.getByRole("button", { name: /i reviewed all imported fields/i });
-  await expect(confirmAll).toBeEnabled();
-  await confirmAll.click();
-  await expect(banner.getByText("2/2")).toBeVisible();
-  await expect(confirmAll).toBeDisabled();
-  await expect(banner.getByRole("button", { name: /finish review/i })).toBeEnabled();
+  await banner.getByRole("button", { name: /finish review/i }).click();
+  await expect(banner).toBeHidden();
+  await expect(page.getByText("Import review complete")).toBeVisible();
 });
 
 test("imports common alternate section headings without losing resume content", async ({ page }) => {

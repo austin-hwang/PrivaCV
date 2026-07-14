@@ -37,9 +37,10 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
-  await dialog.getByRole("combobox", { name: /model/i }).selectOption("Qwen3-0.6B-q4f16_1-MLC");
-  await expect(dialog.getByText(/Qwen 3 0\.6B:/)).toBeVisible();
-  await expect(dialog).toContainText("Newer multilingual option");
+  await expect(dialog.getByRole("combobox", { name: /model/i })).toHaveValue("Qwen3-1.7B-q4f16_1-MLC");
+  await expect(dialog.getByText(/Qwen 3 1\.7B:/)).toBeVisible();
+  await expect(dialog).toContainText("Best balance of rewrite quality");
+  await expect(dialog.getByRole("option", { name: /SmolLM2|Qwen 3 0\.6B/i })).toHaveCount(0);
 
   await page.waitForTimeout(250);
   expect(modelRequests).toEqual([]);

@@ -24,6 +24,7 @@ import {
   Keyboard,
   Loader2,
   MoreHorizontal,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -296,7 +297,6 @@ export function ResumeEditor() {
     useExternalDraft,
     toggleImportReviewItem,
     completeImportReview,
-    confirmAllImportReviewItems,
     versionHistory,
   } = editor;
   const currentImportSourceText = importReview?.sourceText?.trim() || (importReview ? resumePlainText(state).trim() : "");
@@ -1165,12 +1165,8 @@ export function ResumeEditor() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={confirmAllImportReviewItems}
-                  disabled={importReviewStatus?.isComplete}
+                  onClick={() => completeImportReview(true)}
                 >
-                  <Check /> I reviewed all imported fields
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={completeImportReview} disabled={!importReviewStatus?.isComplete}>
                   <Check /> Finish review
                 </Button>
               </CardContent>
@@ -1700,7 +1696,7 @@ export function ResumeEditor() {
                   aria-controls="design-panel"
                   onClick={() => setDesignOpen((open) => !open)}
                 >
-                  <SlidersHorizontal /> <span className="hidden 2xl:inline">Design</span>
+                  <Palette /> <span className="hidden 2xl:inline">Design</span>
                 </Button>
               ) : null}
               <label className="hidden h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground sm:flex">

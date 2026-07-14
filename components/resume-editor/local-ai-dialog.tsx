@@ -253,7 +253,7 @@ export function LocalAIDialog({
           </label>
           <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{selectedModel.label}:</span> {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published configuration.
-            {lowMemoryDevice && !selectedModel.recommended ? <span className="ml-1 text-warning">The smaller model is safer for this device.</span> : null}
+            {lowMemoryDevice && selectedModel.recommended ? <span className="ml-1 text-warning">If loading fails, try the lower-memory model.</span> : null}
           </div>
 
           {modelState === "loading" ? (

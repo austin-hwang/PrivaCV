@@ -413,7 +413,7 @@ export function ResumeEditorOverlays({
                       <Eye /> Review next field
                     </Button>
                   ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={completeImportReview}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => completeImportReview()}>
                       <Check /> Finish import review
                     </Button>
                   )}

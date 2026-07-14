@@ -16,25 +16,26 @@ import { friendlyLocalAIError, hasObviousLocalAIRepetition, localAIChatExtraBody
 import { sampleState } from "@/lib/resume";
 
 describe("local AI helpers", () => {
-  it("keeps the default model small and recognizes only supported choices", () => {
+  it("uses Qwen 3 1.7B by default and recognizes only supported choices", () => {
     expect(LOCAL_AI_MODELS[0].recommended).toBe(true);
-    expect(LOCAL_AI_MODELS[0].id).toContain("360M");
+    expect(LOCAL_AI_MODELS[0].id).toBe("Qwen3-1.7B-q4f16_1-MLC");
     expect(isLocalAIModelId(LOCAL_AI_MODELS[1].id)).toBe(true);
-    expect(LOCAL_AI_MODELS.some((model) => model.id === "Qwen3-0.6B-q4f16_1-MLC")).toBe(true);
+    expect(isLocalAIModelId("Qwen3-0.6B-q4f16_1-MLC")).toBe(false);
+    expect(isLocalAIModelId("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBe(false);
     expect(isLocalAIModelId("unknown-model")).toBe(false);
   });
 
   it("uses Qwen 3 for direct edits without spending the short response on reasoning", () => {
-    expect(localAIChatExtraBody("Qwen3-0.6B-q4f16_1-MLC")).toEqual({ enable_thinking: false });
-    expect(localAIChatSampling("Qwen3-0.6B-q4f16_1-MLC")).toEqual({ temperature: 0.7, top_p: 0.8 });
-    expect(localAIChatExtraBody("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBeUndefined();
-    expect(localAIChatSampling("SmolLM2-360M-Instruct-q4f32_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
-    expect(localAIChatSampling("Qwen3-0.6B-q4f16_1-MLC", true)).toEqual({ temperature: 0, top_p: 0.9 });
+    expect(localAIChatExtraBody("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ enable_thinking: false });
+    expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC")).toEqual({ temperature: 0.7, top_p: 0.8 });
+    expect(localAIChatExtraBody("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toBeUndefined();
+    expect(localAIChatSampling("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toEqual({ temperature: 0.2, top_p: 0.9 });
+    expect(localAIChatSampling("Qwen3-1.7B-q4f16_1-MLC", true)).toEqual({ temperature: 0, top_p: 0.9 });
   });
 
-  it("uses a Qwen-specific cache path without invalidating the smaller default model", () => {
-    expect(localAIModelCachePath("Qwen3-0.6B-q4f16_1-MLC")).toBe("webllm-cache-v2-qwen3");
-    expect(localAIModelCachePath("SmolLM2-360M-Instruct-q4f32_1-MLC")).toBe("webllm-cache-v2");
+  it("uses a Qwen-specific cache path without invalidating the lower-memory fallback", () => {
+    expect(localAIModelCachePath("Qwen3-1.7B-q4f16_1-MLC")).toBe("webllm-cache-v2-qwen3");
+    expect(localAIModelCachePath("Llama-3.2-1B-Instruct-q4f16_1-MLC")).toBe("webllm-cache-v2");
   });
 
   it("provides WebLLM a string JSON schema for structured import repair", () => {

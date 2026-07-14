@@ -35,7 +35,7 @@ describe("local AI model proxy", () => {
       }),
       {
         params: Promise.resolve({
-          modelId: "SmolLM2-360M-Instruct-q4f32_1-MLC",
+          modelId: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
           file: ["params_shard_0.bin"],
         }),
       },
@@ -43,7 +43,7 @@ describe("local AI model proxy", () => {
 
     const [upstreamUrl, options] = fetchSpy.mock.calls[0];
     expect(String(upstreamUrl)).toBe(
-      "https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f32_1-MLC/resolve/main/params_shard_0.bin",
+      "https://huggingface.co/mlc-ai/Llama-3.2-1B-Instruct-q4f16_1-MLC/resolve/main/params_shard_0.bin",
     );
     expect(new Headers(options?.headers).get("range")).toBe("bytes=0-2");
     expect(response.status).toBe(206);
@@ -58,18 +58,18 @@ describe("local AI model proxy", () => {
     );
     await GET(
       new Request(
-        "https://resume.test/api/local-ai/models/Qwen3-0.6B-q4f16_1-MLC/resolve/main/webllm-cache-v2-qwen3/tensor-cache.json",
+        "https://resume.test/api/local-ai/models/Qwen3-1.7B-q4f16_1-MLC/resolve/main/webllm-cache-v2-qwen3/tensor-cache.json",
       ),
       {
         params: Promise.resolve({
-          modelId: "Qwen3-0.6B-q4f16_1-MLC",
+          modelId: "Qwen3-1.7B-q4f16_1-MLC",
           file: ["webllm-cache-v2-qwen3", "tensor-cache.json"],
         }),
       },
     );
 
     expect(String(fetchSpy.mock.calls[0][0])).toBe(
-      "https://huggingface.co/mlc-ai/Qwen3-0.6B-q4f16_1-MLC/resolve/main/tensor-cache.json",
+      "https://huggingface.co/mlc-ai/Qwen3-1.7B-q4f16_1-MLC/resolve/main/tensor-cache.json",
     );
   });
 });
