@@ -16,7 +16,7 @@ async function expandAllEntries(page: Page) {
   // Wait for entries to render (e.g. just after an import) before expanding.
   await page.locator("[data-editor-entry]").first().waitFor({ state: "attached", timeout: 3000 }).catch(() => {});
   for (let i = 0; i < 40; i += 1) {
-    const collapsed = page.locator('[data-editor-entry] button[aria-expanded="false"]');
+    const collapsed = page.locator('[data-editor-entry] [data-entry-toggle][aria-expanded="false"]');
     if ((await collapsed.count()) === 0) break;
     await collapsed.first().click();
   }

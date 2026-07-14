@@ -1,0 +1,119 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Check, Loader2, Sparkles, Square, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  friendlyLocalAIError,
+  generateLocalAIText,
+  getLocalAIRuntime,
+  interruptLocalAIGeneration,
+} from "@/lib/local-ai-engine";
+import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite } from "@/lib/local-ai";
+
+export function LocalAIInlineEdit({
+  label,
+  text,
+  onApply,
+  onClose,
+  onOpenSetup,
+}: {
+  label: string;
+  text: string;
+  onApply: (value: string) => void;
+  onClose: () => void;
+  onOpenSetup: () => void;
+}) {
+  const [instruction, setInstruction] = useState("");
+  const [output, setOutput] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = Boolean(getLocalAIRuntime());
+
+  useEffect(() => () => interruptLocalAIGeneration(), []);
+
+  const generate = async () => {
+    if (!instruction.trim() || !text.trim() || generating) return;
+    setGenerating(true);
+    setOutput("");
+    setError(null);
+    try {
+      const result = await generateLocalAIText({
+        messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
+        maxTokens: 260,
+        onToken: setOutput,
+      });
+      setOutput(cleanLocalAIRewrite(result));
+    } catch (generationError) {
+      setError(friendlyLocalAIError(generationError));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const stop = () => {
+    interruptLocalAIGeneration();
+    setGenerating(false);
+  };
+
+  return (
+    <div className="space-y-2 rounded-md border border-violet-200 bg-violet-50/70 p-3 text-foreground shadow-sm dark:border-violet-500/40 dark:bg-violet-950/30" aria-label={`Edit ${label} with local AI`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-950 dark:text-violet-100"><Sparkles className="size-3.5" /> Edit this text locally</p>
+          <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">Describe one small change. Facts are preserved and nothing applies automatically.</p>
+        </div>
+        <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onClose} aria-label="Close AI edit">
+          <X />
+        </Button>
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          value={instruction}
+          onChange={(event) => setInstruction(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              void generate();
+            }
+          }}
+          disabled={generating || !ready}
+          placeholder="e.g. Make this more concise"
+          aria-label={`AI edit instruction for ${label}`}
+          className="bg-background"
+        />
+        {generating ? (
+          <Button type="button" variant="outline" size="sm" onClick={stop}><Square /> Stop</Button>
+        ) : (
+          <Button type="button" size="sm" onClick={() => void generate()} disabled={!ready || !instruction.trim()}><Sparkles /> Edit</Button>
+        )}
+      </div>
+
+      {ready ? (
+        <>
+          {error ? <p role="alert" className="text-xs font-normal text-destructive">{error}</p> : null}
+          {output || generating ? (
+            <div className="space-y-2" aria-live="polite">
+              <div className="max-h-44 overflow-y-auto whitespace-pre-wrap rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed">
+                {output || <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> Editing locally…</span>}
+              </div>
+              {!generating && output.trim() ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" size="sm" onClick={() => onApply(cleanLocalAIRewrite(output))}><Check /> Apply edit</Button>
+                  <span className="text-[11px] font-normal text-muted-foreground">Review facts before applying.</span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-background/80 p-2.5">
+          <p className="text-xs font-normal text-muted-foreground">Load a downloaded model before editing.</p>
+          <Button type="button" variant="outline" size="sm" onClick={onOpenSetup}><Sparkles /> Open setup</Button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1201,6 +1201,21 @@ export function useResumeEditor() {
     }
   };
 
+  const applyAIImportFix = (proposal: ResumeState) => {
+    if (!importReview?.sourceText) {
+      flash("The original import text is no longer available - import the file again first");
+      return false;
+    }
+    const nextState = normalizeResume(proposal);
+    saveRecoveryPoint(`Before fixing the ${importReview.fileName} import with local AI`, state, importReview);
+    setState(nextState);
+    setImportReview(buildImportReview(nextState, importReview.fileName, importReview.sourceText));
+    setRestoredVersionSummary(null);
+    setDraftSourceVersionId(null);
+    flash("Applied local AI import proposal - please review every field");
+    return true;
+  };
+
   const copyPlainText = async () => {
     if (!plainText) {
       flash("Add resume details first");
@@ -1333,6 +1348,7 @@ export function useResumeEditor() {
     addBuiltinSection,
     addEntry,
     applicationCopyOpen,
+    applyAIImportFix,
     autosaveStatus,
     checks,
     clearSavedBrowserData,

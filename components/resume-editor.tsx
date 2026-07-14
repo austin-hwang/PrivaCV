@@ -33,6 +33,7 @@ import {
   Printer,
   RotateCcw,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
   Undo2,
   Upload,
@@ -99,6 +100,23 @@ const LocalAIDialog = dynamic(
   () => import("@/components/resume-editor/local-ai-dialog").then((module) => module.LocalAIDialog),
   { ssr: false },
 );
+const LocalAIInlineEdit = dynamic(
+  () => import("@/components/resume-editor/local-ai-inline-edit").then((module) => module.LocalAIInlineEdit),
+  { ssr: false },
+);
+const LocalAIImportFix = dynamic(
+  () => import("@/components/resume-editor/local-ai-import-fix").then((module) => module.LocalAIImportFix),
+  { ssr: false },
+);
+
+type LocalAIInlineTarget = {
+  id: string;
+  label: string;
+  value: string;
+  field?: "summary" | "skills";
+  section?: string;
+  index?: number;
+};
 
 function ThemeSegment<T extends string>({
   label,
@@ -167,6 +185,8 @@ export function ResumeEditor() {
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [localAIOpen, setLocalAIOpen] = useState(false);
+  const [localAIInlineTarget, setLocalAIInlineTarget] = useState<LocalAIInlineTarget | null>(null);
+  const [localAIImportOpen, setLocalAIImportOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [designAdvancedOpen, setDesignAdvancedOpen] = useState(false);
   // Mirrors the theme so the mobile ⋯ menu item can name the opposite mode.
@@ -176,6 +196,7 @@ export function ResumeEditor() {
     addCustomSection,
     addBuiltinSection,
     addEntry,
+    applyAIImportFix,
     autosaveStatus,
     clearSavedBrowserData,
     checks,
@@ -231,6 +252,25 @@ export function ResumeEditor() {
     versionHistory,
     visibleRestoredVersionSummary,
   } = editor;
+  const toggleLocalAIInlineEdit = (target: LocalAIInlineTarget) => {
+    setLocalAIInlineTarget((current) => current?.id === target.id ? null : target);
+  };
+  const localAIInlinePanel = localAIInlineTarget ? (
+    <LocalAIInlineEdit
+      key={localAIInlineTarget.id}
+      label={localAIInlineTarget.label}
+      text={localAIInlineTarget.value}
+      onClose={() => setLocalAIInlineTarget(null)}
+      onOpenSetup={() => setLocalAIOpen(true)}
+      onApply={(value) => {
+        if (localAIInlineTarget.field) updateField(localAIInlineTarget.field, value);
+        else if (localAIInlineTarget.section !== undefined && localAIInlineTarget.index !== undefined) {
+          updateEntry(localAIInlineTarget.section, localAIInlineTarget.index, "details", value);
+        }
+        setLocalAIInlineTarget(null);
+      }}
+    />
+  ) : null;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
   const blankResumeGuideSteps = useMemo<BlankResumeGuideStep[]>(
     () => [
@@ -1356,6 +1396,11 @@ export function ResumeEditor() {
                   value={state.summary}
                   placeholder="Brief overview of your experience and strengths."
                   onChange={(value) => updateField("summary", value)}
+                  aiAssist={{
+                    expanded: localAIInlineTarget?.id === "summary",
+                    onClick: () => toggleLocalAIInlineEdit({ id: "summary", label: "Professional summary", value: state.summary, field: "summary" }),
+                    content: localAIInlineTarget?.id === "summary" ? localAIInlinePanel : undefined,
+                  }}
                 />
               </FieldGroup>
 
@@ -1445,6 +1490,11 @@ export function ResumeEditor() {
                       value={state.skills}
                       placeholder={"Languages: Python, JavaScript, Go\nTools: Docker, Kubernetes, AWS"}
                       onChange={(value) => updateField("skills", value)}
+                      aiAssist={{
+                        expanded: localAIInlineTarget?.id === "skills",
+                        onClick: () => toggleLocalAIInlineEdit({ id: "skills", label: "Skills", value: state.skills, field: "skills" }),
+                        content: localAIInlineTarget?.id === "skills" ? localAIInlinePanel : undefined,
+                      }}
                     />
                   ) : (
                     <EntryList
@@ -1457,6 +1507,9 @@ export function ResumeEditor() {
                       onReorder={reorderEntry}
                       onRemove={removeEntry}
                       onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
+                      aiTargetId={localAIInlineTarget?.section ? localAIInlineTarget.id : null}
+                      aiPanel={localAIInlinePanel}
+                      onAIEdit={toggleLocalAIInlineEdit}
                     />
                   )}
                 </FieldGroup>
@@ -1524,6 +1577,19 @@ export function ResumeEditor() {
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {importReview ? (
+                  <Button
+                    type="button"
+                    variant={localAIImportOpen ? "secondary" : "outline"}
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={!importReview.sourceText}
+                    onClick={() => setLocalAIImportOpen(true)}
+                    title={importReview.sourceText ? "Remap the original extracted text with local AI" : "Re-import the source file to make its original text available"}
+                  >
+                    <Sparkles /> Fix import with AI
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant={inlineEdit ? "default" : "outline"}
@@ -1564,6 +1630,17 @@ export function ResumeEditor() {
               <div id="design-panel" className="w-full rounded-lg border bg-card p-4 shadow-sm">
                 {designControls}
               </div>
+            ) : null}
+            {localAIImportOpen && importReview?.sourceText ? (
+              <LocalAIImportFix
+                sourceText={importReview.sourceText}
+                currentState={state}
+                onClose={() => setLocalAIImportOpen(false)}
+                onOpenSetup={() => setLocalAIOpen(true)}
+                onApply={(proposal) => {
+                  if (applyAIImportFix(proposal)) setLocalAIImportOpen(false);
+                }}
+              />
             ) : null}
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
               <ResumePreview
@@ -1624,10 +1701,6 @@ export function ResumeEditor() {
       <LocalAIDialog
         open={localAIOpen}
         onOpenChange={setLocalAIOpen}
-        state={state}
-        importSourceText={importReview?.sourceText}
-        onUpdateField={(field, value) => updateField(field, value)}
-        onUpdateEntry={(section, index, value) => updateEntry(section, index, "details", value)}
       />
 
       <VersionHistoryCard

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Sparkles, Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +109,7 @@ export function TextAreaField({
   placeholder,
   onChange,
   spellCheck = true,
+  aiAssist,
 }: {
   id?: string;
   label: string;
@@ -116,10 +117,35 @@ export function TextAreaField({
   placeholder?: string;
   onChange: (value: string) => void;
   spellCheck?: boolean;
+  aiAssist?: {
+    expanded: boolean;
+    onClick: () => void;
+    content?: ReactNode;
+  };
 }) {
   return (
     <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-      <label htmlFor={id}>{label}</label>
+      <div className="flex items-center justify-between gap-2">
+        <label id={id ? `${id}-label` : undefined} htmlFor={id}>{label}</label>
+        {aiAssist ? (
+          <button
+            type="button"
+            onClick={aiAssist.onClick}
+            disabled={!value.trim()}
+            aria-expanded={aiAssist.expanded}
+            aria-label="Open local AI text editor"
+            aria-describedby={id ? `${id}-label` : undefined}
+            data-ai-edit-for={id}
+            title={value.trim() ? "Edit this text with local AI" : "Add text before using local AI"}
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md border text-violet-600 transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 dark:text-violet-300 dark:hover:bg-violet-950/40",
+              aiAssist.expanded && "bg-violet-50 ring-1 ring-violet-200 dark:bg-violet-950/40 dark:ring-violet-500/40",
+            )}
+          >
+            <Sparkles className="size-3.5" />
+          </button>
+        ) : null}
+      </div>
       <Textarea
         id={id}
         value={value}
@@ -127,6 +153,7 @@ export function TextAreaField({
         spellCheck={spellCheck}
         onChange={(event) => onChange(event.target.value)}
       />
+      {aiAssist?.expanded ? aiAssist.content : null}
     </div>
   );
 }
@@ -141,6 +168,9 @@ export function EntryList({
   onReorder,
   onRemove,
   onSwapTitleAndSubtitle,
+  aiTargetId,
+  aiPanel,
+  onAIEdit,
 }: {
   section: string;
   sectionLabel: string;
@@ -152,6 +182,9 @@ export function EntryList({
   onReorder: (section: string, index: number, target: number) => void;
   onRemove: (section: string, index: number) => void;
   onSwapTitleAndSubtitle: (index: number) => void;
+  aiTargetId?: string | null;
+  aiPanel?: ReactNode;
+  onAIEdit?: (target: { id: string; label: string; value: string; section: string; index: number }) => void;
 }) {
   const schema = isBuiltinSection(section) && section !== "skills"
     ? ENTRY_SCHEMA[section]
@@ -226,6 +259,7 @@ export function EntryList({
             <div className="flex items-center gap-1 pr-1.5 hover:bg-muted/30">
               <button
                 type="button"
+                data-entry-toggle=""
                 aria-expanded={open}
                 onClick={() => toggle(index, open)}
                 className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
@@ -326,6 +360,17 @@ export function EntryList({
                   label={schema.details}
                   value={entry.details}
                   onChange={(value) => onUpdate(section, index, "details", value)}
+                  aiAssist={onAIEdit ? {
+                    expanded: aiTargetId === `${section}:${index}`,
+                    onClick: () => onAIEdit({
+                      id: `${section}:${index}`,
+                      label: `${sectionLabel} · ${entry.title || entry.subtitle || `Entry ${index + 1}`} · ${schema.details}`,
+                      value: entry.details,
+                      section,
+                      index,
+                    }),
+                    content: aiTargetId === `${section}:${index}` ? aiPanel : undefined,
+                  } : undefined}
                 />
                 {evidence?.bulletCount ? (
                   <div
