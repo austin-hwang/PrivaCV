@@ -870,6 +870,12 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   const preview = page.locator(".resume-sheet");
   await expect(preview.getByText("Certifications", { exact: true })).toBeVisible();
   await expect(preview.getByRole("list").filter({ hasText: "AWS Certified Developer" })).toContainText("Certified Kubernetes Administrator");
+
+  await customSection.getByRole("button", { name: "Open local AI text editor" }).click();
+  await expect(customSection.getByLabel(/Edit Certifications .* with local AI/i)).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(customSection.getByRole("button", { name: "Open local AI text editor" })).toHaveCount(0);
+  await expect(customSection.getByLabel(/Edit Certifications .* with local AI/i)).toHaveCount(0);
 });
 
 test("edits resume text inline on the sheet and toggles the mode", async ({ page }) => {
@@ -1782,12 +1788,14 @@ test("keeps mobile editing focused while keeping utilities in the tools drawer",
   // Editing stays front-and-center; review and utility tools live one tap away.
   await expect(page.getByLabel("Full Name")).toBeVisible();
   await expect(page.getByRole("button", { name: "Role focus" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Open local AI text editor" })).toHaveCount(0);
 
   await openTools(page);
   const tools = page.getByRole("dialog", { name: /^tools$/i });
   await expect(tools).toBeVisible();
   await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
-  await expect(tools.getByRole("button", { name: /local ai/i })).toBeVisible();
+  await expect(tools.getByRole("button", { name: /local ai/i })).toHaveCount(0);
+  await expect(tools.getByText("Resume checks run in this browser.")).toBeVisible();
   await expect(tools.getByRole("button", { name: /switch to (?:light|night) mode/i })).toBeVisible();
   await expect(tools.getByRole("button", { name: /keyboard shortcuts/i })).toBeVisible();
   await expect(tools.getByRole("link", { name: /feedback/i })).toBeVisible();

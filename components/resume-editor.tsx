@@ -212,11 +212,27 @@ export function ResumeEditor() {
   const [localAIOpen, setLocalAIOpen] = useState(false);
   const [localAIInlineTarget, setLocalAIInlineTarget] = useState<LocalAIInlineTarget | null>(null);
   const [localAIImportOpen, setLocalAIImportOpen] = useState(false);
+  const [localAIEnabled, setLocalAIEnabled] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [designAdvancedOpen, setDesignAdvancedOpen] = useState(false);
   // Mirrors the theme so the Tools drawer can name the opposite mode.
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 640px)");
+    const syncLocalAIAvailability = () => {
+      const enabled = desktopQuery.matches;
+      setLocalAIEnabled(enabled);
+      if (!enabled) {
+        setLocalAIOpen(false);
+        setLocalAIInlineTarget(null);
+        setLocalAIImportOpen(false);
+      }
+    };
+    syncLocalAIAvailability();
+    desktopQuery.addEventListener("change", syncLocalAIAvailability);
+    return () => desktopQuery.removeEventListener("change", syncLocalAIAvailability);
+  }, []);
   const {
     addCustomSection,
     addBuiltinSection,
@@ -303,7 +319,6 @@ export function ResumeEditor() {
       key={localAIInlineTarget.id}
       label={localAIInlineTarget.label}
       text={localAIInlineTarget.value}
-      context={resumePlainText(state).replace(localAIInlineTarget.value, "").trim()}
       onClose={() => setLocalAIInlineTarget(null)}
       onOpenSetup={() => setLocalAIOpen(true)}
       onApply={(value) => {
@@ -840,7 +855,7 @@ export function ResumeEditor() {
 
   return (
     <>
-      <LocalAIBackgroundLoader />
+      {localAIEnabled ? <LocalAIBackgroundLoader /> : null}
       <header className="app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div className="flex min-w-0 items-center gap-2">
@@ -1275,11 +1290,11 @@ export function ResumeEditor() {
                   value={state.summary}
                   placeholder="Brief overview of your experience and strengths."
                   onChange={(value) => updateField("summary", value)}
-                  aiAssist={{
+                  aiAssist={localAIEnabled ? {
                     expanded: localAIInlineTarget?.id === "summary",
                     onClick: () => toggleLocalAIInlineEdit({ id: "summary", label: "Professional summary", value: state.summary, field: "summary" }),
                     content: localAIInlineTarget?.id === "summary" ? localAIInlinePanel : undefined,
-                  }}
+                  } : undefined}
                 />
               </FieldGroup>
 
@@ -1306,7 +1321,7 @@ export function ResumeEditor() {
                 const sectionCount = sectionItemCount(state, section);
                 const sectionCollapsed = collapsedGroups.has(section);
                 const sectionTextAITargetId = `section-text:${section}`;
-                const sectionTextAIAssist = {
+                const sectionTextAIAssist = localAIEnabled ? {
                   expanded: localAIInlineTarget?.id === sectionTextAITargetId,
                   onClick: () => toggleLocalAIInlineEdit({
                     id: sectionTextAITargetId,
@@ -1315,7 +1330,7 @@ export function ResumeEditor() {
                     section,
                   }),
                   content: localAIInlineTarget?.id === sectionTextAITargetId ? localAIInlinePanel : undefined,
-                };
+                } : undefined;
                 const sectionIsActive =
                   activeTarget === `section-title-${section}` ||
                   activeTarget === `field-${section}` ||
@@ -1572,9 +1587,9 @@ export function ResumeEditor() {
                       onReorder={reorderEntry}
                       onRemove={removeEntry}
                       onSwapTitleAndSubtitle={swapExperienceTitleAndCompany}
-                      aiTargetId={localAIInlineTarget?.section ? localAIInlineTarget.id : null}
+                      aiTargetId={localAIEnabled && localAIInlineTarget?.section ? localAIInlineTarget.id : null}
                       aiPanel={localAIInlinePanel}
-                      onAIEdit={toggleLocalAIInlineEdit}
+                      onAIEdit={localAIEnabled ? toggleLocalAIInlineEdit : undefined}
                       onEntryCollapse={() => setActiveTarget(null)}
                     />
                   )}
@@ -1837,6 +1852,7 @@ export function ResumeEditor() {
         onOpenChange={setToolsOpen}
         onFocusTarget={focusEditorTarget}
         onStartChecksReview={startChecksTour}
+        localAIEnabled={localAIEnabled}
         onOpenLocalAI={() => {
           setToolsOpen(false);
           setLocalAIOpen(true);
@@ -1850,10 +1866,12 @@ export function ResumeEditor() {
         feedbackUrl={FEEDBACK_URL}
       />
 
-      <LocalAIDialog
-        open={localAIOpen}
-        onOpenChange={setLocalAIOpen}
-      />
+      {localAIEnabled ? (
+        <LocalAIDialog
+          open={localAIOpen}
+          onOpenChange={setLocalAIOpen}
+        />
+      ) : null}
 
       <VersionHistoryCard
         open={versionsOpen}

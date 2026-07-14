@@ -111,22 +111,18 @@ describe("local AI helpers", () => {
       label: "Professional summary",
       text: `start-${"x".repeat(6_000)}-end`,
       instruction: `shorten-${"y".repeat(1_000)}`,
-      context: `context-start-${"z".repeat(3_000)}-context-end`,
     });
     const system = String(messages[0].content);
     const user = String(messages[1].content);
 
     expect(system).toMatch(/change only what the requested edit requires/i);
     expect(system).toMatch(/never invent skills, numbers, employers, dates, or outcomes/i);
-    expect(system).toMatch(/never copy or introduce a fact from the surrounding context/i);
     expect(system).toMatch(/start immediately with the replacement/i);
     expect(user).toMatch(/do not say what you changed/i);
     expect(user).toMatch(/do not end with an unfinished sentence/i);
-    expect(user).toContain("context-start-");
-    expect(user).toContain("-context-end");
     expect(user).toContain("start-");
     expect(user).toContain("-end");
-    expect(user.length).toBeLessThan(6_600);
+    expect(user.length).toBeLessThan(4_800);
   });
 
   it("builds a bounded structured import repair request", () => {

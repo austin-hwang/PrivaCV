@@ -23,14 +23,12 @@ const INLINE_AI_PRESETS = [
 export function LocalAIInlineEdit({
   label,
   text,
-  context,
   onApply,
   onClose,
   onOpenSetup,
 }: {
   label: string;
   text: string;
-  context?: string;
   onApply: (value: string) => void;
   onClose: () => void;
   onOpenSetup: () => void;
@@ -50,7 +48,7 @@ export function LocalAIInlineEdit({
     setError(null);
     try {
       const result = await generateLocalAIText({
-        messages: buildPromptedLocalRewriteMessages({ label, text, instruction, context }),
+        messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
         maxTokens: localAIRewriteMaxTokens(text),
         onToken: setOutput,
       });
@@ -73,7 +71,7 @@ export function LocalAIInlineEdit({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-950 dark:text-violet-100"><Sparkles className="size-3.5" /> Edit this text locally</p>
-          <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">Describe one small change. Surrounding resume text helps match tone; facts stay constrained to this field.</p>
+          <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">Describe one small change. Facts are preserved and nothing applies automatically.</p>
         </div>
         <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onClose} aria-label="Close AI edit">
           <X />

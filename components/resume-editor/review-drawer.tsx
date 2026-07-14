@@ -14,6 +14,7 @@ export function ReviewDrawer({
   onFocusTarget,
   onStartChecksReview,
   onOpenLocalAI,
+  localAIEnabled,
   onOpenShortcuts,
   isDarkTheme,
   onToggleTheme,
@@ -25,6 +26,7 @@ export function ReviewDrawer({
   onFocusTarget: (targetId: string) => void;
   onStartChecksReview: () => void;
   onOpenLocalAI: () => void;
+  localAIEnabled: boolean;
   onOpenShortcuts: () => void;
   isDarkTheme: boolean;
   onToggleTheme: () => void;
@@ -65,13 +67,15 @@ export function ReviewDrawer({
           <section id="tool-actions" aria-label="More tools" className="scroll-mt-4">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">More tools</p>
             <div className="grid gap-2">
-              <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenLocalAI}>
-                <Cpu className="text-violet-600 dark:text-violet-300" />
-                <span>
-                  <span className="block text-sm font-semibold">Local AI</span>
-                  <span className="block text-xs font-normal text-muted-foreground">Download or manage private on-device models.</span>
-                </span>
-              </Button>
+              {localAIEnabled ? (
+                <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenLocalAI}>
+                  <Cpu className="text-violet-600 dark:text-violet-300" />
+                  <span>
+                    <span className="block text-sm font-semibold">Local AI</span>
+                    <span className="block text-xs font-normal text-muted-foreground">Download or manage private on-device models.</span>
+                  </span>
+                </Button>
+              ) : null}
               <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onToggleTheme}>
                 {isDarkTheme ? <Sun /> : <Moon />}
                 <span>
@@ -156,7 +160,9 @@ export function ReviewDrawer({
           ) : null}
         </div>
 
-        <p className="border-t px-4 py-3 text-xs leading-snug text-muted-foreground">Resume checks and Local AI run in this browser.</p>
+        <p className="border-t px-4 py-3 text-xs leading-snug text-muted-foreground">
+          {localAIEnabled ? "Resume checks and Local AI run in this browser." : "Resume checks run in this browser."}
+        </p>
       </SheetContent>
     </Sheet>
   );
