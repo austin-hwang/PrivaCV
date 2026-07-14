@@ -14,7 +14,6 @@ import {
   ChevronsUpDown,
   ClipboardCopy,
   ClipboardPaste,
-  Cpu,
   Download,
   Eye,
   EyeOff,
@@ -23,8 +22,6 @@ import {
   GripVertical,
   Keyboard,
   Loader2,
-  MessageSquarePlus,
-  Moon,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
@@ -44,7 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
-import { ThemeToggle, toggleTheme } from "@/components/theme-toggle";
+import { toggleTheme } from "@/components/theme-toggle";
 import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
 import { Input } from "@/components/ui/input";
 import { EntryList, FieldGroup, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
@@ -201,7 +198,7 @@ export function ResumeEditor() {
   const [localAIImportOpen, setLocalAIImportOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [designAdvancedOpen, setDesignAdvancedOpen] = useState(false);
-  // Mirrors the theme so the mobile ⋯ menu item can name the opposite mode.
+  // Mirrors the theme so the Tools drawer can name the opposite mode.
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
   const {
@@ -680,16 +677,18 @@ export function ResumeEditor() {
       ]
     : [];
 
-  const checksTourSteps: GuidedReviewStep[] = checks.map((check) => ({
-    id: check.id,
-    targetId: check.targetId,
-    eyebrow: "Resume check",
-    title: check.label,
-    description: check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
-    tone: (check.advisory ? "info" : check.ok ? "ok" : "warn") as GuidedReviewStep["tone"],
-    done: check.ok,
-    action: check.ok && !check.advisory ? undefined : { label: check.actionLabel, run: () => focusEditorTarget(check.targetId) },
-  } satisfies GuidedReviewStep));
+  const checksTourSteps: GuidedReviewStep[] = checks
+    .filter((check) => !check.ok || check.advisory)
+    .map((check) => ({
+      id: check.id,
+      targetId: check.targetId,
+      eyebrow: "Resume check",
+      title: check.label,
+      description: check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
+      tone: (check.advisory ? "info" : check.ok ? "ok" : "warn") as GuidedReviewStep["tone"],
+      done: check.ok && !check.advisory,
+      action: check.ok && !check.advisory ? undefined : { label: check.actionLabel, run: () => focusEditorTarget(check.targetId) },
+    } satisfies GuidedReviewStep));
 
   const startImportTour = () => {
     if (!importReview) return;
@@ -827,49 +826,26 @@ export function ResumeEditor() {
             </Badge>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {/* Feedback + theme toggle are desktop-only in the bar; on mobile
-                they live in the ⋯ menu so the title never gets crowded out. */}
-            <span className="hidden sm:inline-flex">
-              <ThemeToggle />
-            </span>
-            {FEEDBACK_URL ? (
-              <Button type="button" variant="outline" asChild className="hidden gap-2 sm:inline-flex">
-                <a href={FEEDBACK_URL} target="_blank" rel="noreferrer" aria-label="Share feedback or vote on features (opens in a new tab)">
-                  <MessageSquarePlus />
-                  <span className="hidden sm:inline">Feedback</span>
-                </a>
-              </Button>
-            ) : null}
             <Button
               type="button"
               variant="outline"
-              onClick={() => setLocalAIOpen(true)}
-              className="hidden gap-2 xl:inline-flex"
+              onClick={() => setToolsOpen(true)}
+              aria-label="Open tools"
+              className="gap-2"
             >
-              <Cpu /> Local AI
+              <SlidersHorizontal />
+              <span className="hidden sm:inline">Tools</span>
+              {hasContent ? (
+                <span
+                  className={cn(
+                    "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
+                    checksReady ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300",
+                  )}
+                >
+                  {passedChecks}/{checks.length}
+                </span>
+              ) : null}
             </Button>
-            {hasContent || versionHistory.length ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setToolsOpen(true)}
-                aria-label="Open review tools"
-                className="gap-2"
-              >
-                <SlidersHorizontal />
-                <span className="hidden sm:inline">Tools</span>
-                {hasContent ? (
-                  <span
-                    className={cn(
-                      "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
-                      checksReady ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300",
-                    )}
-                  >
-                    {passedChecks}/{checks.length}
-                  </span>
-                ) : null}
-              </Button>
-            ) : null}
             {hasContent || versionHistory.length ? (
               <Button
                 type="button"
@@ -929,14 +905,6 @@ export function ResumeEditor() {
                 </Button>
               </MenuTrigger>
               <MenuContent>
-                <MenuItem className="sm:hidden" onSelect={() => setIsDarkTheme(toggleTheme())}>
-                  <Moon /> {isDarkTheme ? "Switch to light mode" : "Switch to night mode"}
-                </MenuItem>
-                {FEEDBACK_URL ? (
-                  <MenuItem className="sm:hidden" onSelect={() => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer")}>
-                    <MessageSquarePlus /> Feedback
-                  </MenuItem>
-                ) : null}
                 <MenuLabel>Import</MenuLabel>
                 <MenuItem onSelect={() => setTextImportOpen(true)}>
                   <ClipboardPaste /> Paste text
@@ -946,11 +914,6 @@ export function ResumeEditor() {
                 </MenuItem>
                 <MenuItem onSelect={() => jsonInputRef.current?.click()}>
                   <FileJson /> Open JSON
-                </MenuItem>
-                <MenuSeparator />
-                <MenuLabel>Private assistance</MenuLabel>
-                <MenuItem onSelect={() => setLocalAIOpen(true)}>
-                  <Cpu /> Local AI (WebLLM)
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Export & files</MenuLabel>
@@ -988,7 +951,7 @@ export function ResumeEditor() {
                   onSelect={() => {
                     if (
                       window.confirm(
-                        "Delete this resume, every saved local checkpoint, and all downloaded Local AI model files in this browser? This also removes Local AI settings and import-review excerpts. Save JSON first if you want to keep a copy.",
+                        "Delete all resume data, saved versions, imported text, Local AI settings, and downloaded model files from this browser? This cannot be undone. Save JSON first if you want to keep a copy.",
                       )
                     ) {
                       setBlankWorkspaceOpen(false);
@@ -997,7 +960,7 @@ export function ResumeEditor() {
                     }
                   }}
                 >
-                  <Trash2 /> Delete saved browser data
+                  <Trash2 /> Delete all data
                 </MenuItem>
               </MenuContent>
             </Menu>
@@ -1791,6 +1754,17 @@ export function ResumeEditor() {
         onOpenChange={setToolsOpen}
         onFocusTarget={focusEditorTarget}
         onStartChecksReview={startChecksTour}
+        onOpenLocalAI={() => {
+          setToolsOpen(false);
+          setLocalAIOpen(true);
+        }}
+        onOpenShortcuts={() => {
+          setToolsOpen(false);
+          setShortcutsOpen(true);
+        }}
+        isDarkTheme={isDarkTheme}
+        onToggleTheme={() => setIsDarkTheme(toggleTheme())}
+        feedbackUrl={FEEDBACK_URL}
       />
 
       <LocalAIDialog

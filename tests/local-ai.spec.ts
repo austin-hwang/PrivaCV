@@ -18,7 +18,8 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Local AI", exact: true }).click();
+  await page.getByRole("button", { name: /open tools/i }).click();
+  await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /local ai/i }).click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("Nothing downloads automatically");

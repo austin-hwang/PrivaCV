@@ -960,6 +960,24 @@ describe("resume helpers", () => {
     });
   });
 
+  it("points a long-bullet check at the entry containing the long bullet", () => {
+    const state = sampleState();
+    state.experience = [
+      { ...state.experience[0], details: "Shipped a reliable service." },
+      {
+        title: "Engineer",
+        subtitle: "Analytical Engines",
+        meta: "2020–2022",
+        details: Array.from({ length: 31 }, (_, index) => `word${index}`).join(" "),
+      },
+    ];
+
+    expect(buildResumeChecks(state, 1).find((check) => check.id === "bullets")).toMatchObject({
+      ok: false,
+      targetId: "field-experience-1-details",
+    });
+  });
+
   it("keeps a missing summary as an optional prompt instead of an export issue", () => {
     const state = sampleState();
     state.summary = "";
@@ -1056,11 +1074,32 @@ describe("resume helpers", () => {
     const density = checks.find((check) => check.id === "density");
 
     expect(density).toMatchObject({
+      label: "Content amount",
       ok: false,
       actionLabel: "Add proof",
       targetId: "field-experience-0-details",
     });
     expect(density?.guidance).toContain("proof");
+  });
+
+  it("points crowded-content guidance at the longest section", () => {
+    const state = sampleState();
+    state.experience = [
+      { ...state.experience[0], details: "Shipped a reliable service." },
+      {
+        title: "Engineer",
+        subtitle: "Analytical Engines",
+        meta: "2020–2022",
+        details: "detail ".repeat(700),
+      },
+    ];
+
+    expect(buildResumeChecks(state, 2).find((check) => check.id === "density")).toMatchObject({
+      label: "Content amount",
+      ok: false,
+      actionLabel: "Trim longest section",
+      targetId: "field-experience-1-details",
+    });
   });
 
   it("fingerprints export-relevant resume changes", () => {

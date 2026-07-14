@@ -138,7 +138,7 @@ export function MenuContent({ children, className, align = "end" }: { children: 
         }
       }}
       className={cn(
-        "absolute top-[calc(100%+0.375rem)] z-50 min-w-52 overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg",
+        "absolute top-[calc(100%+0.375rem)] z-50 max-h-[calc(100dvh-5rem)] min-w-52 overflow-y-auto overscroll-contain rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg",
         align === "end" ? "right-0" : "left-0",
         className,
       )}

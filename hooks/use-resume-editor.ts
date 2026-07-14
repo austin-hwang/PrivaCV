@@ -1015,7 +1015,7 @@ export function useResumeEditor() {
     setUndoableRemoval(null);
     setExternalDraft(null);
     setDraftSourceVersionId(null);
-    flash("Deleted saved browser data");
+    flash("Deleted all data");
   };
 
   const dismissRecoveryPoint = () => {

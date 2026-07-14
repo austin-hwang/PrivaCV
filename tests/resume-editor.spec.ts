@@ -29,9 +29,9 @@ async function loadSample(page: Page) {
 }
 
 async function openTools(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /review tools/i });
+  const dialog = page.getByRole("dialog", { name: /^tools$/i });
   if (!(await dialog.isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /open review tools/i }).click();
+    await page.getByRole("button", { name: /open tools/i }).click();
     await expect(dialog).toBeVisible();
   }
 }
@@ -380,7 +380,7 @@ test("keeps secondary toolbar actions usable from the keyboard", async ({ page }
 
   await expect(page.getByRole("menuitem", { name: /^paste text$/i })).toBeFocused();
   await page.keyboard.press("End");
-  await expect(page.getByRole("menuitem", { name: /delete saved browser data/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();
   await page.keyboard.press("ArrowUp");
   await expect(page.getByRole("menuitem", { name: /^clear$/i })).toBeFocused();
   await page.keyboard.press("Escape");
@@ -546,7 +546,7 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
 
   await openTools(page);
-  await expect(page.getByText("Resume Check")).toBeVisible();
+  await expect(page.getByText("Resume Check", { exact: true })).toBeVisible();
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /review text/i }).click();
@@ -910,7 +910,7 @@ test("expands a collapsed section when a jump targets a field inside it", async 
 
   // Collapse everything, then jump from the direct, actionable Resume Check.
   await page.getByRole("button", { name: /collapse all/i }).click();
-  const drawer = page.getByRole("dialog", { name: /review tools/i });
+  const drawer = page.getByRole("dialog", { name: /^tools$/i });
   await drawer.getByRole("button", { name: /fix contact/i }).click();
 
   // The containing group re-expands and its field is focused.
@@ -1074,10 +1074,10 @@ test("walks resume checks with a guided highlight tour from the tools drawer", a
   await page.getByLabel("Phone").fill("");
 
   await openTools(page);
-  await page.getByRole("button", { name: /walk through checks/i }).click();
+  await page.getByRole("button", { name: /review \d+ suggestions?/i }).click();
 
   // The drawer gives way to the guided tour, highlighting one check at a time.
-  await expect(page.getByRole("dialog", { name: /review tools/i })).toBeHidden();
+  await expect(page.getByRole("dialog", { name: /^tools$/i })).toBeHidden();
   const tour = page.getByRole("dialog", { name: /guided review/i });
   await expect(tour).toBeVisible();
   await expect(tour.getByText(/Step 1 of/)).toBeVisible();
@@ -1655,7 +1655,7 @@ test("guides users to add measurable evidence without requiring every bullet to 
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
-test("keeps mobile editing focused while leaving review tools one tap away", async ({ browser }) => {
+test("keeps mobile editing focused while keeping utilities in the tools drawer", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -1664,18 +1664,28 @@ test("keeps mobile editing focused while leaving review tools one tap away", asy
   await page.reload();
   await loadSample(page);
 
-  // Editing stays front-and-center; review tools live one tap away in the drawer.
+  // Editing stays front-and-center; review and utility tools live one tap away.
   await expect(page.getByLabel("Full Name")).toBeVisible();
   await expect(page.getByRole("button", { name: "Role focus" })).toBeHidden();
 
   await openTools(page);
-  await expect(page.getByRole("dialog", { name: /review tools/i })).toBeVisible();
+  const tools = page.getByRole("dialog", { name: /^tools$/i });
+  await expect(tools).toBeVisible();
   await expect(page.getByText("Ready to export", { exact: true })).toBeVisible();
+  await expect(tools.getByRole("button", { name: /local ai/i })).toBeVisible();
+  await expect(tools.getByRole("button", { name: /switch to (?:light|night) mode/i })).toBeVisible();
+  await expect(tools.getByRole("button", { name: /keyboard shortcuts/i })).toBeVisible();
+  await expect(tools.getByRole("link", { name: /feedback/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Role focus" })).toBeHidden();
 
   await page.getByRole("button", { name: /close tools/i }).click();
-  await expect(page.getByRole("dialog", { name: /review tools/i })).toBeHidden();
+  await expect(tools).toBeHidden();
   await expect(page.getByLabel("Full Name")).toBeVisible();
+
+  await openMenu(page);
+  await expect(page.getByRole("menuitem", { name: /local ai/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /feedback/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /switch to (?:light|night) mode/i })).toHaveCount(0);
 
   await context.close();
 });
@@ -2022,7 +2032,7 @@ test("restores the previous resume after clearing", async ({ page }) => {
   await expect(page.getByText("Previous resume available")).toBeHidden();
 });
 
-test("deletes every saved resume record from a shared browser", async ({ page }) => {
+test("deletes all data from a shared browser", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -2044,10 +2054,10 @@ test("deletes every saved resume record from a shared browser", async ({ page })
 
   await openMenu(page);
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("menuitem", { name: /delete saved browser data/i }).click();
+  await page.getByRole("menuitem", { name: /delete all data/i }).click();
 
   await expect(page.getByText("I have a resume")).toBeVisible();
-  await expect(page.getByText("Deleted saved browser data")).toBeVisible();
+  await expect(page.getByText("Deleted all data")).toBeVisible();
   await expect.poll(() => page.evaluate(() => ({
     draft: localStorage.getItem("resume-editor-data-v2"),
     history: localStorage.getItem("resume-editor-version-history-v1"),

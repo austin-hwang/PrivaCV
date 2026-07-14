@@ -556,6 +556,23 @@ export function buildResumeChecks(
 
   const bullets = allBullets(state);
   const longBullets = bullets.filter((bullet) => wordCount(bullet) > 28);
+  const detailedEntries = visibleSectionOrder(state)
+    .filter((section) => section !== "skills")
+    .flatMap((section) =>
+      getSectionEntries(state, section).map((entry, index) => ({
+        section,
+        index,
+        details: entry.details,
+      })),
+    );
+  const firstLongBulletEntry = detailedEntries.find(({ details }) =>
+    bulletsFrom(details).some((bullet) => wordCount(bullet) > 28),
+  );
+  const longestDetailedEntry = detailedEntries.reduce<(typeof detailedEntries)[number] | null>(
+    (longest, candidate) =>
+      wordCount(candidate.details) > wordCount(longest?.details ?? "") ? candidate : longest,
+    null,
+  );
   const evidence = evidenceBullets(state);
   const measuredEvidence = evidence.filter(({ bullet }) => hasMeasuredEvidence(bullet));
   const evidenceIsBalanced = !evidence.length || measuredEvidence.length / evidence.length >= 0.5;
@@ -571,6 +588,12 @@ export function buildResumeChecks(
     firstBulletTarget[1] >= 0
       ? `field-${firstBulletTarget[0]}-${firstBulletTarget[1]}-details`
       : "add-experience-entry";
+  const longBulletTargetId = firstLongBulletEntry
+    ? `field-${firstLongBulletEntry.section}-${firstLongBulletEntry.index}-details`
+    : firstBulletTargetId;
+  const crowdedContentTargetId = longestDetailedEntry
+    ? `field-${longestDetailedEntry.section}-${longestDetailedEntry.index}-details`
+    : firstBulletTargetId;
   const oversizedEntryLabel = oversizedEntry
     ? `${getSectionTitle(state, oversizedEntry.section).trim() || "Untitled section"} entry ${oversizedEntry.index + 1}`
     : "";
@@ -618,7 +641,7 @@ export function buildResumeChecks(
           : "Add achievement bullets",
       guidance: "Short bullets are easier to skim and make measurable results stand out.",
       actionLabel: bullets.length ? "Tighten bullets" : "Add bullets",
-      targetId: firstBulletTargetId,
+      targetId: longBullets.length ? longBulletTargetId : firstBulletTargetId,
     },
     {
       id: "entry-length",
@@ -668,7 +691,7 @@ export function buildResumeChecks(
     },
     {
       id: "density",
-      label: "Density",
+      label: "Content amount",
       ok: totalWords >= 90 && totalWords <= 650,
       detail:
         totalWords < 90
@@ -682,8 +705,8 @@ export function buildResumeChecks(
           : totalWords > 650
             ? "Trim lower-impact details so the page does not look crowded before anyone reads it."
             : "Balanced substance gives the reader enough proof without crowding the page.",
-      actionLabel: totalWords < 90 ? "Add proof" : "Trim details",
-      targetId: firstBulletTargetId,
+      actionLabel: totalWords < 90 ? "Add proof" : "Trim longest section",
+      targetId: totalWords > 650 ? crowdedContentTargetId : firstBulletTargetId,
     },
   ];
 }
