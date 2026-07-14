@@ -127,7 +127,7 @@ export function StartPanel({
 
         <div className="flex flex-wrap gap-2" aria-label="Privacy and export benefits">
           <Badge variant="secondary">No account</Badge>
-          <Badge variant={storageIssue ? "outline" : "secondary"} className={storageIssue ? "border-amber-300 bg-amber-50 text-amber-950" : undefined}>
+          <Badge variant={storageIssue ? "outline" : "secondary"} className={storageIssue ? "border-warning/40 bg-warning/10 text-foreground" : undefined}>
             {storageIssue ? "Autosave unavailable" : "Local autosave"}
           </Badge>
           <Badge variant="secondary">Free PDF export</Badge>

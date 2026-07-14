@@ -178,7 +178,7 @@ function ThemeSegment<T extends string>({
 // Applied to whichever editor group holds the field currently being edited, so
 // the section you're working in is highlighted (header and summary included).
 const ACTIVE_SECTION_CLASS =
-  "rounded-md bg-sky-50/70 px-3 pt-3 ring-1 ring-sky-200 dark:bg-sky-950/40 dark:ring-sky-500/40";
+  "rounded-md bg-brand-soft/10 px-3 pt-3 ring-1 ring-brand/40";
 const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-phone", "field-location", "field-website"];
 
 export function ResumeEditor() {
@@ -865,7 +865,7 @@ export function ResumeEditor() {
                 <span
                   className={cn(
                     "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
-                    checksReady ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300",
+                    checksReady ? "bg-success/15 text-success" : "bg-warning/15 text-foreground",
                   )}
                 >
                   {passedChecks}/{checks.length}
@@ -901,9 +901,9 @@ export function ResumeEditor() {
                 {autosaveStatus === "saving" && !storageIssue ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
                 ) : storageIssue || autosaveStatus === "conflict" ? (
-                  <AlertCircle className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  <AlertCircle className="text-warning" aria-hidden="true" />
                 ) : (
-                  <Check className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                  <Check className="text-success" aria-hidden="true" />
                 )}
                 <span className="hidden sm:inline">Versions</span>
                 {versionHistory.length ? (
@@ -1060,12 +1060,12 @@ export function ResumeEditor() {
           ) : null}
 
           {storageIssue ? (
-            <Alert className="mb-6 border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-950/40">
-              <AlertCircle className="h-4 w-4 text-amber-900 dark:text-amber-300" />
-              <AlertTitle className="text-amber-950 dark:text-amber-100">Browser autosave is unavailable</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3 text-amber-950 dark:text-amber-100/90 sm:flex-row sm:items-center sm:justify-between">
+            <Alert className="mb-6 border-warning/40 bg-warning/10">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              <AlertTitle>Browser autosave is unavailable</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <span>Your edits remain open here, but may not survive a refresh. Save a JSON copy before closing this tab.</span>
-                <Button type="button" variant="outline" size="sm" className="w-fit border-amber-400 bg-background dark:border-amber-500/50" onClick={saveJson}>
+                <Button type="button" variant="outline" size="sm" className="w-fit border-warning/50 bg-background" onClick={saveJson}>
                   <Download /> Save JSON copy
                 </Button>
               </AlertDescription>
@@ -1073,19 +1073,19 @@ export function ResumeEditor() {
           ) : null}
 
           {externalDraft ? (
-            <Alert className="mb-6 border-sky-300 bg-sky-50/70 dark:border-sky-500/40 dark:bg-sky-950/40">
-              <AlertCircle className="h-4 w-4 text-sky-900 dark:text-sky-300" />
-              <AlertTitle className="text-sky-950 dark:text-sky-100">A different resume was saved in another tab</AlertTitle>
-              <AlertDescription className="grid gap-3 text-sky-950 dark:text-sky-100/90">
+            <Alert className="mb-6 border-brand/40 bg-brand/10">
+              <AlertCircle className="h-4 w-4 text-brand" />
+              <AlertTitle>A different resume was saved in another tab</AlertTitle>
+              <AlertDescription className="grid gap-3">
                 <span>Autosave is paused here so this tab does not overwrite the other draft. Review the changed areas, then choose which one to keep. If it was imported, its matching review checklist comes with it.</span>
                 {externalDraftChanges.length ? (
                   <ChangeSummaryGrid changes={externalDraftChanges} beforeLabel="This tab" afterLabel="Saved tab" />
                 ) : null}
                 <span className="flex shrink-0 flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background dark:border-sky-500/50" onClick={useExternalDraft}>
+                  <Button type="button" variant="outline" size="sm" className="border-brand/40 bg-background" onClick={useExternalDraft}>
                     Use saved draft
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="border-sky-300 bg-background dark:border-sky-500/50" onClick={keepCurrentDraft}>
+                  <Button type="button" variant="outline" size="sm" className="border-brand/40 bg-background" onClick={keepCurrentDraft}>
                     Keep this draft
                   </Button>
                 </span>
@@ -1094,7 +1094,7 @@ export function ResumeEditor() {
           ) : null}
 
           {recoveryPoint ? (
-            <Card className="mb-6 border-sky-200 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/40">
+            <Card className="mb-6 border-brand/30 bg-brand/10">
               <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle className="text-base">Previous resume available</CardTitle>
@@ -1115,7 +1115,7 @@ export function ResumeEditor() {
           ) : null}
 
           {importReview ? (
-            <Card id="import-review-panel" className="mb-6 border-amber-200 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-950/40">
+            <Card id="import-review-panel" className="mb-6 border-warning/30 bg-warning/10">
               <CardHeader className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -1124,12 +1124,12 @@ export function ResumeEditor() {
                       Imported from {importReview.fileName}. Check each field and confirm.
                     </CardDescription>
                   </div>
-                  <Badge variant="outline" className="shrink-0 border-amber-300 bg-background tabular-nums text-amber-950 dark:border-amber-500/50 dark:text-amber-200">
+                  <Badge variant="outline" className="shrink-0 border-warning/40 bg-background tabular-nums text-foreground">
                     {importReviewStatus?.reviewedCount ?? 0}/{importReview.items.length}
                   </Badge>
                 </div>
                 {importSkippedCoverage.length ? (
-                  <CardDescription className="text-amber-900 dark:text-amber-300">
+                  <CardDescription className="text-foreground">
                     {importSkippedCoverage.length} source {importSkippedCoverage.length === 1 ? "section was" : "sections were"} found but not imported — the walkthrough flags {importSkippedCoverage.length === 1 ? "it" : "them"} so you can add {importSkippedCoverage.length === 1 ? "it" : "them"} back.
                   </CardDescription>
                 ) : null}
@@ -1657,7 +1657,7 @@ export function ResumeEditor() {
         <section
           id="resume-preview-pane"
           className={cn(
-            "preview-pane overflow-y-auto bg-muted/70 p-4 lg:max-h-[calc(100vh-73px)] lg:p-7",
+            "preview-pane overflow-y-auto bg-stage p-4 lg:max-h-[calc(100vh-73px)] lg:p-7",
             mobileWorkspaceView !== "preview" && "mobile-workspace-hidden",
           )}
           aria-label="Resume preview"

@@ -124,9 +124,9 @@ export function VersionHistoryCard({
         </div>
 
         {storageIssue ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50/70 px-5 py-3 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/40 bg-warning/10 px-5 py-3 text-sm text-foreground">
             <p>Browser storage is unavailable. Versions shown here may not survive a refresh.</p>
-            <Button type="button" variant="outline" size="sm" className="border-amber-400 bg-background dark:border-amber-500/50" onClick={onSaveBackup} disabled={!versions.length}>
+            <Button type="button" variant="outline" size="sm" className="border-warning/50 bg-background" onClick={onSaveBackup} disabled={!versions.length}>
               <Download /> Back up versions now
             </Button>
           </div>
@@ -165,8 +165,8 @@ export function VersionHistoryCard({
           ) : null}
 
           {deletedVersion ? (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-500/40 dark:bg-amber-950/40">
-              <p className="min-w-0 truncate text-sm text-amber-950 dark:text-amber-100">Deleted “{deletedVersion.label}”.</p>
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 p-3">
+              <p className="min-w-0 truncate text-sm text-foreground">Deleted “{deletedVersion.label}”.</p>
               <div className="flex shrink-0 gap-1">
                 <Button type="button" variant="outline" size="sm" className="bg-background" onClick={onUndoDelete}>
                   <Undo2 /> Undo

@@ -216,9 +216,9 @@ export function LocalAIDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Alert className="border-amber-300 bg-amber-50/70 pl-4 dark:border-amber-500/40 dark:bg-amber-950/40">
-          <AlertTitle className="text-amber-950 dark:text-amber-100">Local AI can vary by device</AlertTitle>
-          <AlertDescription className="text-amber-950 dark:text-amber-100/90">
+        <Alert className="border-warning/40 bg-warning/10 pl-4">
+          <AlertTitle>Local AI can vary by device</AlertTitle>
+          <AlertDescription>
             Performance may be slower on some devices, and suggestions may be inaccurate. Review every change before applying it.
           </AlertDescription>
         </Alert>
@@ -231,7 +231,7 @@ export function LocalAIDialog({
                 Nothing downloads automatically. Setup downloads public model files from MLC/Hugging Face and caches them in this browser. Resume content is never included in download requests.
               </p>
             </div>
-            <Badge variant={modelState === "ready" ? "secondary" : "outline"} className={modelState === "ready" ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-200" : undefined}>
+            <Badge variant={modelState === "ready" ? "secondary" : "outline"} className={modelState === "ready" ? "bg-success/15 text-success" : undefined}>
               {modelState === "ready" ? "Ready" : isCached ? "Downloaded" : modelState === "not-cached" ? "Not downloaded" : modelState === "loading" ? "Preparing" : modelState === "removing" ? "Removing" : modelState === "error" ? "Needs attention" : "Checking cache"}
             </Badge>
           </div>
@@ -253,7 +253,7 @@ export function LocalAIDialog({
           </label>
           <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{selectedModel.label}:</span> {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published configuration.
-            {lowMemoryDevice && !selectedModel.recommended ? <span className="ml-1 text-amber-700 dark:text-amber-300">The smaller model is safer for this device.</span> : null}
+            {lowMemoryDevice && !selectedModel.recommended ? <span className="ml-1 text-warning">The smaller model is safer for this device.</span> : null}
           </div>
 
           {modelState === "loading" ? (

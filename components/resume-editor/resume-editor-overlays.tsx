@@ -342,7 +342,7 @@ export function ResumeEditorOverlays({
                 ) : null}
               </div>
               {mergedHistoryBackup.matchingCheckpoints.length ? (
-                <Alert className="border-sky-300 bg-sky-50/70 dark:border-sky-500/40 dark:bg-sky-950/40">
+                <Alert className="border-brand/40 bg-brand/10">
                   <Check className="h-4 w-4" />
                   <AlertTitle>
                     {mergedHistoryBackup.matchingCheckpoints.length} {mergedHistoryBackup.matchingCheckpoints.length === 1 ? "checkpoint already matches" : "checkpoints already match"} this browser
@@ -351,7 +351,7 @@ export function ResumeEditorOverlays({
                     <span>Matching drafts are kept as-is instead of duplicated.</span>
                     <span className="flex flex-wrap gap-2">
                       {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
-                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-sky-300 bg-background text-foreground dark:border-sky-500/50">
+                        <Badge key={checkpoint.id} variant="outline" className="max-w-full border-brand/40 bg-background text-foreground">
                           {checkpoint.label}
                         </Badge>
                       ))}
@@ -386,7 +386,7 @@ export function ResumeEditorOverlays({
 
           <div className="grid gap-3">
             {importReview ? (
-              <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-500/40 dark:bg-amber-950/40">
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">
@@ -425,7 +425,7 @@ export function ResumeEditorOverlays({
               <div className="grid gap-2">
                 {failedChecks.map((check) => (
                   <div key={check.id} className="flex gap-2 rounded-md border bg-muted/30 p-3">
-                    <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-700 text-xs font-bold text-white">
+                    <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-warning text-xs font-bold text-warning-foreground">
                       !
                     </span>
                     <div className="min-w-0 flex-1">

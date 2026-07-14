@@ -121,8 +121,12 @@ export function ReviewDrawer({
                   <div key={check.id} className="flex gap-2.5 rounded-lg border bg-muted/30 p-3">
                     <span
                       className={cn(
-                        "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
-                        check.advisory ? "bg-sky-600" : check.ok ? "bg-emerald-600" : "bg-amber-600",
+                        "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                        check.advisory
+                          ? "bg-brand text-brand-foreground"
+                          : check.ok
+                            ? "bg-success text-success-foreground"
+                            : "bg-warning text-warning-foreground",
                       )}
                     >
                       {check.advisory ? "i" : check.ok ? <Check className="size-3" /> : "!"}

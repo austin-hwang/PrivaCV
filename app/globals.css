@@ -3,52 +3,67 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light parity */
   :root {
-    --background: 220 14% 96%;
-    --foreground: 220 11% 12%;
+    --stage: 216 27% 93%;
+    --background: 216 24% 96%;
+    --foreground: 222 26% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 220 11% 12%;
+    --card-foreground: 222 26% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 11% 12%;
-    --primary: 220 15% 22%;
+    --popover-foreground: 222 26% 10%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 10% 92%;
-    --secondary-foreground: 220 15% 22%;
-    --muted: 220 11% 92%;
-    --muted-foreground: 220 7% 39%;
-    --accent: 220 11% 90%;
-    --accent-foreground: 220 15% 22%;
-    --destructive: 4 74% 42%;
+    --secondary: 216 24% 97%;
+    --secondary-foreground: 222 20% 18%;
+    --muted: 216 20% 95%;
+    --muted-foreground: 217 12% 40%;
+    --accent: 214 100% 96%;
+    --accent-foreground: 221 83% 40%;
+    --brand: 221 83% 53%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 214 100% 96%;
+    --success: 158 64% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 30 60% 15%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 11% 84%;
-    --input: 220 11% 80%;
-    --ring: 220 15% 22%;
+    --border: 214 27% 91%;
+    --input: 214 24% 88%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
   }
 
-  /* Night mode (default). Only the app chrome recolours — the resume sheet keeps
-     its fixed paper colours (white page frames, black text) so the preview and
-     exported PDF stay identical, now popping against a dark workspace. */
+  /* Night mode — default */
   .dark {
-    --background: 222 16% 9%;
-    --foreground: 220 14% 92%;
-    --card: 222 15% 12%;
-    --card-foreground: 220 14% 92%;
-    --popover: 222 15% 13%;
-    --popover-foreground: 220 14% 92%;
-    --primary: 220 14% 90%;
-    --primary-foreground: 222 20% 13%;
-    --secondary: 220 12% 20%;
-    --secondary-foreground: 220 14% 93%;
-    --muted: 222 13% 17%;
-    --muted-foreground: 220 10% 64%;
-    --accent: 220 12% 24%;
-    --accent-foreground: 220 14% 95%;
-    --destructive: 4 74% 54%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 12% 22%;
-    --input: 220 12% 27%;
-    --ring: 220 14% 72%;
+    --stage: 214 24% 6%;
+    --background: 220 22% 8%;
+    --foreground: 220 23% 92%;
+    --card: 218 19% 11%;
+    --card-foreground: 220 23% 92%;
+    --popover: 218 19% 11%;
+    --popover-foreground: 220 23% 92%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 220 30% 10%;
+    --secondary: 219 19% 14%;
+    --secondary-foreground: 220 23% 93%;
+    --muted: 219 19% 14%;
+    --muted-foreground: 218 13% 65%;
+    --accent: 217 60% 20%;
+    --accent-foreground: 213 94% 85%;
+    --brand: 217 91% 60%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 217 91% 60%;
+    --success: 158 64% 52%;
+    --success-foreground: 158 70% 12%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 38 60% 12%;
+    --destructive: 0 91% 71%;
+    --destructive-foreground: 0 60% 15%;
+    --border: 219 18% 18%;
+    --input: 217 17% 24%;
+    --ring: 217 91% 60%;
   }
 
   * {
@@ -397,14 +412,14 @@ html[data-resume-workspace="active"] .public-explainer {
   /* Use background-color (not the `background` shorthand) so the
      `background-clip: content-box` set on a broken element is preserved — the
      shorthand would reset it to border-box and paint across the page break. */
-  background-color: rgb(224 242 254 / 55%);
+  background-color: hsl(var(--brand) / 0.06);
 }
 
 .resume-preview-active {
   /* background-color (not shorthand): keep any `background-clip: content-box`
      from .resume-print-break-before so the highlight doesn't span the break. */
-  background-color: rgb(186 230 253 / 58%);
-  box-shadow: 0 0 0 3px rgb(14 165 233 / 22%);
+  background-color: hsl(var(--brand) / 0.09);
+  box-shadow: 0 0 0 3px hsl(var(--brand) / 0.22);
 }
 
 /* Inline (WYSIWYG) editing: text runs on the sheet become directly editable.
@@ -417,13 +432,13 @@ html[data-resume-workspace="active"] .public-explainer {
 }
 
 .resume-editable:hover {
-  box-shadow: 0 0 0 1px rgb(14 165 233 / 30%);
+  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.22);
 }
 
 .resume-editable:focus,
 .resume-editable:focus-within {
-  background: rgb(14 165 233 / 8%);
-  box-shadow: 0 0 0 2px rgb(14 165 233 / 55%);
+  background: hsl(var(--brand) / 0.09);
+  box-shadow: 0 0 0 2px hsl(var(--brand) / 0.22);
 }
 
 .resume-editable:empty::before,
@@ -434,7 +449,7 @@ html[data-resume-workspace="active"] .public-explainer {
 
 .resume-preview-section-active:not(:has(.resume-preview-active)) {
   border-radius: 2px;
-  box-shadow: 0 0 0 3px rgb(14 165 233 / 14%);
+  box-shadow: 0 0 0 3px hsl(var(--brand) / 0.14);
 }
 
 .resume-empty {
