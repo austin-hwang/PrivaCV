@@ -21,6 +21,7 @@ import {
   exportChangeSummary,
   getSectionEntries,
   includedBulletsFrom,
+  inferHeaderLinkIcon,
   normalizeResume,
   normalizeTagGroups,
   resumeExportFingerprint,
@@ -415,8 +416,11 @@ describe("resume helpers", () => {
   it("migrates the legacy website field and exports multiple clickable header links", () => {
     const migrated = normalizeResume({ website: "linkedin.com/in/ada" });
     expect(migrated.headerLinks).toEqual([
-      { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "auto" },
+      { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "linkedin" },
     ]);
+    expect(normalizeResume({
+      headerLinks: [{ id: "legacy", label: "GitHub", url: "github.com/ada", icon: "auto" }],
+    }).headerLinks[0].icon).toBe("github");
 
     const state = normalizeResume({
       ...sampleState(),
@@ -434,7 +438,7 @@ describe("resume helpers", () => {
     ]));
     expect(resolveHeaderLinkIcon(state.headerLinks[0])).toBe("linkedin");
     expect(resolveHeaderLinkIcon({ ...state.headerLinks[0], icon: "portfolio" })).toBe("portfolio");
-    expect(resolveHeaderLinkIcon({ ...state.headerLinks[0], label: "GitLab", url: "gitlab.com/ada" })).toBe("gitlab");
+    expect(inferHeaderLinkIcon("GitLab gitlab.com/ada")).toBe("gitlab");
   });
 
   it("offers concise, ATS-readable custom section presets", () => {
@@ -511,9 +515,9 @@ describe("resume helpers", () => {
     ].join("\n"));
 
     expect(state.headerLinks).toEqual([
-      { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "auto" },
-      { id: "header-link-2", label: "GitHub", url: "github.com/ada", icon: "auto" },
-      { id: "header-link-3", label: "Website", url: "ada.dev", icon: "auto" },
+      { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "linkedin" },
+      { id: "header-link-2", label: "GitHub", url: "github.com/ada", icon: "github" },
+      { id: "header-link-3", label: "Website", url: "ada.dev", icon: "website" },
     ]);
     expect(resumePlainText(state)).toContain("linkedin.com/in/ada | github.com/ada | ada.dev");
   });
@@ -1544,7 +1548,7 @@ describe("resume helpers", () => {
   it("targets an invalid optional header link after required contact details are complete", () => {
     const state = {
       ...sampleState(),
-      headerLinks: [{ id: "linkedin", label: "LinkedIn", url: "linkedin profile", icon: "auto" as const }],
+      headerLinks: [{ id: "linkedin", label: "LinkedIn", url: "linkedin profile", icon: "linkedin" as const }],
     };
     const contact = buildResumeChecks(state, 1).find((check) => check.id === "contact");
 

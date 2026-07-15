@@ -109,16 +109,17 @@ async function openDesign(page: Page) {
 }
 
 async function openVersions(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /edit history/i });
-  if (!(await dialog.isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /edit history/i }).click();
-    await expect(dialog).toBeVisible();
+  const panel = page.getByRole("region", { name: /edit history/i });
+  if (!(await panel.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: "Edit history", exact: true }).click();
+    await expect(panel).toBeVisible();
   }
-  return dialog;
+  return panel;
 }
 
 async function closeVersions(page: Page) {
-  await page.getByRole("dialog", { name: /edit history/i }).getByRole("button", { name: "Close" }).click();
+  await page.getByRole("button", { name: "Edit history", exact: true }).click();
+  await expect(page.getByRole("region", { name: /edit history/i })).toBeHidden();
 }
 
 async function openResumeLibrary(page: Page) {
@@ -804,7 +805,8 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(versions.getByRole("listitem").getByText("Autosave copy", { exact: true })).toBeVisible();
   await expect(versions.getByText("Autosaved", { exact: true })).toBeVisible();
   const autosaveCard = versions.locator("li", { hasText: "Autosave copy" });
-  await autosaveCard.getByRole("button", { name: "Restore autosave" }).click();
+  await autosaveCard.getByRole("button", { name: "Select Autosave copy" }).click();
+  await versions.getByRole("button", { name: "Confirm restore" }).click();
   await expect(summary).toHaveValue(savedSummary);
   await expect(page.getByText("Restored Autosave copy")).toBeVisible();
 });
@@ -2505,21 +2507,34 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await expect(preview.getByRole("link", { name: "john.doe@example.com" }).locator(".lucide-mail")).toBeVisible();
   await expect(preview.getByText("Chicago, IL", { exact: true }).locator(".lucide-map-pin")).toBeVisible();
   await expect(preview.getByRole("link", { name: "linkedin.com/in/johndoe" }).locator(".lucide-linkedin")).toBeVisible();
+  const contactGeometry = await preview.locator(".resume-contact-item").evaluateAll((items) => items.map((item) => {
+    const icon = item.querySelector("svg");
+    const itemBox = item.getBoundingClientRect();
+    const iconBox = icon?.getBoundingClientRect();
+    return {
+      iconCenterOffset: iconBox ? (iconBox.top + iconBox.height / 2) - (itemBox.top + itemBox.height / 2) : 999,
+      separatorSpace: Number.parseFloat(getComputedStyle(item).marginRight),
+    };
+  }));
+  expect(contactGeometry.every(({ iconCenterOffset }) => Math.abs(iconCenterOffset) < 2)).toBe(true);
+  expect(contactGeometry.slice(0, -1).every(({ separatorSpace }) => separatorSpace > 8)).toBe(true);
 
   await page.getByRole("button", { name: /add link/i }).click();
   const newLink = page.locator("[data-header-link]").last();
-  await newLink.locator("input").first().fill("GitHub");
+  await expect(newLink.locator('input[id$="-label"]')).toHaveCount(0);
   await newLink.locator('input[type="url"]').fill("github.com/johndoe");
 
   const github = preview.getByRole("link", { name: "github.com/johndoe" });
   await expect(github).toHaveAttribute("href", "https://github.com/johndoe");
   await expect(github.locator(".lucide-github")).toBeVisible();
   const iconSelect = newLink.getByLabel("GitHub icon");
-  await expect(iconSelect.locator("option")).toHaveCount(8);
+  await expect(iconSelect).toHaveValue("github");
+  await expect(iconSelect.locator("option")).toHaveCount(7);
+  await expect(iconSelect.locator("option", { hasText: "Automatic" })).toHaveCount(0);
   await iconSelect.selectOption("portfolio");
   await expect(github.locator(".lucide-briefcase-business")).toBeVisible();
   await newLink.getByRole("button", { name: /move github up/i }).click();
-  await expect(page.locator("[data-header-link]").first().locator("input").first()).toHaveValue("GitHub");
+  await expect(page.locator("[data-header-link]").first().locator('input[type="url"]')).toHaveValue("github.com/johndoe");
 
   await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("github.com/johndoe");
   await page.reload();
@@ -2618,8 +2633,9 @@ test("restores a version without showing a post-restore difference audit", async
 
   await page.getByLabel("Full Name").fill("Ada Lovelace");
 
-  await openVersions(page);
-  await page.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
+  const history = await openVersions(page);
+  await history.getByRole("button", { name: "Select Clean baseline" }).click();
+  await history.getByRole("button", { name: "Confirm restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
@@ -2636,7 +2652,8 @@ test("forks autosave into a separate slot before loading another saved version",
   await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
 
   let versions = await openVersions(page);
-  await versions.locator("li", { hasText: "Clean baseline" }).getByRole("button", { name: "Restore" }).click();
+  await versions.getByRole("button", { name: "Select Clean baseline" }).click();
+  await versions.getByRole("button", { name: "Confirm restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
 
@@ -2655,7 +2672,8 @@ test("forks autosave into a separate slot before loading another saved version",
   const previousAutosave = versions.locator("li", { hasText: "Autosave · Ada Lovelace" });
   await expect(previousAutosave.getByText("Autosaved", { exact: true })).toBeVisible();
   await expect(previousAutosave).toContainText("Preserved automatically before loading Clean baseline.");
-  await previousAutosave.getByRole("button", { name: "Restore autosave" }).click();
+  await previousAutosave.getByRole("button", { name: "Select Autosave · Ada Lovelace" }).click();
+  await versions.getByRole("button", { name: "Confirm restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
 });
 
@@ -2775,6 +2793,12 @@ test("duplicates and switches named resumes while keeping checkpoint history sep
   const history = await openVersions(page);
   await expect(history.getByText("0 checkpoints for this resume")).toBeVisible();
   await expect(history.getByLabel("Move through edit history")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /edit history/i })).toHaveCount(0);
+  await expect.poll(async () => {
+    const paper = await page.locator(".resume-preview-sheet-frame").boundingBox();
+    const panel = await history.boundingBox();
+    return paper && panel ? panel.x > paper.x : false;
+  }).toBe(true);
   await closeVersions(page);
 
   await page.getByLabel("Full Name").fill("Jane Doe");
@@ -2840,12 +2864,10 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect(page.getByText("Checkpoint saved locally")).toBeVisible();
   await expect(versions.getByText("Original software resume")).toBeVisible();
-  await expect(versions.getByRole("list").getByText("Current", { exact: true })).toBeVisible();
+  await expect(versions.locator("[data-history-selection]").getByText("Current", { exact: true })).toBeVisible();
   await expect(versions.getByText("John Doe").first()).toBeVisible();
-  const savedVersionCard = versions.locator("li", { hasText: "Original software resume" });
-  await expect(savedVersionCard.locator("[data-version-thumbnail]")).toHaveCount(1);
-  await expect(savedVersionCard.locator("[data-version-heading]")).toHaveCSS("display", "grid");
-  await expect(savedVersionCard.locator("[data-version-icon]")).toHaveCSS("align-items", "center");
+  const savedCheckpoint = versions.locator("li", { hasText: "Original software resume" });
+  await expect(savedCheckpoint.getByRole("button", { name: "Select Original software resume" })).toBeVisible();
   await closeVersions(page);
 
   await page.getByLabel("Full Name").fill("Grace Hopper");
@@ -2855,18 +2877,25 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   const timeline = await openVersions(page);
   await timeline.getByLabel("Move through edit history").fill("0");
   await expect(timeline.locator("[data-history-selection]")).toContainText("Original software resume");
-  await timeline.getByRole("button", { name: "Restore this point" }).click();
+  await expect(page.locator(".resume-sheet .resume-name")).toHaveText("John Doe");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
+  await timeline.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator(".resume-sheet .resume-name")).toHaveText("Grace Hopper");
+  await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
+  await timeline.getByLabel("Move through edit history").fill("0");
+  await timeline.getByRole("button", { name: "Confirm restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
 
-  await openVersions(page);
-  await page.getByRole("button", { name: /delete original software resume/i }).click();
+  const restoredTimeline = await openVersions(page);
+  await restoredTimeline.getByRole("button", { name: "Select Original software resume" }).click();
+  await restoredTimeline.getByRole("button", { name: /delete original software resume/i }).click();
   await expect(page.getByText(/Deleted “Original software resume”/)).toBeVisible();
 
   await page.getByRole("button", { name: /undo/i }).click();
   await expect(page.getByText("Restored deleted checkpoint")).toBeVisible();
-  await expect(page.getByRole("button", { name: /delete original software resume/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select Original software resume" })).toBeVisible();
 });
 
 test("keeps every checkpoint without a save limit", async ({ page }) => {
@@ -2885,7 +2914,7 @@ test("keeps every checkpoint without a save limit", async ({ page }) => {
   const versions = await openVersions(page);
   // No cap: all seven checkpoints and the live autosave copy remain available.
   await expect(versions.getByText("7 checkpoints for this resume")).toBeVisible();
-  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(9);
+  await expect.poll(() => versions.getByRole("list", { name: "Checkpoint timeline" }).getByRole("listitem").count()).toBeGreaterThanOrEqual(8);
   await expect(versions.getByText("Checkpoint 1", { exact: true })).toBeVisible();
   await expect(versions.getByText("Checkpoint 7", { exact: true })).toBeVisible();
 });

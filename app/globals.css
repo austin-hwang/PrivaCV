@@ -378,6 +378,7 @@ html[data-resume-workspace="active"] .public-explainer {
   display: inline-flex;
   align-items: center;
   gap: 0.28em;
+  position: relative;
   white-space: nowrap;
 }
 
@@ -386,11 +387,22 @@ html[data-resume-workspace="active"] .public-explainer {
   width: 0.92em;
   height: 0.92em;
   flex: none;
+  position: relative;
+  top: -0.06em;
   stroke-width: 1.8;
 }
 
+.resume-contact > *:not(:last-child) {
+  margin-right: 1.2em;
+}
+
 .resume-contact > *:not(:last-child)::after {
-  content: "  •  ";
+  content: "•";
+  position: absolute;
+  right: -0.65em;
+  top: 50%;
+  line-height: 1;
+  transform: translate(50%, -50%);
   color: #999;
 }
 

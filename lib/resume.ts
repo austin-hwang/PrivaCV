@@ -301,7 +301,6 @@ export const customSectionSchema = z.object({
 export type CustomSection = z.infer<typeof customSectionSchema>;
 
 export const HEADER_LINK_ICON_OPTIONS = [
-  { id: "auto", label: "Automatic" },
   { id: "website", label: "Website" },
   { id: "linkedin", label: "LinkedIn" },
   { id: "github", label: "GitHub" },
@@ -313,12 +312,34 @@ export const HEADER_LINK_ICON_OPTIONS = [
 
 export type HeaderLinkIconId = (typeof HEADER_LINK_ICON_OPTIONS)[number]["id"];
 
-export const headerLinkSchema = z.object({
+export function inferHeaderLinkIcon(value: string): HeaderLinkIconId {
+  const clean = value.toLocaleLowerCase();
+  if (clean.includes("linkedin")) return "linkedin";
+  if (clean.includes("github")) return "github";
+  if (clean.includes("gitlab")) return "gitlab";
+  if (/behance|dribbble|portfolio/.test(clean)) return "portfolio";
+  if (/codepen|codesandbox|stackoverflow|dev\.to/.test(clean)) return "code";
+  return "website";
+}
+
+const explicitHeaderLinkSchema = z.object({
   id: z.string().catch(""),
   label: z.string().catch(""),
   url: z.string().catch(""),
-  icon: z.enum(HEADER_LINK_ICON_OPTIONS.map((option) => option.id) as [HeaderLinkIconId, ...HeaderLinkIconId[]]).catch("auto"),
+  icon: z.enum(HEADER_LINK_ICON_OPTIONS.map((option) => option.id) as [HeaderLinkIconId, ...HeaderLinkIconId[]]).catch("website"),
 });
+
+/** Converts legacy/missing automatic icons into a durable inferred choice. */
+export const headerLinkSchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const candidate = value as Record<string, unknown>;
+  const iconIsExplicit = HEADER_LINK_ICON_OPTIONS.some((option) => option.id === candidate.icon);
+  if (iconIsExplicit) return candidate;
+  return {
+    ...candidate,
+    icon: inferHeaderLinkIcon(`${typeof candidate.label === "string" ? candidate.label : ""} ${typeof candidate.url === "string" ? candidate.url : ""}`),
+  };
+}, explicitHeaderLinkSchema);
 
 export type HeaderLink = z.infer<typeof headerLinkSchema>;
 
@@ -451,7 +472,7 @@ export function normalizeResume(data: unknown): ResumeState {
     parsed.headerLinks.length
       ? parsed.headerLinks
       : parsed.website.trim()
-        ? [{ id: "header-link-1", label: inferHeaderLinkLabel(parsed.website), url: parsed.website, icon: "auto" }]
+        ? [{ id: "header-link-1", label: inferHeaderLinkLabel(parsed.website), url: parsed.website, icon: inferHeaderLinkIcon(parsed.website) }]
         : [],
   );
   const customSections = parsed.customSections
@@ -555,15 +576,8 @@ export function inferHeaderLinkLabel(value: string) {
   return "Website";
 }
 
-export function resolveHeaderLinkIcon(link: Pick<HeaderLink, "icon" | "label" | "url">): Exclude<HeaderLinkIconId, "auto"> {
-  if (link.icon !== "auto") return link.icon;
-  const value = `${link.label} ${link.url}`.toLocaleLowerCase();
-  if (value.includes("linkedin")) return "linkedin";
-  if (value.includes("github")) return "github";
-  if (value.includes("gitlab")) return "gitlab";
-  if (/behance|dribbble|portfolio/.test(value)) return "portfolio";
-  if (/codepen|codesandbox|stackoverflow|dev\.to/.test(value)) return "code";
-  return "website";
+export function resolveHeaderLinkIcon(link: Pick<HeaderLink, "icon" | "label" | "url">): HeaderLinkIconId {
+  return link.icon;
 }
 
 export function normalizeHeaderLinks(links: HeaderLink[], keepEmpty = false) {
@@ -593,7 +607,7 @@ export function normalizeHeaderLinks(links: HeaderLink[], keepEmpty = false) {
 export function resumeHeaderLinks(state: ResumeState) {
   if (state.headerLinks.length) return state.headerLinks.filter((link) => link.label || link.url);
   return state.website.trim()
-    ? [{ id: "header-link-1", label: inferHeaderLinkLabel(state.website), url: state.website.trim(), icon: "auto" as const }]
+    ? [{ id: "header-link-1", label: inferHeaderLinkLabel(state.website), url: state.website.trim(), icon: inferHeaderLinkIcon(state.website) }]
     : [];
 }
 

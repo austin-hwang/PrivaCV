@@ -86,6 +86,7 @@ import {
   getSectionTagGroups,
   getSectionText,
   getSectionTitle,
+  inferHeaderLinkIcon,
   inferHeaderLinkLabel,
   isSectionHidden,
   sectionItemCount,
@@ -234,6 +235,7 @@ export function ResumeEditor() {
   const [checksReviewOpen, setChecksReviewOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyPreviewItem, setHistoryPreviewItem] = useState<VersionHistoryItem | null>(null);
   const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
   // Inline editing on the resume sheet is the primary way to edit; the left
   // form stays available as a fallback (and can be collapsed for a focused
@@ -353,6 +355,14 @@ export function ResumeEditor() {
         importReview,
       }
     : null;
+  const currentHistoryPoint = useMemo<VersionHistoryItem>(() => ({
+    id: "current-draft",
+    savedAt: editor.autosavedAt ?? new Date().toISOString(),
+    label: "Current draft",
+    fingerprint: editor.exportFingerprint,
+    state,
+    importReview,
+  }), [editor.autosavedAt, editor.exportFingerprint, importReview, state]);
   const deleteSavedBrowserData = async () => {
     setLocalAIInlineTarget(null);
     setLocalAIImportOpen(false);
@@ -382,9 +392,14 @@ export function ResumeEditor() {
     />
   ) : null;
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
+  const timelinePreviewState = historyPreviewItem && !printing ? historyPreviewItem.state : state;
   const previewState = blankTemplatePreview
-    ? { ...state, template: blankTemplatePreview, theme: TEMPLATE_THEMES[blankTemplatePreview] }
-    : state;
+    ? { ...timelinePreviewState, template: blankTemplatePreview, theme: TEMPLATE_THEMES[blankTemplatePreview] }
+    : timelinePreviewState;
+  useEffect(() => {
+    setHistoryPreviewItem(null);
+    setHistoryOpen(false);
+  }, [editor.activeResumeId]);
   // Mark the document while the editor is active so app-only layout rules can
   // respond without coupling the public footer to editor state.
   useEffect(() => {
@@ -464,13 +479,17 @@ export function ResumeEditor() {
   const updateHeaderLink = (id: string, patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>) =>
     updateField("headerLinks", state.headerLinks.map((link) => {
       if (link.id !== id) return link;
+      const wasInferred = link.icon === inferHeaderLinkIcon(`${link.label} ${link.url}`);
       const next = { ...link, ...patch };
-      if (patch.url !== undefined && !link.label.trim()) next.label = inferHeaderLinkLabel(patch.url);
+      if (patch.url !== undefined) next.label = inferHeaderLinkLabel(patch.url);
+      if (patch.icon === undefined && wasInferred && (patch.url !== undefined || patch.label !== undefined)) {
+        next.icon = inferHeaderLinkIcon(`${next.label} ${next.url}`);
+      }
       return next;
     }));
   const addHeaderLink = () => {
     const id = `header-link-${Date.now().toString(36)}`;
-    updateField("headerLinks", [...state.headerLinks, { id, label: "", url: "", icon: "auto" }]);
+    updateField("headerLinks", [...state.headerLinks, { id, label: "", url: "", icon: "website" }]);
     setActiveTarget(`field-header-link-${id}-url`);
     window.setTimeout(() => document.getElementById(`field-header-link-${id}-url`)?.focus(), 0);
   };
@@ -1406,13 +1425,17 @@ export function ResumeEditor() {
                               <HeaderLinkEditorIcon link={link} />
                             </span>
                             <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_8rem] gap-2">
-                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-label`}>{fieldLabel} label</label>
+                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>{fieldLabel} URL</label>
                               <Input
-                                id={`field-header-link-${link.id}-label`}
-                                value={link.label}
-                                placeholder="LinkedIn"
-                                aria-label={`${fieldLabel} label`}
-                                onChange={(event) => updateHeaderLink(link.id, { label: event.target.value })}
+                                id={`field-header-link-${link.id}-url`}
+                                type="url"
+                                inputMode="url"
+                                autoComplete="url"
+                                spellCheck={false}
+                                value={link.url}
+                                placeholder="github.com/janedoe"
+                                aria-label={`${fieldLabel} URL`}
+                                onChange={(event) => updateHeaderLink(link.id, { url: event.target.value })}
                               />
                               <label className="sr-only" htmlFor={`field-header-link-${link.id}-icon`}>{fieldLabel} icon</label>
                               <select
@@ -1426,19 +1449,6 @@ export function ResumeEditor() {
                                   <option key={option.id} value={option.id}>{option.label}</option>
                                 ))}
                               </select>
-                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>{fieldLabel} URL</label>
-                              <Input
-                                id={`field-header-link-${link.id}-url`}
-                                type="url"
-                                inputMode="url"
-                                autoComplete="url"
-                                spellCheck={false}
-                                value={link.url}
-                                placeholder="github.com/janedoe"
-                                aria-label={`${fieldLabel} URL`}
-                                className="col-span-2"
-                                onChange={(event) => updateHeaderLink(link.id, { url: event.target.value })}
-                              />
                             </div>
                             <div className="flex shrink-0 items-center">
                               <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} aria-label={`Move ${fieldLabel} up`} onClick={() => moveHeaderLink(index, -1)}>
@@ -1859,7 +1869,11 @@ export function ResumeEditor() {
           )}
           aria-label="Resume preview"
         >
-          <div ref={previewWrapRef} className="mx-auto flex w-full max-w-[8.5in] flex-col items-center gap-3">
+          <div className={cn(
+            "mx-auto flex w-full items-start gap-3",
+            historyOpen ? "max-w-[calc(8.5in+17rem)] flex-col lg:flex-row" : "max-w-[8.5in]",
+          )}>
+          <div ref={previewWrapRef} className="flex w-full min-w-0 max-w-[8.5in] flex-1 flex-col items-center gap-3">
             <div className="app-chrome flex w-full items-center gap-2 overflow-x-auto pb-1">
               {workspaceHasStarted ? (
                 <Button
@@ -1948,8 +1962,9 @@ export function ResumeEditor() {
                   className="hidden size-8 lg:inline-flex"
                   aria-label="Edit history"
                   aria-expanded={historyOpen}
-                  title="Open this resume's checkpoint history"
-                  onClick={() => setHistoryOpen(true)}
+                  aria-controls="edit-history-panel"
+                  title={historyOpen ? "Close this resume's checkpoint timeline" : "Open this resume's checkpoint timeline"}
+                  onClick={() => setHistoryOpen((open) => !open)}
                 >
                   <History />
                 </Button>
@@ -1968,7 +1983,7 @@ export function ResumeEditor() {
                 <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
                   <FileText /> Edit resume
                 </Button>
-                <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setHistoryOpen(true)}>
+                <Button type="button" variant={historyOpen ? "secondary" : "outline"} size="sm" className="lg:hidden" aria-expanded={historyOpen} aria-controls="edit-history-panel" onClick={() => setHistoryOpen((open) => !open)}>
                   <History /> History
                 </Button>
               </div>
@@ -1991,15 +2006,15 @@ export function ResumeEditor() {
               />
             ) : null}
             <div className="resume-preview-sheet-frame" style={previewFrameStyle}>
-              <ResumePreview
-                state={previewState}
+                <ResumePreview
+                  state={previewState}
                 pageCount={pageCount}
                 pageGuides={pageGuides}
                 printBreaks={printBreaks}
                 ref={resumeRef}
-                activeTarget={activeTarget}
-                onTargetSelect={focusEditorTarget}
-                editable={inlineEdit && workspaceHasStarted && !printing}
+                activeTarget={historyPreviewItem ? null : activeTarget}
+                onTargetSelect={historyPreviewItem ? undefined : focusEditorTarget}
+                editable={inlineEdit && workspaceHasStarted && !printing && !historyPreviewItem}
                 onEditField={(field, value) => updateField(field as Parameters<typeof updateField>[0], value)}
                 onEditHeaderLink={updateHeaderLink}
                 onEditSectionTitle={updateSectionTitle}
@@ -2010,6 +2025,26 @@ export function ResumeEditor() {
                 )}
               />
             </div>
+          </div>
+          <VersionHistoryCard
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            hasContent={hasContent}
+            versions={editor.versionHistory}
+            current={currentHistoryPoint}
+            autosave={autosaveCopy}
+            currentFingerprint={editor.exportFingerprint}
+            storageIssue={storageIssue}
+            deletedVersion={editor.deletedVersion}
+            onSave={editor.openVersionSave}
+            onSaveBackup={editor.saveVersionHistoryBackup}
+            onOpenBackup={() => editor.historyBackupInputRef.current?.click()}
+            onRestore={editor.restoreVersion}
+            onDelete={editor.deleteVersion}
+            onUndoDelete={editor.undoDeleteVersion}
+            onDismissDeleted={() => editor.setDeletedVersion(null)}
+            onPreview={setHistoryPreviewItem}
+          />
           </div>
         </section>
       </main>
@@ -2150,27 +2185,6 @@ export function ResumeEditor() {
         onDuplicate={editor.duplicateResume}
         onRename={editor.renameResume}
         onDelete={editor.deleteResume}
-      />
-
-      <VersionHistoryCard
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-        hasContent={hasContent}
-        versions={editor.versionHistory}
-        autosave={autosaveCopy}
-        currentFingerprint={editor.exportFingerprint}
-        storageIssue={storageIssue}
-        deletedVersion={editor.deletedVersion}
-        onSave={editor.openVersionSave}
-        onSaveBackup={editor.saveVersionHistoryBackup}
-        onOpenBackup={() => editor.historyBackupInputRef.current?.click()}
-        onRestore={(item) => {
-          editor.restoreVersion(item);
-          setHistoryOpen(false);
-        }}
-        onDelete={editor.deleteVersion}
-        onUndoDelete={editor.undoDeleteVersion}
-        onDismissDeleted={() => editor.setDeletedVersion(null)}
       />
 
       <GuidedReview

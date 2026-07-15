@@ -1,4 +1,4 @@
-import { blankEntry, emptyState, normalizeResume, type ResumeState } from "@/lib/resume";
+import { blankEntry, emptyState, inferHeaderLinkIcon, normalizeResume, type ResumeState } from "@/lib/resume";
 
 // A resume PDF is normally far smaller than this. Check the selected file
 // before loading pdf.js so an accidentally huge or hostile upload cannot tie
@@ -764,7 +764,7 @@ export function parseResume(lines: string[]) {
   const preambleText = preamble.join("\n");
   const importedLinks = extractHeaderLinks(preambleText);
   const links = importedLinks.length ? importedLinks : extractHeaderLinks(fullText).slice(0, 1);
-  result.headerLinks = links.map((url, index) => ({ id: `header-link-${index + 1}`, label: "", url, icon: "auto" }));
+  result.headerLinks = links.map((url, index) => ({ id: `header-link-${index + 1}`, label: "", url, icon: inferHeaderLinkIcon(url) }));
   result.website = links[0] ?? "";
   for (const line of preamble) {
     const shortState = line.match(PREAMBLE_CITY_STATE_RE);
