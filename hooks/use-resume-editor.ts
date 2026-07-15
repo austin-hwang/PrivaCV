@@ -43,6 +43,7 @@ import {
   buildImportReview,
   importReviewProgress,
   importReviewDraftFingerprint,
+  limitAutomaticCheckpoints,
   mergeVersionHistory,
   parseCheckpointHistory,
   parseResumeLibrary,
@@ -61,6 +62,7 @@ import {
 } from "@/lib/resume-workspace";
 
 const AUTOSAVE_TIME_KEY = "resume-editor-autosave-time-v1";
+const PERIODIC_CHECKPOINT_INTERVAL_MS = 10 * 60 * 1000;
 
 function downloadJsonFile(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -224,6 +226,16 @@ export function useResumeEditor() {
   // A deliberate privacy reset should not immediately recreate an empty draft
   // in browser storage. The next actual edit resumes normal autosave.
   const skipNextAutosaveRef = useRef(false);
+  const lastAutomaticCheckpointAtRef = useRef(Date.now());
+  const automaticCheckpointRef = useRef<(
+    options: {
+      idPrefix: "auto-checkpoint" | "autosave-slot";
+      label: string;
+      note: string;
+      snapshot?: ResumeState;
+      snapshotImportReview?: ImportReviewState | null;
+    },
+  ) => boolean>(() => false);
 
   const hasContent = hasAnyContent(state);
   const checks = useMemo(() => buildResumeChecks(state, pageCount), [pageCount, state]);
@@ -305,6 +317,55 @@ export function useResumeEditor() {
     }
   }, [activeResumeId, checkpointHistoryByResume, confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue]);
 
+  const saveAutomaticCheckpoint = (
+    {
+      idPrefix,
+      label,
+      note,
+      snapshot = state,
+      snapshotImportReview = importReview,
+    }: {
+      idPrefix: "auto-checkpoint" | "autosave-slot";
+      label: string;
+      note: string;
+      snapshot?: ResumeState;
+      snapshotImportReview?: ImportReviewState | null;
+    },
+  ) => {
+    if (!activeResumeId || !hasAnyContent(snapshot)) return false;
+    const fingerprint = resumeExportFingerprint(snapshot);
+    if (versionHistory.some((item) => versionHistoryFingerprint(item) === fingerprint)) {
+      lastAutomaticCheckpointAtRef.current = Date.now();
+      return false;
+    }
+
+    const timestamp = Date.now();
+    let id = `${idPrefix}-${timestamp}`;
+    let suffix = 2;
+    while (versionHistory.some((item) => item.id === id)) {
+      id = `${idPrefix}-${timestamp}-${suffix}`;
+      suffix += 1;
+    }
+    const derivedFrom = versionHistory.find((item) => item.id === draftSourceVersionId) ?? null;
+    const entry: VersionHistoryItem = {
+      id,
+      savedAt: new Date(timestamp).toISOString(),
+      label,
+      note,
+      derivedFromId: derivedFrom?.id,
+      derivedFromLabel: derivedFrom?.label,
+      fingerprint,
+      state: normalizeResume(snapshot),
+      importReview: snapshotImportReview,
+    };
+    const nextHistory = limitAutomaticCheckpoints([entry, ...versionHistory]);
+    persistVersionHistory(nextHistory);
+    setVersionHistory(nextHistory);
+    lastAutomaticCheckpointAtRef.current = timestamp;
+    return true;
+  };
+  automaticCheckpointRef.current = saveAutomaticCheckpoint;
+
   const saveRecoveryPoint = useCallback(
     (
       label: string,
@@ -372,6 +433,7 @@ export function useResumeEditor() {
     // is unavailable, but also give the person a durable copy immediately.
     setVersionHistory(nextHistory);
     setDraftSourceVersionId(entry.id);
+    lastAutomaticCheckpointAtRef.current = Date.now();
     setVersionSaveOpen(false);
     if (saved) {
       flash("Checkpoint saved locally");
@@ -396,30 +458,19 @@ export function useResumeEditor() {
     if (!hasAnyContent(state)) return;
     const fingerprint = resumeExportFingerprint(state);
     if (fingerprint === resumeExportFingerprint(nextState)) return;
-    if (versionHistory.some((item) => versionHistoryFingerprint(item) === fingerprint)) return;
-
-    const derivedFrom = versionHistory.find((item) => item.id === draftSourceVersionId) ?? null;
-    const timestamp = Date.now();
-    let id = `autosave-slot-${timestamp}`;
-    let suffix = 2;
-    while (versionHistory.some((item) => item.id === id)) {
-      id = `autosave-slot-${timestamp}-${suffix}`;
-      suffix += 1;
-    }
-    const entry: VersionHistoryItem = {
-      id,
-      savedAt: new Date(timestamp).toISOString(),
+    saveAutomaticCheckpoint({
+      idPrefix: "autosave-slot",
       label: `Autosave · ${versionLabel(state)}`,
       note: `Preserved automatically before loading ${destinationLabel}.`,
-      derivedFromId: derivedFrom?.id,
-      derivedFromLabel: derivedFrom?.label,
-      fingerprint,
-      state: normalizeResume(state),
-      importReview,
-    };
-    const nextHistory = [entry, ...versionHistory];
-    persistVersionHistory(nextHistory);
-    setVersionHistory(nextHistory);
+    });
+  };
+
+  const checkpointBeforeDestructiveEdit = (description: string) => {
+    saveAutomaticCheckpoint({
+      idPrefix: "auto-checkpoint",
+      label: `Auto · ${versionLabel(state)}`,
+      note: `Saved automatically before ${description}.`,
+    });
   };
 
   const restoreVersion = (item: VersionHistoryItem) => {
@@ -483,6 +534,7 @@ export function useResumeEditor() {
     if (resumeId === activeResumeId) return;
     const nextItem = resumeLibrary.find((item) => item.id === resumeId);
     if (!nextItem) return;
+    forkAutosaveBeforeLoading(nextItem.state, nextItem.label);
     const library = libraryWithCurrentDraft();
     persistResumeLibrary(library, resumeId);
     setResumeLibrary(library);
@@ -506,14 +558,16 @@ export function useResumeEditor() {
   const createResume = () => {
     const now = new Date().toISOString();
     const id = `resume-${Date.now().toString(36)}`;
+    const nextState = emptyState();
     const nextItem: ResumeLibraryItem = {
       id,
       label: "Untitled resume",
       createdAt: now,
       updatedAt: now,
-      state: emptyState(),
+      state: nextState,
       importReview: null,
     };
+    forkAutosaveBeforeLoading(nextState, "a new resume");
     const library = [...libraryWithCurrentDraft(), nextItem];
     persistResumeLibrary(library, id);
     setResumeLibrary(library);
@@ -549,6 +603,7 @@ export function useResumeEditor() {
       updatedAt: now,
       state: normalizeResume(source.state),
     };
+    forkAutosaveBeforeLoading(copy.state, copy.label);
     const library = [...libraryWithCurrentDraft(), copy];
     persistResumeLibrary(library, id);
     setResumeLibrary(library);
@@ -730,6 +785,10 @@ export function useResumeEditor() {
   }, [state]);
 
   useEffect(() => {
+    lastAutomaticCheckpointAtRef.current = Date.now();
+  }, [activeResumeId]);
+
+  useEffect(() => {
     if (!loaded) return;
     if (externalDraft) {
       setAutosaveStatus("conflict");
@@ -779,6 +838,17 @@ export function useResumeEditor() {
         setAutosavedState(normalizeResume(state));
         setAutosavedAt(savedAt);
         setAutosaveStatus("saved");
+        if (
+          activeResumeId &&
+          hasAnyContent(state) &&
+          Date.now() - lastAutomaticCheckpointAtRef.current >= PERIODIC_CHECKPOINT_INTERVAL_MS
+        ) {
+          automaticCheckpointRef.current({
+            idPrefix: "auto-checkpoint",
+            label: `Auto · ${versionLabel(state)}`,
+            note: "Saved automatically after 10 minutes of continued editing.",
+          });
+        }
       } catch {
         reportStorageIssue();
       }
@@ -1060,6 +1130,7 @@ export function useResumeEditor() {
     const sectionTitle = isBuiltinSection(section)
       ? state.sectionTitles[section]
       : state.customSections.find((custom) => custom.id === section)?.title ?? "Custom section";
+    checkpointBeforeDestructiveEdit(`removing an entry from ${sectionTitle || "a section"}`);
     setState((current) => {
       if (section === "skills") {
         return { ...current, skillEntries: current.skillEntries.filter((_, entryIndex) => entryIndex !== index) };
@@ -1164,6 +1235,16 @@ export function useResumeEditor() {
   };
 
   const updateSectionTagGroups = (section: string, groups: TagGroup[]) => {
+    const nextGroupIds = new Set(groups.map((group) => group.id));
+    const removedGroup = (state.sectionTagGroups[section] ?? []).find((group) => !nextGroupIds.has(group.id));
+    if (removedGroup) {
+      const sectionTitle = isBuiltinSection(section)
+        ? state.sectionTitles[section]
+        : state.customSections.find((custom) => custom.id === section)?.title ?? "a section";
+      checkpointBeforeDestructiveEdit(
+        `removing ${removedGroup.label.trim() ? `the ${removedGroup.label.trim()} group` : "a tag group"} from ${sectionTitle || "a section"}`,
+      );
+    }
     setState((current) => {
       // Keep a newly added blank group in the live editor long enough for the
       // person to name it. Full resume normalization still drops abandoned
@@ -1239,6 +1320,7 @@ export function useResumeEditor() {
     const removedSection = state.customSections.find((custom) => custom.id === section);
     if (!removedSection) return;
     const sectionOrderIndex = state.sectionOrder.indexOf(section);
+    checkpointBeforeDestructiveEdit(`removing the ${removedSection.title || "custom"} section`);
     setState((current) => ({
       ...current,
       customSections: current.customSections.filter((custom) => custom.id !== section),
@@ -1269,6 +1351,7 @@ export function useResumeEditor() {
     const format = state.sectionFormats[section] ?? (section === "skills" ? "tag-groups" : "entries");
     const tagGroups = state.sectionTagGroups[section] ?? [];
     const text = state.sectionText[section] ?? "";
+    checkpointBeforeDestructiveEdit(`removing the ${title || SECTION_LABELS[section]} section`);
     setState((current) => {
       if (!current.sectionOrder.includes(section)) return current;
       const next = {
@@ -1378,24 +1461,28 @@ export function useResumeEditor() {
   };
 
   const loadSample = () => {
+    const nextState: ResumeState = {
+      ...sampleState(),
+      template: state.template,
+      theme: state.theme,
+      textScale: state.textScale,
+    };
+    forkAutosaveBeforeLoading(nextState, "the sample resume");
     saveRecoveryPoint("Before loading the sample");
     // Loading a sample should replace the resume content, not quietly undo the
     // design a person just chose to evaluate it in. Keep every visual setting
     // (including scale) aligned with the active preview and PDF.
-    setState((current) => ({
-      ...sampleState(),
-      template: current.template,
-      theme: current.theme,
-      textScale: current.textScale,
-    }));
+    setState(nextState);
     setImportReview(null);
     setDraftSourceVersionId(null);
     flash("Sample loaded");
   };
 
   const clearResume = () => {
+    const nextState = emptyState();
+    forkAutosaveBeforeLoading(nextState, "a blank resume");
     saveRecoveryPoint("Before clearing the resume");
-    setState(emptyState());
+    setState(nextState);
     setImportReview(null);
     setDraftSourceVersionId(null);
     flash("Cleared");
@@ -1547,6 +1634,7 @@ export function useResumeEditor() {
     setIsImporting(true);
     try {
       const imported = await importResumePdfWithSource(file);
+      forkAutosaveBeforeLoading(imported.state, file.name);
       saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
       setState(imported.state);
       setImportReview(buildImportReview(imported.state, file.name, imported.sourceText));
@@ -1566,6 +1654,7 @@ export function useResumeEditor() {
     setIsImporting(true);
     try {
       const imported = await importResumeDocxWithSource(file);
+      forkAutosaveBeforeLoading(imported.state, file.name);
       saveRecoveryPoint(`Before importing ${file.name}`, previousState, previousImportReview);
       setState(imported.state);
       setImportReview(buildImportReview(imported.state, file.name, imported.sourceText));
@@ -1595,6 +1684,7 @@ export function useResumeEditor() {
   const openTextImport = (text: string) => {
     try {
       const imported = importResumeTextWithSource(text);
+      forkAutosaveBeforeLoading(imported.state, "pasted resume text");
       saveRecoveryPoint("Before importing pasted resume text");
       setState(imported.state);
       setImportReview(buildImportReview(imported.state, "pasted resume text", imported.sourceText));
@@ -1614,6 +1704,7 @@ export function useResumeEditor() {
       return false;
     }
     const nextState = normalizeResume(proposal);
+    forkAutosaveBeforeLoading(nextState, `the repaired ${importReview.fileName} import`);
     saveRecoveryPoint(`Before fixing the ${importReview.fileName} import with local AI`, state, importReview);
     setState(nextState);
     setImportReview(buildImportReview(nextState, importReview.fileName, importReview.sourceText));

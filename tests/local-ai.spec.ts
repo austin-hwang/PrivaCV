@@ -42,7 +42,7 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(modelCaret).toHaveCSS("right", "12px");
   await expect(dialog).toHaveCSS("z-index", "80");
   await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
-  await expect(dialog).toContainText("Nothing downloads automatically");
+  await expect(dialog).toContainText("Downloads an open-source model from Hugging Face");
   await expect(dialog).toContainText("Performance may be slower on some devices");
   await expect(dialog).toContainText("suggestions may be inaccurate");
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });

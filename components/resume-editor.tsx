@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import {
   ArrowDown,
@@ -64,7 +65,6 @@ import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
 import { ResumeLibraryCard } from "@/components/resume-editor/resume-library-card";
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
-import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
 import { ResumeNavigator, type ResumeNavigatorItem } from "@/components/resume-editor/resume-navigator";
 import { StartPanel } from "@/components/resume-editor/start-panel";
@@ -74,7 +74,6 @@ import {
   ACCENT_PRESETS,
   clampTextScale,
   entryFieldSchema,
-  entryHasContent,
   BULLET_STYLE_LABELS,
   BULLET_STYLES,
   CUSTOM_SECTION_PRESETS,
@@ -205,8 +204,7 @@ const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-pho
 const isHeaderTarget = (targetId: string) =>
   HEADER_FIELD_IDS.includes(targetId) || targetId.startsWith("field-header-link-") || targetId === "add-header-link";
 
-function HeaderLinkEditorIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
-  const icon = resolveHeaderLinkIcon(link);
+function HeaderLinkIcon({ icon }: { icon: HeaderLinkIconId }) {
   const Icon = icon === "linkedin"
     ? Linkedin
     : icon === "github"
@@ -221,6 +219,108 @@ function HeaderLinkEditorIcon({ link }: { link: Pick<HeaderLink, "icon" | "label
               ? LinkIcon
               : Globe2;
   return <Icon aria-hidden="true" className="size-4" />;
+}
+
+function HeaderLinkEditorIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
+  return <HeaderLinkIcon icon={resolveHeaderLinkIcon(link)} />;
+}
+
+// Lets a person pick a link's icon by clicking it directly rather than via a
+// separate <select>. Manages its own open state and closes on outside click,
+// Escape, or selection.
+function HeaderLinkIconPicker({
+  id,
+  value,
+  label,
+  onChange,
+}: {
+  id: string;
+  value: HeaderLinkIconId;
+  label: string;
+  onChange: (icon: HeaderLinkIconId) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const button = rootRef.current?.querySelector("button");
+    const rect = button?.getBoundingClientRect();
+    if (rect) setPosition({ top: rect.bottom + 4, left: rect.left });
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const handleReposition = () => setOpen(false);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleReposition, true);
+    window.addEventListener("resize", handleReposition);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.removeEventListener("resize", handleReposition);
+    };
+  }, [open]);
+
+  const currentLabel = HEADER_LINK_ICON_OPTIONS.find((option) => option.id === value)?.label ?? "Website";
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        id={id}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${label} icon — ${currentLabel}`}
+        title="Choose an icon"
+        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <HeaderLinkIcon icon={value} />
+      </button>
+      {open && position
+        ? createPortal(
+            <div
+              ref={panelRef}
+              role="menu"
+              aria-label={`${label} icon options`}
+              style={{ top: position.top, left: position.left }}
+              className="fixed z-50 grid w-40 gap-0.5 rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
+            >
+              {HEADER_LINK_ICON_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onChange(option.id);
+                    setOpen(false);
+                  }}
+                  aria-current={option.id === value}
+                  className={cn(
+                    "flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted",
+                    option.id === value && "bg-muted font-medium",
+                  )}
+                >
+                  <HeaderLinkIcon icon={option.id} />
+                  {option.label}
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
+    </div>
+  );
 }
 
 // Skills can render as grouped tags, bullets, paragraphs, or rows, so its old
@@ -253,7 +353,6 @@ export function ResumeEditor() {
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
   const [blankTemplatePreview, setBlankTemplatePreview] = useState<ResumeTemplateId | null>(null);
-  const [blankResumeGuideVisible, setBlankResumeGuideVisible] = useState(false);
   // Collapsed editor groups (by group id) so a long resume is quick to scan and
   // scroll without hunting through every open section.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -407,43 +506,6 @@ export function ResumeEditor() {
     document.documentElement.dataset.resumeWorkspace = workspaceHasStarted ? "active" : "";
     return () => { delete document.documentElement.dataset.resumeWorkspace; };
   }, [workspaceHasStarted]);
-  const blankResumeGuideSteps = useMemo<BlankResumeGuideStep[]>(
-    () => [
-      {
-        id: "contact",
-        label: "Add contact details",
-        description: "Name, email, phone, and location.",
-        actionLabel: "Add details",
-        targetId: "field-name",
-        done: checks.find((check) => check.id === "contact")?.ok ?? false,
-      },
-      {
-        id: "experience",
-        label: "Describe recent work",
-        description: "Add a recent role and its key achievements.",
-        actionLabel: "Add a role",
-        targetId: "field-experience-0-title",
-        done: state.experience.some((entry) => entryHasContent(entry) && Boolean(entry.details.trim())),
-      },
-      {
-        id: "skills",
-        label: "List relevant skills",
-        description: "Group by category, e.g. Languages or Tools.",
-        actionLabel: "Add skills",
-        targetId: getSectionFormat(state, "skills") === "tag-groups"
-          ? state.sectionTagGroups.skills?.[0]
-            ? `field-skills-group-${state.sectionTagGroups.skills[0].id}`
-            : "add-skills-group"
-          : getSectionFormat(state, "skills") === "entries"
-            ? state.skillEntries.length
-              ? "field-skills-0-title"
-              : "add-skills-entry"
-            : "field-skills-content",
-        done: sectionItemCount(state, "skills") > 0,
-      },
-    ],
-    [checks, state],
-  );
   const externalDraftChanges = useMemo(
     () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
     [externalDraft, state],
@@ -460,19 +522,11 @@ export function ResumeEditor() {
     };
   }, []);
 
-  // A person can switch from a blank start to an imported resume at any time.
-  // Import review is the relevant guide in that case, so never bring the blank
-  // drafting prompts back after it finishes.
-  useEffect(() => {
-    if (importReview) setBlankResumeGuideVisible(false);
-  }, [importReview]);
-
   const startBlankResume = (template = state.template) => {
     setBlankTemplatePreview(null);
     updateField("template", template);
     updateField("theme", TEMPLATE_THEMES[template]);
     setBlankWorkspaceOpen(true);
-    setBlankResumeGuideVisible(true);
     window.setTimeout(() => document.getElementById("field-name")?.focus(), 120);
   };
 
@@ -510,7 +564,6 @@ export function ResumeEditor() {
 
   const clearEditor = () => {
     setBlankWorkspaceOpen(false);
-    setBlankResumeGuideVisible(false);
     clearResume();
   };
 
@@ -1092,10 +1145,7 @@ export function ResumeEditor() {
               </MenuTrigger>
               <MenuContent>
                 <MenuLabel>Workspace data</MenuLabel>
-                <MenuItem onSelect={() => {
-                  setBlankResumeGuideVisible(false);
-                  loadSample();
-                }}>
+                <MenuItem onSelect={loadSample}>
                   <FileText /> Sample
                 </MenuItem>
                 <MenuItem
@@ -1277,13 +1327,6 @@ export function ResumeEditor() {
             </Card>
           ) : null}
 
-          {blankWorkspaceOpen && blankResumeGuideVisible && !importReview ? (
-            <BlankResumeGuide
-              steps={blankResumeGuideSteps}
-              onFocus={focusEditorTarget}
-              onDismiss={() => setBlankResumeGuideVisible(false)}
-            />
-          ) : null}
           </div>
 
           {workspaceHasStarted ? (
@@ -1399,10 +1442,13 @@ export function ResumeEditor() {
                         const fieldLabel = link.label.trim() || `Link ${index + 1}`;
                         return (
                           <div key={link.id} data-header-link={link.id} className="flex items-center gap-2 border-b p-2 last:border-b-0">
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                              <HeaderLinkEditorIcon link={link} />
-                            </span>
-                            <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                            <HeaderLinkIconPicker
+                              id={`field-header-link-${link.id}-icon`}
+                              value={link.icon}
+                              label={fieldLabel}
+                              onChange={(icon) => updateHeaderLink(link.id, { icon })}
+                            />
+                            <div className="min-w-0 flex-1">
                               <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>{fieldLabel} URL</label>
                               <Input
                                 id={`field-header-link-${link.id}-url`}
@@ -1415,18 +1461,6 @@ export function ResumeEditor() {
                                 aria-label={`${fieldLabel} URL`}
                                 onChange={(event) => updateHeaderLink(link.id, { url: event.target.value })}
                               />
-                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-icon`}>{fieldLabel} icon</label>
-                              <select
-                                id={`field-header-link-${link.id}-icon`}
-                                value={link.icon}
-                                aria-label={`${fieldLabel} icon`}
-                                onChange={(event) => updateHeaderLink(link.id, { icon: event.target.value as HeaderLinkIconId })}
-                                className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              >
-                                {HEADER_LINK_ICON_OPTIONS.map((option) => (
-                                  <option key={option.id} value={option.id}>{option.label}</option>
-                                ))}
-                              </select>
                             </div>
                             <div className="flex shrink-0 items-center">
                               <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} aria-label={`Move ${fieldLabel} up`} onClick={() => moveHeaderLink(index, -1)}>
@@ -1852,7 +1886,7 @@ export function ResumeEditor() {
             historyOpen ? "max-w-[calc(8.5in+17rem)] flex-col lg:flex-row" : "max-w-[8.5in]",
           )}>
           <div ref={previewWrapRef} className="flex w-full min-w-0 max-w-[8.5in] flex-1 flex-col items-center gap-3">
-            <div className="app-chrome flex w-full items-center gap-2 overflow-x-auto pb-1">
+            <div className="app-chrome preview-toolbar flex w-full items-center gap-2 overflow-x-auto pb-1">
               {workspaceHasStarted ? (
                 <Button
                   type="button"
@@ -1864,10 +1898,10 @@ export function ResumeEditor() {
                   aria-controls="design-panel"
                   onClick={() => setDesignOpen((open) => !open)}
                 >
-                  <Palette /> <span className="hidden 2xl:inline">Design</span>
+                  <Palette /> <span className="preview-toolbar-label">Design</span>
                 </Button>
               ) : null}
-              <label className="hidden h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground sm:flex">
+              <label className="preview-toolbar-optional h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground">
                 <span className="sr-only">Text size</span>
                 <input
                   id="resume-text-scale"
@@ -1883,7 +1917,7 @@ export function ResumeEditor() {
                 <output className="w-9 text-right tabular-nums">{Math.round(state.textScale * 100)}%</output>
               </label>
               <p className="shrink-0 text-xs text-muted-foreground">
-                {pageCount} {pageCount === 1 ? "page" : "pages"} in preview
+                {pageCount} {pageCount === 1 ? "page" : "pages"}<span className="preview-toolbar-label"> in preview</span>
               </p>
               {pageCount > 1 && canTightenLayout ? (
                 <Button
@@ -1896,7 +1930,7 @@ export function ResumeEditor() {
                   title="Uses compact spacing first, then reduces text size by 2%. Your resume content stays unchanged."
                 >
                   <ChevronsDownUp />
-                  <span className="hidden 2xl:inline">{state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}</span>
+                  <span className="preview-toolbar-label">{state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}</span>
                 </Button>
               ) : null}
               <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -1911,7 +1945,7 @@ export function ResumeEditor() {
                     onClick={() => setLocalAIImportOpen(true)}
                     title={importReview.sourceText ? "Remap the original extracted text with local AI" : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"}
                   >
-                    <Sparkles /> <span className="hidden 2xl:inline">Fix import with AI</span>
+                    <Sparkles /> <span className="preview-toolbar-label">Fix import with AI</span>
                   </Button>
                 ) : null}
                 <Button
@@ -1927,10 +1961,10 @@ export function ResumeEditor() {
                   {inlineEdit ? (
                     <>
                       <Pencil />
-                      <span>Editing</span>
+                      <span className="preview-toolbar-label">Editing</span>
                     </>
                   ) : (
-                    <><Eye /> <span>View only</span></>
+                    <><Eye /> <span className="preview-toolbar-label">View only</span></>
                   )}
                 </Button>
                 <div
@@ -1963,7 +1997,7 @@ export function ResumeEditor() {
                   ) : (
                     <Check className="size-3.5 text-success" aria-hidden="true" />
                   )}
-                  <span>{storageIssue || autosaveStatus === "conflict" ? "Not saved" : autosaveStatus === "saving" ? "Saving" : "Saved"}</span>
+                  <span className="preview-toolbar-label">{storageIssue || autosaveStatus === "conflict" ? "Not saved" : autosaveStatus === "saving" ? "Saving" : "Saved"}</span>
                 </div>
                 <Button
                   type="button"
@@ -1993,8 +2027,8 @@ export function ResumeEditor() {
                 <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
                   <FileText /> Edit resume
                 </Button>
-                <Button type="button" variant={historyOpen ? "secondary" : "outline"} size="sm" className="lg:hidden" aria-expanded={historyOpen} aria-controls="edit-history-panel" onClick={() => setHistoryOpen((open) => !open)}>
-                  <History /> History
+                <Button type="button" variant={historyOpen ? "secondary" : "outline"} size="sm" className="lg:hidden" aria-label="Edit history" aria-expanded={historyOpen} aria-controls="edit-history-panel" onClick={() => setHistoryOpen((open) => !open)}>
+                  <History /> <span className="preview-toolbar-label">History</span>
                 </Button>
               </div>
             </div>
@@ -2095,7 +2129,6 @@ export function ResumeEditor() {
                 setDestructiveAction(null);
                 if (action === "delete-all") {
                   setBlankWorkspaceOpen(false);
-                  setBlankResumeGuideVisible(false);
                   void deleteSavedBrowserData();
                 } else if (action === "clear-checkpoints") {
                   setHistoryPreviewItem(null);

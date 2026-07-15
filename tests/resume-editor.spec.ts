@@ -346,17 +346,6 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await page.getByRole("menuitem", { name: /classic/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Start fresh")).toBeHidden();
-  const essentials = page.getByLabel("Blank resume essentials");
-  await expect(essentials).toContainText("Start with the parts a recruiter needs first.");
-  await expect(essentials.locator('ol[aria-label="0 of 3 essentials complete"]')).toBeVisible();
-  await expect(essentials.getByRole("button", { name: /add details/i })).toHaveCSS("align-self", "flex-end");
-  await essentials.getByRole("button", { name: /add a role/i }).click();
-  await expect(page.locator("#field-experience-0-title")).toBeFocused();
-  await essentials.getByRole("button", { name: /add skills/i }).click();
-  await expect(page.locator("#add-skills-group")).toBeFocused();
-  await expect(page.locator("#review-region-skills")).toHaveClass(/ring-brand/);
-  await essentials.getByRole("button", { name: /hide guide/i }).click();
-  await expect(essentials).toBeHidden();
   await expect(page.getByLabel("Resume editor")).toBeVisible();
   // The Classic preset seeds ruled section headings.
   await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "ruled");
@@ -816,6 +805,38 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await versions.getByRole("button", { name: "Confirm restore" }).click();
   await expect(summary).toHaveValue(savedSummary);
   await expect(page.getByText("Restored Autosave copy")).toBeVisible();
+});
+
+test("creates a deduplicated periodic checkpoint after sustained editing", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  await page.evaluate(() => {
+    const tenMinutesLater = Date.now() + 10 * 60 * 1000;
+    Date.now = () => tenMinutesLater;
+  });
+  await page.getByLabel("Professional Summary").fill("A sustained editing session with a durable automatic history point.");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  await expect.poll(() => page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    return history.filter((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-")).length;
+  })).toBe(1);
+
+  await page.getByLabel("Professional Summary").fill("A second edit should stay within the same automatic checkpoint window.");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await expect.poll(() => page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    return history.filter((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-")).length;
+  })).toBe(1);
+
+  const versions = await openVersions(page);
+  const automatic = versions.locator("li", { hasText: "Auto · John Doe" });
+  await expect(automatic.getByText("Automatic", { exact: true })).toBeVisible();
+  await expect(automatic).toContainText("Saved automatically after 10 minutes of continued editing.");
 });
 
 test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
@@ -1362,6 +1383,17 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
   await experience.getByRole("button", { name: /remove entry/i }).first().click();
   await expect(page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" })).toBeVisible();
   await expect(experience.getByLabel("Job Title").first()).toHaveValue("Business Operations Analyst");
+  await expect.poll(() => page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    const checkpoint = history.find((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-"));
+    return {
+      title: checkpoint?.state?.experience?.[0]?.title,
+      note: checkpoint?.note,
+    };
+  })).toEqual({
+    title: "Product Operations Manager",
+    note: "Saved automatically before removing an entry from Experience.",
+  });
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expect(experience.getByLabel("Job Title").first()).toHaveValue("Product Operations Manager");
 
@@ -1702,6 +1734,36 @@ test("imports a pasted resume locally and keeps confirmation deliberate without 
 
   await expect(page.getByRole("dialog", { name: /guided review/i })).toBeHidden();
   await expect(page.getByText("Review the imported fields")).toBeHidden();
+});
+
+test("automatically checkpoints the current draft before a pasted import replaces it", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await page.getByLabel("Full Name").fill("Existing Draft");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("Existing Draft");
+
+  await page.getByRole("button", { name: "Import", exact: true }).click();
+  await page.getByRole("menuitem", { name: /paste resume text/i }).click();
+  const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
+  await importDialog.getByLabel("Resume text").fill(
+    "Ada Lovelace\nPlatform Engineer\nada@example.com\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n• Built reliable systems.",
+  );
+  await importDialog.getByRole("button", { name: /^import text$/i }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
+
+  await expect.poll(() => page.evaluate(() => {
+    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
+    const checkpoint = history.find((item: { id?: string }) => item.id?.startsWith("autosave-slot-"));
+    return {
+      name: checkpoint?.state?.name,
+      note: checkpoint?.note,
+    };
+  })).toEqual({
+    name: "Existing Draft",
+    note: "Preserved automatically before loading pasted resume text.",
+  });
 });
 
 test("keeps an unfinished import review after a browser refresh", async ({ page }) => {
@@ -2534,11 +2596,13 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   const github = preview.getByRole("link", { name: "github.com/johndoe" });
   await expect(github).toHaveAttribute("href", "https://github.com/johndoe");
   await expect(github.locator(".lucide-github")).toBeVisible();
-  const iconSelect = newLink.getByLabel("GitHub icon");
-  await expect(iconSelect).toHaveValue("github");
-  await expect(iconSelect.locator("option")).toHaveCount(7);
-  await expect(iconSelect.locator("option", { hasText: "Automatic" })).toHaveCount(0);
-  await iconSelect.selectOption("portfolio");
+  const iconButton = newLink.getByLabel(/GitHub icon/i);
+  await expect(iconButton.locator(".lucide-github")).toBeVisible();
+  await iconButton.click();
+  const iconMenu = page.getByRole("menu", { name: /GitHub icon options/i });
+  await expect(iconMenu.getByRole("menuitem")).toHaveCount(7);
+  await expect(iconMenu.getByRole("menuitem", { name: "Automatic" })).toHaveCount(0);
+  await iconMenu.getByRole("menuitem", { name: "Portfolio / work" }).click();
   await expect(github.locator(".lucide-briefcase-business")).toBeVisible();
   await newLink.getByRole("button", { name: /move github up/i }).click();
   await expect(page.locator("[data-header-link]").first().locator('input[type="url"]')).toHaveValue("github.com/johndoe");
@@ -2546,7 +2610,7 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("github.com/johndoe");
   await page.reload();
   await expect(page.getByLabel("GitHub URL")).toHaveValue("github.com/johndoe");
-  await expect(page.getByLabel("GitHub icon")).toHaveValue("portfolio");
+  await expect(page.getByLabel(/GitHub icon/i).locator(".lucide-briefcase-business")).toBeVisible();
   await expect(page.locator(".resume-sheet .resume-contact-item").filter({ hasText: "github.com/johndoe" }).locator(".lucide-briefcase-business")).toBeVisible();
 });
 

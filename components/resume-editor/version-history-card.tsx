@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   formatCheckpointTime,
+  isAutomaticCheckpointId,
   versionHeadline,
   type VersionHistoryItem,
 } from "@/lib/resume-workspace";
@@ -222,6 +223,7 @@ export function VersionHistoryCard({
                   const selected = index === clampedIndex;
                   const isCurrentDraft = item.id === "current-draft";
                   const isAutosave = item.id === "autosave-copy" || item.id.startsWith("autosave-slot-");
+                  const isAutomatic = isAutomaticCheckpointId(item.id);
                   return (
                     <li key={item.id} className="relative pl-3 before:absolute before:bottom-[-0.5rem] before:left-[3px] before:top-3 before:w-px before:bg-border last:before:hidden">
                       <span className={cn("absolute left-0 top-3 size-2 rounded-full border bg-background", selected && "border-primary bg-primary")} aria-hidden="true" />
@@ -240,6 +242,7 @@ export function VersionHistoryCard({
                         {item.note ? <span className="mt-1 block max-h-7 overflow-hidden text-[10px] leading-snug text-muted-foreground">{item.note}</span> : null}
                         {isCurrentDraft ? <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-primary">Live draft</span> : null}
                         {!isCurrentDraft && isAutosave ? <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">Autosaved</span> : null}
+                        {!isCurrentDraft && !isAutosave && isAutomatic ? <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">Automatic</span> : null}
                       </button>
                     </li>
                   );

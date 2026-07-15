@@ -49,6 +49,8 @@ import {
   importSectionExcerpt,
   importSourceExcerpt,
   importReviewProgress,
+  isAutomaticCheckpointId,
+  limitAutomaticCheckpoints,
   mergeVersionHistory,
   parseCheckpointHistory,
   parseResumeLibrary,
@@ -1720,6 +1722,32 @@ describe("resume helpers", () => {
     expect(parseCheckpointHistory(JSON.stringify({ "resume-product": [checkpoint] }))).toMatchObject({
       "resume-product": [expect.objectContaining({ id: "checkpoint-1", label: "Before tailoring" })],
     });
+  });
+
+  it("limits automatic checkpoints without removing manual checkpoints", () => {
+    const resume = sampleState();
+    const manual = Array.from({ length: 25 }, (_, index): VersionHistoryItem => ({
+      id: `manual-${index}`,
+      savedAt: `2026-07-11T12:${String(index).padStart(2, "0")}:00.000Z`,
+      label: `Manual ${index}`,
+      fingerprint: `manual-${index}`,
+      state: resume,
+      importReview: null,
+    }));
+    const automatic = Array.from({ length: 24 }, (_, index): VersionHistoryItem => ({
+      id: `${index % 2 ? "autosave-slot" : "auto-checkpoint"}-${index}`,
+      savedAt: `2026-07-11T11:${String(index).padStart(2, "0")}:00.000Z`,
+      label: `Automatic ${index}`,
+      fingerprint: `automatic-${index}`,
+      state: resume,
+      importReview: null,
+    }));
+
+    const limited = limitAutomaticCheckpoints([...automatic, ...manual]);
+
+    expect(limited.filter((item) => isAutomaticCheckpointId(item.id))).toHaveLength(20);
+    expect(limited.filter((item) => !isAutomaticCheckpointId(item.id))).toHaveLength(25);
+    expect(limited.map((item) => item.id)).not.toContain("autosave-slot-21");
   });
 
   it("deduplicates version history by resume content when merging backups", () => {

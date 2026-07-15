@@ -276,6 +276,25 @@ export function versionHistoryFingerprint(item: Pick<VersionHistoryItem, "finger
   return item.fingerprint;
 }
 
+export const AUTOMATIC_CHECKPOINT_LIMIT = 20;
+
+/** Automatic history entries are bounded separately from user-named checkpoints. */
+export function isAutomaticCheckpointId(id: string) {
+  return id.startsWith("auto-checkpoint-") || id.startsWith("autosave-slot-");
+}
+
+export function limitAutomaticCheckpoints(
+  history: VersionHistoryItem[],
+  limit = AUTOMATIC_CHECKPOINT_LIMIT,
+) {
+  let automaticCount = 0;
+  return history.filter((item) => {
+    if (!isAutomaticCheckpointId(item.id)) return true;
+    automaticCount += 1;
+    return automaticCount <= limit;
+  });
+}
+
 function limitedString(value: unknown, maximum = 2_000) {
   return typeof value === "string" ? value.slice(0, maximum) : undefined;
 }

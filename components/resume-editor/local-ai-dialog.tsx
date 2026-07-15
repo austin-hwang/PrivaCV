@@ -5,7 +5,7 @@ import { Check, ChevronDown, Cpu, Download, Loader2, Sparkles, Trash2 } from "lu
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   disposeLocalAIRuntime,
   friendlyLocalAIError,
@@ -219,9 +219,6 @@ export function LocalAIDialog({
             <DialogTitle>Local AI setup</DialogTitle>
             <Badge variant="secondary">Experimental</Badge>
           </div>
-          <DialogDescription>
-            Download a private in-browser model once, then use the magic icons beside resume text or repair an active import.
-          </DialogDescription>
         </DialogHeader>
 
         <Alert className="border-warning/40 bg-warning/10 pl-4">
@@ -236,7 +233,7 @@ export function LocalAIDialog({
             <div>
               <h3 id="local-ai-setup-title" className="text-sm font-semibold">Prepare a model</h3>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                Nothing downloads automatically. Setup downloads public model files from MLC/Hugging Face and caches them in this browser. Resume content is never included in download requests.
+                Downloads an open-source model from Hugging Face and caches it in this browser.
               </p>
             </div>
             <Badge variant={modelState === "ready" ? "secondary" : "outline"} className={modelState === "ready" ? "bg-success/15 text-success" : undefined}>

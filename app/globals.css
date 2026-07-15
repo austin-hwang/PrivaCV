@@ -136,6 +136,34 @@
   align-items: flex-start;
 }
 
+/* The preview toolbar's available width shrinks when the history panel opens
+   beside it, independent of the viewport, so its button labels respond to the
+   toolbar's own inline size instead of a viewport breakpoint. Below the
+   threshold, buttons fall back to icon-only rather than overflowing into a
+   horizontal scrollbar. */
+.preview-toolbar {
+  container-name: preview-toolbar;
+  container-type: inline-size;
+}
+
+.preview-toolbar-label {
+  display: none;
+}
+
+.preview-toolbar-optional {
+  display: none;
+}
+
+@container preview-toolbar (min-width: 34rem) {
+  .preview-toolbar-label {
+    display: inline;
+  }
+
+  .preview-toolbar-optional {
+    display: flex;
+  }
+}
+
 @container resume-editor (min-width: 32rem) {
   .editor-pane-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
