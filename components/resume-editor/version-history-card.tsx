@@ -41,7 +41,7 @@ function VersionThumbnail({ item }: { item: VersionHistoryItem }) {
 /**
  * Checkpoints are decisions, not just timestamps. This dedicated workspace
  * keeps the current editor calm while letting people visually recognize each
- * saved resume before they compare, restore, or delete it.
+ * saved checkpoint before they compare, restore, or delete it.
  */
 export function VersionHistoryCard({
   open,
@@ -77,6 +77,7 @@ export function VersionHistoryCard({
   onDismissDeleted: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const allVersions = useMemo(() => autosave ? [autosave, ...versions] : versions, [autosave, versions]);
   const visibleVersions = useMemo(
@@ -91,28 +92,33 @@ export function VersionHistoryCard({
     [allVersions, normalizedQuery],
   );
   const showingFilteredVersions = visibleVersions.length !== allVersions.length;
+  const selectedVersion = allVersions[Math.min(selectedIndex, Math.max(0, allVersions.length - 1))] ?? null;
+  const selectedIsCurrent = selectedVersion?.fingerprint === currentFingerprint;
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) setQuery("");
+        if (!nextOpen) {
+          setQuery("");
+          setSelectedIndex(0);
+        }
         onOpenChange(nextOpen);
       }}
     >
       <DialogContent className="flex h-[min(900px,calc(100dvh-2rem))] max-w-6xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-5 py-5 pr-12">
-          <DialogTitle>Version history</DialogTitle>
+          <DialogTitle>Edit history</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-5 py-3">
           <p className="text-sm text-muted-foreground">
-            <span>{versions.length} {versions.length === 1 ? "checkpoint" : "checkpoints"} saved</span>
-            {autosave ? <span> · Autosave copy available</span> : null}
+            <span>{versions.length} {versions.length === 1 ? "checkpoint" : "checkpoints"} for this resume</span>
+            {autosave ? <span> · Current autosave at the top</span> : null}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" onClick={onSave} disabled={!hasContent}>
-              <Save /> Save current version
+            <Button type="button" size="sm" onClick={onSave} disabled={!hasContent} aria-label="Save current version checkpoint">
+              <Save /> Save checkpoint
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={onOpenBackup}>
               <Upload /> Open backup
@@ -125,10 +131,49 @@ export function VersionHistoryCard({
 
         {storageIssue ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/40 bg-warning/10 px-5 py-3 text-sm text-foreground">
-            <p>Browser storage is unavailable. Versions shown here may not survive a refresh.</p>
+            <p>Browser storage is unavailable. Checkpoints shown here may not survive a refresh.</p>
             <Button type="button" variant="outline" size="sm" className="border-warning/50 bg-background" onClick={onSaveBackup} disabled={!versions.length}>
-              <Download /> Back up versions now
+              <Download /> Back up checkpoints now
             </Button>
+          </div>
+        ) : null}
+
+        {selectedVersion ? (
+          <div className="grid gap-4 border-b bg-muted/10 p-5 md:grid-cols-[8rem_minmax(0,1fr)_minmax(15rem,22rem)]">
+            <div className="flex min-h-64 items-center justify-center gap-2 rounded-lg border bg-background p-3">
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, allVersions.length - 1)}
+                value={Math.max(0, allVersions.length - 1 - selectedIndex)}
+                disabled={allVersions.length < 2}
+                aria-label="Move through edit history"
+                aria-valuetext={`${selectedVersion.label}, ${formatCheckpointTime(selectedVersion.savedAt)}`}
+                onChange={(event) => setSelectedIndex(Math.max(0, allVersions.length - 1 - Number(event.target.value)))}
+                className="h-52 w-7 cursor-ns-resize accent-primary [direction:rtl] [writing-mode:vertical-lr]"
+              />
+              <div className="flex h-52 flex-col justify-between text-[10px] font-medium text-muted-foreground" aria-hidden="true">
+                <span>Now</span>
+                <span>Older</span>
+              </div>
+            </div>
+            <div data-history-selection className="min-w-0 rounded-lg border bg-card p-4">
+              <div className="flex items-start gap-2">
+                <History className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-semibold">{selectedVersion.label}</p>
+                    {selectedVersion.id === "autosave-copy" ? <Badge variant="outline">Current</Badge> : null}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatCheckpointTime(selectedVersion.savedAt)} · {versionHeadline(selectedVersion.state)}</p>
+                  {selectedVersion.note ? <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{selectedVersion.note}</p> : null}
+                </div>
+              </div>
+              <Button type="button" className="mt-4" size="sm" variant="outline" disabled={selectedIsCurrent} onClick={() => onRestore(selectedVersion)}>
+                <Undo2 /> Restore this point
+              </Button>
+            </div>
+            <VersionThumbnail item={selectedVersion} />
           </div>
         ) : null}
 
@@ -141,8 +186,8 @@ export function VersionHistoryCard({
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  aria-label="Find a saved version"
-                  placeholder="Find by name, note, or resume title"
+                  aria-label="Find a checkpoint"
+                  placeholder="Find by checkpoint name or note"
                   className="pr-9 pl-9"
                 />
                 {query ? (
@@ -159,7 +204,7 @@ export function VersionHistoryCard({
                 ) : null}
               </div>
               <p className="text-xs text-muted-foreground" aria-live="polite">
-                {showingFilteredVersions ? `Showing ${visibleVersions.length} of ${allVersions.length}` : "Showing all saved versions"}
+                {showingFilteredVersions ? `Showing ${visibleVersions.length} of ${allVersions.length}` : "Showing all checkpoints"}
               </p>
             </div>
           ) : null}
@@ -216,7 +261,7 @@ export function VersionHistoryCard({
             <div className="grid min-h-56 place-items-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
               <div>
                 <Search className="mx-auto mb-3 size-6 text-muted-foreground" />
-                <p className="font-semibold">No saved versions match “{query.trim()}”</p>
+                <p className="font-semibold">No checkpoints match “{query.trim()}”</p>
                 <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Search by checkpoint name, note, or resume title.</p>
                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setQuery("")}>
                   Clear search
@@ -227,7 +272,7 @@ export function VersionHistoryCard({
             <div className="grid min-h-56 place-items-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
               <div>
                 <History className="mx-auto mb-3 size-6 text-muted-foreground" />
-                <p className="font-semibold">No saved versions yet</p>
+                <p className="font-semibold">No checkpoints yet</p>
                 <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">Save a checkpoint to restore this version later.</p>
               </div>
             </div>

@@ -16,12 +16,16 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
  * core resume sections. Custom headings remain available for everything else.
  */
 export const CUSTOM_SECTION_PRESETS = [
-  "Certifications",
+  "Leadership & Activities",
+  "Research Experience",
+  "Relevant Coursework",
+  "Licenses & Certifications",
+  "Professional Affiliations",
   "Volunteer Experience",
-  "Publications",
-  "Awards",
+  "Publications & Presentations",
+  "Awards & Honors",
   "Languages",
-  "Training",
+  "Training & Professional Development",
 ] as const;
 
 export const RESUME_TEMPLATES = [
@@ -151,6 +155,20 @@ export const SECTION_FORMAT_LABELS: Record<SectionFormat, string> = {
   "labeled-rows": "Labeled rows",
 };
 
+/** A useful starting layout for each common optional section. */
+export const CUSTOM_SECTION_PRESET_FORMATS: Record<(typeof CUSTOM_SECTION_PRESETS)[number], SectionFormat> = {
+  "Leadership & Activities": "entries",
+  "Research Experience": "entries",
+  "Relevant Coursework": "tag-groups",
+  "Licenses & Certifications": "entries",
+  "Professional Affiliations": "entries",
+  "Volunteer Experience": "entries",
+  "Publications & Presentations": "entries",
+  "Awards & Honors": "entries",
+  Languages: "entries",
+  "Training & Professional Development": "entries",
+};
+
 export const sectionTitlesSchema = z.object({
   education: z.string().catch(SECTION_LABELS.education),
   experience: z.string().catch(SECTION_LABELS.experience),
@@ -163,9 +181,109 @@ export const entrySchema = z.object({
   subtitle: z.string().catch(""),
   meta: z.string().catch(""),
   details: z.string().catch(""),
+  detailsFormat: z.enum(["bullets", "paragraph"]).catch("bullets").optional(),
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
+
+export type EntryTextField = "title" | "subtitle" | "meta" | "details";
+export type EntryFieldSchema = Record<EntryTextField, string>;
+
+const DEFAULT_ENTRY_FIELD_SCHEMA: EntryFieldSchema = {
+  title: "Title",
+  subtitle: "Organization / context",
+  meta: "Dates / details",
+  details: "Highlights",
+};
+
+/**
+ * Keeps the portable four-field entry shape while giving familiar sections
+ * purpose-specific prompts. Title matching intentionally accepts common
+ * heading variants so imported and user-renamed sections remain useful.
+ */
+export function entryFieldSchema(section: string, sectionTitle = ""): EntryFieldSchema {
+  if (section === "experience") return {
+    title: "Job Title",
+    subtitle: "Company",
+    meta: "Dates (e.g. Jan 2020 - Present)",
+    details: "Responsibilities / achievements (one bullet per line)",
+  };
+  if (section === "education") return {
+    title: "Degree",
+    subtitle: "School",
+    meta: "Dates / Location",
+    details: "Honors / relevant coursework / details (one per line, optional)",
+  };
+  if (section === "projects") return {
+    title: "Project Name",
+    subtitle: "Technologies / Role",
+    meta: "Dates / Link",
+    details: "Description (one bullet per line)",
+  };
+
+  const title = sectionTitle.trim().toLocaleLowerCase();
+  if (/\b(certifications?|licenses?|credentials?)\b/.test(title)) return {
+    title: "License / certification",
+    subtitle: "Issuing organization",
+    meta: "Earned / expiration dates",
+    details: "Credential ID / verification link / details (optional)",
+  };
+  if (/\b(publications?|presentations?|conferences?|posters?)\b/.test(title)) return {
+    title: "Publication / presentation title",
+    subtitle: "Venue / type",
+    meta: "Date / DOI / link",
+    details: "Authors / citation details (optional)",
+  };
+  if (/\b(awards?|honou?rs?|achievements?|accolades)\b/.test(title)) return {
+    title: "Award / honor",
+    subtitle: "Issuing organization",
+    meta: "Date",
+    details: "Context / distinction (optional)",
+  };
+  if (/\blanguages?\b/.test(title)) return {
+    title: "Language",
+    subtitle: "Proficiency",
+    meta: "Certification / context (optional)",
+    details: "Additional details (optional)",
+  };
+  if (/\b(research|laboratory|lab experience)\b/.test(title)) return {
+    title: "Research role / topic",
+    subtitle: "Lab / institution",
+    meta: "Dates / location",
+    details: "Methods / findings / impact (one bullet per line)",
+  };
+  if (/\b(leadership|activities|involvement)\b/.test(title)) return {
+    title: "Role",
+    subtitle: "Organization",
+    meta: "Dates / location",
+    details: "Leadership impact (one bullet per line)",
+  };
+  if (/\b(volunteer|community|service)\b/.test(title)) return {
+    title: "Role",
+    subtitle: "Organization",
+    meta: "Dates / location",
+    details: "Contributions / impact (one bullet per line)",
+  };
+  if (/\b(affiliations?|memberships?|associations?)\b/.test(title)) return {
+    title: "Organization",
+    subtitle: "Membership / role",
+    meta: "Dates",
+    details: "Details (optional)",
+  };
+  if (/\b(training|professional development|courses?)\b/.test(title)) return {
+    title: "Course / program",
+    subtitle: "Provider",
+    meta: "Completion date / credential",
+    details: "Details (optional)",
+  };
+  if (/\bcoursework\b/.test(title)) return {
+    title: "Course / subject",
+    subtitle: "Institution",
+    meta: "Term / date",
+    details: "Details (optional)",
+  };
+  return DEFAULT_ENTRY_FIELD_SCHEMA;
+}
 
 export const tagGroupSchema = z.object({
   id: z.string().catch(""),
@@ -182,13 +300,37 @@ export const customSectionSchema = z.object({
 
 export type CustomSection = z.infer<typeof customSectionSchema>;
 
+export const HEADER_LINK_ICON_OPTIONS = [
+  { id: "auto", label: "Automatic" },
+  { id: "website", label: "Website" },
+  { id: "linkedin", label: "LinkedIn" },
+  { id: "github", label: "GitHub" },
+  { id: "gitlab", label: "GitLab" },
+  { id: "portfolio", label: "Portfolio / work" },
+  { id: "code", label: "Code profile" },
+  { id: "link", label: "Generic link" },
+] as const;
+
+export type HeaderLinkIconId = (typeof HEADER_LINK_ICON_OPTIONS)[number]["id"];
+
+export const headerLinkSchema = z.object({
+  id: z.string().catch(""),
+  label: z.string().catch(""),
+  url: z.string().catch(""),
+  icon: z.enum(HEADER_LINK_ICON_OPTIONS.map((option) => option.id) as [HeaderLinkIconId, ...HeaderLinkIconId[]]).catch("auto"),
+});
+
+export type HeaderLink = z.infer<typeof headerLinkSchema>;
+
 export const resumeSchema = z.object({
   name: z.string().catch(""),
   title: z.string().catch(""),
   email: z.string().catch(""),
   phone: z.string().catch(""),
   location: z.string().catch(""),
+  /** Legacy first-link alias retained for portable JSON compatibility. */
   website: z.string().catch(""),
+  headerLinks: z.array(headerLinkSchema).catch([]),
   summary: z.string().catch(""),
   skills: z.string().catch(""),
   skillEntries: z.array(entrySchema).catch([]),
@@ -224,7 +366,7 @@ export type ResumeCheck = {
   targetId: string;
 };
 
-type ContactField = "name" | "email" | "phone" | "location" | "website";
+type ContactField = "name" | "email" | "phone" | "location" | `header-link-${string}-url`;
 
 export type ContactFieldIssue = {
   field: ContactField;
@@ -272,7 +414,7 @@ export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
 export function blankEntry(): ResumeEntry {
-  return { title: "", subtitle: "", meta: "", details: "" };
+  return { title: "", subtitle: "", meta: "", details: "", detailsFormat: "bullets" };
 }
 
 export function emptyState(): ResumeState {
@@ -283,6 +425,7 @@ export function emptyState(): ResumeState {
     phone: "",
     location: "",
     website: "",
+    headerLinks: [],
     summary: "",
     skills: "",
     skillEntries: [],
@@ -304,6 +447,13 @@ export function emptyState(): ResumeState {
 
 export function normalizeResume(data: unknown): ResumeState {
   const parsed = resumeSchema.catch(emptyState()).parse(data);
+  const headerLinks = normalizeHeaderLinks(
+    parsed.headerLinks.length
+      ? parsed.headerLinks
+      : parsed.website.trim()
+        ? [{ id: "header-link-1", label: inferHeaderLinkLabel(parsed.website), url: parsed.website, icon: "auto" }]
+        : [],
+  );
   const customSections = parsed.customSections
     .filter((section, index, all) =>
       section.id.startsWith("custom-") && all.findIndex((candidate) => candidate.id === section.id) === index,
@@ -370,6 +520,10 @@ export function normalizeResume(data: unknown): ResumeState {
   return {
     ...emptyState(),
     ...parsed,
+    // Keep the legacy scalar in sync so older JSON consumers still receive a
+    // useful first website while the app uses the repeatable collection.
+    website: headerLinks[0]?.url ?? "",
+    headerLinks,
     skillEntries: parsed.skillEntries.map((entry) => ({ ...blankEntry(), ...entry })),
     experience: parsed.experience.map((entry) => ({ ...blankEntry(), ...entry })),
     education: parsed.education.map((entry) => ({ ...blankEntry(), ...entry })),
@@ -385,6 +539,62 @@ export function normalizeResume(data: unknown): ResumeState {
     theme,
     textScale: clampTextScale(parsed.textScale),
   };
+}
+
+function headerLinkId(index: number) {
+  return `header-link-${index + 1}`;
+}
+
+export function inferHeaderLinkLabel(value: string) {
+  const clean = value.trim().toLocaleLowerCase();
+  if (clean.includes("linkedin.com")) return "LinkedIn";
+  if (clean.includes("github.com")) return "GitHub";
+  if (clean.includes("gitlab.com")) return "GitLab";
+  if (clean.includes("behance.net")) return "Behance";
+  if (clean.includes("dribbble.com")) return "Dribbble";
+  return "Website";
+}
+
+export function resolveHeaderLinkIcon(link: Pick<HeaderLink, "icon" | "label" | "url">): Exclude<HeaderLinkIconId, "auto"> {
+  if (link.icon !== "auto") return link.icon;
+  const value = `${link.label} ${link.url}`.toLocaleLowerCase();
+  if (value.includes("linkedin")) return "linkedin";
+  if (value.includes("github")) return "github";
+  if (value.includes("gitlab")) return "gitlab";
+  if (/behance|dribbble|portfolio/.test(value)) return "portfolio";
+  if (/codepen|codesandbox|stackoverflow|dev\.to/.test(value)) return "code";
+  return "website";
+}
+
+export function normalizeHeaderLinks(links: HeaderLink[], keepEmpty = false) {
+  const usedIds = new Set<string>();
+  return links
+    .map((link, index) => {
+      const baseId = link.id.trim() || headerLinkId(index);
+      let id = baseId;
+      let suffix = 2;
+      while (usedIds.has(id)) {
+        id = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(id);
+      const url = link.url.trim();
+      return {
+        id,
+        label: link.label.trim() || (url ? inferHeaderLinkLabel(url) : ""),
+        url,
+        icon: link.icon,
+      };
+    })
+    .filter((link) => keepEmpty || link.label || link.url);
+}
+
+/** Repeatable header links, with a fallback for pre-migration in-memory data. */
+export function resumeHeaderLinks(state: ResumeState) {
+  if (state.headerLinks.length) return state.headerLinks.filter((link) => link.label || link.url);
+  return state.website.trim()
+    ? [{ id: "header-link-1", label: inferHeaderLinkLabel(state.website), url: state.website.trim(), icon: "auto" as const }]
+    : [];
 }
 
 function tagGroupId(section: string, index: number) {
@@ -483,9 +693,16 @@ export function bulletsFrom(details: string) {
     .filter(Boolean);
 }
 
+export function paragraphsFrom(details: string) {
+  return details
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 /** Returns every bullet for an entry (previews and exports show them all). */
 export function includedBulletsFrom(entry: ResumeEntry) {
-  return bulletsFrom(entry.details);
+  return entry.detailsFormat === "paragraph" ? [] : bulletsFrom(entry.details);
 }
 
 export function wordCount(text: string) {
@@ -495,7 +712,7 @@ export function wordCount(text: string) {
 export function hasAnyContent(state: ResumeState) {
   if (state.name || state.title || state.summary || state.skills || Object.values(state.sectionText).some(Boolean)) return true;
   if (Object.values(state.sectionTagGroups).some((groups) => groups.some((group) => group.label || group.tags.length))) return true;
-  if (state.email || state.phone || state.location || state.website) return true;
+  if (state.email || state.phone || state.location || resumeHeaderLinks(state).some((link) => link.url)) return true;
   if (state.skillEntries.some(entryHasContent)) return true;
   if (state.customSections.some((section) => section.entries.some(entryHasContent))) return true;
   return ["experience", "education", "projects"].some((section) =>
@@ -554,7 +771,7 @@ function isPlausibleWebsite(value: string) {
  * country-specific phone format or requiring a personal website.
  */
 export function contactFieldIssues(state: ResumeState): ContactFieldIssue[] {
-  const required: Array<[Exclude<ContactField, "website">, string]> = [
+  const required: Array<["name" | "email" | "phone" | "location", string]> = [
     ["name", "name"],
     ["email", "email"],
     ["phone", "phone"],
@@ -571,9 +788,15 @@ export function contactFieldIssues(state: ResumeState): ContactFieldIssue[] {
   if (state.phone.trim() && !isPlausiblePhone(state.phone.trim())) {
     invalid.push({ field: "phone", label: "phone", detail: "Invalid phone" });
   }
-  if (state.website.trim() && !isPlausibleWebsite(state.website.trim())) {
-    invalid.push({ field: "website", label: "website", detail: "Invalid website" });
-  }
+  resumeHeaderLinks(state).forEach((link) => {
+    if (!link.url.trim() || isPlausibleWebsite(link.url.trim())) return;
+    const label = link.label.trim() || "website";
+    invalid.push({
+      field: `header-link-${link.id}-url`,
+      label,
+      detail: `Invalid ${label.toLocaleLowerCase()} link`,
+    });
+  });
 
   return [...missing, ...invalid];
 }
@@ -795,11 +1018,14 @@ function entryPlainText(entry: ResumeEntry) {
   const title = cleanTextLine(entry.title);
   const subtitle = cleanTextLine(entry.subtitle);
   const meta = cleanTextLine(entry.meta);
-  const bullets = includedBulletsFrom(entry);
 
   if (title) lines.push(title);
   if (subtitle || meta) lines.push([subtitle, meta].filter(Boolean).join(" | "));
-  bullets.forEach((bullet) => lines.push(`- ${cleanTextLine(bullet)}`));
+  if (entry.detailsFormat === "paragraph") {
+    lines.push(...paragraphsFrom(entry.details));
+  } else {
+    includedBulletsFrom(entry).forEach((bullet) => lines.push(`- ${cleanTextLine(bullet)}`));
+  }
   return lines;
 }
 
@@ -838,7 +1064,10 @@ export function resumePlainText(state: ResumeState) {
   pushBlock(lines, [
     cleanTextLine(state.name),
     cleanTextLine(state.title),
-    [state.email, state.phone, state.location, state.website].map(cleanTextLine).filter(Boolean).join(" | "),
+    [state.email, state.phone, state.location, ...resumeHeaderLinks(state).map((link) => link.url)]
+      .map(cleanTextLine)
+      .filter(Boolean)
+      .join(" | "),
   ]);
   pushBlock(lines, state.summary ? ["Summary", cleanTextLine(state.summary)] : []);
   visibleSectionOrder(state).forEach((key) => {
@@ -855,17 +1084,25 @@ function entryApplicationCopyGroup(section: string, label: string, entry: Resume
   const title = applicationCopyValue(entry.title);
   const subtitle = applicationCopyValue(entry.subtitle);
   const meta = applicationCopyValue(entry.meta);
-  const details = includedBulletsFrom(entry).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
+  const details = entry.detailsFormat === "paragraph"
+    ? paragraphsFrom(entry.details).join("\n\n")
+    : includedBulletsFrom(entry).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
   const entryText = entryPlainText(entry).join("\n");
-  const isExperience = section === "experience";
-  const isEducation = section === "education";
-  const isProjects = section === "projects";
+  // Portal copy labels stay compact, while optional sections still benefit
+  // from the same specific metadata names shown in the editor.
+  const schema = section === "experience"
+    ? { title: "Job title", subtitle: "Employer", meta: "Dates", details: "Achievements" }
+    : section === "education"
+      ? { title: "Degree", subtitle: "School", meta: "Dates / location", details: "Details" }
+      : section === "projects"
+        ? { title: "Project name", subtitle: "Technologies / role", meta: "Dates / link", details: "Description" }
+        : entryFieldSchema(section, label);
   const fields: ApplicationCopyField[] = [
     { id: "entry", label: "Whole entry", text: entryText },
-    { id: "title", label: isExperience ? "Job title" : isEducation ? "Degree" : isProjects ? "Project name" : "Entry title", text: title },
-    { id: "subtitle", label: isExperience ? "Employer" : isEducation ? "School" : isProjects ? "Technologies / role" : "Organization / role", text: subtitle },
-    { id: "meta", label: isExperience ? "Dates" : isEducation ? "Dates / location" : isProjects ? "Dates / link" : "Dates / details", text: meta },
-    { id: "details", label: isExperience ? "Achievements" : isProjects ? "Description" : "Details", text: details },
+    { id: "title", label: schema.title, text: title },
+    { id: "subtitle", label: schema.subtitle, text: subtitle },
+    { id: "meta", label: schema.meta, text: meta },
+    { id: "details", label: schema.details, text: details },
   ].filter((field) => Boolean(field.text));
 
   return {
@@ -883,14 +1120,19 @@ function entryApplicationCopyGroup(section: string, label: string, entry: Resume
  */
 export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[] {
   const groups: ApplicationCopyGroup[] = [];
+  const headerLinks = resumeHeaderLinks(state).filter((link) => link.url.trim());
   const profileFields: ApplicationCopyField[] = [
-    { id: "profile", label: "Full profile", text: [state.name, state.title, state.email, state.phone, state.location, state.website].map(applicationCopyValue).filter(Boolean).join("\n") },
+    { id: "profile", label: "Full profile", text: [state.name, state.title, state.email, state.phone, state.location, ...headerLinks.map((link) => link.url)].map(applicationCopyValue).filter(Boolean).join("\n") },
     { id: "name", label: "Full name", text: applicationCopyValue(state.name) },
     { id: "title", label: "Title / role", text: applicationCopyValue(state.title) },
     { id: "email", label: "Email", text: applicationCopyValue(state.email) },
     { id: "phone", label: "Phone", text: applicationCopyValue(state.phone) },
     { id: "location", label: "Location", text: applicationCopyValue(state.location) },
-    { id: "website", label: "Website", text: applicationCopyValue(state.website) },
+    ...headerLinks.map((link) => ({
+      id: `link-${link.id}`,
+      label: link.label || "Website",
+      text: applicationCopyValue(link.url),
+    })),
   ].filter((field) => Boolean(field.text));
   if (profileFields.length) groups.push({ id: "profile", label: "Profile", fields: profileFields });
 
@@ -921,18 +1163,17 @@ function changedFields<K extends keyof ResumeState>(previous: ResumeState, curre
   return fields.filter((field) => String(previous[field] ?? "") !== String(current[field] ?? ""));
 }
 
-const CONTACT_FIELD_LABELS: Record<"name" | "title" | "email" | "phone" | "location" | "website", string> = {
+const CONTACT_FIELD_LABELS: Record<"name" | "title" | "email" | "phone" | "location", string> = {
   name: "Full name",
   title: "Title / role",
   email: "Email",
   phone: "Phone",
   location: "Location",
-  website: "Website",
 };
 
 const ENTRY_FIELD_LABELS: Record<
   "experience" | "education" | "projects",
-  Record<keyof ResumeEntry, string>
+  Record<EntryTextField, string>
 > = {
   experience: {
     title: "Job title",
@@ -965,7 +1206,7 @@ function snippet(value: string) {
 }
 
 function contactSnapshot(state: ResumeState) {
-  return [state.name, state.title, state.email, state.phone, state.location, state.website]
+  return [state.name, state.title, state.email, state.phone, state.location, ...resumeHeaderLinks(state).map((link) => link.url)]
     .map(cleanTextLine)
     .filter(Boolean)
     .join(" | ");
@@ -1060,6 +1301,13 @@ function repeatableSectionChangeDetails(
         foundTarget = true;
       }
     });
+    if (before.detailsFormat !== after.detailsFormat) {
+      fieldLabels.push(`Entry ${index + 1} details format`);
+      if (!foundTarget) {
+        targetId = `field-${section}-${index}-details`;
+        foundTarget = true;
+      }
+    }
   }
 
   return { fieldLabels, targetId };
@@ -1069,18 +1317,27 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
   const previous = normalizeResume(previousState);
   const current = normalizeResume(currentState);
   const changes: ExportChange[] = [];
-  const contactFields = changedFields(previous, current, ["name", "title", "email", "phone", "location", "website"]);
+  const contactFields = changedFields(previous, current, ["name", "title", "email", "phone", "location"]);
+  const linksChanged = JSON.stringify(previous.headerLinks) !== JSON.stringify(current.headerLinks);
 
-  if (contactFields.length) {
+  if (contactFields.length || linksChanged) {
     const firstField = contactFields[0];
+    const editCount = contactFields.length + (linksChanged ? 1 : 0);
     changes.push({
       id: "contact",
       label: "Header changed",
-      detail: `${contactFields.length} ${contactFields.length === 1 ? "field" : "fields"} edited`,
-      targetId: `field-${firstField}`,
+      detail: `${editCount} ${editCount === 1 ? "field" : "fields"} edited`,
+      targetId: firstField
+        ? `field-${firstField}`
+        : current.headerLinks[0]
+          ? `field-header-link-${current.headerLinks[0].id}-url`
+          : "add-header-link",
       before: snippet(contactSnapshot(previous)),
       after: snippet(contactSnapshot(current)),
-      fieldLabels: contactFields.map((field) => CONTACT_FIELD_LABELS[field]),
+      fieldLabels: [
+        ...contactFields.map((field) => CONTACT_FIELD_LABELS[field]),
+        ...(linksChanged ? ["Header links"] : []),
+      ],
     });
   }
 

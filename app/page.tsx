@@ -24,7 +24,7 @@ const structuredData = {
         "PDF and DOCX export",
         "PDF, DOCX, and pasted-text resume import",
         "ATS-friendly plain-text review",
-        "Browser-only autosave and version history",
+        "Browser-only resume library and edit history",
       ],
     },
   ],

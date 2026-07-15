@@ -10,7 +10,7 @@
   No account · No subscription · No watermark · No resume upload
 </p>
 
-PrivaCV helps job seekers create, tailor, review, and export clean, text-based resumes. Your resume content, browser autosave, version history, imports, and exported files stay on your device.
+PrivaCV helps job seekers create, tailor, review, and export clean, text-based resumes. Your resume library, per-resume edit history, imports, and exported files stay on your device.
 
 ## Why PrivaCV
 

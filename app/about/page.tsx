@@ -9,7 +9,7 @@ const faqItems = [
   },
   {
     question: "Does PrivaCV upload my resume?",
-    answer: "No. Resume editing, imports, exports, browser autosave, and version history stay in the browser. Optional local AI model files may be downloaded to the browser when a person chooses to prepare a model, but resume text is not sent to an AI service.",
+    answer: "No. Resume editing, imports, exports, the resume library, and edit history stay in the browser. Optional local AI model files may be downloaded to the browser when a person chooses to prepare a model, but resume text is not sent to an AI service.",
   },
   {
     question: "Is PrivaCV free to use?",
@@ -82,7 +82,7 @@ export default function AboutPage() {
             <li>Create a resume from a blank draft, sample, imported PDF or DOCX, pasted text, or saved JSON.</li>
             <li>Tailor experience, projects, education, skills, and custom sections for a specific application.</li>
             <li>Review resume checks, compare versions, and export clean PDF, DOCX, or plain-text copies.</li>
-            <li>Keep drafts and version history in browser storage under your control.</li>
+            <li>Keep your resume library and per-resume edit history in browser storage under your control.</li>
           </ul>
         </section>
       </div>

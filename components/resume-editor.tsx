@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ArrowUp,
   AlertCircle,
+  BriefcaseBusiness,
   Check,
   ChevronDown,
   ChevronRight,
@@ -15,13 +16,20 @@ import {
   ClipboardCheck,
   ClipboardCopy,
   ClipboardPaste,
+  Code,
   Download,
   Eye,
   EyeOff,
   FileJson,
   FileText,
+  Github,
+  Gitlab,
+  Globe2,
   GripVertical,
+  History,
   Import as ImportIcon,
+  Linkedin,
+  Link as LinkIcon,
   Loader2,
   MoreHorizontal,
   Palette,
@@ -53,6 +61,7 @@ import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-o
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
 import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
+import { ResumeLibraryCard } from "@/components/resume-editor/resume-library-card";
 import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
 import { BlankResumeGuide, type BlankResumeGuideStep } from "@/components/resume-editor/blank-resume-guide";
 import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
@@ -63,10 +72,12 @@ import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
   ACCENT_PRESETS,
   clampTextScale,
+  entryFieldSchema,
   entryHasContent,
   BULLET_STYLE_LABELS,
   BULLET_STYLES,
   CUSTOM_SECTION_PRESETS,
+  CUSTOM_SECTION_PRESET_FORMATS,
   DENSITIES,
   DENSITY_LABELS,
   exportChangeSummary,
@@ -75,10 +86,12 @@ import {
   getSectionTagGroups,
   getSectionText,
   getSectionTitle,
+  inferHeaderLinkLabel,
   isSectionHidden,
   sectionItemCount,
   HEADING_STYLE_LABELS,
   HEADING_STYLES,
+  HEADER_LINK_ICON_OPTIONS,
   isBuiltinSection,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
@@ -87,6 +100,7 @@ import {
   RESUME_FONTS,
   RESUME_TEMPLATES,
   resumePlainText,
+  resolveHeaderLinkIcon,
   resolveFontStack,
   SECTION_KEYS,
   SECTION_FORMAT_LABELS,
@@ -96,12 +110,14 @@ import {
   type BulletStyle,
   type Density,
   type HeadingStyle,
+  type HeaderLink,
+  type HeaderLinkIconId,
   type ResumeTemplateId,
   type ResumeTheme,
   type SectionFormat,
 } from "@/lib/resume";
 import { clearAllLocalAIData } from "@/lib/local-ai-engine";
-import { buildImportCoverage, ENTRY_SCHEMA, type VersionHistoryItem } from "@/lib/resume-workspace";
+import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 // WebLLM is a browser-only runtime (WebGPU, Cache API, and Web Workers). Keeping
@@ -183,7 +199,27 @@ function ThemeSegment<T extends string>({
 // the section you're working in is highlighted (header and summary included).
 const ACTIVE_SECTION_CLASS =
   "rounded-md bg-brand-soft/10 px-3 pt-3 ring-1 ring-brand/40";
-const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-phone", "field-location", "field-website"];
+const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-phone", "field-location"];
+const isHeaderTarget = (targetId: string) =>
+  HEADER_FIELD_IDS.includes(targetId) || targetId.startsWith("field-header-link-") || targetId === "add-header-link";
+
+function HeaderLinkEditorIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
+  const icon = resolveHeaderLinkIcon(link);
+  const Icon = icon === "linkedin"
+    ? Linkedin
+    : icon === "github"
+      ? Github
+      : icon === "gitlab"
+        ? Gitlab
+        : icon === "portfolio"
+          ? BriefcaseBusiness
+          : icon === "code"
+            ? Code
+            : icon === "link"
+              ? LinkIcon
+              : Globe2;
+  return <Icon aria-hidden="true" className="size-4" />;
+}
 
 // Skills can render as grouped tags, bullets, paragraphs, or rows, so its old
 // textarea target is not guaranteed to exist. Keep review tours anchored to the
@@ -196,7 +232,8 @@ export function ResumeEditor() {
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [checksReviewOpen, setChecksReviewOpen] = useState(false);
-  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
   // Inline editing on the resume sheet is the primary way to edit; the left
   // form stays available as a fallback (and can be collapsed for a focused
@@ -424,6 +461,28 @@ export function ResumeEditor() {
   };
 
   const updateTheme = (patch: Partial<ResumeTheme>) => updateField("theme", { ...state.theme, ...patch });
+  const updateHeaderLink = (id: string, patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>) =>
+    updateField("headerLinks", state.headerLinks.map((link) => {
+      if (link.id !== id) return link;
+      const next = { ...link, ...patch };
+      if (patch.url !== undefined && !link.label.trim()) next.label = inferHeaderLinkLabel(patch.url);
+      return next;
+    }));
+  const addHeaderLink = () => {
+    const id = `header-link-${Date.now().toString(36)}`;
+    updateField("headerLinks", [...state.headerLinks, { id, label: "", url: "", icon: "auto" }]);
+    setActiveTarget(`field-header-link-${id}-url`);
+    window.setTimeout(() => document.getElementById(`field-header-link-${id}-url`)?.focus(), 0);
+  };
+  const removeHeaderLink = (id: string) =>
+    updateField("headerLinks", state.headerLinks.filter((link) => link.id !== id));
+  const moveHeaderLink = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= state.headerLinks.length) return;
+    const links = [...state.headerLinks];
+    [links[index], links[nextIndex]] = [links[nextIndex], links[index]];
+    updateField("headerLinks", links);
+  };
   const applyTemplate = (template: ResumeTemplateId) => {
     updateField("template", template);
     updateField("theme", TEMPLATE_THEMES[template]);
@@ -460,7 +519,7 @@ export function ResumeEditor() {
     const target = document.getElementById(targetId);
     const inferredGroup = targetId === "field-summary"
       ? "summary"
-      : HEADER_FIELD_IDS.includes(targetId)
+      : isHeaderTarget(targetId)
         ? "header"
         : state.sectionOrder.find((section) => targetId === `field-${section}` || targetId.startsWith(`field-${section}-`));
     const group = target?.closest("[data-field-group]")?.getAttribute("data-field-group") ?? inferredGroup;
@@ -737,7 +796,7 @@ export function ResumeEditor() {
   const checksReady = passedChecks === checks.length;
   const canTightenLayout = state.theme.density !== "compact" || state.textScale > MIN_TEXT_SCALE;
   const removedBuiltinSections = SECTION_KEYS.filter((section) => !state.sectionOrder.includes(section));
-  const headerActive = Boolean(activeTarget && HEADER_FIELD_IDS.includes(activeTarget));
+  const headerActive = Boolean(activeTarget && isHeaderTarget(activeTarget));
   const summaryActive = activeTarget === "field-summary";
   const navItems: SectionNavItem[] = workspaceHasStarted
     ? [
@@ -757,7 +816,12 @@ export function ResumeEditor() {
       { id: "field-email", label: "Email", context: "Header", keywords: state.email },
       { id: "field-phone", label: "Phone", context: "Header", keywords: state.phone },
       { id: "field-location", label: "Location", context: "Header", keywords: state.location },
-      { id: "field-website", label: "Website / LinkedIn", context: "Header", keywords: state.website },
+      ...state.headerLinks.map((link) => ({
+        id: `field-header-link-${link.id}-url`,
+        label: link.label || "Website",
+        context: "Header link",
+        keywords: link.url,
+      })),
       { id: "field-summary", label: "Professional summary", context: "Summary", keywords: state.summary },
     ];
 
@@ -792,9 +856,7 @@ export function ResumeEditor() {
         continue;
       }
 
-      const schema = section in ENTRY_SCHEMA
-        ? ENTRY_SCHEMA[section as keyof typeof ENTRY_SCHEMA]
-        : { title: "Title", subtitle: "Organization / context", meta: "Dates / details", details: "Highlights" };
+      const schema = entryFieldSchema(section, sectionTitle);
       getSectionEntries(state, section).forEach((entry, index) => {
         const entryLabel = entry.title.trim() || entry.subtitle.trim() || `Entry ${index + 1}`;
         const context = `${sectionTitle} · ${entryLabel}`;
@@ -941,20 +1003,20 @@ export function ResumeEditor() {
                 </span>
               ) : null}
             </Button>
-            {hasContent || versionHistory.length || autosaveCopy ? (
+            {editor.resumeLibrary.length ? (
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setVersionsOpen(true)}
+                onClick={() => setLibraryOpen(true)}
                 data-autosave-status={storageIssue ? "conflict" : autosaveStatus}
                 aria-label={
                   storageIssue
-                    ? "Version history — browser autosave unavailable"
+                    ? "Resume library — browser autosave unavailable"
                     : autosaveStatus === "saving"
-                      ? "Version history — saving locally"
+                      ? "Resume library — saving locally"
                       : autosaveStatus === "conflict"
-                        ? "Version history — autosave paused for another tab"
-                        : "Version history — saved locally"
+                        ? "Resume library — autosave paused for another tab"
+                        : "Resume library — saved locally"
                 }
                 title={
                   storageIssue
@@ -963,7 +1025,7 @@ export function ResumeEditor() {
                       ? "Saving this resume in this browser…"
                       : autosaveStatus === "conflict"
                         ? "Autosave paused until you choose which tab's draft to keep"
-                        : "Saved in this browser. Open version history or export JSON for a portable backup."
+                        : "Saved in this browser. Open the resume library or export JSON for a portable backup."
                 }
                 className="gap-2"
               >
@@ -974,10 +1036,10 @@ export function ResumeEditor() {
                 ) : (
                   <Check className="text-success" aria-hidden="true" />
                 )}
-                <span className="hidden sm:inline">Versions</span>
-                {versionHistory.length ? (
+                <span className="hidden sm:inline">Resumes</span>
+                {editor.resumeLibrary.length > 1 ? (
                   <span className="hidden h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold leading-none tabular-nums sm:inline-flex">
-                    {versionHistory.length}
+                    {editor.resumeLibrary.length}
                   </span>
                 ) : null}
               </Button>
@@ -1324,17 +1386,79 @@ export function ResumeEditor() {
                   spellCheck={false}
                   onChange={(value) => updateField("location", value)}
                 />
-                <TextField
-                  id="field-website"
-                  label="Website / LinkedIn"
-                  value={state.website}
-                  placeholder="linkedin.com/in/janedoe"
-                  type="url"
-                  autoComplete="url"
-                  inputMode="url"
-                  spellCheck={false}
-                  onChange={(value) => updateField("website", value)}
-                />
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Links</p>
+                      <p className="text-[11px] text-muted-foreground">Website, LinkedIn, GitHub, portfolio, or another profile.</p>
+                    </div>
+                    <Button id="add-header-link" type="button" variant="outline" size="sm" className="h-8" onClick={addHeaderLink}>
+                      <Plus /> Add link
+                    </Button>
+                  </div>
+                  {state.headerLinks.length ? (
+                    <div className="overflow-hidden rounded-md border bg-muted/10">
+                      {state.headerLinks.map((link, index) => {
+                        const fieldLabel = link.label.trim() || `Link ${index + 1}`;
+                        return (
+                          <div key={link.id} data-header-link={link.id} className="flex items-center gap-2 border-b p-2 last:border-b-0">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                              <HeaderLinkEditorIcon link={link} />
+                            </span>
+                            <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-label`}>{fieldLabel} label</label>
+                              <Input
+                                id={`field-header-link-${link.id}-label`}
+                                value={link.label}
+                                placeholder="LinkedIn"
+                                aria-label={`${fieldLabel} label`}
+                                onChange={(event) => updateHeaderLink(link.id, { label: event.target.value })}
+                              />
+                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-icon`}>{fieldLabel} icon</label>
+                              <select
+                                id={`field-header-link-${link.id}-icon`}
+                                value={link.icon}
+                                aria-label={`${fieldLabel} icon`}
+                                onChange={(event) => updateHeaderLink(link.id, { icon: event.target.value as HeaderLinkIconId })}
+                                className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                {HEADER_LINK_ICON_OPTIONS.map((option) => (
+                                  <option key={option.id} value={option.id}>{option.label}</option>
+                                ))}
+                              </select>
+                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>{fieldLabel} URL</label>
+                              <Input
+                                id={`field-header-link-${link.id}-url`}
+                                type="url"
+                                inputMode="url"
+                                autoComplete="url"
+                                spellCheck={false}
+                                value={link.url}
+                                placeholder="github.com/janedoe"
+                                aria-label={`${fieldLabel} URL`}
+                                className="col-span-2"
+                                onChange={(event) => updateHeaderLink(link.id, { url: event.target.value })}
+                              />
+                            </div>
+                            <div className="flex shrink-0 items-center">
+                              <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} aria-label={`Move ${fieldLabel} up`} onClick={() => moveHeaderLink(index, -1)}>
+                                <ArrowUp />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === state.headerLinks.length - 1} aria-label={`Move ${fieldLabel} down`} onClick={() => moveHeaderLink(index, 1)}>
+                                <ArrowDown />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${fieldLabel}`} onClick={() => removeHeaderLink(link.id)}>
+                                <Trash2 />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">No profile links added.</p>
+                  )}
+                </div>
               </FieldGroup>
 
               <FieldGroup id="edit-summary" title="Summary" reviewRegion className={cn(summaryActive && ACTIVE_SECTION_CLASS)} {...groupProps("summary")}>
@@ -1677,7 +1801,7 @@ export function ResumeEditor() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const id = addCustomSection(title);
+                          const id = addCustomSection(title, CUSTOM_SECTION_PRESET_FORMATS[title]);
                           focusEditorTarget(`section-title-${id}`);
                         }}
                       >
@@ -1819,6 +1943,18 @@ export function ResumeEditor() {
                 </Button>
                 <Button
                   type="button"
+                  variant={historyOpen ? "secondary" : "outline"}
+                  size="icon"
+                  className="hidden size-8 lg:inline-flex"
+                  aria-label="Edit history"
+                  aria-expanded={historyOpen}
+                  title="Open this resume's checkpoint history"
+                  onClick={() => setHistoryOpen(true)}
+                >
+                  <History />
+                </Button>
+                <Button
+                  type="button"
                   variant="outline"
                   size="icon"
                   className="hidden size-8 lg:inline-flex"
@@ -1831,6 +1967,9 @@ export function ResumeEditor() {
                 </Button>
                 <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
                   <FileText /> Edit resume
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setHistoryOpen(true)}>
+                  <History /> History
                 </Button>
               </div>
             </div>
@@ -1862,6 +2001,7 @@ export function ResumeEditor() {
                 onTargetSelect={focusEditorTarget}
                 editable={inlineEdit && workspaceHasStarted && !printing}
                 onEditField={(field, value) => updateField(field as Parameters<typeof updateField>[0], value)}
+                onEditHeaderLink={updateHeaderLink}
                 onEditSectionTitle={updateSectionTitle}
                 onEditEntry={updateEntry}
                 onEditTagGroup={(section, groupId, patch) => updateSectionTagGroups(
@@ -1885,7 +2025,7 @@ export function ResumeEditor() {
             <DialogTitle>{destructiveAction === "delete-all" ? "Delete all browser data?" : "Clear this resume?"}</DialogTitle>
             <DialogDescription>
               {destructiveAction === "delete-all"
-                ? "This removes the resume, saved versions, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export JSON first if you want to keep a copy."
+                ? "This removes the resume library, edit history, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export JSON first if you want to keep a copy."
                 : "This clears every resume field. You can restore the current version from the recovery card."}
             </DialogDescription>
           </DialogHeader>
@@ -2000,9 +2140,21 @@ export function ResumeEditor() {
         />
       ) : null}
 
+      <ResumeLibraryCard
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        items={editor.resumeLibrary.map((item) => item.id === editor.activeResumeId ? { ...item, state } : item)}
+        activeResumeId={editor.activeResumeId}
+        onCreate={editor.createResume}
+        onOpen={editor.switchResume}
+        onDuplicate={editor.duplicateResume}
+        onRename={editor.renameResume}
+        onDelete={editor.deleteResume}
+      />
+
       <VersionHistoryCard
-        open={versionsOpen}
-        onOpenChange={setVersionsOpen}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
         hasContent={hasContent}
         versions={editor.versionHistory}
         autosave={autosaveCopy}
@@ -2014,7 +2166,7 @@ export function ResumeEditor() {
         onOpenBackup={() => editor.historyBackupInputRef.current?.click()}
         onRestore={(item) => {
           editor.restoreVersion(item);
-          setVersionsOpen(false);
+          setHistoryOpen(false);
         }}
         onDelete={editor.deleteVersion}
         onUndoDelete={editor.undoDeleteVersion}

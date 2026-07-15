@@ -10,6 +10,8 @@ import {
   getSectionTitle,
   includedBulletsFrom,
   normalizeAccent,
+  paragraphsFrom,
+  resumeHeaderLinks,
   resolveDocxFont,
   visibleSectionOrder,
   type ResumeEntry,
@@ -61,15 +63,15 @@ function paragraph(content: string, options: { alignment?: "center"; before?: nu
 
 function contactRuns(state: ResumeState, relationships: DocxRelationship[]) {
   const contacts = [
-    ["email", state.email],
-    ["phone", state.phone],
-    ["location", state.location],
-    ["website", state.website],
-  ] as const;
+    { field: "email" as const, value: state.email },
+    { field: "phone" as const, value: state.phone },
+    { field: "location" as const, value: state.location },
+    ...resumeHeaderLinks(state).map((link) => ({ field: "website" as const, value: link.url })),
+  ];
 
   return contacts
-    .filter(([, value]) => Boolean(value.trim()))
-    .map(([field, value], index) => {
+    .filter(({ value }) => Boolean(value.trim()))
+    .map(({ field, value }, index) => {
       const separator = index ? textRun(" | ") : "";
       const href = field === "location" ? undefined : contactHref(field, value);
       if (!href) return `${separator}${textRun(value)}`;
@@ -87,13 +89,15 @@ function entryParagraphs(entry: ResumeEntry, bulletMarker: string) {
     entry.meta ? textRun(`${entry.title || entry.subtitle ? " | " : ""}${entry.meta}`) : "",
   ].join("");
   const bullets = includedBulletsFrom(entry);
-  const heading = parts ? paragraph(parts, { after: bullets.length ? 20 : 90 }) : "";
+  const paragraphs = entry.detailsFormat === "paragraph" ? paragraphsFrom(entry.details) : [];
+  const hasDetails = bullets.length > 0 || paragraphs.length > 0;
+  const heading = parts ? paragraph(parts, { after: hasDetails ? 20 : 90 }) : "";
   // A "none" style drops the marker and its hanging indent — the line becomes a
   // plain paragraph so it reads as an unmarked list.
   const bulleted = bulletMarker !== "";
-  const details = bullets
-    .map((bullet) => paragraph(textRun(bullet), { bullet: bulleted, marker: bulletMarker, after: 24 }))
-    .join("");
+  const details = entry.detailsFormat === "paragraph"
+    ? paragraphs.map((text) => paragraph(textRun(text), { after: 45 })).join("")
+    : bullets.map((bullet) => paragraph(textRun(bullet), { bullet: bulleted, marker: bulletMarker, after: 24 })).join("");
   return `${heading}${details}`;
 }
 

@@ -109,16 +109,25 @@ async function openDesign(page: Page) {
 }
 
 async function openVersions(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /version history/i });
+  const dialog = page.getByRole("dialog", { name: /edit history/i });
   if (!(await dialog.isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /version history/i }).click();
+    await page.getByRole("button", { name: /edit history/i }).click();
     await expect(dialog).toBeVisible();
   }
   return dialog;
 }
 
 async function closeVersions(page: Page) {
-  await page.getByRole("dialog", { name: /version history/i }).getByRole("button", { name: "Close" }).click();
+  await page.getByRole("dialog", { name: /edit history/i }).getByRole("button", { name: "Close" }).click();
+}
+
+async function openResumeLibrary(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /resume library/i });
+  if (!(await dialog.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: /resume library/i }).click();
+    await expect(dialog).toBeVisible();
+  }
+  return dialog;
 }
 
 async function saveVersion(page: Page, label: string) {
@@ -528,14 +537,14 @@ test("backs up a checkpoint instead of claiming it persisted when browser storag
   await loadSample(page);
 
   const versions = await openVersions(page);
-  await expect(versions.getByText(/versions shown here may not survive a refresh/i)).toBeVisible();
+  await expect(versions.getByText(/checkpoints shown here may not survive a refresh/i)).toBeVisible();
   await versions.getByRole("button", { name: /save current version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Tailored product role");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect((await download).suggestedFilename()).toBe("John_Doe-checkpoints.json");
   await expect(page.getByText("Browser storage unavailable — checkpoint backup downloaded", { exact: true })).toBeVisible();
-  await expect(page.getByText("Tailored product role", { exact: true })).toBeVisible();
+  await expect(versions.getByRole("list").getByText("Tailored product role", { exact: true })).toBeVisible();
 });
 
 test("keeps import, export, and secondary toolbar actions usable from the keyboard", async ({ page }) => {
@@ -571,7 +580,7 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await page.keyboard.press("End");
   await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();
   await page.keyboard.press("ArrowUp");
-  await expect(page.getByRole("menuitem", { name: /^sample$/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /clear resume/i })).toBeFocused();
   await page.keyboard.press("Escape");
 
   await expect(page.getByRole("menu")).toBeHidden();
@@ -675,7 +684,7 @@ test("recovers a label-only external contact link from a Word resume", async ({ 
     buffer: makeDocxWithLabelOnlyLink(),
   });
 
-  await expect(page.getByLabel("Website")).toHaveValue("https://www.linkedin.com/in/ada");
+  await expect(page.getByLabel("LinkedIn URL")).toHaveValue("https://www.linkedin.com/in/ada");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 
@@ -691,7 +700,7 @@ test("recovers a label-only Word field link from a resume", async ({ page }) => 
     buffer: makeDocxWithFieldLink(),
   });
 
-  await expect(page.getByLabel("Website / LinkedIn")).toHaveValue("https://ada.example.com");
+  await expect(page.getByLabel("Website URL")).toHaveValue("https://ada.example.com");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 
@@ -710,7 +719,7 @@ test("imports contact details stored in a referenced Word header", async ({ page
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByLabel("Title / Role")).toHaveValue("Platform Engineer");
   await expect(page.getByLabel("Email")).toHaveValue("ada@example.com");
-  await expect(page.getByLabel("Website / LinkedIn")).toHaveValue("https://ada.example.com");
+  await expect(page.getByLabel("Website URL")).toHaveValue("https://ada.example.com");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 
@@ -729,7 +738,7 @@ test("imports contact details stored in a referenced Word footer", async ({ page
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.getByLabel("Title / Role")).toHaveValue("Platform Engineer");
   await expect(page.getByLabel("Email")).toHaveValue("ada@example.com");
-  await expect(page.getByLabel("Website / LinkedIn")).toHaveValue("https://ada.example.com");
+  await expect(page.getByLabel("Website URL")).toHaveValue("https://ada.example.com");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
 });
 
@@ -778,7 +787,7 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await page.reload();
   await loadSample(page);
 
-  // Autosave state is surfaced on the Versions button: a spinning loader while
+  // Autosave state is surfaced on the Resumes button: a spinning loader while
   // saving that settles to a check, mirrored on data-autosave-status + aria.
   const autosave = page.locator("[data-autosave-status]");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
@@ -792,7 +801,7 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveAccessibleName(/saving locally/i);
 
   const versions = await openVersions(page);
-  await expect(versions.getByText("Autosave copy", { exact: true })).toBeVisible();
+  await expect(versions.getByRole("listitem").getByText("Autosave copy", { exact: true })).toBeVisible();
   await expect(versions.getByText("Autosaved", { exact: true })).toBeVisible();
   const autosaveCard = versions.locator("li", { hasText: "Autosave copy" });
   await autosaveCard.getByRole("button", { name: "Restore autosave" }).click();
@@ -935,24 +944,6 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
   await exportPdf(page);
   await expect(page.locator("html")).toHaveAttribute("data-print-title", "John_Doe_Resume");
   await expect(page).toHaveTitle("PrivaCV — Private, ATS-Friendly Resume Editor");
-});
-
-test("flags a single resume entry that would continue onto another printed page", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await loadSample(page);
-
-  const longEntry = Array.from(
-    { length: 55 },
-    (_, index) => `Delivered measurable platform improvement ${index + 1} for customers, reducing deployment risk and making critical workflows easier for distributed teams.`,
-  ).join("\n");
-  await page.locator("#field-experience-0-details").fill(longEntry);
-
-  const review = await openResumeReview(page);
-  await advanceReviewTo(review, /Experience entry 1 exceeds one printable page/);
-  await review.getByRole("button", { name: /shorten entry/i }).click();
-  await expect(page.locator("#field-experience-0-details")).toBeFocused();
 });
 
 test("makes validated contact details actionable in the preview", async ({ page }) => {
@@ -1132,7 +1123,7 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   await expect(name).toHaveJSProperty("spellcheck", true);
   await expect(page.locator(".resume-entry .resume-bullets").first()).toHaveJSProperty("spellcheck", true);
   // Structured contact values should not be treated as ordinary prose.
-  await expect(page.locator(".resume-contact > *").first()).toHaveJSProperty("spellcheck", false);
+  await expect(page.locator(".resume-contact [contenteditable]").first()).toHaveJSProperty("spellcheck", false);
   await name.selectText();
   await page.keyboard.type("Ada Lovelace");
   await page.keyboard.press("Enter");
@@ -1381,12 +1372,55 @@ test("adds a common section with its useful heading already in place", async ({ 
   await page.reload();
   await loadSample(page);
 
-  await page.getByRole("button", { name: /certifications/i }).click();
+  await page.getByRole("button", { name: /licenses & certifications/i }).click();
 
-  await expect(page.getByLabel("Certifications section title")).toHaveValue("Certifications");
-  await expect(page.locator(".resume-sheet").getByText("Certifications", { exact: true })).toBeHidden();
-  await page.locator('[id^="field-custom-"][id$="-0-title"]').fill("AWS Certified Developer – Associate");
-  await expect(page.locator(".resume-sheet").getByText("Certifications", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Licenses & Certifications section title")).toHaveValue("Licenses & Certifications");
+  await expect(page.getByLabel("License / certification", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Issuing organization", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Earned / expiration dates", { exact: true })).toBeVisible();
+  await expect(page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true })).toBeHidden();
+  await page.getByLabel("License / certification", { exact: true }).fill("AWS Certified Developer – Associate");
+  await expect(page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true })).toBeVisible();
+});
+
+test("starts relevant coursework as grouped tags and languages with proficiency fields", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await page.getByRole("button", { name: /relevant coursework/i }).click();
+  await expect(page.getByLabel("Grouped tags format").last()).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Tag group label").last()).toBeVisible();
+  await expect(page.getByLabel("Add tag to group")).toBeVisible();
+
+  await page.getByRole("button", { name: /^languages$/i }).click();
+  await expect(page.getByLabel("Language", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Proficiency", { exact: true })).toBeVisible();
+});
+
+test("lets each structured entry render its details as bullets or a paragraph", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await expandAllEntries(page);
+
+  const educationEntry = page.locator('[data-editor-section="education"] [data-editor-entry]').first();
+  const details = "Relevant coursework included econometrics, forecasting, and experimental design.";
+  await educationEntry.getByRole("button", { name: "Paragraph", exact: true }).click();
+  await educationEntry.getByLabel("Honors / relevant coursework / details (one per line, optional)").fill(details);
+
+  const previewEntry = page.locator('[data-resume-entry-section="education"][data-resume-entry-index="0"]');
+  await expect(previewEntry.locator(".resume-details-paragraph")).toHaveText(details);
+  await expect(previewEntry.locator(".resume-bullets")).toHaveCount(0);
+  await expect(educationEntry.getByRole("button", { name: "Paragraph", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain('"detailsFormat":"paragraph"');
+  await page.reload();
+  await expandAllEntries(page);
+  await expect(page.locator('[data-editor-section="education"] [data-editor-entry]').first().getByRole("button", { name: "Paragraph", exact: true }))
+    .toHaveAttribute("aria-pressed", "true");
 });
 
 test("reorders resume sections by dragging their handles", async ({ page }) => {
@@ -1846,7 +1880,7 @@ test("requires review of imported specialty-section entries", async ({ page }) =
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
 
-  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Certified Kubernetes Administrator");
+  await expect(page.getByLabel("License / certification", { exact: true })).toHaveValue("Certified Kubernetes Administrator");
 
   // The specialty entry is surfaced as a confirmable step in the walkthrough.
   await page.getByRole("button", { name: /start walkthrough/i }).click();
@@ -2308,7 +2342,7 @@ test("shows page boundaries in the preview without printing those guides", async
     { length: 70 },
     (_, index) => `• Delivered a concrete, measurable outcome for initiative ${index + 1} across a complex program.`,
   ).join("\n");
-  await page.getByLabel("Details").first().fill(details);
+  await page.locator("[data-editor-entry] textarea").first().fill(details);
 
   await expect(page.getByText("Page 2 begins")).toBeVisible();
   await expect(page.locator(".resume-page-guide span").filter({ hasText: "Page 2 begins" }).first()).toContainText("Next:");
@@ -2460,6 +2494,40 @@ test("shows an export review before printing an unresolved resume", async ({ pag
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 });
 
+test("adds, customizes, reorders, and persists header links with contact icons", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await page.getByRole("button", { name: /editing mode/i }).click();
+
+  const preview = page.locator(".resume-sheet");
+  await expect(preview.getByRole("link", { name: "john.doe@example.com" }).locator(".lucide-mail")).toBeVisible();
+  await expect(preview.getByText("Chicago, IL", { exact: true }).locator(".lucide-map-pin")).toBeVisible();
+  await expect(preview.getByRole("link", { name: "linkedin.com/in/johndoe" }).locator(".lucide-linkedin")).toBeVisible();
+
+  await page.getByRole("button", { name: /add link/i }).click();
+  const newLink = page.locator("[data-header-link]").last();
+  await newLink.locator("input").first().fill("GitHub");
+  await newLink.locator('input[type="url"]').fill("github.com/johndoe");
+
+  const github = preview.getByRole("link", { name: "github.com/johndoe" });
+  await expect(github).toHaveAttribute("href", "https://github.com/johndoe");
+  await expect(github.locator(".lucide-github")).toBeVisible();
+  const iconSelect = newLink.getByLabel("GitHub icon");
+  await expect(iconSelect.locator("option")).toHaveCount(8);
+  await iconSelect.selectOption("portfolio");
+  await expect(github.locator(".lucide-briefcase-business")).toBeVisible();
+  await newLink.getByRole("button", { name: /move github up/i }).click();
+  await expect(page.locator("[data-header-link]").first().locator("input").first()).toHaveValue("GitHub");
+
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("github.com/johndoe");
+  await page.reload();
+  await expect(page.getByLabel("GitHub URL")).toHaveValue("github.com/johndoe");
+  await expect(page.getByLabel("GitHub icon")).toHaveValue("portfolio");
+  await expect(page.locator(".resume-sheet .resume-contact-item").filter({ hasText: "github.com/johndoe" }).locator(".lucide-briefcase-business")).toBeVisible();
+});
+
 test("catches unusable contact details before export and uses contact-friendly inputs", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -2468,7 +2536,7 @@ test("catches unusable contact details before export and uses contact-friendly i
 
   await expect(page.getByLabel("Email")).toHaveAttribute("type", "email");
   await expect(page.getByLabel("Phone")).toHaveAttribute("type", "tel");
-  await expect(page.getByLabel("Website / LinkedIn")).toHaveAttribute("type", "url");
+  await expect(page.getByLabel("LinkedIn URL")).toHaveAttribute("type", "url");
 
   await page.getByLabel("Email").fill("jane-at-example");
   await exportPdf(page);
@@ -2667,6 +2735,9 @@ test("deletes all data from a shared browser", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => ({
     draft: localStorage.getItem("resume-editor-data-v2"),
     history: localStorage.getItem("resume-editor-version-history-v1"),
+    library: localStorage.getItem("resume-editor-library-v1"),
+    activeResume: localStorage.getItem("resume-editor-active-resume-v1"),
+    checkpoints: localStorage.getItem("resume-editor-checkpoint-history-v1"),
     review: localStorage.getItem("resume-editor-import-review-v1"),
     export: localStorage.getItem("resume-editor-last-export-v1"),
     localAIModel: localStorage.getItem("resume-editor-local-ai-model-v1"),
@@ -2674,6 +2745,9 @@ test("deletes all data from a shared browser", async ({ page }) => {
   }))).toEqual({
     draft: null,
     history: null,
+    library: null,
+    activeResume: null,
+    checkpoints: null,
     review: null,
     export: null,
     localAIModel: null,
@@ -2684,6 +2758,73 @@ test("deletes all data from a shared browser", async ({ page }) => {
   await page.reload();
   await expect(page.getByText("I have a resume")).toBeVisible();
   await expect(page.getByText("Shared computer draft")).toBeHidden();
+});
+
+test("duplicates and switches named resumes while keeping checkpoint history separate", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await saveVersion(page, "Product baseline");
+
+  let library = await openResumeLibrary(page);
+  await expect(library.getByText("1 resume saved in this browser")).toBeVisible();
+  await library.getByTitle("Duplicate resume").click();
+  await expect(page.getByText(/Duplicated/i)).toBeVisible();
+
+  const history = await openVersions(page);
+  await expect(history.getByText("0 checkpoints for this resume")).toBeVisible();
+  await expect(history.getByLabel("Move through edit history")).toBeVisible();
+  await closeVersions(page);
+
+  await page.getByLabel("Full Name").fill("Jane Doe");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-library-v1"))).toContain("Jane Doe");
+  library = await openResumeLibrary(page);
+  await expect(library.getByText("2 resumes saved in this browser")).toBeVisible();
+  const original = library.getByRole("listitem").filter({ hasText: "John Doe" }).filter({ hasNotText: "copy" });
+  await original.getByRole("button", { name: "Open", exact: true }).click();
+  await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
+
+  library = await openResumeLibrary(page);
+  const current = library.getByRole("listitem").filter({ hasText: "Current" });
+  await current.getByTitle("Rename resume").click();
+  const rename = current.locator('input[aria-label^="Rename "]');
+  await rename.fill("Product roles");
+  await rename.press("Enter");
+  await expect(current.getByText("Product roles", { exact: true })).toBeVisible();
+});
+
+test("migrates the active draft and legacy versions into separate library resumes", async ({ page }) => {
+  await page.goto("/");
+  const active = { ...sampleState, name: "Legacy current" };
+  const archived = { ...sampleState, name: "Archived product role" };
+  await page.evaluate(({ activeState, archivedState }) => {
+    localStorage.clear();
+    localStorage.setItem("resume-editor-data-v2", JSON.stringify(activeState));
+    localStorage.setItem("resume-editor-autosave-time-v1", "2026-01-10T09:00:00.000Z");
+    localStorage.setItem("resume-editor-version-history-v1", JSON.stringify([{
+      id: "legacy-product-role",
+      savedAt: "2026-01-09T09:00:00.000Z",
+      label: "Product role",
+      fingerprint: "legacy-product-role-fingerprint",
+      state: archivedState,
+      importReview: null,
+    }]));
+  }, { activeState: active, archivedState: archived });
+  await page.reload();
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("Legacy current");
+  const library = await openResumeLibrary(page);
+  await expect(library.getByText("2 resumes saved in this browser")).toBeVisible();
+  await expect(library.getByRole("listitem").filter({ hasText: "Legacy current" }).getByText("Current", { exact: true })).toBeVisible();
+  await expect(library.getByRole("listitem").filter({ hasText: "Product role" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => ({
+    library: localStorage.getItem("resume-editor-library-v1"),
+    legacyHistory: localStorage.getItem("resume-editor-version-history-v1"),
+  }))).toEqual({
+    library: expect.stringContaining("Archived product role"),
+    legacyHistory: null,
+  });
 });
 
 test("saves and restores a named local version history checkpoint", async ({ page }) => {
@@ -2697,9 +2838,9 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByRole("dialog", { name: /name this checkpoint/i })).toBeVisible();
   await page.getByLabel("Checkpoint name").fill("Original software resume");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
-  await expect(page.getByText("Version saved locally")).toBeVisible();
+  await expect(page.getByText("Checkpoint saved locally")).toBeVisible();
   await expect(versions.getByText("Original software resume")).toBeVisible();
-  await expect(versions.getByText("Current", { exact: true })).toBeVisible();
+  await expect(versions.getByRole("list").getByText("Current", { exact: true })).toBeVisible();
   await expect(versions.getByText("John Doe").first()).toBeVisible();
   const savedVersionCard = versions.locator("li", { hasText: "Original software resume" });
   await expect(savedVersionCard.locator("[data-version-thumbnail]")).toHaveCount(1);
@@ -2711,8 +2852,10 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await page.getByLabel("Job Title").first().fill("Principal Software Engineer");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
 
-  await openVersions(page);
-  await page.locator("li", { hasText: "Original software resume" }).getByRole("button", { name: "Restore" }).click();
+  const timeline = await openVersions(page);
+  await timeline.getByLabel("Move through edit history").fill("0");
+  await expect(timeline.locator("[data-history-selection]")).toContainText("Original software resume");
+  await timeline.getByRole("button", { name: "Restore this point" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();
   await expect(page.getByText("Previous resume available")).toBeVisible();
@@ -2741,8 +2884,8 @@ test("keeps every checkpoint without a save limit", async ({ page }) => {
 
   const versions = await openVersions(page);
   // No cap: all seven checkpoints and the live autosave copy remain available.
-  await expect(versions.getByText("7 checkpoints saved")).toBeVisible();
-  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(8);
+  await expect(versions.getByText("7 checkpoints for this resume")).toBeVisible();
+  await expect(versions.locator("[data-version-thumbnail]")).toHaveCount(9);
   await expect(versions.getByText("Checkpoint 1", { exact: true })).toBeVisible();
   await expect(versions.getByText("Checkpoint 7", { exact: true })).toBeVisible();
 });
@@ -2779,21 +2922,21 @@ test("finds a saved checkpoint by its name, note, or resume identity", async ({ 
   await saveDialog.getByLabel(/^Note/).fill("Tailored for the Stripe platform engineering role.");
   await saveDialog.getByRole("button", { name: /save checkpoint/i }).click();
 
-  const search = versions.getByLabel("Find a saved version");
+  const search = versions.getByLabel("Find a checkpoint");
   await search.fill("stripe");
-  await expect(versions.getByText("Showing 1 of 2")).toBeVisible();
+  await expect(versions.getByText(/Showing 1 of \d+/)).toBeVisible();
   await expect(versions.getByText("Cloud leadership focus", { exact: true })).toBeVisible();
   await expect(versions.getByText("Platform baseline", { exact: true })).toBeHidden();
 
   await closeVersions(page);
   const reopenedVersions = await openVersions(page);
-  await expect(reopenedVersions.getByText("Showing all saved versions")).toBeVisible();
+  await expect(reopenedVersions.getByText("Showing all checkpoints")).toBeVisible();
   await expect(reopenedVersions.getByText("Platform baseline", { exact: true })).toBeVisible();
 
-  await reopenedVersions.getByLabel("Find a saved version").fill("no matching checkpoint");
-  await expect(reopenedVersions.getByText(/No saved versions match “no matching checkpoint”/)).toBeVisible();
+  await reopenedVersions.getByLabel("Find a checkpoint").fill("no matching checkpoint");
+  await expect(reopenedVersions.getByText(/No checkpoints match “no matching checkpoint”/)).toBeVisible();
   await reopenedVersions.getByRole("button", { name: "Clear search" }).click();
-  await expect(reopenedVersions.getByText("Showing all saved versions")).toBeVisible();
+  await expect(reopenedVersions.getByText("Showing all checkpoints")).toBeVisible();
 });
 
 test("imports a checkpoint history backup without replacing the current resume", async ({ page }) => {

@@ -1,6 +1,7 @@
 import {
   SECTION_LABELS,
   normalizeResume,
+  resumeHeaderLinks,
   resumeExportFingerprint,
   type ExportChange,
   type ResumeEntry,
@@ -15,6 +16,10 @@ export const STORAGE_KEY = "resume-editor-data-v2";
  * while allowing a required import review to survive a refresh.
  */
 export const IMPORT_REVIEW_KEY = "resume-editor-import-review-v1";
+export const RESUME_LIBRARY_KEY = "resume-editor-library-v1";
+export const ACTIVE_RESUME_KEY = "resume-editor-active-resume-v1";
+export const CHECKPOINT_HISTORY_KEY = "resume-editor-checkpoint-history-v1";
+/** Legacy global checkpoint key, migrated into the resume library once. */
 export const VERSION_HISTORY_KEY = "resume-editor-version-history-v1";
 export const VERSION_HISTORY_BACKUP_FORMAT = "resume-editor-version-history-backup";
 export const VERSION_HISTORY_BACKUP_VERSION = 1;
@@ -35,7 +40,7 @@ export const ENTRY_SCHEMA: Record<
     title: "Degree",
     subtitle: "School",
     meta: "Dates / Location",
-    details: "Details (one bullet per line, optional)",
+    details: "Honors / relevant coursework / details (one per line, optional)",
   },
   projects: {
     title: "Project Name",
@@ -125,6 +130,65 @@ export type VersionHistoryItem = {
   state: ResumeState;
   importReview: ImportReviewState | null;
 };
+
+export type ResumeLibraryItem = {
+  id: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  state: ResumeState;
+  importReview: ImportReviewState | null;
+};
+
+export type CheckpointHistoryByResume = Record<string, VersionHistoryItem[]>;
+
+export function parseResumeLibrary(value: string | null): ResumeLibraryItem[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    const usedIds = new Set<string>();
+    return parsed.flatMap((item): ResumeLibraryItem[] => {
+      if (!item || typeof item !== "object") return [];
+      const candidate = item as Partial<ResumeLibraryItem>;
+      if (
+        typeof candidate.id !== "string" ||
+        !candidate.id.trim() ||
+        usedIds.has(candidate.id) ||
+        typeof candidate.label !== "string" ||
+        typeof candidate.createdAt !== "string" ||
+        typeof candidate.updatedAt !== "string"
+      ) return [];
+      usedIds.add(candidate.id);
+      return [{
+        id: candidate.id,
+        label: candidate.label.trim() || "Untitled resume",
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt,
+        state: normalizeResume(candidate.state),
+        importReview: candidate.importReview ?? null,
+      }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function parseCheckpointHistory(value: string | null): CheckpointHistoryByResume {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>)
+        .filter(([resumeId]) => Boolean(resumeId.trim()))
+        .map(([resumeId, history]) => [resumeId, parseVersionHistory(JSON.stringify(history))])
+        .filter(([, history]) => history.length),
+    );
+  } catch {
+    return {};
+  }
+}
 
 export type VersionHistoryBackup = {
   format: typeof VERSION_HISTORY_BACKUP_FORMAT;
@@ -498,7 +562,7 @@ function specialtyCoverage(
  * appear in the resume.
  */
 export function buildImportCoverage(state: ResumeState, sourceText?: string): ImportCoverageItem[] {
-  const contactCount = [state.email, state.phone, state.location, state.website].filter((value) => value.trim()).length;
+  const contactCount = [state.email, state.phone, state.location, ...resumeHeaderLinks(state).map((link) => link.url)].filter((value) => value.trim()).length;
   const skillLineCount = state.skills.split("\n").filter((line) => line.trim()).length;
   const sourceSections = new Set(
     (sourceText ?? "")
@@ -574,6 +638,7 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
 
 export function buildImportReview(state: ResumeState, fileName: string, sourceText?: string): ImportReviewState {
   const items: ImportReviewItem[] = [];
+  const contactValues = [state.name, state.email, state.phone, state.location, ...resumeHeaderLinks(state).map((link) => link.url)];
   const sections = new Set<string>();
   const addItem = (item: ImportReviewItem, section: string) => {
     items.push(item);
@@ -585,10 +650,10 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
       id: "contact",
       label: "Contact details",
       targetId: state.name ? "field-name" : "field-email",
-      detail: compactDetail([state.name, state.email, state.phone, state.location, state.website].filter(Boolean).join(" | ")),
+      detail: compactDetail(contactValues.filter(Boolean).join(" | ")),
       sourceExcerpt:
-        importSourceExcerpt(sourceText, state.name ? [state.name] : [state.email, state.phone, state.location, state.website]) ??
-        importSourceExcerpt(sourceText, [state.name, state.email, state.phone, state.location, state.website]),
+        importSourceExcerpt(sourceText, state.name ? [state.name] : contactValues.slice(1)) ??
+        importSourceExcerpt(sourceText, contactValues),
     },
     "Header",
   );

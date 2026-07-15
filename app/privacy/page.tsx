@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <div className="mt-10 grid gap-8 text-base leading-relaxed text-muted-foreground">
         <section>
           <h2 className="text-2xl font-semibold text-foreground">Your resume stays in your browser</h2>
-          <p className="mt-3">PrivaCV runs as a local-first editor. The resume content you type or import is processed in your browser. Browser autosave, version history, and exports are also handled locally; the editor does not require an account or a resume upload.</p>
+          <p className="mt-3">PrivaCV runs as a local-first editor. The resume content you type or import is processed in your browser. The resume library, edit history, and exports are also handled locally; the editor does not require an account or a resume upload.</p>
         </section>
         <section>
           <h2 className="text-2xl font-semibold text-foreground">Files you choose to import</h2>

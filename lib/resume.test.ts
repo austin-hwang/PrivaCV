@@ -17,6 +17,7 @@ import {
   contactFieldIssues,
   CUSTOM_SECTION_PRESETS,
   emptyState,
+  entryFieldSchema,
   exportChangeSummary,
   getSectionEntries,
   includedBulletsFrom,
@@ -24,6 +25,7 @@ import {
   normalizeTagGroups,
   resumeExportFingerprint,
   resumePlainText,
+  resolveHeaderLinkIcon,
   sampleState,
   summarizeBulletOpenings,
   summarizeEvidence,
@@ -47,6 +49,8 @@ import {
   importSourceExcerpt,
   importReviewProgress,
   mergeVersionHistory,
+  parseCheckpointHistory,
+  parseResumeLibrary,
   parseStoredImportReview,
   parseVersionHistoryBackup,
   storedImportReview,
@@ -142,6 +146,30 @@ describe("resume helpers", () => {
     expect(document).toContain("Certified Kubernetes Administrator");
   });
 
+  it("lets an entry use paragraph details without treating the text as bullets", () => {
+    const state = normalizeResume({
+      sectionOrder: ["education"],
+      education: [{
+        title: "B.S. Computer Science",
+        subtitle: "State University",
+        meta: "2024",
+        details: "Relevant coursework included distributed systems, compilers, and database design.",
+        detailsFormat: "paragraph",
+      }],
+    });
+
+    expect(state.education[0].detailsFormat).toBe("paragraph");
+    expect(includedBulletsFrom(state.education[0])).toEqual([]);
+    expect(resumePlainText(state)).toContain("\nRelevant coursework included distributed systems, compilers, and database design.");
+    expect(resumePlainText(state)).not.toContain("- Relevant coursework");
+    const document = strFromU8(unzipSync(resumeDocx(state))["word/document.xml"]);
+    expect(document).toContain("Relevant coursework included distributed systems, compilers, and database design.");
+    expect(document).not.toContain('w:hanging="180"');
+
+    const legacy = normalizeResume({ education: [{ title: "B.A.", details: "Honors" }] });
+    expect(legacy.education[0].detailsFormat).toBe("bullets");
+  });
+
   it("creates granular, portal-friendly copy fields without adding empty values", () => {
     const state = sampleState();
     state.customSections = [{
@@ -165,7 +193,12 @@ describe("resume helpers", () => {
       expect.objectContaining({ label: "Achievements", text: expect.stringContaining("•") }),
     ]));
     expect(certification).toMatchObject({ label: "Certifications 1", detail: "AWS Certified Developer · Amazon" });
-    expect(certification?.fields.map((field) => field.label)).not.toContain("Dates / details");
+    expect(certification?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "License / certification" }),
+      expect.objectContaining({ label: "Issuing organization" }),
+      expect.objectContaining({ label: "Credential ID / verification link / details (optional)" }),
+    ]));
+    expect(certification?.fields.map((field) => field.label)).not.toContain("Earned / expiration dates");
   });
 
   it("creates a local, editable Word document with simple resume structure", () => {
@@ -379,15 +412,60 @@ describe("resume helpers", () => {
     expect(contactHref("email", "not-an-email")).toBeUndefined();
   });
 
+  it("migrates the legacy website field and exports multiple clickable header links", () => {
+    const migrated = normalizeResume({ website: "linkedin.com/in/ada" });
+    expect(migrated.headerLinks).toEqual([
+      { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "auto" },
+    ]);
+
+    const state = normalizeResume({
+      ...sampleState(),
+      headerLinks: [
+        { id: "linkedin", label: "LinkedIn", url: "linkedin.com/in/johndoe" },
+        { id: "github", label: "GitHub", url: "github.com/johndoe" },
+      ],
+    });
+    const relationships = strFromU8(unzipSync(resumeDocx(state))["word/_rels/document.xml.rels"]);
+    expect(relationships).toContain("https://linkedin.com/in/johndoe");
+    expect(relationships).toContain("https://github.com/johndoe");
+    expect(applicationCopyGroups(state).find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "LinkedIn", text: "linkedin.com/in/johndoe" }),
+      expect.objectContaining({ label: "GitHub", text: "github.com/johndoe" }),
+    ]));
+    expect(resolveHeaderLinkIcon(state.headerLinks[0])).toBe("linkedin");
+    expect(resolveHeaderLinkIcon({ ...state.headerLinks[0], icon: "portfolio" })).toBe("portfolio");
+    expect(resolveHeaderLinkIcon({ ...state.headerLinks[0], label: "GitLab", url: "gitlab.com/ada" })).toBe("gitlab");
+  });
+
   it("offers concise, ATS-readable custom section presets", () => {
     expect(CUSTOM_SECTION_PRESETS).toEqual([
-      "Certifications",
+      "Leadership & Activities",
+      "Research Experience",
+      "Relevant Coursework",
+      "Licenses & Certifications",
+      "Professional Affiliations",
       "Volunteer Experience",
-      "Publications",
-      "Awards",
+      "Publications & Presentations",
+      "Awards & Honors",
       "Languages",
-      "Training",
+      "Training & Professional Development",
     ]);
+  });
+
+  it("uses section-aware entry prompts without changing the portable entry shape", () => {
+    expect(entryFieldSchema("education", "Education")).toMatchObject({
+      title: "Degree",
+      details: expect.stringContaining("Honors / relevant coursework"),
+    });
+    expect(entryFieldSchema("custom-certifications", "Licenses & Certifications")).toEqual({
+      title: "License / certification",
+      subtitle: "Issuing organization",
+      meta: "Earned / expiration dates",
+      details: "Credential ID / verification link / details (optional)",
+    });
+    expect(entryFieldSchema("custom-languages", "Languages").subtitle).toBe("Proficiency");
+    expect(entryFieldSchema("custom-publications", "Publications").meta).toBe("Date / DOI / link");
+    expect(entryFieldSchema("custom-renamed", "Professional Memberships").subtitle).toBe("Membership / role");
   });
 
   it("offers multiple clean, ATS-readable visual templates", () => {
@@ -419,6 +497,25 @@ describe("resume helpers", () => {
       location: "San Francisco, CA",
     });
     expect(state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Analytical Engines" });
+  });
+
+  it("imports every distinct profile link from the resume header", () => {
+    const state = importResumeText([
+      "Ada Lovelace",
+      "Platform Engineer",
+      "ada@example.com | linkedin.com/in/ada | github.com/ada | ada.dev",
+      "San Francisco, CA",
+      "",
+      "Experience",
+      "Engineer | Analytical Engines | 2022–Present",
+    ].join("\n"));
+
+    expect(state.headerLinks).toEqual([
+      { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "auto" },
+      { id: "header-link-2", label: "GitHub", url: "github.com/ada", icon: "auto" },
+      { id: "header-link-3", label: "Website", url: "ada.dev", icon: "auto" },
+    ]);
+    expect(resumePlainText(state)).toContain("linkedin.com/in/ada | github.com/ada | ada.dev");
   });
 
   it("recovers a role-before-name preamble, full state name, and bare portfolio domain", () => {
@@ -1444,14 +1541,17 @@ describe("resume helpers", () => {
     expect(contact?.guidance).toContain("valid domain");
   });
 
-  it("targets an invalid optional website after required contact details are complete", () => {
-    const state = { ...sampleState(), website: "linkedin profile" };
+  it("targets an invalid optional header link after required contact details are complete", () => {
+    const state = {
+      ...sampleState(),
+      headerLinks: [{ id: "linkedin", label: "LinkedIn", url: "linkedin profile", icon: "auto" as const }],
+    };
     const contact = buildResumeChecks(state, 1).find((check) => check.id === "contact");
 
     expect(contact).toMatchObject({
       ok: false,
-      detail: "Invalid website",
-      targetId: "field-website",
+      detail: "Invalid linkedin link",
+      targetId: "field-header-link-linkedin-url",
     });
   });
 
@@ -1587,6 +1687,35 @@ describe("resume helpers", () => {
         checkpoints,
       }),
     ).toHaveLength(7);
+  });
+
+  it("keeps separate resume-library documents and checkpoint timelines well formed", () => {
+    const resume = sampleState();
+    const library = parseResumeLibrary(JSON.stringify([
+      {
+        id: "resume-product",
+        label: "Product roles",
+        createdAt: "2026-07-10T12:00:00.000Z",
+        updatedAt: "2026-07-11T12:00:00.000Z",
+        state: resume,
+        importReview: null,
+      },
+      { id: "resume-product", label: "Duplicate id" },
+    ]));
+    expect(library).toHaveLength(1);
+    expect(library[0]).toMatchObject({ id: "resume-product", label: "Product roles" });
+
+    const checkpoint: VersionHistoryItem = {
+      id: "checkpoint-1",
+      savedAt: "2026-07-11T13:00:00.000Z",
+      label: "Before tailoring",
+      fingerprint: "product-before-tailoring",
+      state: resume,
+      importReview: null,
+    };
+    expect(parseCheckpointHistory(JSON.stringify({ "resume-product": [checkpoint] }))).toMatchObject({
+      "resume-product": [expect.objectContaining({ id: "checkpoint-1", label: "Before tailoring" })],
+    });
   });
 
   it("deduplicates version history by resume content when merging backups", () => {

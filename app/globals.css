@@ -348,6 +348,9 @@ html[data-resume-workspace="active"] .public-explainer {
 }
 
 .resume-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   margin-bottom: 8px;
   color: #333;
   font-size: 0.9em;
@@ -358,6 +361,7 @@ html[data-resume-workspace="active"] .public-explainer {
 .resume-sheet[data-header-align="center"] .resume-title,
 .resume-sheet[data-header-align="center"] .resume-contact {
   text-align: center;
+  justify-content: center;
 }
 
 .resume-sheet[data-divider="on"] .resume-contact {
@@ -368,6 +372,21 @@ html[data-resume-workspace="active"] .public-explainer {
 .resume-contact a {
   color: inherit;
   text-decoration: none;
+}
+
+.resume-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  white-space: nowrap;
+}
+
+.resume-contact-icon,
+.resume-contact-item > svg {
+  width: 0.92em;
+  height: 0.92em;
+  flex: none;
+  stroke-width: 1.8;
 }
 
 .resume-contact > *:not(:last-child)::after {
@@ -455,6 +474,18 @@ html[data-resume-workspace="active"] .public-explainer {
 
 .resume-bullets li {
   margin-bottom: 1px;
+}
+
+.resume-details-paragraphs {
+  margin-top: 3px;
+}
+
+.resume-details-paragraph {
+  margin: 0 0 3px;
+}
+
+.resume-details-paragraph:last-child {
+  margin-bottom: 0;
 }
 
 /* Bullet marker style (theme.bulletStyle). disc is the default handled above. */

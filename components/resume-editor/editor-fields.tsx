@@ -3,8 +3,7 @@ import { useEffect, useState, type DragEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ENTRY_SCHEMA } from "@/lib/resume-workspace";
-import { entryHasContent, isBuiltinSection, type ResumeEntry, type TagGroup } from "@/lib/resume";
+import { entryFieldSchema, entryHasContent, type ResumeEntry, type TagGroup } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
@@ -384,9 +383,7 @@ export function EntryList({
   onAIEdit?: (target: { id: string; label: string; value: string; section: string; index: number }) => void;
   onEntryCollapse?: (section: string, index: number) => void;
 }) {
-  const schema = isBuiltinSection(section) && section !== "skills"
-    ? ENTRY_SCHEMA[section]
-    : { title: "Title", subtitle: "Organization / context", meta: "Dates / details", details: "Highlights" };
+  const schema = entryFieldSchema(section, sectionLabel);
   // Which entries the person has manually opened. An entry is also shown open
   // when it's empty (nothing to summarize yet) or holds the active field.
   const [openIndexes, setOpenIndexes] = useState<Set<number>>(() => new Set());
@@ -593,6 +590,31 @@ export function EntryList({
                   value={entry.meta}
                   onChange={(value) => onUpdate(section, index, "meta", value)}
                 />
+                <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+                  <span>Details format</span>
+                  <div
+                    role="group"
+                    aria-label={`Details format for ${primary}`}
+                    className="flex overflow-hidden rounded-md border border-input bg-background shadow-sm"
+                  >
+                    {(["bullets", "paragraph"] as const).map((format) => (
+                      <button
+                        key={format}
+                        type="button"
+                        aria-pressed={format === "bullets" ? entry.detailsFormat !== "paragraph" : entry.detailsFormat === "paragraph"}
+                        onClick={() => onUpdate(section, index, "detailsFormat", format)}
+                        className={cn(
+                          "border-l px-3 py-1.5 text-xs transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                          (format === "bullets" ? entry.detailsFormat !== "paragraph" : entry.detailsFormat === "paragraph")
+                            ? "bg-foreground text-background"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
+                      >
+                        {format === "bullets" ? "Bullets" : "Paragraph"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <TextAreaField
                   id={`field-${section}-${index}-details`}
                   label={schema.details}

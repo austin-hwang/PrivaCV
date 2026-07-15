@@ -14,6 +14,7 @@ import {
   hasAnyContent,
   isBuiltinSection,
   normalizeTagGroups,
+  normalizeHeaderLinks,
   parseTagGroups,
   tagGroupsToText,
   normalizeResume,
@@ -28,9 +29,13 @@ import {
   type ResumeTheme,
   type SectionFormat,
   type TagGroup,
+  type HeaderLink,
 } from "@/lib/resume";
 import {
+  ACTIVE_RESUME_KEY,
+  CHECKPOINT_HISTORY_KEY,
   IMPORT_REVIEW_KEY,
+  RESUME_LIBRARY_KEY,
   STORAGE_KEY,
   VERSION_HISTORY_BACKUP_FORMAT,
   VERSION_HISTORY_BACKUP_VERSION,
@@ -39,6 +44,8 @@ import {
   importReviewProgress,
   importReviewDraftFingerprint,
   mergeVersionHistory,
+  parseCheckpointHistory,
+  parseResumeLibrary,
   parseStoredImportReview,
   parseVersionHistory,
   parseVersionHistoryBackup,
@@ -47,6 +54,7 @@ import {
   versionLabel,
   type ImportReviewState,
   type RecoveryPoint,
+  type ResumeLibraryItem,
   type ToastState,
   type VersionHistoryBackup,
   type VersionHistoryItem,
@@ -196,6 +204,9 @@ export function useResumeEditor() {
   const [deletedVersion, setDeletedVersion] = useState<VersionHistoryItem | null>(null);
   const [historyBackupToImport, setHistoryBackupToImport] = useState<VersionHistoryItem[] | null>(null);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryItem[]>([]);
+  const [resumeLibrary, setResumeLibrary] = useState<ResumeLibraryItem[]>([]);
+  const [activeResumeId, setActiveResumeId] = useState<string | null>(null);
+  const [checkpointHistoryByResume, setCheckpointHistoryByResume] = useState<Record<string, VersionHistoryItem[]>>({});
   const [isImporting, setIsImporting] = useState(false);
   const [storageIssue, setStorageIssue] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"saving" | "saved" | "conflict">("saved");
@@ -265,6 +276,11 @@ export function useResumeEditor() {
     setStorageIssue(false);
   }, []);
 
+  const mirrorLegacyActiveHistory = useCallback((history: VersionHistoryItem[]) => {
+    if (history.length) localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(history));
+    else localStorage.removeItem(VERSION_HISTORY_KEY);
+  }, []);
+
   /**
    * Version checkpoints can grow much faster than the active draft. Write
    * them synchronously at the action boundary so a person never receives a
@@ -272,15 +288,22 @@ export function useResumeEditor() {
    */
   const persistVersionHistory = useCallback((nextHistory: VersionHistoryItem[]) => {
     try {
-      if (nextHistory.length) localStorage.setItem(VERSION_HISTORY_KEY, JSON.stringify(nextHistory));
-      else localStorage.removeItem(VERSION_HISTORY_KEY);
+      if (!activeResumeId) return false;
+      const nextByResume = { ...checkpointHistoryByResume, [activeResumeId]: nextHistory };
+      if (!nextHistory.length) delete nextByResume[activeResumeId];
+      if (Object.keys(nextByResume).length) localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(nextByResume));
+      else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
+      // Keep the legacy active-history key readable for checkpoint backup
+      // compatibility while the library uses its own storage record.
+      mirrorLegacyActiveHistory(nextHistory);
+      setCheckpointHistoryByResume(nextByResume);
       confirmStorageAvailable();
       return true;
     } catch {
       reportStorageIssue();
       return false;
     }
-  }, [confirmStorageAvailable, reportStorageIssue]);
+  }, [activeResumeId, checkpointHistoryByResume, confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue]);
 
   const saveRecoveryPoint = useCallback(
     (
@@ -351,7 +374,7 @@ export function useResumeEditor() {
     setDraftSourceVersionId(entry.id);
     setVersionSaveOpen(false);
     if (saved) {
-      flash("Version saved locally");
+      flash("Checkpoint saved locally");
     } else {
       downloadJsonFile({
         format: VERSION_HISTORY_BACKUP_FORMAT,
@@ -415,7 +438,7 @@ export function useResumeEditor() {
     setVersionHistory(nextHistory);
     setDeletedVersion(deleted);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
-    flash(deletedLocally ? "Deleted saved version" : "Could not remove the saved version from browser storage");
+    flash(deletedLocally ? "Deleted checkpoint" : "Could not remove the checkpoint from browser storage");
   };
 
   const undoDeleteVersion = () => {
@@ -426,6 +449,166 @@ export function useResumeEditor() {
     setVersionHistory(nextHistory);
     setDeletedVersion(null);
     flash(restoredLocally ? "Restored deleted checkpoint" : "Checkpoint restored for this session only");
+  };
+
+  const persistResumeLibrary = useCallback((library: ResumeLibraryItem[], nextActiveId = activeResumeId) => {
+    try {
+      localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(library));
+      if (nextActiveId) localStorage.setItem(ACTIVE_RESUME_KEY, nextActiveId);
+      confirmStorageAvailable();
+      return true;
+    } catch {
+      reportStorageIssue();
+      return false;
+    }
+  }, [activeResumeId, confirmStorageAvailable, reportStorageIssue]);
+
+  const libraryWithCurrentDraft = useCallback((library = resumeLibrary) => {
+    if (!activeResumeId) return library;
+    const updatedAt = new Date().toISOString();
+    return library.map((item) => item.id === activeResumeId
+      ? { ...item, updatedAt, state: normalizeResume(state), importReview }
+      : item);
+  }, [activeResumeId, importReview, resumeLibrary, state]);
+
+  const switchResume = (resumeId: string) => {
+    if (resumeId === activeResumeId) return;
+    const nextItem = resumeLibrary.find((item) => item.id === resumeId);
+    if (!nextItem) return;
+    const library = libraryWithCurrentDraft();
+    persistResumeLibrary(library, resumeId);
+    setResumeLibrary(library);
+    setActiveResumeId(resumeId);
+    setState(nextItem.state);
+    setImportReview(nextItem.importReview);
+    const nextHistory = checkpointHistoryByResume[resumeId] ?? [];
+    setVersionHistory(nextHistory);
+    try {
+      mirrorLegacyActiveHistory(nextHistory);
+    } catch {
+      reportStorageIssue();
+    }
+    setAutosavedState(nextItem.state);
+    setAutosavedAt(nextItem.updatedAt);
+    setExternalDraft(null);
+    setDraftSourceVersionId(null);
+    flash(`Opened ${nextItem.label}`);
+  };
+
+  const createResume = () => {
+    const now = new Date().toISOString();
+    const id = `resume-${Date.now().toString(36)}`;
+    const nextItem: ResumeLibraryItem = {
+      id,
+      label: "Untitled resume",
+      createdAt: now,
+      updatedAt: now,
+      state: emptyState(),
+      importReview: null,
+    };
+    const library = [...libraryWithCurrentDraft(), nextItem];
+    persistResumeLibrary(library, id);
+    setResumeLibrary(library);
+    setActiveResumeId(id);
+    setState(nextItem.state);
+    setImportReview(null);
+    setVersionHistory([]);
+    try {
+      mirrorLegacyActiveHistory([]);
+    } catch {
+      reportStorageIssue();
+    }
+    setAutosavedState(nextItem.state);
+    setAutosavedAt(now);
+    setExternalDraft(null);
+    setDraftSourceVersionId(null);
+    flash("Created a new resume");
+  };
+
+  const duplicateResume = (resumeId = activeResumeId) => {
+    if (!resumeId) return;
+    const source = resumeId === activeResumeId
+      ? libraryWithCurrentDraft().find((item) => item.id === resumeId)
+      : resumeLibrary.find((item) => item.id === resumeId);
+    if (!source) return;
+    const now = new Date().toISOString();
+    const id = `resume-${Date.now().toString(36)}`;
+    const copy: ResumeLibraryItem = {
+      ...source,
+      id,
+      label: `${source.label} copy`,
+      createdAt: now,
+      updatedAt: now,
+      state: normalizeResume(source.state),
+    };
+    const library = [...libraryWithCurrentDraft(), copy];
+    persistResumeLibrary(library, id);
+    setResumeLibrary(library);
+    setActiveResumeId(id);
+    setState(copy.state);
+    setImportReview(copy.importReview);
+    setVersionHistory([]);
+    try {
+      mirrorLegacyActiveHistory([]);
+    } catch {
+      reportStorageIssue();
+    }
+    setAutosavedState(copy.state);
+    setAutosavedAt(now);
+    setExternalDraft(null);
+    setDraftSourceVersionId(null);
+    flash(`Duplicated ${source.label}`);
+  };
+
+  const renameResume = (resumeId: string, label: string) => {
+    const clean = label.trim();
+    if (!clean) return;
+    const library = resumeLibrary.map((item) => item.id === resumeId ? { ...item, label: clean } : item);
+    persistResumeLibrary(library);
+    setResumeLibrary(library);
+    flash("Renamed resume");
+  };
+
+  const deleteResume = (resumeId: string) => {
+    const remaining = resumeLibrary.filter((item) => item.id !== resumeId);
+    const nextLibrary = remaining.length ? remaining : [{
+      id: `resume-${Date.now().toString(36)}`,
+      label: "Untitled resume",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      state: emptyState(),
+      importReview: null,
+    } satisfies ResumeLibraryItem];
+    const deletingActive = resumeId === activeResumeId;
+    const nextActive = deletingActive ? nextLibrary[0] : nextLibrary.find((item) => item.id === activeResumeId) ?? nextLibrary[0];
+    persistResumeLibrary(nextLibrary, nextActive.id);
+    setResumeLibrary(nextLibrary);
+    setCheckpointHistoryByResume((current) => {
+      const next = { ...current };
+      delete next[resumeId];
+      try {
+        if (Object.keys(next).length) localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(next));
+        else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
+      } catch {
+        reportStorageIssue();
+      }
+      return next;
+    });
+    if (deletingActive) {
+      const nextHistory = checkpointHistoryByResume[nextActive.id] ?? [];
+      setActiveResumeId(nextActive.id);
+      setState(nextActive.state);
+      setImportReview(nextActive.importReview);
+      setVersionHistory(nextHistory);
+      try {
+        mirrorLegacyActiveHistory(nextHistory);
+      } catch {
+        reportStorageIssue();
+      }
+      setAutosavedState(nextActive.state);
+      setAutosavedAt(nextActive.updatedAt);
+    }
+    flash("Deleted resume");
   };
 
   const focusCheckTarget = (targetId: string) => {
@@ -439,15 +622,76 @@ export function useResumeEditor() {
     try {
       const legacy = localStorage.getItem("resume-editor-data-v1");
       const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
-      if (saved) {
-        const savedState = normalizeResume(JSON.parse(saved));
-        setState(savedState);
-        setAutosavedState(savedState);
-        setAutosavedAt(localStorage.getItem(AUTOSAVE_TIME_KEY) ?? new Date().toISOString());
+      const savedState = saved ? normalizeResume(JSON.parse(saved)) : emptyState();
+      const savedReview = parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY));
+      const storedLibrary = parseResumeLibrary(localStorage.getItem(RESUME_LIBRARY_KEY));
+      const storedCheckpoints = parseCheckpointHistory(localStorage.getItem(CHECKPOINT_HISTORY_KEY));
+      let library = storedLibrary;
+      let activeId = localStorage.getItem(ACTIVE_RESUME_KEY);
+      let activeState = savedState;
+      let activeReview = savedReview;
+      let activeUpdatedAt = localStorage.getItem(AUTOSAVE_TIME_KEY) ?? new Date().toISOString();
+
+      if (!library.length) {
+        const now = new Date().toISOString();
+        const currentId = `resume-${Date.now().toString(36)}`;
+        const legacyVersions = parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY));
+        library = [
+          {
+            id: currentId,
+            label: versionLabel(savedState),
+            createdAt: localStorage.getItem(AUTOSAVE_TIME_KEY) ?? now,
+            updatedAt: localStorage.getItem(AUTOSAVE_TIME_KEY) ?? now,
+            state: savedState,
+            importReview: savedReview,
+          },
+          ...legacyVersions.map((item, index) => ({
+            id: `resume-migrated-${item.id || index}`,
+            label: item.label,
+            createdAt: item.savedAt,
+            updatedAt: item.savedAt,
+            state: item.state,
+            importReview: item.importReview,
+          })),
+        ];
+        activeId = currentId;
+        try {
+          localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(library));
+          localStorage.setItem(ACTIVE_RESUME_KEY, currentId);
+          localStorage.removeItem(VERSION_HISTORY_KEY);
+        } catch {
+          reportStorageIssue();
+        }
+      } else {
+        const activeItem = library.find((item) => item.id === activeId) ?? library[0];
+        activeId = activeItem.id;
+        activeState = activeItem.state;
+        activeReview = activeItem.importReview;
+        activeUpdatedAt = activeItem.updatedAt;
+        try {
+          localStorage.setItem(ACTIVE_RESUME_KEY, activeId);
+        } catch {
+          reportStorageIssue();
+        }
       }
-      setImportReview(parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY)));
+
+      setResumeLibrary(library);
+      setActiveResumeId(activeId);
+      setCheckpointHistoryByResume(storedCheckpoints);
+      const activeHistory = activeId ? storedCheckpoints[activeId] ?? [] : [];
+      setVersionHistory(activeHistory);
+      if (storedLibrary.length) {
+        try {
+          mirrorLegacyActiveHistory(activeHistory);
+        } catch {
+          reportStorageIssue();
+        }
+      }
+      setState(activeState);
+      setAutosavedState(activeState);
+      setAutosavedAt(activeUpdatedAt);
+      setImportReview(activeReview);
       localStorage.removeItem("resume-editor-last-export-v1");
-      setVersionHistory(parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY)));
       // Role Focus was removed because it added a distracting detour without
       // reliably improving a person's resume. Clear its old private data too.
       localStorage.removeItem("resume-editor-role-focus-v1");
@@ -457,7 +701,7 @@ export function useResumeEditor() {
     } finally {
       setLoaded(true);
     }
-  }, [reportStorageIssue]);
+  }, [mirrorLegacyActiveHistory, reportStorageIssue]);
 
   // `storage` fires only in the other tab. Keep a different draft visible
   // until the person decides, rather than silently replacing active work or
@@ -494,6 +738,35 @@ export function useResumeEditor() {
         const savedAt = new Date().toISOString();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         localStorage.setItem(AUTOSAVE_TIME_KEY, savedAt);
+        if (activeResumeId) {
+          setResumeLibrary((current) => {
+            const next = current.map((item) => item.id === activeResumeId
+              ? {
+                  ...item,
+                  label: item.label === "Untitled resume" && hasAnyContent(state) ? versionLabel(state) : item.label,
+                  updatedAt: savedAt,
+                  state: normalizeResume(state),
+                  importReview,
+                }
+              : item);
+            localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(next));
+            return next;
+          });
+        } else {
+          const id = `resume-${Date.now().toString(36)}`;
+          const item: ResumeLibraryItem = {
+            id,
+            label: versionLabel(state),
+            createdAt: savedAt,
+            updatedAt: savedAt,
+            state: normalizeResume(state),
+            importReview,
+          };
+          localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify([item]));
+          localStorage.setItem(ACTIVE_RESUME_KEY, id);
+          setResumeLibrary([item]);
+          setActiveResumeId(id);
+        }
         confirmStorageAvailable();
         setAutosavedState(normalizeResume(state));
         setAutosavedAt(savedAt);
@@ -503,7 +776,7 @@ export function useResumeEditor() {
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [confirmStorageAvailable, externalDraft, loaded, reportStorageIssue, state]);
+  }, [activeResumeId, confirmStorageAvailable, externalDraft, importReview, loaded, reportStorageIssue, state]);
 
   // A refresh should never turn an unreviewed import into an ordinary draft.
   // Persist the checklist with a bounded copy of its extracted source so local
@@ -551,11 +824,6 @@ export function useResumeEditor() {
     setExternalDraft(null);
     flash("Keeping this tab's draft");
   };
-
-  useEffect(() => {
-    if (!loaded) return;
-    persistVersionHistory(versionHistory);
-  }, [loaded, persistVersionHistory, versionHistory]);
 
   useEffect(() => {
     if (!toast) return;
@@ -697,6 +965,14 @@ export function useResumeEditor() {
           ...current,
           skills,
           sectionTagGroups: { ...current.sectionTagGroups, skills: parseTagGroups(skills, "skills") },
+        };
+      }
+      if (key === "headerLinks") {
+        const headerLinks = normalizeHeaderLinks(value as HeaderLink[], true);
+        return {
+          ...current,
+          headerLinks,
+          website: headerLinks.find((link) => link.url.trim())?.url ?? "",
         };
       }
       return { ...current, [key]: value };
@@ -902,11 +1178,17 @@ export function useResumeEditor() {
     }));
   };
 
-  const addCustomSection = (title = "New Section") => {
+  const addCustomSection = (title = "New Section", format: SectionFormat = "entries") => {
     const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const tagGroups = format === "tag-groups"
+      ? [{ id: `${id}-group-1`, label: "", tags: [] }]
+      : [];
     setState((current) => ({
       ...current,
       customSections: [...current.customSections, { id, title, entries: [blankEntry()] }],
+      sectionFormats: { ...current.sectionFormats, [id]: format },
+      sectionTagGroups: { ...current.sectionTagGroups, [id]: tagGroups },
+      sectionText: { ...current.sectionText, [id]: "" },
       sectionOrder: [...current.sectionOrder, id],
     }));
     return id;
@@ -1121,6 +1403,9 @@ export function useResumeEditor() {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("resume-editor-data-v1");
       localStorage.removeItem(IMPORT_REVIEW_KEY);
+      localStorage.removeItem(RESUME_LIBRARY_KEY);
+      localStorage.removeItem(ACTIVE_RESUME_KEY);
+      localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
       localStorage.removeItem("resume-editor-last-export-v1");
       localStorage.removeItem(VERSION_HISTORY_KEY);
       localStorage.removeItem(AUTOSAVE_TIME_KEY);
@@ -1134,6 +1419,9 @@ export function useResumeEditor() {
     setState(emptyState());
     setImportReview(null);
     setVersionHistory([]);
+    setResumeLibrary([]);
+    setActiveResumeId(null);
+    setCheckpointHistoryByResume({});
     setAutosavedAt(null);
     setAutosavedState(null);
     setRecoveryPoint(null);
@@ -1444,6 +1732,7 @@ export function useResumeEditor() {
   };
 
   return {
+    activeResumeId,
     addCustomSection,
     addBuiltinSection,
     addEntry,
@@ -1455,12 +1744,15 @@ export function useResumeEditor() {
     checks,
     clearSavedBrowserData,
     clearResume,
+    createResume,
     copyApplicationField,
     copyPlainText,
     importFileInputRef,
     deleteVersion,
+    deleteResume,
     requestDocxExport,
     downloadPlainText,
+    duplicateResume,
     externalDraft,
     deletedVersion,
     dismissRecoveryPoint,
@@ -1498,6 +1790,7 @@ export function useResumeEditor() {
     passedChecks,
     plainText,
     recoveryPoint,
+    renameResume,
     removeEntry,
     removeCustomSection,
     removeBuiltinSection,
@@ -1505,6 +1798,7 @@ export function useResumeEditor() {
     reorderSection,
     toggleSectionHidden,
     requestExport,
+    resumeLibrary,
     restoreRecoveryPoint,
     restoreVersion,
     resumeRef,
@@ -1539,6 +1833,7 @@ export function useResumeEditor() {
     updateSectionText,
     updateSectionTitle,
     useExternalDraft,
+    switchResume,
     versionDraftLabel,
     versionDraftNote,
     versionHistory,

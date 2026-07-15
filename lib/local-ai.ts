@@ -105,6 +105,7 @@ const importContentSchema = z.object({
   phone: z.string(),
   location: z.string(),
   website: z.string(),
+  headerLinks: z.array(z.object({ label: z.string(), url: z.string() })),
   summary: z.string(),
   skills: z.string(),
   experience: z.array(importEntrySchema),
@@ -133,6 +134,15 @@ export const LOCAL_AI_IMPORT_JSON_SCHEMA = JSON.stringify({
     phone: { type: "string" },
     location: { type: "string" },
     website: { type: "string" },
+    headerLinks: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { label: { type: "string" }, url: { type: "string" } },
+        required: ["label", "url"],
+        additionalProperties: false,
+      },
+    },
     summary: { type: "string" },
     skills: { type: "string" },
     experience: { type: "array", items: importEntryJSONSchema },
@@ -140,7 +150,7 @@ export const LOCAL_AI_IMPORT_JSON_SCHEMA = JSON.stringify({
     projects: { type: "array", items: importEntryJSONSchema },
   },
   required: [
-    "name", "title", "email", "phone", "location", "website", "summary", "skills",
+    "name", "title", "email", "phone", "location", "website", "headerLinks", "summary", "skills",
     "experience", "education", "projects",
   ],
   additionalProperties: false,
@@ -154,6 +164,7 @@ function importContentSnapshot(state: ResumeState) {
     phone: state.phone,
     location: state.location,
     website: state.website,
+    headerLinks: state.headerLinks.map(({ label, url }) => ({ label, url })),
     summary: state.summary,
     skills: state.skills,
     experience: state.experience,
@@ -177,7 +188,7 @@ export function buildImportRepairMessages({
     },
     {
       role: "user",
-      content: `Return exactly these keys and shapes:\n{"name":"","title":"","email":"","phone":"","location":"","website":"","summary":"","skills":"one group per line","experience":[{"title":"job title","subtitle":"company","meta":"dates/location","details":"one achievement per line"}],"education":[{"title":"degree","subtitle":"school","meta":"dates/location","details":"one detail per line"}],"projects":[{"title":"project","subtitle":"technologies or role","meta":"dates/link","details":"one detail per line"}]}\n\nORIGINAL EXTRACTED TEXT\n${boundedText(sourceText, 6_000)}\n\nCURRENT PARSER RESULT\n${boundedText(JSON.stringify(importContentSnapshot(currentState)), 3_500)}`,
+      content: `Return exactly these keys and shapes:\n{"name":"","title":"","email":"","phone":"","location":"","website":"first profile URL for backward compatibility","headerLinks":[{"label":"LinkedIn, GitHub, Website, or another source label","url":"profile URL"}],"summary":"","skills":"one group per line","experience":[{"title":"job title","subtitle":"company","meta":"dates/location","details":"one achievement per line"}],"education":[{"title":"degree","subtitle":"school","meta":"dates/location","details":"one detail per line"}],"projects":[{"title":"project","subtitle":"technologies or role","meta":"dates/link","details":"one detail per line"}]}\n\nORIGINAL EXTRACTED TEXT\n${boundedText(sourceText, 6_000)}\n\nCURRENT PARSER RESULT\n${boundedText(JSON.stringify(importContentSnapshot(currentState)), 3_500)}`,
     },
   ];
 }

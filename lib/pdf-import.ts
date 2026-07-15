@@ -133,6 +133,25 @@ const DATE_RANGE_RE = new RegExp(
   `${SINGLE_DATE}\\s*${DATE_SEPARATOR}\\s*(?:Present|Current|Now|${SINGLE_DATE})`,
   "i",
 );
+
+function extractHeaderLinks(value: string) {
+  const explicitMatches = [...value.matchAll(new RegExp(LINK_RE.source, "gi"))];
+  const occupied = explicitMatches.map((match) => ({
+    start: match.index ?? 0,
+    end: (match.index ?? 0) + match[0].length,
+  }));
+  const bareMatches = [...value.matchAll(new RegExp(BARE_PORTFOLIO_LINK_RE.source, "gi"))]
+    .filter((match) => {
+      const start = match.index ?? 0;
+      const end = start + match[0].length;
+      return !occupied.some((range) => start >= range.start && end <= range.end);
+    });
+
+  return [...explicitMatches, ...bareMatches]
+    .sort((first, second) => (first.index ?? 0) - (second.index ?? 0))
+    .map((match) => match[0].replace(/[.,;]+$/, ""))
+    .filter((link, index, all) => all.findIndex((candidate) => candidate.toLocaleLowerCase() === link.toLocaleLowerCase()) === index);
+}
 const TRAILING_DATE_RE = new RegExp(`(?:${SINGLE_DATE}\\s*${DATE_SEPARATOR}\\s*(?:Present|Current|Now|${SINGLE_DATE})|${SINGLE_DATE})\\s*$`, "i");
 const SECTION_MAP: Array<[RegExp, keyof Pick<ResumeState, "summary" | "experience" | "education" | "projects" | "skills">]> = [
   [/^(summary|professional\s+summary|professional\s+overview|executive\s+(summary|profile)|career\s+(summary|profile|highlights)|professional\s+(profile|highlights|qualifications)|profile|key\s+qualifications|core\s+qualifications|about\s+me|about|objective|career\s+objective|summary\s+of\s+(qualifications|experience)|qualifications\s+(summary|profile))\b/i, "summary"],
@@ -743,8 +762,10 @@ export function parseResume(lines: string[]) {
   // convincing false positives from DOIs, publication IDs, and long metrics.
   result.phone = preamble.map(extractPhone).find(Boolean) || "";
   const preambleText = preamble.join("\n");
-  const linkMatch = preambleText.match(LINK_RE) || preambleText.match(BARE_PORTFOLIO_LINK_RE) || fullText.match(LINK_RE);
-  if (linkMatch) result.website = linkMatch[0].replace(/[.,;]+$/, "");
+  const importedLinks = extractHeaderLinks(preambleText);
+  const links = importedLinks.length ? importedLinks : extractHeaderLinks(fullText).slice(0, 1);
+  result.headerLinks = links.map((url, index) => ({ id: `header-link-${index + 1}`, label: "", url, icon: "auto" }));
+  result.website = links[0] ?? "";
   for (const line of preamble) {
     const shortState = line.match(PREAMBLE_CITY_STATE_RE);
     if (shortState) {

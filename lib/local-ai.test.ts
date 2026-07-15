@@ -214,6 +214,7 @@ describe("local AI helpers", () => {
       phone: current.phone,
       location: current.location,
       website: current.website,
+      headerLinks: current.headerLinks.map(({ label, url }) => ({ label, url })),
       summary: current.summary,
       skills: current.skills,
       experience: current.experience,

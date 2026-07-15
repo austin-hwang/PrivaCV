@@ -1,4 +1,5 @@
 import { forwardRef, type ClipboardEvent, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
+import { BriefcaseBusiness, Code, Github, Gitlab, Globe2, Linkedin, Link as LinkIcon, Mail, MapPin, Phone } from "lucide-react";
 import {
   bulletsFrom,
   contactHref,
@@ -10,9 +11,13 @@ import {
   getSectionTitle,
   hasAnyContent,
   normalizeAccent,
+  paragraphsFrom,
+  resolveHeaderLinkIcon,
+  resumeHeaderLinks,
   visibleSectionOrder,
   resolveFontStack,
   type ResumeState,
+  type HeaderLink,
   type TagGroup,
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
@@ -21,6 +26,7 @@ type InlineEditHandlers = {
   /** When true, resume text is edited in place on the sheet. */
   editable?: boolean;
   onEditField?: (field: string, value: string) => void;
+  onEditHeaderLink?: (id: string, patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>) => void;
   onEditSectionTitle?: (section: string, value: string) => void;
   onEditEntry?: (section: string, index: number, key: "title" | "subtitle" | "meta" | "details", value: string) => void;
   onEditTagGroup?: (section: string, groupId: string, patch: Pick<TagGroup, "label" | "tags">) => void;
@@ -206,10 +212,10 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry, onEditTagGroup },
+  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect, editable, onEditField, onEditHeaderLink, onEditSectionTitle, onEditEntry, onEditTagGroup },
   ref,
 ) {
-  const edit: InlineEditHandlers = { editable, onEditField, onEditSectionTitle, onEditEntry };
+  const edit: InlineEditHandlers = { editable, onEditField, onEditHeaderLink, onEditSectionTitle, onEditEntry };
   const hasContent = hasAnyContent(state);
   const pageBreaks: Array<{ page: number; label?: string }> = pageGuides.length
     ? pageGuides
@@ -270,10 +276,10 @@ function EmptyResumePreview() {
       <p className="mb-2 font-sans text-[0.78em] font-bold uppercase tracking-[1px] text-[#666]">Clean one-page structure</p>
       <h1 className="resume-name">Your Name</h1>
       <div className="resume-contact">
-        <span>email@example.com</span>
-        <span>(555) 123-4567</span>
-        <span>City, ST</span>
-        <span>linkedin.com/in/you</span>
+        <span className="resume-contact-item"><Mail aria-hidden="true" />email@example.com</span>
+        <span className="resume-contact-item"><Phone aria-hidden="true" />(555) 123-4567</span>
+        <span className="resume-contact-item"><MapPin aria-hidden="true" />City, ST</span>
+        <span className="resume-contact-item"><Linkedin aria-hidden="true" />linkedin.com/in/you</span>
       </div>
       <div className="resume-empty-line resume-empty-line-wide" />
       <div className="resume-empty-line" />
@@ -293,14 +299,14 @@ function EmptyResumePreview() {
   );
 }
 
-function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry, onEditTagGroup }: ResumePreviewProps) {
+function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditHeaderLink, onEditSectionTitle, onEditEntry, onEditTagGroup }: ResumePreviewProps) {
   const contactParts = [
     ["email", state.email],
     ["phone", state.phone],
     ["location", state.location],
-    ["website", state.website],
   ] as const;
-  const showContact = contactParts.some(([, value]) => Boolean(value));
+  const headerLinks = resumeHeaderLinks(state).filter((link) => Boolean(link.url));
+  const showContact = contactParts.some(([, value]) => Boolean(value)) || headerLinks.length > 0;
 
   return (
     <>
@@ -337,6 +343,16 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
               onEditField={onEditField}
             />
           ))}
+          {headerLinks.map((link) => (
+            <HeaderLinkPart
+              key={link.id}
+              link={link}
+              active={activeTarget === `field-header-link-${link.id}-url`}
+              onTargetSelect={onTargetSelect}
+              editable={editable}
+              onEditHeaderLink={onEditHeaderLink}
+            />
+          ))}
         </div>
       ) : null}
       {state.summary ? (
@@ -363,8 +379,30 @@ const CONTACT_PLACEHOLDERS = {
   email: "email@example.com",
   phone: "(555) 123-4567",
   location: "City, ST",
-  website: "linkedin.com/in/you",
 } as const;
+
+function ContactIcon({ field }: { field: "email" | "phone" | "location" }) {
+  const Icon = field === "email" ? Mail : field === "phone" ? Phone : MapPin;
+  return <Icon aria-hidden="true" className="resume-contact-icon" />;
+}
+
+function HeaderLinkIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
+  const icon = resolveHeaderLinkIcon(link);
+  const Icon = icon === "linkedin"
+    ? Linkedin
+    : icon === "github"
+      ? Github
+      : icon === "gitlab"
+        ? Gitlab
+        : icon === "portfolio"
+          ? BriefcaseBusiness
+          : icon === "code"
+            ? Code
+            : icon === "link"
+              ? LinkIcon
+              : Globe2;
+  return <Icon aria-hidden="true" className="resume-contact-icon" />;
+}
 
 function ContactPart({
   field,
@@ -374,7 +412,7 @@ function ContactPart({
   editable,
   onEditField,
 }: {
-  field: "email" | "phone" | "location" | "website";
+  field: "email" | "phone" | "location";
   value: string;
   active: boolean;
   onTargetSelect?: (targetId: string) => void;
@@ -390,32 +428,76 @@ function ContactPart({
   // While editing, an existing contact detail is a plain editable span (a link
   // would swallow the click). Adding a missing detail happens in the form.
   if (editable) {
-    return (
+    return <span className="resume-contact-item">
+      <ContactIcon field={field} />
       <InlineText
-        as="span"
-        editable
-        value={value}
-        placeholder={CONTACT_PLACEHOLDERS[field]}
-        spellCheck={false}
-        className={className}
-        onCommit={(next) => onEditField?.(field, next)}
-      />
-    );
+          as="span"
+          editable
+          value={value}
+          placeholder={CONTACT_PLACEHOLDERS[field]}
+          spellCheck={false}
+          className={className}
+          onCommit={(next) => onEditField?.(field, next)}
+        />
+    </span>;
   }
 
   if (!href) {
-    return <span className={className} {...previewTargetProps(targetId, onTargetSelect)}>{value}</span>;
+    return <span className={cn("resume-contact-item", className)} {...previewTargetProps(targetId, onTargetSelect)}><ContactIcon field={field} />{value}</span>;
   }
 
   return (
     <a
-      className={className}
+      className={cn("resume-contact-item", className)}
       href={href}
       target="_blank"
       rel="noreferrer"
-      title={`Open ${field === "website" ? "website" : field} in a new tab`}
+      title={`Open ${field} in a new tab`}
     >
-      {value}
+      <ContactIcon field={field} />{value}
+    </a>
+  );
+}
+
+function HeaderLinkPart({
+  link,
+  active,
+  onTargetSelect,
+  editable,
+  onEditHeaderLink,
+}: {
+  link: HeaderLink;
+  active: boolean;
+  onTargetSelect?: (targetId: string) => void;
+  editable?: boolean;
+  onEditHeaderLink?: InlineEditHandlers["onEditHeaderLink"];
+}) {
+  const targetId = `field-header-link-${link.id}-url`;
+  const className = cn("resume-preview-target", active && "resume-preview-active");
+  const href = contactHref("website", link.url);
+
+  if (editable) {
+    return <span className="resume-contact-item">
+      <HeaderLinkIcon link={link} />
+      <InlineText
+        as="span"
+        editable
+        value={link.url}
+        placeholder="your-site.com"
+        spellCheck={false}
+        className={className}
+        onCommit={(url) => onEditHeaderLink?.(link.id, { url })}
+      />
+    </span>;
+  }
+
+  if (!href) {
+    return <span className={cn("resume-contact-item", className)} {...previewTargetProps(targetId, onTargetSelect)}><HeaderLinkIcon link={link} />{link.url}</span>;
+  }
+
+  return (
+    <a className={cn("resume-contact-item", className)} href={href} target="_blank" rel="noreferrer" title={`Open ${link.label || "website"} in a new tab`}>
+      <HeaderLinkIcon link={link} />{link.url}
     </a>
   );
 }
@@ -593,6 +675,21 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
             />
           ) : null}
           {(() => {
+            if (entry.detailsFormat === "paragraph") {
+              const paragraphs = paragraphsFrom(entry.details);
+              if (!paragraphs.length) return null;
+              return (
+                <EditableList
+                  editable={editable}
+                  items={paragraphs}
+                  containerTag="div"
+                  itemTag="div"
+                  className="resume-details-paragraphs"
+                  itemClassName="resume-details-paragraph"
+                  onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n\n"))}
+                />
+              );
+            }
             const bullets = bulletsFrom(entry.details);
             if (!bullets.length) return null;
             return (
