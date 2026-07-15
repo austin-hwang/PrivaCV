@@ -2600,7 +2600,7 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await expect(iconButton.locator(".lucide-github")).toBeVisible();
   await iconButton.click();
   const iconMenu = page.getByRole("menu", { name: /GitHub icon options/i });
-  await expect(iconMenu.getByRole("menuitem")).toHaveCount(7);
+  await expect(iconMenu.getByRole("menuitem")).toHaveCount(14);
   await expect(iconMenu.getByRole("menuitem", { name: "Automatic" })).toHaveCount(0);
   await iconMenu.getByRole("menuitem", { name: "Portfolio / work" }).click();
   await expect(github.locator(".lucide-briefcase-business")).toBeVisible();

@@ -1,5 +1,5 @@
 import { forwardRef, type ClipboardEvent, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
-import { BriefcaseBusiness, Code, Github, Gitlab, Globe2, Linkedin, Link as LinkIcon, Mail, MapPin, Phone } from "lucide-react";
+import { BriefcaseBusiness, Calendar, Code, Dribbble, Figma, Github, Gitlab, Globe2, Instagram, Linkedin, Link as LinkIcon, Mail, MapPin, Newspaper, Phone, Twitter, Youtube } from "lucide-react";
 import {
   bulletsFrom,
   contactHref,
@@ -18,6 +18,7 @@ import {
   resolveFontStack,
   type ResumeState,
   type HeaderLink,
+  type HeaderLinkIconId,
   type TagGroup,
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
@@ -386,21 +387,26 @@ function ContactIcon({ field }: { field: "email" | "phone" | "location" }) {
   return <Icon aria-hidden="true" className="resume-contact-icon" />;
 }
 
+const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
+  website: Globe2,
+  linkedin: Linkedin,
+  github: Github,
+  gitlab: Gitlab,
+  twitter: Twitter,
+  instagram: Instagram,
+  youtube: Youtube,
+  dribbble: Dribbble,
+  figma: Figma,
+  portfolio: BriefcaseBusiness,
+  blog: Newspaper,
+  calendar: Calendar,
+  code: Code,
+  link: LinkIcon,
+};
+
 function HeaderLinkIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
   const icon = resolveHeaderLinkIcon(link);
-  const Icon = icon === "linkedin"
-    ? Linkedin
-    : icon === "github"
-      ? Github
-      : icon === "gitlab"
-        ? Gitlab
-        : icon === "portfolio"
-          ? BriefcaseBusiness
-          : icon === "code"
-            ? Code
-            : icon === "link"
-              ? LinkIcon
-              : Globe2;
+  const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
   return <Icon aria-hidden="true" className="resume-contact-icon" />;
 }
 

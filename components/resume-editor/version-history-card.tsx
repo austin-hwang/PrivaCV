@@ -201,7 +201,10 @@ export function VersionHistoryCard({
                 <input
                   type="range"
                   min={0}
-                  max={Math.max(0, allVersions.length - 1)}
+                  // A min===max range renders its thumb ambiguously (not
+                  // pinned to either end) in some browsers, so keep the
+                  // track non-degenerate even with nothing to scrub through.
+                  max={Math.max(1, allVersions.length - 1)}
                   value={Math.max(0, allVersions.length - 1 - clampedIndex)}
                   disabled={allVersions.length < 2}
                   aria-label="Move through edit history"

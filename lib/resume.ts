@@ -305,7 +305,14 @@ export const HEADER_LINK_ICON_OPTIONS = [
   { id: "linkedin", label: "LinkedIn" },
   { id: "github", label: "GitHub" },
   { id: "gitlab", label: "GitLab" },
+  { id: "twitter", label: "Twitter / X" },
+  { id: "instagram", label: "Instagram" },
+  { id: "youtube", label: "YouTube" },
+  { id: "dribbble", label: "Dribbble" },
+  { id: "figma", label: "Figma" },
   { id: "portfolio", label: "Portfolio / work" },
+  { id: "blog", label: "Blog / writing" },
+  { id: "calendar", label: "Calendar / scheduling" },
   { id: "code", label: "Code profile" },
   { id: "link", label: "Generic link" },
 ] as const;
@@ -317,7 +324,14 @@ export function inferHeaderLinkIcon(value: string): HeaderLinkIconId {
   if (clean.includes("linkedin")) return "linkedin";
   if (clean.includes("github")) return "github";
   if (clean.includes("gitlab")) return "gitlab";
-  if (/behance|dribbble|portfolio/.test(clean)) return "portfolio";
+  if (/twitter\.com|x\.com/.test(clean)) return "twitter";
+  if (clean.includes("instagram")) return "instagram";
+  if (clean.includes("youtube")) return "youtube";
+  if (clean.includes("dribbble")) return "dribbble";
+  if (clean.includes("figma.com")) return "figma";
+  if (/behance|portfolio/.test(clean)) return "portfolio";
+  if (/medium\.com|substack\.com/.test(clean)) return "blog";
+  if (/calendly|cal\.com/.test(clean)) return "calendar";
   if (/codepen|codesandbox|stackoverflow|dev\.to/.test(clean)) return "code";
   return "website";
 }

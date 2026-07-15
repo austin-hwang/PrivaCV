@@ -9,6 +9,7 @@ import {
   ArrowUp,
   AlertCircle,
   BriefcaseBusiness,
+  Calendar,
   Check,
   ChevronDown,
   ChevronRight,
@@ -19,21 +20,25 @@ import {
   ClipboardPaste,
   Code,
   Download,
+  Dribbble,
   Eye,
   EyeOff,
   FileJson,
   FileText,
+  Figma,
   Github,
   Gitlab,
   Globe2,
   GripVertical,
   History,
   Import as ImportIcon,
+  Instagram,
   Linkedin,
   Link as LinkIcon,
   Library,
   Loader2,
   MoreHorizontal,
+  Newspaper,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
@@ -45,8 +50,10 @@ import {
   SlidersHorizontal,
   Sparkles,
   Trash2,
+  Twitter,
   Undo2,
   Upload,
+  Youtube,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BrandMark } from "@/components/brand-mark";
@@ -204,20 +211,25 @@ const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-pho
 const isHeaderTarget = (targetId: string) =>
   HEADER_FIELD_IDS.includes(targetId) || targetId.startsWith("field-header-link-") || targetId === "add-header-link";
 
+const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
+  website: Globe2,
+  linkedin: Linkedin,
+  github: Github,
+  gitlab: Gitlab,
+  twitter: Twitter,
+  instagram: Instagram,
+  youtube: Youtube,
+  dribbble: Dribbble,
+  figma: Figma,
+  portfolio: BriefcaseBusiness,
+  blog: Newspaper,
+  calendar: Calendar,
+  code: Code,
+  link: LinkIcon,
+};
+
 function HeaderLinkIcon({ icon }: { icon: HeaderLinkIconId }) {
-  const Icon = icon === "linkedin"
-    ? Linkedin
-    : icon === "github"
-      ? Github
-      : icon === "gitlab"
-        ? Gitlab
-        : icon === "portfolio"
-          ? BriefcaseBusiness
-          : icon === "code"
-            ? Code
-            : icon === "link"
-              ? LinkIcon
-              : Globe2;
+  const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
   return <Icon aria-hidden="true" className="size-4" />;
 }
 
@@ -294,7 +306,7 @@ function HeaderLinkIconPicker({
               role="menu"
               aria-label={`${label} icon options`}
               style={{ top: position.top, left: position.left }}
-              className="fixed z-50 grid w-40 gap-0.5 rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
+              className="fixed z-50 grid grid-cols-4 gap-1 rounded-md border bg-popover p-1.5 text-popover-foreground shadow-lg"
             >
               {HEADER_LINK_ICON_OPTIONS.map((option) => (
                 <button
@@ -306,13 +318,14 @@ function HeaderLinkIconPicker({
                     setOpen(false);
                   }}
                   aria-current={option.id === value}
+                  aria-label={option.label}
+                  title={option.label}
                   className={cn(
-                    "flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted",
-                    option.id === value && "bg-muted font-medium",
+                    "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
+                    option.id === value && "bg-muted text-foreground ring-1 ring-ring",
                   )}
                 >
                   <HeaderLinkIcon icon={option.id} />
-                  {option.label}
                 </button>
               ))}
             </div>,
