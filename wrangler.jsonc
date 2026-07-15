@@ -19,6 +19,12 @@
   "images": {
     "binding": "IMAGES"
   },
+  "analytics_engine_datasets": [
+    {
+      "binding": "EXPORT_METRICS",
+      "dataset": "privacv_exports"
+    }
+  ],
   "observability": {
     "enabled": true
   }

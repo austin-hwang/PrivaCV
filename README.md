@@ -10,7 +10,7 @@
   No account · No subscription · No watermark · No resume upload
 </p>
 
-PrivaCV helps job seekers create, tailor, review, and export clean, text-based resumes. Your resume content, browser autosave, version history, imports, and exports stay on your device.
+PrivaCV helps job seekers create, tailor, review, and export clean, text-based resumes. Your resume content, browser autosave, version history, imports, and exported files stay on your device.
 
 ## Why PrivaCV
 
@@ -31,7 +31,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 ## Privacy
 
-PrivaCV is local-first. Resume information is processed and stored in the browser, not in an application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API.
+PrivaCV is local-first. Resume information is processed and stored in the browser, not in an application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Each export records one anonymous aggregate event and its format, without resume content or an identity or device identifier.
 
 See the in-app [privacy page](app/privacy/page.tsx) for the product’s plain-language explanation.
 
@@ -71,6 +71,22 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.example
 ```
 
 Use [.env.example](.env.example) as the starting point. Do not use the example domain in production.
+
+### Anonymous export metrics
+
+Production deploys include a Cloudflare Analytics Engine dataset named `privacv_exports`. It records only `resume_export` and the format. To inspect the total and format breakdown through the Analytics Engine SQL API:
+
+```sql
+SELECT COUNT(*) AS exports
+FROM privacv_exports
+WHERE blob1 = 'resume_export';
+
+SELECT blob2 AS format, COUNT(*) AS exports
+FROM privacv_exports
+WHERE blob1 = 'resume_export'
+GROUP BY blob2
+ORDER BY exports DESC;
+```
 
 ## Project structure
 

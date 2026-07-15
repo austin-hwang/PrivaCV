@@ -455,6 +455,25 @@ test("warns clearly and offers a JSON backup when browser autosave fails", async
   await expect((await download).suggestedFilename()).toBe("John_Doe.json");
 });
 
+test("records only an anonymous format event when a resume is exported", async ({ page }) => {
+  const exportEvents: unknown[] = [];
+  await page.route("**/api/metrics/export", async (route) => {
+    exportEvents.push(route.request().postDataJSON());
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  expect(exportEvents).toEqual([]);
+  const download = page.waitForEvent("download");
+  await openExport(page);
+  await page.getByRole("menuitem", { name: /export json/i }).click();
+  await expect((await download).suggestedFilename()).toBe("John_Doe.json");
+  await expect.poll(() => exportEvents).toEqual([{ format: "json" }]);
+});
+
 test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(Storage.prototype, "setItem", {

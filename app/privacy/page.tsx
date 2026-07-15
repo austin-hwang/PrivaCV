@@ -27,6 +27,10 @@ export default function PrivacyPage() {
           <p className="mt-3">If you explicitly prepare a local AI model, the browser downloads model files from the listed model hosts. The model runs locally in the browser; PrivaCV does not send your resume text to an AI API for that feature.</p>
         </section>
         <section>
+          <h2 className="text-2xl font-semibold text-foreground">Anonymous export totals</h2>
+          <p className="mt-3">When you export a resume, PrivaCV records one anonymous event and the export format so we can understand whether the editor is helping people finish resumes. The event contains no resume text, name, email, draft identifier, account, or device identifier. PDF is counted when the browser print dialog opens because the browser does not reveal whether a file is ultimately saved.</p>
+        </section>
+        <section>
           <h2 className="text-2xl font-semibold text-foreground">Your control</h2>
           <p className="mt-3">You can save portable JSON backups and delete saved browser data from the editor. If you share a device, export or back up anything you want to keep before deleting local data.</p>
         </section>

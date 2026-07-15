@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { importResumeDocxWithSource } from "@/lib/docx-import";
+import { trackResumeExport } from "@/lib/export-metrics";
 import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
 import { resumeDocxBlob } from "@/lib/docx-export";
 import {
@@ -1194,6 +1195,7 @@ export function useResumeEditor() {
 
   const saveJson = () => {
     downloadJsonFile(state, `${safeResumeFilename(state.name || "resume")}.json`);
+    if (hasAnyContent(state)) trackResumeExport("json");
     flash("Saved JSON to downloads");
   };
 
@@ -1352,6 +1354,7 @@ export function useResumeEditor() {
       return;
     }
     if (await copyText(plainText)) {
+      trackResumeExport("copy");
       flash("Copied plain text");
     } else {
       flash("Could not copy text");
@@ -1376,6 +1379,7 @@ export function useResumeEditor() {
       return;
     }
     downloadTextFile(plainText, `${safeResumeFilename(state.name || "resume")}.txt`);
+    trackResumeExport("txt");
     flash("Saved plain text to downloads");
   };
 
@@ -1385,6 +1389,7 @@ export function useResumeEditor() {
       return;
     }
     downloadFile(resumeDocxBlob(state), `${safeResumeFilename(state.name || "resume")}.docx`);
+    trackResumeExport("docx");
     flash("Saved Word document to downloads");
   };
 
@@ -1408,6 +1413,7 @@ export function useResumeEditor() {
     };
     document.title = pdfDocumentTitle(safeResumeFilename(state.name || "resume"));
     window.addEventListener("afterprint", restoreTitle, { once: true });
+    if (hasAnyContent(state)) trackResumeExport("pdf");
     window.print();
   };
 
