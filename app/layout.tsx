@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Merriweather } from "next/font/google";
+import { Arimo, Carlito, Gelasio, Inter, Merriweather, Tinos } from "next/font/google";
 import "./globals.css";
 import { KofiWidget } from "@/components/kofi-widget";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, THEME_STORAGE_KEY } from "@/lib/site";
@@ -18,6 +18,42 @@ const merriweather = Merriweather({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-serif",
+});
+
+// Open, self-hosted equivalents keep every selectable resume font consistent
+// across devices without redistributing proprietary Microsoft font files.
+// Optional families are not preloaded; the browser fetches only the one a
+// resume actually uses.
+const gelasio = Gelasio({
+  subsets: ["latin"],
+  weight: "variable",
+  style: ["normal", "italic"],
+  variable: "--font-gelasio",
+  preload: false,
+});
+
+const tinos = Tinos({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-tinos",
+  preload: false,
+});
+
+const arimo = Arimo({
+  subsets: ["latin"],
+  weight: "variable",
+  style: ["normal", "italic"],
+  variable: "--font-arimo",
+  preload: false,
+});
+
+const carlito = Carlito({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-carlito",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -61,7 +97,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={`${inter.variable} ${merriweather.variable}`}>
+      <body className={`${inter.variable} ${merriweather.variable} ${gelasio.variable} ${tinos.variable} ${arimo.variable} ${carlito.variable}`}>
         {children}
         <KofiWidget />
       </body>

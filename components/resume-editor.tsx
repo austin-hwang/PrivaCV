@@ -703,7 +703,16 @@ export function ResumeEditor() {
       description: check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
       tone: (check.advisory ? "info" : check.ok ? "ok" : "warn") as GuidedReviewStep["tone"],
       done: check.ok && !check.advisory,
-      action: check.ok && !check.advisory ? undefined : { label: check.actionLabel, run: () => focusEditorTarget(check.targetId) },
+      action: check.ok && !check.advisory ? undefined : {
+        label: check.actionLabel,
+        run: () => {
+          // A check action is an exit into editing, not another review-tour
+          // navigation step. Close the card so the focused field is visible
+          // and the action has an immediate, unambiguous result.
+          setReviewTour(null);
+          focusEditorTarget(check.targetId);
+        },
+      },
     } satisfies GuidedReviewStep));
 
   const startImportTour = () => {

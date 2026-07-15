@@ -28,7 +28,6 @@ import {
   type ResumeTheme,
   type SectionFormat,
   type TagGroup,
-  type OversizedResumeEntry,
 } from "@/lib/resume";
 import {
   IMPORT_REVIEW_KEY,
@@ -178,7 +177,6 @@ export function useResumeEditor() {
   const [pageCount, setPageCount] = useState(1);
   const [pageGuides, setPageGuides] = useState<Array<{ page: number; label?: string }>>([]);
   const [printBreaks, setPrintBreaks] = useState<Array<{ targetId: string; spacer: number }>>([]);
-  const [oversizedEntry, setOversizedEntry] = useState<OversizedResumeEntry | null>(null);
   const [textReviewOpen, setTextReviewOpen] = useState(false);
   const [applicationCopyOpen, setApplicationCopyOpen] = useState(false);
   const [textImportOpen, setTextImportOpen] = useState(false);
@@ -217,7 +215,7 @@ export function useResumeEditor() {
   const skipNextAutosaveRef = useRef(false);
 
   const hasContent = hasAnyContent(state);
-  const checks = useMemo(() => buildResumeChecks(state, pageCount, oversizedEntry), [oversizedEntry, pageCount, state]);
+  const checks = useMemo(() => buildResumeChecks(state, pageCount), [pageCount, state]);
   const failedChecks = checks.filter((check) => !check.ok);
   const passedChecks = checks.filter((check) => check.ok).length;
   const plainText = useMemo(() => resumePlainText(state), [state]);
@@ -608,31 +606,11 @@ export function useResumeEditor() {
           : nextPageGuides,
       );
 
-      // Entries normally stay together in print. If an entry is taller than a
-      // printable content area, though, every browser must split it. Surface
-      // that specific role before export instead of leaving its continuation
-      // to appear without a heading on a later page.
-      const sheetStyle = window.getComputedStyle(sheet);
-      const printableContentHeight = pageHeightPx -
-        Number.parseFloat(sheetStyle.paddingTop) -
-        Number.parseFloat(sheetStyle.paddingBottom);
-      const nextOversizedEntry = Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-entry-section]")).find((entry) =>
-        entry.offsetHeight > printableContentHeight + roundingTolerancePx,
-      );
-      const next = nextOversizedEntry
-        ? {
-            section: nextOversizedEntry.dataset.resumeEntrySection ?? "experience",
-            index: Number(nextOversizedEntry.dataset.resumeEntryIndex ?? 0),
-          }
-        : null;
-      setOversizedEntry((current) =>
-        current?.section === next?.section && current?.index === next?.index ? current : next,
-      );
-
       // Browser print engines keep role entries intact. When an otherwise
       // printable entry would straddle a Letter boundary, Chromium moves it to
       // the next page. Reserve that same space in the live sheet, so the
       // visible page count and page guides describe the PDF a person will save.
+      const sheetStyle = window.getComputedStyle(sheet);
       const existingBreaks = new Map(printBreaks.map((item) => [item.targetId, item.spacer]));
       const printableUnits: Array<{ targetId: string; element: HTMLElement; end: number }> = [];
       Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-print-section]")).forEach((section) => {

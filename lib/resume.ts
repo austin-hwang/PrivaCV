@@ -28,9 +28,9 @@ export const RESUME_TEMPLATES = [
   { id: "classic", label: "Classic", description: "Traditional serif type, left-aligned header, and ruled sections." },
   { id: "minimal", label: "Minimal", description: "Airy sans-serif type with plain headings and clean dash bullets." },
   { id: "modern", label: "Modern", description: "Centered header, navy accent bars, and contemporary sans-serif type." },
-  { id: "compact", label: "Compact", description: "Dense Calibri layout with underlined headings for longer resumes." },
-  { id: "executive", label: "Executive", description: "Centered Georgia header with refined burgundy rules." },
-  { id: "technical", label: "Technical", description: "Tight Arial layout with teal dividers and scannable sections." },
+  { id: "compact", label: "Compact", description: "Dense Carlito layout with underlined headings for longer resumes." },
+  { id: "executive", label: "Executive", description: "Centered Gelasio header with refined burgundy rules." },
+  { id: "technical", label: "Technical", description: "Tight Arimo layout with teal dividers and scannable sections." },
 ] as const;
 
 export type ResumeTemplateId = (typeof RESUME_TEMPLATES)[number]["id"];
@@ -42,11 +42,11 @@ export type ResumeTemplateId = (typeof RESUME_TEMPLATES)[number]["id"];
  */
 export const RESUME_FONTS = [
   { id: "merriweather", label: "Merriweather", kind: "Serif", stack: "var(--font-serif), Georgia, 'Times New Roman', serif", docx: "Georgia" },
-  { id: "georgia", label: "Georgia", kind: "Serif", stack: "Georgia, 'Times New Roman', serif", docx: "Georgia" },
-  { id: "times", label: "Times", kind: "Serif", stack: "'Times New Roman', Times, serif", docx: "Times New Roman" },
+  { id: "georgia", label: "Gelasio", kind: "Serif", stack: "var(--font-gelasio), Georgia, 'Times New Roman', serif", docx: "Georgia" },
+  { id: "times", label: "Tinos", kind: "Serif", stack: "var(--font-tinos), 'Times New Roman', Times, serif", docx: "Times New Roman" },
   { id: "inter", label: "Inter", kind: "Sans", stack: "var(--font-sans), Arial, sans-serif", docx: "Calibri" },
-  { id: "arial", label: "Arial", kind: "Sans", stack: "Arial, Helvetica, sans-serif", docx: "Arial" },
-  { id: "calibri", label: "Calibri", kind: "Sans", stack: "Calibri, 'Segoe UI', Arial, sans-serif", docx: "Calibri" },
+  { id: "arial", label: "Arimo", kind: "Sans", stack: "var(--font-arimo), Arial, Helvetica, sans-serif", docx: "Arial" },
+  { id: "calibri", label: "Carlito", kind: "Sans", stack: "var(--font-carlito), Calibri, 'Segoe UI', Arial, sans-serif", docx: "Calibri" },
 ] as const;
 
 export type ResumeFontId = (typeof RESUME_FONTS)[number]["id"];
@@ -213,7 +213,7 @@ export const resumeSchema = z.object({
 export type ResumeState = z.infer<typeof resumeSchema>;
 
 export type ResumeCheck = {
-  id: "length" | "contact" | "bullets" | "entry-length" | "evidence" | "summary" | "density";
+  id: "length" | "contact" | "bullets" | "evidence" | "summary";
   label: string;
   ok: boolean;
   /** A useful prompt that should never hold up a confident export. */
@@ -222,12 +222,6 @@ export type ResumeCheck = {
   guidance: string;
   actionLabel: string;
   targetId: string;
-};
-
-/** A preview entry that is taller than one printable content area. */
-export type OversizedResumeEntry = {
-  section: string;
-  index: number;
 };
 
 type ContactField = "name" | "email" | "phone" | "location" | "website";
@@ -662,7 +656,6 @@ function evidenceBullets(state: ResumeState) {
 export function buildResumeChecks(
   state: ResumeState,
   pageCount: number,
-  oversizedEntry: OversizedResumeEntry | null = null,
 ): ResumeCheck[] {
   const contactIssues = contactFieldIssues(state);
   const missingContact = contactIssues.filter((issue) => issue.detail.startsWith("Missing"));
@@ -688,17 +681,11 @@ export function buildResumeChecks(
   const firstLongBulletEntry = detailedEntries.find(({ details }) =>
     bulletsFrom(details).some((bullet) => wordCount(bullet) > 28),
   );
-  const longestDetailedEntry = detailedEntries.reduce<(typeof detailedEntries)[number] | null>(
-    (longest, candidate) =>
-      wordCount(candidate.details) > wordCount(longest?.details ?? "") ? candidate : longest,
-    null,
-  );
   const evidence = evidenceBullets(state);
   const measuredEvidence = evidence.filter(({ bullet }) => hasMeasuredEvidence(bullet));
   const evidenceIsBalanced = !evidence.length || measuredEvidence.length / evidence.length >= 0.5;
   const firstUnmeasuredEvidence = evidence.find(({ bullet }) => !hasMeasuredEvidence(bullet));
   const summaryWords = wordCount(state.summary);
-  const totalWords = wordCount(resumePlainText(state));
   const firstBulletTarget =
     visibleSectionOrder(state)
       .filter((section) => section !== "skills")
@@ -711,13 +698,6 @@ export function buildResumeChecks(
   const longBulletTargetId = firstLongBulletEntry
     ? `field-${firstLongBulletEntry.section}-${firstLongBulletEntry.index}-details`
     : firstBulletTargetId;
-  const crowdedContentTargetId = longestDetailedEntry
-    ? `field-${longestDetailedEntry.section}-${longestDetailedEntry.index}-details`
-    : firstBulletTargetId;
-  const oversizedEntryLabel = oversizedEntry
-    ? `${getSectionTitle(state, oversizedEntry.section).trim() || "Untitled section"} entry ${oversizedEntry.index + 1}`
-    : "";
-
   return [
     {
       id: "length",
@@ -764,19 +744,6 @@ export function buildResumeChecks(
       targetId: longBullets.length ? longBulletTargetId : firstBulletTargetId,
     },
     {
-      id: "entry-length",
-      label: "Entry length",
-      ok: !oversizedEntry,
-      detail: oversizedEntry
-        ? `${oversizedEntryLabel} exceeds one printable page`
-        : "Each entry fits on one printable page",
-      guidance: "Split this role into a second entry or trim lower-impact bullets so a recruiter can scan the role without losing its heading on a later page.",
-      actionLabel: "Shorten entry",
-      targetId: oversizedEntry
-        ? `field-${oversizedEntry.section}-${oversizedEntry.index}-details`
-        : firstBulletTargetId,
-    },
-    {
       id: "evidence",
       label: "Evidence",
       ok: evidenceIsBalanced,
@@ -808,25 +775,6 @@ export function buildResumeChecks(
         : "A tight summary frames your fit before the reader reaches the details.",
       actionLabel: summaryWords === 0 ? "Add optional summary" : "Shorten summary",
       targetId: "field-summary",
-    },
-    {
-      id: "density",
-      label: "Content amount",
-      ok: totalWords >= 90 && totalWords <= 650,
-      detail:
-        totalWords < 90
-          ? `${totalWords} words feels sparse`
-          : totalWords > 650
-            ? `${totalWords} words may feel crowded`
-            : `${totalWords} words balanced`,
-      guidance:
-        totalWords < 90
-          ? "A little more proof helps the resume feel credible instead of like a placeholder."
-          : totalWords > 650
-            ? "Trim lower-impact details so the page does not look crowded before anyone reads it."
-            : "Balanced substance gives the reader enough proof without crowding the page.",
-      actionLabel: totalWords < 90 ? "Add proof" : "Trim longest section",
-      targetId: totalWords > 650 ? crowdedContentTargetId : firstBulletTargetId,
     },
   ];
 }

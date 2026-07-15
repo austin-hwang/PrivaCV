@@ -73,7 +73,9 @@ async function openResumeReview(page: Page) {
   await tools.getByRole("button", { name: /resume review/i }).click();
   const summary = page.getByRole("dialog", { name: /^resume review$/i });
   await expect(summary).toBeVisible();
-  await expect(summary.locator("[data-resume-check]")).toHaveCount(7);
+  await expect(summary.locator("[data-resume-check]")).toHaveCount(5);
+  await expect(summary.getByText("Content amount", { exact: true })).toHaveCount(0);
+  await expect(summary.getByText("Entry length", { exact: true })).toHaveCount(0);
   await summary.getByRole("button", { name: /start walkthrough/i }).click();
   const tour = page.getByRole("dialog", { name: /guided review/i });
   await expect(tour).toBeVisible();
@@ -319,13 +321,13 @@ test("starts a fresh resume from the onboarding without hiding the editor", asyn
   await page.getByRole("menuitem", { name: /compact/i }).hover();
   await expect(preview).toHaveClass(/resume-template-compact/);
   await expect(preview).toHaveAttribute("data-density", "compact");
-  await expect(preview).toHaveCSS("font-family", /Calibri/);
+  await expect(preview).toHaveCSS("font-family", /Carlito/);
   await page.getByRole("menuitem", { name: /executive/i }).hover();
   await expect(preview).toHaveClass(/resume-template-executive/);
   await expect(preview.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
   await page.getByRole("menuitem", { name: /technical/i }).hover();
   await expect(preview).toHaveClass(/resume-template-technical/);
-  await expect(preview).toHaveCSS("font-family", /Arial/);
+  await expect(preview).toHaveCSS("font-family", /Arimo/);
   await page.getByRole("menuitem", { name: /classic/i }).click();
   await expect(page.locator("#field-name")).toBeFocused();
   await expect(page.getByText("Start fresh")).toBeHidden();
@@ -376,7 +378,7 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await page.getByRole("button", { name: "Burgundy" }).click();
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
   await page.getByLabel("Resume font").selectOption("georgia");
-  await expect(sheet).toHaveCSS("font-family", /Georgia/);
+  await expect(sheet).toHaveCSS("font-family", /Gelasio/);
 
   // Header, headings, and density sit under the panel's Advanced disclosure.
   await page.getByRole("button", { name: /^Advanced/ }).click();
@@ -391,7 +393,7 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await expect(sheet).toHaveAttribute("data-heading", "plain");
   await expect(sheet).toHaveAttribute("data-density", "compact");
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
-  await expect(sheet).toHaveCSS("font-family", /Georgia/);
+  await expect(sheet).toHaveCSS("font-family", /Gelasio/);
 
   // Choosing a sample replaces the draft content but should not quietly reset
   // the visual design the person is currently evaluating.
@@ -400,7 +402,40 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await expect(sheet).toHaveAttribute("data-heading", "plain");
   await expect(sheet).toHaveAttribute("data-density", "compact");
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
-  await expect(sheet).toHaveCSS("font-family", /Georgia/);
+  await expect(sheet).toHaveCSS("font-family", /Gelasio/);
+});
+
+test("self-hosts every selectable resume font without device fallbacks", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openDesign(page);
+
+  const sheet = page.locator(".resume-sheet");
+  const expectedFonts = [
+    ["merriweather", "Merriweather"],
+    ["georgia", "Gelasio"],
+    ["times", "Tinos"],
+    ["inter", "Inter"],
+    ["arial", "Arimo"],
+    ["calibri", "Carlito"],
+  ] as const;
+  const resolvedFamilies: string[] = [];
+
+  for (const [fontId, familyName] of expectedFonts) {
+    await page.getByLabel("Resume font").selectOption(fontId);
+    await expect(sheet).toHaveCSS("font-family", new RegExp(familyName));
+    const font = await sheet.evaluate(async (element) => {
+      const family = getComputedStyle(element).fontFamily.split(",")[0];
+      await document.fonts.load(`16px ${family}`, "Resume font consistency");
+      return { family, loaded: document.fonts.check(`16px ${family}`) };
+    });
+    expect(font.loaded).toBe(true);
+    resolvedFamilies.push(font.family);
+  }
+
+  expect(new Set(resolvedFamilies).size).toBe(expectedFonts.length);
 });
 
 test("keeps desktop section navigation flush with the app header", async ({ page }) => {
@@ -2111,7 +2146,25 @@ test("guides users to add measurable evidence without requiring every bullet to 
   const review = await openResumeReview(page);
   await advanceReviewTo(review, /Not every bullet needs a number, but measurable scope or results/);
   await review.getByRole("button", { name: /strengthen a bullet/i }).click();
+  await expect(review).toBeHidden();
   await expect(page.locator("#field-experience-0-details")).toBeFocused();
+});
+
+test("exits resume review and focuses the entry that needs a shorter bullet", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const details = page.locator("#field-experience-0-details");
+  await details.fill(Array.from({ length: 31 }, (_, index) => `word${index}`).join(" "));
+
+  const review = await openResumeReview(page);
+  await advanceReviewTo(review, /Short bullets are easier to skim/);
+  await review.getByRole("button", { name: /tighten bullets/i }).click();
+
+  await expect(review).toBeHidden();
+  await expect(details).toBeFocused();
 });
 
 test("keeps mobile editing focused while keeping utilities in the tools drawer", async ({ browser }) => {

@@ -1326,7 +1326,7 @@ describe("resume helpers", () => {
     const state = sampleState();
     const checks = buildResumeChecks(state, 1);
 
-    expect(checks).toHaveLength(7);
+    expect(checks).toHaveLength(5);
     expect(checks.every((check) => check.ok)).toBe(true);
   });
 
@@ -1343,18 +1343,6 @@ describe("resume helpers", () => {
     expect(threePageLength).toMatchObject({
       ok: false,
       detail: "3 pages in preview",
-    });
-  });
-
-  it("points to the one entry that cannot fit within a printable page", () => {
-    const oversized = buildResumeChecks(sampleState(), 2, { section: "experience", index: 0 })
-      .find((check) => check.id === "entry-length");
-
-    expect(oversized).toMatchObject({
-      ok: false,
-      detail: "Experience entry 1 exceeds one printable page",
-      actionLabel: "Shorten entry",
-      targetId: "field-experience-0-details",
     });
   });
 
@@ -1464,39 +1452,6 @@ describe("resume helpers", () => {
       ok: false,
       detail: "Invalid website",
       targetId: "field-website",
-    });
-  });
-
-  it("explains sparse resumes with actionable density guidance", () => {
-    const checks = buildResumeChecks({ ...emptyState(), name: "Ada Lovelace", email: "ada@example.com" }, 1);
-    const density = checks.find((check) => check.id === "density");
-
-    expect(density).toMatchObject({
-      label: "Content amount",
-      ok: false,
-      actionLabel: "Add proof",
-      targetId: "field-experience-0-details",
-    });
-    expect(density?.guidance).toContain("proof");
-  });
-
-  it("points crowded-content guidance at the longest section", () => {
-    const state = sampleState();
-    state.experience = [
-      { ...state.experience[0], details: "Shipped a reliable service." },
-      {
-        title: "Engineer",
-        subtitle: "Analytical Engines",
-        meta: "2020–2022",
-        details: "detail ".repeat(700),
-      },
-    ];
-
-    expect(buildResumeChecks(state, 2).find((check) => check.id === "density")).toMatchObject({
-      label: "Content amount",
-      ok: false,
-      actionLabel: "Trim longest section",
-      targetId: "field-experience-1-details",
     });
   });
 
