@@ -2211,6 +2211,35 @@ test("keeps the resume sheet to true Letter dimensions on screen and in print", 
   expect(printDimensions.paddingBottom).toBe("0px");
 });
 
+test("never includes an open Design panel in the exported PDF", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openDesign(page);
+
+  const designPanel = page.locator("#design-panel");
+  await expect(designPanel).toBeVisible();
+
+  await page.emulateMedia({ media: "print" });
+  await expect(designPanel).toBeHidden();
+  const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdf) }).promise;
+  const pageText = await Promise.all(
+    Array.from({ length: doc.numPages }, async (_, index) => {
+      const content = await (await doc.getPage(index + 1)).getTextContent();
+      return content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
+    }),
+  );
+  const exportedText = pageText.join(" ");
+
+  expect(exportedText).toContain("John Doe");
+  expect(exportedText).not.toMatch(/\bACCENT COLOR\b/i);
+  expect(exportedText).not.toMatch(/\bPRESET\b/);
+  expect(exportedText).not.toMatch(/header,\s*density,\s*headings,\s*bullets,\s*divider/i);
+});
+
 test("shows page boundaries in the preview without printing those guides", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

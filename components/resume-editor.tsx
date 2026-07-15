@@ -1826,7 +1826,7 @@ export function ResumeEditor() {
               </div>
             </div>
             {workspaceHasStarted && designOpen ? (
-              <div id="design-panel" className="w-full rounded-lg border bg-card p-4 shadow-sm">
+              <div id="design-panel" data-print-exclude="" className="w-full rounded-lg border bg-card p-4 shadow-sm">
                 {designControls}
               </div>
             ) : null}

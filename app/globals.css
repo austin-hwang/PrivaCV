@@ -575,7 +575,8 @@ html[data-resume-workspace="active"] .public-explainer {
 
 @media print {
   .app-chrome,
-  .editor-pane {
+  .editor-pane,
+  [data-print-exclude] {
     display: none !important;
   }
 
