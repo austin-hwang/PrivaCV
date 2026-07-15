@@ -275,7 +275,7 @@ function EmptyResumePreview() {
   return (
     <div aria-label="Empty resume preview">
       <p className="mb-2 font-sans text-[0.78em] font-bold uppercase tracking-[1px] text-[#666]">Clean one-page structure</p>
-      <h1 className="resume-name">Your Name</h1>
+      <p className="resume-name" aria-hidden="true">Your Name</p>
       <div className="resume-contact">
         <span className="resume-contact-item"><Mail aria-hidden="true" />email@example.com</span>
         <span className="resume-contact-item"><Phone aria-hidden="true" />(555) 123-4567</span>

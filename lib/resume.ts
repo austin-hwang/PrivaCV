@@ -1104,6 +1104,98 @@ export function resumePlainText(state: ResumeState) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function entryMarkdown(entry: ResumeEntry): string {
+  const blocks: string[] = [];
+  const title = cleanTextLine(entry.title);
+  const subtitle = cleanTextLine(entry.subtitle);
+  const meta = cleanTextLine(entry.meta);
+  if (title) blocks.push(`### ${title}`);
+  const metaLine = [subtitle, meta].filter(Boolean).join(" · ");
+  if (metaLine) blocks.push(`*${metaLine}*`);
+  if (entry.detailsFormat === "paragraph") {
+    const paragraphs = paragraphsFrom(entry.details);
+    if (paragraphs.length) blocks.push(paragraphs.join("\n\n"));
+  } else {
+    const bullets = includedBulletsFrom(entry).map((bullet) => `- ${cleanTextLine(bullet)}`);
+    if (bullets.length) blocks.push(bullets.join("\n"));
+  }
+  return blocks.join("\n\n");
+}
+
+function sectionMarkdown(state: ResumeState, section: string): string {
+  const format = getSectionFormat(state, section);
+  const title = getSectionTitle(state, section).trim();
+  const heading = title ? `## ${title}` : "";
+  const blocks: string[] = [];
+
+  if (format === "tag-groups") {
+    const lines = getSectionTagGroups(state, section)
+      .map((group) => {
+        const label = cleanTextLine(group.label);
+        const tags = group.tags.map(cleanTextLine).filter(Boolean).join(", ");
+        if (!tags) return "";
+        return label ? `**${label}:** ${tags}` : tags;
+      })
+      .filter(Boolean);
+    if (lines.length) blocks.push(lines.join("\n\n"));
+  } else if (format === "bullets" || format === "labeled-rows") {
+    const source = format === "bullets"
+      ? bulletsFrom(getSectionText(state, section))
+      : getSectionText(state, section).split("\n").map(cleanTextLine).filter(Boolean);
+    const lines = source.map((line) => `- ${cleanTextLine(line)}`);
+    if (lines.length) blocks.push(lines.join("\n"));
+  } else if (format === "paragraphs") {
+    const paragraphs = paragraphsFrom(getSectionText(state, section));
+    if (paragraphs.length) blocks.push(paragraphs.join("\n\n"));
+  } else {
+    const entries = getSectionEntries(state, section).filter(entryHasContent).map(entryMarkdown).filter(Boolean);
+    if (entries.length) blocks.push(entries.join("\n\n"));
+  }
+
+  if (!blocks.length) return "";
+  return [heading, ...blocks].filter(Boolean).join("\n\n");
+}
+
+/**
+ * Serializes the resume to portable Markdown. Like {@link resumePlainText} this
+ * follows the visible section order and every section format, but keeps headings,
+ * links, and bullets as Markdown for pasting into docs, git, or an LLM. It is a
+ * lossy view (theme, template, and layout live only in the JSON), so it is an
+ * export, not the save format.
+ */
+export function resumeMarkdown(state: ResumeState) {
+  if (!hasAnyContent(state)) return "";
+
+  const blocks: string[] = [];
+  const name = cleanTextLine(state.name);
+  if (name) blocks.push(`# ${name}`);
+  const title = cleanTextLine(state.title);
+  if (title) blocks.push(title);
+
+  const contactBits = [state.email, state.phone, state.location].map(cleanTextLine).filter(Boolean);
+  const linkBits = resumeHeaderLinks(state)
+    .map((link) => {
+      const url = cleanTextLine(link.url);
+      if (!url) return "";
+      return `[${cleanTextLine(link.label) || url}](${url})`;
+    })
+    .filter(Boolean);
+  const contact = [...contactBits, ...linkBits].join(" · ");
+  if (contact) blocks.push(contact);
+
+  if (cleanTextLine(state.summary)) {
+    blocks.push("## Summary");
+    blocks.push(paragraphsFrom(state.summary).join("\n\n") || cleanTextLine(state.summary));
+  }
+
+  visibleSectionOrder(state).forEach((section) => {
+    const md = sectionMarkdown(state, section);
+    if (md) blocks.push(md);
+  });
+
+  return `${blocks.join("\n\n").replace(/\n{3,}/g, "\n\n").trim()}\n`;
+}
+
 function applicationCopyValue(value: string) {
   return value.trim();
 }

@@ -19,6 +19,7 @@ import {
   tagGroupsToText,
   normalizeResume,
   resumeExportFingerprint,
+  resumeMarkdown,
   resumePlainText,
   sampleState,
   SECTION_LABELS,
@@ -71,6 +72,11 @@ function downloadJsonFile(data: unknown, filename: string) {
 
 function downloadTextFile(text: string, filename: string) {
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  downloadFile(blob, filename);
+}
+
+function downloadMarkdownFile(text: string, filename: string) {
+  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
   downloadFile(blob, filename);
 }
 
@@ -1560,6 +1566,13 @@ export function useResumeEditor() {
     flash("Saved JSON to downloads");
   };
 
+  const saveMarkdown = () => {
+    if (!hasAnyContent(state)) return;
+    downloadMarkdownFile(resumeMarkdown(state), `${safeResumeFilename(state.name || "resume")}.md`);
+    trackResumeExport("md");
+    flash("Saved Markdown to downloads");
+  };
+
   const saveVersionHistoryBackup = () => {
     if (!versionHistory.length) {
       flash("Save a checkpoint first");
@@ -1903,6 +1916,7 @@ export function useResumeEditor() {
     restoreVersion,
     resumeRef,
     saveJson,
+    saveMarkdown,
     saveVersion,
     saveVersionHistoryBackup,
     setDeletedVersion,

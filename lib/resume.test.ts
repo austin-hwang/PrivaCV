@@ -25,6 +25,7 @@ import {
   normalizeResume,
   normalizeTagGroups,
   resumeExportFingerprint,
+  resumeMarkdown,
   resumePlainText,
   resolveHeaderLinkIcon,
   sampleState,
@@ -147,6 +148,43 @@ describe("resume helpers", () => {
     const document = strFromU8(unzipSync(resumeDocx(state))["word/document.xml"]);
     expect(document).toContain("AWS Certified Developer");
     expect(document).toContain("Certified Kubernetes Administrator");
+  });
+
+  it("exports Markdown that follows section order, formats, and hidden sections", () => {
+    const state = normalizeResume({
+      name: "Ada Lovelace",
+      title: "Software Engineer",
+      email: "ada@example.com",
+      headerLinks: [{ label: "GitHub", url: "https://github.com/ada" }],
+      summary: "Systems engineer.",
+      sectionOrder: ["experience", "custom-skills", "education"],
+      experience: [{
+        title: "Senior Engineer",
+        subtitle: "Acme",
+        meta: "2022 - Present",
+        details: "Shipped the billing rewrite\nCut latency by 40%",
+      }],
+      customSections: [{ id: "custom-skills", title: "Skills", entries: [] }],
+      sectionFormats: { "custom-skills": "tag-groups" },
+      sectionTagGroups: { "custom-skills": [{ id: "g1", label: "Languages", tags: ["TypeScript", "Rust"] }] },
+      hiddenSections: ["education"],
+    });
+
+    const md = resumeMarkdown(state);
+
+    expect(md).toContain("# Ada Lovelace");
+    expect(md).toContain("[GitHub](https://github.com/ada)");
+    expect(md).toContain("### Senior Engineer");
+    expect(md).toContain("*Acme · 2022 - Present*");
+    expect(md).toContain("- Shipped the billing rewrite");
+    expect(md).toContain("**Languages:** TypeScript, Rust");
+    // Experience is ordered before Skills, and the hidden Education section is omitted.
+    expect(md.indexOf("Senior Engineer")).toBeLessThan(md.indexOf("Languages"));
+    expect(md).not.toContain("Education");
+  });
+
+  it("returns empty Markdown for a resume with no content", () => {
+    expect(resumeMarkdown(emptyState())).toBe("");
   });
 
   it("lets an entry use paragraph details without treating the text as bullets", () => {

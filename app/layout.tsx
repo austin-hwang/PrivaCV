@@ -59,7 +59,7 @@ const carlito = Carlito({
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: {
-    default: "PrivaCV — Private, ATS-Friendly Resume Editor",
+    default: "PrivaCV: Private, ATS-Friendly Resume Editor",
     template: "%s | PrivaCV",
   },
   description: SITE_DESCRIPTION,
@@ -70,14 +70,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    title: "PrivaCV — Private, ATS-Friendly Resume Editor",
+    title: "PrivaCV: Private, ATS-Friendly Resume Editor",
     description: SITE_DESCRIPTION,
     url: SITE_URL?.toString(),
-    images: SITE_URL ? [{ url: "/api/og", width: 1200, height: 630, alt: "PrivaCV — private, ATS-friendly resume editor" }] : undefined,
+    images: SITE_URL ? [{ url: "/api/og", width: 1200, height: 630, alt: "PrivaCV, a private, ATS-friendly resume editor"}] : undefined,
   },
   twitter: {
-    card: "summary",
-    title: "PrivaCV — Private, ATS-Friendly Resume Editor",
+    card: "summary_large_image",
+    title: "PrivaCV: Private, ATS-Friendly Resume Editor",
     description: SITE_DESCRIPTION,
     images: SITE_URL ? ["/api/og"] : undefined,
   },

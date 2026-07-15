@@ -1,5 +1,5 @@
 export const EXPORT_METRIC_PATH = "/api/metrics/export";
-export const EXPORT_FORMATS = ["pdf", "docx", "txt", "copy", "json"] as const;
+export const EXPORT_FORMATS = ["pdf", "docx", "txt", "copy", "json", "md"] as const;
 
 export type ResumeExportFormat = (typeof EXPORT_FORMATS)[number];
 

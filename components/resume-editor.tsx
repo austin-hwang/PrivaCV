@@ -23,6 +23,7 @@ import {
   Dribbble,
   Eye,
   EyeOff,
+  FileCode,
   FileJson,
   FileText,
   Figma,
@@ -437,6 +438,7 @@ export function ResumeEditor() {
     restoreRecoveryPoint,
     resumeRef,
     saveJson,
+    saveMarkdown,
     requestDocxExport,
     setTextReviewOpen,
     setApplicationCopyOpen,
@@ -1058,7 +1060,7 @@ export function ResumeEditor() {
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <BrandMark className="size-8" />
-            <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</h1>
+            <span className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</span>
             <Badge
               variant="secondary"
               className="shrink-0 rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-[0.1em]"
@@ -1142,11 +1144,14 @@ export function ResumeEditor() {
                 <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
                   <FileText /> Export Word (.docx)
                 </MenuItem>
-                <MenuItem onSelect={() => setTextReviewOpen(true)} disabled={!hasContent}>
-                  <ClipboardCopy /> Copy resume text
+                <MenuItem onSelect={saveMarkdown} disabled={!hasContent}>
+                  <FileCode /> Export Markdown (.md)
                 </MenuItem>
                 <MenuItem onSelect={saveJson}>
                   <FileJson /> Export JSON
+                </MenuItem>
+                <MenuItem onSelect={() => setTextReviewOpen(true)} disabled={!hasContent}>
+                  <ClipboardCopy /> Copy resume text
                 </MenuItem>
               </MenuContent>
             </Menu>

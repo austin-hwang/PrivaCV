@@ -3,13 +3,23 @@ import { absoluteUrl } from "@/lib/site";
 
 /** Public pages use privacv.app by default and can be overridden for previews. */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const home = absoluteUrl("/");
-  const about = absoluteUrl("/about");
-  const privacy = absoluteUrl("/privacy");
+  const landerPaths = [
+    "/free-resume-builder",
+    "/ats-resume-checker",
+    "/resume-templates",
+    "/pdf-to-docx-resume",
+    "/plain-text-resume",
+  ];
 
   return [
-    { url: home, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
-    { url: about, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
-    { url: privacy, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: absoluteUrl("/"), lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
+    ...landerPaths.map((path) => ({
+      url: absoluteUrl(path),
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+    { url: absoluteUrl("/about"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: absoluteUrl("/privacy"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
   ];
 }
