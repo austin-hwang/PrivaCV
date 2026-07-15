@@ -1,12 +1,11 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
 
-/** Public pages become discoverable in search after NEXT_PUBLIC_SITE_URL is set. */
+/** Public pages use privacv.app by default and can be overridden for previews. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const home = absoluteUrl("/");
   const about = absoluteUrl("/about");
   const privacy = absoluteUrl("/privacy");
-  if (!home || !about || !privacy) return [];
 
   return [
     { url: home, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },

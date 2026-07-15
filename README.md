@@ -64,13 +64,13 @@ The project is configured for Cloudflare via OpenNext.
 pnpm deploy
 ```
 
-Before a production build, set `NEXT_PUBLIC_SITE_URL` to the final HTTPS origin. This enables canonical URLs, the sitemap, and absolute social-preview URLs.
+Production builds default to the official `https://privacv.app` origin for canonical URLs, the sitemap, and absolute social-preview URLs. Override `NEXT_PUBLIC_SITE_URL` only when a staging or preview build needs its own canonical origin.
 
 ```sh
-NEXT_PUBLIC_SITE_URL=https://your-domain.example
+NEXT_PUBLIC_SITE_URL=https://privacv.app
 ```
 
-Use [.env.example](.env.example) as the starting point. Do not use the example domain in production.
+Use [.env.example](.env.example) as the starting point.
 
 ### Anonymous product metrics
 

@@ -2,6 +2,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": "custom-worker.ts",
   "name": "resume-editor",
+  "routes": [
+    {
+      "pattern": "privacv.app",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-07-09",
   "compatibility_flags": [
     "nodejs_compat"

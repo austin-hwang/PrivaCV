@@ -242,6 +242,8 @@ test("presents credible browser metadata and public launch assets", async ({ pag
     "content",
     "PrivaCV — Private, ATS-Friendly Resume Editor",
   );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://privacv.app");
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", "https://privacv.app");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest\.webmanifest$/);
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg(?:\?.*)?$/);
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("type", "image/png");
@@ -249,16 +251,19 @@ test("presents credible browser metadata and public launch assets", async ({ pag
   const appleIconHref = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
   expect(appleIconHref).toBeTruthy();
 
-  const [manifest, robots, icon, appleIcon] = await Promise.all([
+  const [manifest, robots, sitemap, icon, appleIcon] = await Promise.all([
     request.get("/manifest.webmanifest"),
     request.get("/robots.txt"),
+    request.get("/sitemap.xml"),
     request.get("/icon.svg"),
     request.get(appleIconHref!),
   ]);
   expect(manifest.ok()).toBeTruthy();
   expect(await manifest.json()).toMatchObject({ short_name: "PrivaCV", display: "standalone" });
   expect(robots.ok()).toBeTruthy();
-  expect(await robots.text()).toContain("User-Agent: *");
+  expect(await robots.text()).toContain("Sitemap: https://privacv.app/sitemap.xml");
+  expect(sitemap.ok()).toBeTruthy();
+  expect(await sitemap.text()).toContain("<loc>https://privacv.app/</loc>");
   expect(icon.ok()).toBeTruthy();
   expect(icon.headers()["content-type"]).toContain("image/svg+xml");
   expect(appleIcon.ok()).toBeTruthy();
