@@ -1241,6 +1241,55 @@ test("resizes the editor and preview with the middle divider", async ({ page }) 
   expect(after!.width).toBeGreaterThan(before!.width);
 });
 
+test("adapts editor cards when the divider narrows the pane", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: "Clear resume" }).click();
+  const clearDialog = page.getByRole("dialog", { name: /clear this resume/i });
+  await clearDialog.getByRole("button", { name: /clear resume/i }).click();
+
+  const editorPane = page.locator("#resume-editor-pane");
+  const startPaths = page.locator("[data-start-primary-paths]");
+  const recoveryHeader = page.locator("[data-recovery-header]");
+  const columnCount = () => startPaths.evaluate((element) => (
+    getComputedStyle(element).gridTemplateColumns.split(" ").length
+  ));
+
+  await expect.poll(columnCount).toBe(2);
+
+  const divider = page.getByRole("separator", { name: /resize editor and preview/i });
+  await divider.focus();
+  for (let step = 0; step < 10; step += 1) await page.keyboard.press("ArrowLeft");
+
+  await expect.poll(columnCount).toBe(1);
+  await expect(recoveryHeader).toHaveCSS("flex-direction", "column");
+  await expect.poll(() => editorPane.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+});
+
+test("keeps preview scaling stable at the vertical scrollbar threshold", async ({ page }) => {
+  await page.setViewportSize({ width: 1240, height: 885 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const widths = await page.locator(".resume-sheet").evaluate(async (sheet) => {
+    const samples: number[] = [];
+    for (let frame = 0; frame < 30; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      samples.push(sheet.getBoundingClientRect().width);
+    }
+    return samples;
+  });
+
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
+});
+
 test("expands a collapsed section when a jump targets a field inside it", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

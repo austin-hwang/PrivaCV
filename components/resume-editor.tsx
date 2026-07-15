@@ -1122,7 +1122,7 @@ export function ResumeEditor() {
             <Alert className="mb-6 border-warning/40 bg-warning/10">
               <AlertCircle className="h-4 w-4 text-warning" />
               <AlertTitle>Browser autosave is unavailable</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <AlertDescription className="editor-pane-row-center flex gap-3">
                 <span>Your edits remain open here, but may not survive a refresh. Save a JSON copy before closing this tab.</span>
                 <Button type="button" variant="outline" size="sm" className="w-fit border-warning/50 bg-background" onClick={saveJson}>
                   <Download /> Save JSON copy
@@ -1154,14 +1154,14 @@ export function ResumeEditor() {
 
           {recoveryPoint ? (
             <Card className="mb-6 border-brand/30 bg-brand/10">
-              <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+              <CardHeader data-recovery-header className="editor-pane-row flex gap-3 space-y-0">
                 <div>
                   <CardTitle className="text-base">Previous resume available</CardTitle>
                   <CardDescription>
                     {recoveryPoint.label}. Stays until you restore or dismiss it.
                   </CardDescription>
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className="editor-pane-actions flex shrink-0 gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={restoreRecoveryPoint}>
                     <Undo2 /> Restore previous
                   </Button>
@@ -1176,7 +1176,7 @@ export function ResumeEditor() {
           {importReview ? (
             <Card id="import-review-panel" className="mb-6 border-warning/30 bg-warning/10">
               <CardHeader className="space-y-2">
-                <div className="flex items-start justify-between gap-3">
+                <div className="editor-pane-row flex gap-3">
                   <div>
                     <CardTitle className="text-base">Review the imported fields</CardTitle>
                     <CardDescription>
@@ -1282,7 +1282,7 @@ export function ResumeEditor() {
                   spellCheck
                   onChange={(value) => updateField("title", value)}
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="editor-pane-grid grid gap-3">
                   <TextField
                     id="field-email"
                     label="Email"
@@ -1453,7 +1453,7 @@ export function ResumeEditor() {
                       />
                       {sectionCount > 0 ? (
                         <span
-                          className="hidden shrink-0 tabular-nums text-xs text-muted-foreground sm:inline"
+                          className="editor-pane-wide shrink-0 tabular-nums text-xs text-muted-foreground"
                           title={`${sectionCount} ${sectionCount === 1 ? "item" : "items"}`}
                         >
                           ({sectionCount})
@@ -1477,7 +1477,7 @@ export function ResumeEditor() {
                             window.setTimeout(() => document.getElementById(`tag-group-${groupId}-label`)?.focus(), 0);
                           }}
                         >
-                          <Plus /> <span className="hidden sm:inline">Add group</span>
+                          <Plus /> <span className="editor-pane-wide">Add group</span>
                         </Button>
                       ) : sectionFormat === "entries" ? (
                         <Button
@@ -1491,7 +1491,7 @@ export function ResumeEditor() {
                             addEntry(section);
                           }}
                         >
-                          <Plus /> <span className="hidden sm:inline">Add</span>
+                          <Plus /> <span className="editor-pane-wide">Add</span>
                         </Button>
                       ) : null}
                       <Button

@@ -37,7 +37,7 @@ export function StartPanel({
   return (
     <Card className="mb-6">
       <CardContent className="space-y-4 pt-6">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-start-primary-paths className="editor-pane-grid grid gap-3">
           {/* Path 1 — bring an existing resume in and review it. */}
           <div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
             <div>
@@ -50,14 +50,14 @@ export function StartPanel({
               <Button
                 type="button"
                 aria-label="Import a file"
-                className="justify-start"
+                className="h-auto min-h-9 w-full justify-start whitespace-normal text-left"
                 onClick={onImportFile}
                 disabled={isImporting}
               >
-                <Upload /> {isImporting ? "Importing…" : "Import a file (PDF or Word)"}
+                <Upload /> <span className="min-w-0">{isImporting ? "Importing…" : "Import a file (PDF or Word)"}</span>
               </Button>
-              <Button type="button" variant="outline" className="justify-start" onClick={onImportText}>
-                <ClipboardPaste /> Paste resume text
+              <Button type="button" variant="outline" className="h-auto min-h-9 w-full justify-start whitespace-normal text-left" onClick={onImportText}>
+                <ClipboardPaste /> <span className="min-w-0">Paste resume text</span>
               </Button>
             </div>
           </div>
@@ -72,8 +72,8 @@ export function StartPanel({
             </div>
             <Menu className="mt-auto" onOpenChange={(open) => { if (!open) onPreviewBlank(null); }}>
               <MenuTrigger>
-                <Button type="button" variant="secondary" className="w-full justify-start border border-input">
-                  <FileText /> Start a blank resume <ChevronDown className="ml-auto" />
+                <Button type="button" variant="secondary" className="h-auto min-h-9 w-full justify-start border border-input whitespace-normal text-left">
+                  <FileText /> <span className="min-w-0">Start a blank resume</span> <ChevronDown className="ml-auto shrink-0" />
                 </Button>
               </MenuTrigger>
               <MenuContent align="start" className="w-full min-w-64">
@@ -109,8 +109,10 @@ export function StartPanel({
             className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", moreOpen && "rotate-90")} />
-            More options
-            <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, backup</span>
+            <span className="editor-pane-more-copy">
+              <span>More options</span>
+              <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, backup</span>
+            </span>
           </button>
 
           {moreOpen ? (

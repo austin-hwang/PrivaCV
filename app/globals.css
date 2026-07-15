@@ -101,6 +101,74 @@
   animation: sheet-fade-in 160ms ease-out;
 }
 
+/* The editor can be resized independently of the browser window. Viewport
+   breakpoints cannot describe that state, so pane-owned layouts respond to
+   the editor's actual inline size instead. */
+.editor-pane {
+  container-name: resume-editor;
+  container-type: inline-size;
+}
+
+.editor-pane-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.editor-pane-row,
+.editor-pane-row-center {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.editor-pane-actions {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.editor-pane-wide {
+  display: none;
+}
+
+.editor-pane-more-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+@container resume-editor (min-width: 32rem) {
+  .editor-pane-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .editor-pane-row {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .editor-pane-row-center {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .editor-pane-actions {
+    width: auto;
+  }
+
+  .editor-pane-wide {
+    display: inline;
+  }
+
+  .editor-pane-more-copy {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+}
+
 /* The explainer supports public discovery before a resume exists. The active
    editor is a fixed-height workspace, so remove that document-flow content
    after a person starts editing. */
@@ -251,6 +319,16 @@ html[data-resume-workspace="active"] .public-explainer {
 .resume-preview-sheet-frame .resume-sheet {
   transform: scale(var(--resume-preview-scale, 1));
   transform-origin: top left;
+}
+
+/* Near the point where a scaled Letter page just exceeds the preview height,
+   an auto scrollbar can otherwise make the pane narrower, shrink the page,
+   disappear, and repeat. Keep that width reserved on the desktop workspace so
+   preview scaling always measures the same available space. */
+@media (min-width: 64rem) {
+  .preview-pane {
+    scrollbar-gutter: stable;
+  }
 }
 
 .resume-name {
