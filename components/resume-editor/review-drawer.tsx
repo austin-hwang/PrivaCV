@@ -10,7 +10,7 @@ export function ReviewDrawer({
   editor,
   open,
   onOpenChange,
-  onStartChecksReview,
+  onOpenChecksReview,
   onOpenApplicationCopy,
   onOpenLocalAI,
   localAIEnabled,
@@ -22,7 +22,7 @@ export function ReviewDrawer({
   editor: ReturnType<typeof useResumeEditor>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onStartChecksReview: () => void;
+  onOpenChecksReview: () => void;
   onOpenApplicationCopy: () => void;
   onOpenLocalAI: () => void;
   localAIEnabled: boolean;
@@ -48,7 +48,7 @@ export function ReviewDrawer({
           <section aria-label="Tools">
             <div className="grid gap-2">
               {hasContent ? (
-                <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onStartChecksReview}>
+                <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenChecksReview}>
                   <ClipboardCheck className={checksReady ? "text-success" : "text-warning"} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">Resume Review</span>
@@ -113,10 +113,6 @@ export function ReviewDrawer({
             </div>
           </section>
         </div>
-
-        <p className="border-t px-4 py-3 text-xs leading-snug text-muted-foreground">
-          {localAIEnabled ? "Resume checks and Local AI run in this browser." : "Resume checks run in this browser."}
-        </p>
       </SheetContent>
     </Sheet>
   );

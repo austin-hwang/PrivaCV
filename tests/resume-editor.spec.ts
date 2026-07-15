@@ -71,6 +71,10 @@ async function openResumeReview(page: Page) {
   await openTools(page);
   const tools = page.getByRole("dialog", { name: /^tools$/i });
   await tools.getByRole("button", { name: /resume review/i }).click();
+  const summary = page.getByRole("dialog", { name: /^resume review$/i });
+  await expect(summary).toBeVisible();
+  await expect(summary.locator("[data-resume-check]")).toHaveCount(7);
+  await summary.getByRole("button", { name: /start walkthrough/i }).click();
   const tour = page.getByRole("dialog", { name: /guided review/i });
   await expect(tour).toBeVisible();
   return tour;
@@ -974,16 +978,19 @@ test("connects grouped preview lines to their editor groups in view-only mode", 
   const skillsCard = skillsEditor.locator("#review-region-skills");
   const analysisRow = skillsEditor.locator('[data-editor-tag-group]').filter({ hasText: "Analysis" });
   const analysisToggle = skillsEditor.getByRole("button", { name: "Expand Analysis tag group" });
-  const previewGroup = page.locator(".resume-sheet").getByRole("button", { name: "Edit Analysis group in Skills" });
+  const previewGroup = page.locator('.resume-sheet [aria-label="Edit Analysis group in Skills"]');
 
   // Focusing a grouped editor row highlights both that row and its containing section.
   await analysisToggle.click();
   await expect(skillsCard).toHaveClass(/ring-brand/);
   await expect(analysisRow).toHaveClass(/ring-brand/);
   await expect(previewGroup).toHaveClass(/resume-preview-active/);
+  await skillsEditor.getByRole("button", { name: "Collapse Analysis tag group" }).click();
+  await expect(page.getByLabel("Add tag to Analysis")).toBeHidden();
 
   // Every preview group remains its own target in view-only mode. Selecting one
-  // expands Skills, scrolls the editor pane to it, and focuses that exact group.
+  // expands Skills and the nested group, scrolls the editor pane to it, and
+  // focuses that exact group.
   await skillsEditor.getByRole("button", { name: "Collapse Skills" }).click();
   await page.getByRole("button", { name: /editing mode — switch to view only/i }).click();
   const editorPane = page.locator("#resume-editor-pane");
@@ -992,6 +999,7 @@ test("connects grouped preview lines to their editor groups in view-only mode", 
 
   await expect(analysisRow).toBeFocused();
   await expect(skillsEditor.getByRole("button", { name: "Collapse Skills" })).toBeVisible();
+  await expect(page.getByLabel("Add tag to Analysis")).toBeVisible();
   await expect.poll(async () => analysisRow.evaluate((row) => {
     const pane = document.getElementById("resume-editor-pane");
     if (!pane) return false;
@@ -1016,7 +1024,12 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await expect(addSkillsGroup).toBeVisible();
   await expect(skillsSection.getByRole("button", { name: "Add group", exact: true })).toHaveCount(0);
   await addSkillsGroup.click();
-  await expect(skillsSection.getByLabel("Tag group label").last()).toBeFocused();
+  const newGroupLabel = skillsSection.getByLabel("Tag group label").last();
+  await expect(newGroupLabel).toBeFocused();
+  await newGroupLabel.pressSequentially("Platforms");
+  await expect(newGroupLabel).toBeFocused();
+  await expect(newGroupLabel).toHaveValue("Platforms");
+  await expect(skillsSection.getByLabel("Add tag to Platforms")).toBeVisible();
   await skillsFormatPicker.getByRole("button", { name: "Structured entries format" }).click();
   await skillsSection.locator("#add-skills-entry").click();
   await page.locator("#field-skills-0-title").fill("Cloud platforms");
@@ -1073,6 +1086,24 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   await page.keyboard.type("Rewrote the deploy pipeline, cutting release time in half.");
   await page.locator(".resume-name").click();
   await expect(page.locator("#field-experience-0-details")).toHaveValue(/Rewrote the deploy pipeline/);
+
+  // Grouped skills are editable directly on the sheet as a category and a
+  // separator-delimited tag list, with changes synced to the structured editor.
+  await page.getByRole("button", { name: "Expand Analysis tag group" }).click();
+  const previewSkillGroup = page.locator('[data-preview-tag-group="skills-group-1"]');
+  const previewSkillLabel = previewSkillGroup.locator("[data-preview-tag-group-label]");
+  await expect(previewSkillLabel).toHaveAttribute("contenteditable", "true");
+  await previewSkillLabel.selectText();
+  await page.keyboard.type("Insights");
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Tag group label").first()).toHaveValue("Insights");
+
+  const previewSkillTags = previewSkillGroup.locator("[data-preview-tag-group-tags]");
+  await expect(previewSkillTags).toHaveAttribute("contenteditable", "true");
+  await previewSkillTags.selectText();
+  await page.keyboard.type("SQL · Excel · Power BI");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Remove Power BI" })).toBeVisible();
 
   // Collapsing the editor gives a focused full-width canvas.
   await page.getByRole("button", { name: /hide editor/i }).click();
@@ -1144,6 +1175,13 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
   await page.getByRole("menuitem", { name: /classic/i }).click();
 
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("light");
+  const inputColors = await page.getByLabel("Full Name").evaluate((element) => ({
+    text: getComputedStyle(element).color,
+    placeholder: getComputedStyle(element, "::placeholder").color,
+  }));
+  expect(inputColors.placeholder).not.toBe(inputColors.text);
+  expect(await page.locator("[data-brand-surface]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(241, 245, 249)");
+  expect(await page.locator("[data-brand-document]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(15, 23, 42)");
 
   const toolsToggle = page.locator('button[aria-controls="tools-panel"]');
   const toolsPanel = page.getByRole("dialog", { name: /^tools$/i });
@@ -1163,6 +1201,8 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
   await toolsToggle.click();
   await toolsPanel.getByRole("button", { name: /switch to night mode/i }).click();
   expect(await page.getByRole("button", { name: "Export", exact: true }).evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 255)");
+  expect(await page.locator("[data-brand-surface]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(21, 27, 39)");
+  expect(await page.locator("[data-brand-document]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(248, 250, 252)");
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");
 });
 
@@ -2028,7 +2068,7 @@ test("keeps mobile editing focused while keeping utilities in the tools drawer",
   await expect(tools.getByRole("button", { name: /resume review/i })).toContainText("Ready to export");
   await expect(tools.getByRole("button", { name: /copy for applications/i })).toBeVisible();
   await expect(tools.getByRole("button", { name: /local ai/i })).toHaveCount(0);
-  await expect(tools.getByText("Resume checks run in this browser.")).toBeVisible();
+  await expect(tools.getByText("Resume checks run in this browser.")).toHaveCount(0);
   await expect(tools.getByRole("button", { name: /switch to (?:light|night) mode/i })).toBeVisible();
   await expect(tools.getByRole("button", { name: /navigate resume/i })).toBeVisible();
   await expect(tools.getByRole("link", { name: /feedback/i })).toBeVisible();
@@ -2428,7 +2468,8 @@ test("restores the previous resume after clearing", async ({ page }) => {
   await loadSample(page);
   await page.getByLabel("Full Name").fill("Ada Lovelace");
 
-  await page.getByRole("button", { name: /^clear$/i }).click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Clear resume" }).click();
   const clearDialog = page.getByRole("dialog", { name: /clear this resume/i });
   await expect(clearDialog).toBeVisible();
   await clearDialog.getByRole("button", { name: /clear resume/i }).click();

@@ -4,8 +4,17 @@ import { cn } from "@/lib/utils";
 export function BrandMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true" className={cn("shrink-0", className)}>
-      <rect width="64" height="64" rx="16" fill="#151b27" />
-      <path d="M15 10h23l10 10v33H15z" fill="#f8fafc" />
+      <rect
+        data-brand-surface
+        width="62"
+        height="62"
+        x="1"
+        y="1"
+        rx="15"
+        strokeWidth="2"
+        className="fill-slate-100 stroke-slate-300 dark:fill-[#151b27] dark:stroke-[#151b27]"
+      />
+      <path data-brand-document d="M15 10h23l10 10v33H15z" className="fill-slate-900 dark:fill-slate-50" />
       <path d="M38 10v10h10" fill="#dbeafe" />
       <path d="M22 24h17M22 30h12M22 36h14" fill="none" stroke="#60a5fa" strokeLinecap="round" strokeWidth="3.5" />
       <path d="M35 43v-3a5 5 0 0 1 10 0v3" fill="none" stroke="#2563eb" strokeLinecap="round" strokeWidth="3.5" />

@@ -13,6 +13,7 @@ import {
   visibleSectionOrder,
   resolveFontStack,
   type ResumeState,
+  type TagGroup,
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ type InlineEditHandlers = {
   onEditField?: (field: string, value: string) => void;
   onEditSectionTitle?: (section: string, value: string) => void;
   onEditEntry?: (section: string, index: number, key: "title" | "subtitle" | "meta" | "details", value: string) => void;
+  onEditTagGroup?: (section: string, groupId: string, patch: Pick<TagGroup, "label" | "tags">) => void;
 };
 
 type ResumePreviewProps = {
@@ -204,7 +206,7 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry },
+  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry, onEditTagGroup },
   ref,
 ) {
   const edit: InlineEditHandlers = { editable, onEditField, onEditSectionTitle, onEditEntry };
@@ -245,7 +247,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
           style={{ top: `${index * 11}in` }}
         />
       ))}
-      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} {...edit} />}
+      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} onEditTagGroup={onEditTagGroup} {...edit} />}
       {pageBreaks.map(({ page, label }) => (
         <div
           key={page}
@@ -291,7 +293,7 @@ function EmptyResumePreview() {
   );
 }
 
-function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry }: ResumePreviewProps) {
+function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry, onEditTagGroup }: ResumePreviewProps) {
   const contactParts = [
     ["email", state.email],
     ["phone", state.phone],
@@ -351,7 +353,7 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
         />
       ) : null}
       {visibleSectionOrder(state).map((section) => (
-        <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} editable={editable} onEditField={onEditField} onEditSectionTitle={onEditSectionTitle} onEditEntry={onEditEntry} />
+        <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} editable={editable} onEditField={onEditField} onEditSectionTitle={onEditSectionTitle} onEditEntry={onEditEntry} onEditTagGroup={onEditTagGroup} />
       ))}
     </>
   );
@@ -418,7 +420,7 @@ function ContactPart({
   );
 }
 
-function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry }: ResumePreviewProps & { section: string }) {
+function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry, onEditTagGroup }: ResumePreviewProps & { section: string }) {
   const sectionActive =
     activeTarget === `section-title-${section}` ||
     activeTarget === `field-${section}` ||
@@ -465,11 +467,36 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
             return (
               <div
                 key={group.id}
+                data-preview-tag-group={group.id}
                 className={cn("resume-skill-line resume-preview-target", activeTarget === targetId && "resume-preview-active")}
                 aria-label={`Edit ${group.label.trim() || "untitled"} group in ${title || "section"}`}
-                {...previewTargetProps(targetId, onTargetSelect)}
+                {...(editable ? {} : previewTargetProps(targetId, onTargetSelect))}
               >
-                {group.label ? <span className="resume-skill-cat">{group.label}:</span> : null} {group.tags.join(" · ")}
+                {editable ? (
+                  <>
+                    <InlineText
+                      editable
+                      value={group.label}
+                      placeholder="Category"
+                      onCommit={(label) => onEditTagGroup?.(section, group.id, { label, tags: group.tags })}
+                      className="resume-skill-cat"
+                      data-preview-tag-group-label=""
+                    />
+                    {group.label ? <span className="resume-skill-cat">:</span> : null}{" "}
+                    <InlineText
+                      editable
+                      value={group.tags.join(" · ")}
+                      placeholder="Add skills"
+                      onCommit={(value) => onEditTagGroup?.(section, group.id, {
+                        label: group.label,
+                        tags: value.split(/[·,]/).map((tag) => tag.trim()).filter(Boolean),
+                      })}
+                      data-preview-tag-group-tags=""
+                    />
+                  </>
+                ) : (
+                  <>{group.label ? <span className="resume-skill-cat">{group.label}:</span> : null} {group.tags.join(" · ")}</>
+                )}
               </div>
             );
           })}

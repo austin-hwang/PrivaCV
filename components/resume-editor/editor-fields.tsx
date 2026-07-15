@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Sparkles, Trash2, X } from "lucide-react";
-import { useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useState, type DragEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -286,13 +286,29 @@ export function TagGroupEditor({
   groups,
   activeTarget,
   onChange,
+  onGroupCollapse,
 }: {
   section: string;
   groups: TagGroup[];
   activeTarget?: string | null;
   onChange: (groups: TagGroup[]) => void;
+  onGroupCollapse?: () => void;
 }) {
   const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => new Set());
+
+  // A jump from the view-only preview targets the group row itself. Open that
+  // nested row as well as the containing section so its actual fields are
+  // immediately visible when focus arrives.
+  useEffect(() => {
+    const activeGroup = groups.find((group) => activeTarget === `field-${section}-group-${group.id}`);
+    if (!activeGroup) return;
+    setOpenGroupIds((current) => {
+      if (current.has(activeGroup.id)) return current;
+      const next = new Set(current);
+      next.add(activeGroup.id);
+      return next;
+    });
+  }, [activeTarget, groups, section]);
 
   return (
     <div className="overflow-hidden rounded-md border bg-muted/10">
@@ -309,13 +325,27 @@ export function TagGroupEditor({
             group={group}
             open={open}
             active={activeTarget === targetId}
-            onToggle={() => setOpenGroupIds((current) => {
-              const next = new Set(current);
-              if (open) next.delete(group.id);
-              else next.add(group.id);
-              return next;
-            })}
-            onChange={(next) => onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate))}
+            onToggle={() => {
+              if (open && activeTarget === targetId) onGroupCollapse?.();
+              setOpenGroupIds((current) => {
+                const next = new Set(current);
+                if (open) next.delete(group.id);
+                else next.add(group.id);
+                return next;
+              });
+            }}
+            onChange={(next) => {
+              // A new blank group is implicitly open. Persist that open state
+              // before its first character makes it nonblank, otherwise the
+              // input unmounts and loses focus after one keystroke.
+              setOpenGroupIds((current) => {
+                if (current.has(group.id)) return current;
+                const openGroups = new Set(current);
+                openGroups.add(group.id);
+                return openGroups;
+              });
+              onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate));
+            }}
             onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
           />
         );

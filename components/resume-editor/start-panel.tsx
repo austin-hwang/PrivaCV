@@ -72,7 +72,7 @@ export function StartPanel({
             </div>
             <Menu className="mt-auto" onOpenChange={(open) => { if (!open) onPreviewBlank(null); }}>
               <MenuTrigger>
-                <Button type="button" variant="secondary" className="w-full justify-start">
+                <Button type="button" variant="secondary" className="w-full justify-start border border-input">
                   <FileText /> Start a blank resume <ChevronDown className="ml-auto" />
                 </Button>
               </MenuTrigger>

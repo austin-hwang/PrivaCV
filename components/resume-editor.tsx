@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
+  ClipboardCheck,
   ClipboardCopy,
   ClipboardPaste,
   Download,
@@ -194,6 +195,7 @@ export function ResumeEditor() {
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<"editor" | "preview">("editor");
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [checksReviewOpen, setChecksReviewOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [reviewTour, setReviewTour] = useState<{ kind: "import" | "checks"; index: number } | null>(null);
   // Inline editing on the resume sheet is the primary way to edit; the left
@@ -693,9 +695,7 @@ export function ResumeEditor() {
       ]
     : [];
 
-  const checksTourSteps: GuidedReviewStep[] = checks
-    .filter((check) => !check.ok || check.advisory)
-    .map((check) => ({
+  const checksTourSteps: GuidedReviewStep[] = checks.map((check) => ({
       id: check.id,
       targetId: check.targetId,
       eyebrow: "Resume review",
@@ -715,8 +715,13 @@ export function ResumeEditor() {
   };
   const startChecksTour = () => {
     setToolsOpen(false);
+    setChecksReviewOpen(false);
     setMobileWorkspaceView("editor");
     setReviewTour({ kind: "checks", index: 0 });
+  };
+  const openChecksReview = () => {
+    setToolsOpen(false);
+    setChecksReviewOpen(true);
   };
   const tourSteps = reviewTour?.kind === "import" ? importTourSteps : reviewTour?.kind === "checks" ? checksTourSteps : [];
 
@@ -1024,6 +1029,12 @@ export function ResumeEditor() {
                   loadSample();
                 }}>
                   <FileText /> Sample
+                </MenuItem>
+                <MenuItem
+                  destructive
+                  onSelect={() => setDestructiveAction("clear")}
+                >
+                  <RotateCcw /> Clear resume
                 </MenuItem>
                 <MenuItem
                   destructive
@@ -1580,6 +1591,7 @@ export function ResumeEditor() {
                       groups={tagGroups}
                       activeTarget={activeTarget}
                       onChange={(groups) => updateSectionTagGroups(section, groups)}
+                      onGroupCollapse={() => setActiveTarget(null)}
                     />
                   ) : sectionFormat === "bullets" ? (
                     <TextAreaField
@@ -1843,6 +1855,10 @@ export function ResumeEditor() {
                 onEditField={(field, value) => updateField(field as Parameters<typeof updateField>[0], value)}
                 onEditSectionTitle={updateSectionTitle}
                 onEditEntry={updateEntry}
+                onEditTagGroup={(section, groupId, patch) => updateSectionTagGroups(
+                  section,
+                  getSectionTagGroups(state, section).map((group) => group.id === groupId ? { ...group, ...patch } : group),
+                )}
               />
             </div>
           </div>
@@ -1898,11 +1914,58 @@ export function ResumeEditor() {
         onSelect={focusEditorTarget}
       />
 
+      <Dialog open={checksReviewOpen} onOpenChange={setChecksReviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Resume review</DialogTitle>
+            <DialogDescription>
+              Review every check at a glance, then walk through each one on your resume.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2" aria-label="Resume checks">
+            {checks.map((check) => {
+              const passed = check.ok && !check.advisory;
+              const status = passed ? "Passed" : check.advisory ? "Suggestion" : "Review";
+              return (
+                <div key={check.id} data-resume-check={check.id} className="flex items-start gap-3 rounded-md border bg-muted/20 p-3">
+                  <span
+                    className={cn(
+                      "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full",
+                      passed ? "bg-success/15 text-success" : check.advisory ? "bg-brand/10 text-brand" : "bg-warning/20 text-foreground",
+                    )}
+                    aria-hidden="true"
+                  >
+                    {passed ? <Check className="size-3.5" /> : <AlertCircle className="size-3.5" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{check.label}</p>
+                    <p className="text-xs leading-snug text-muted-foreground">{check.detail}</p>
+                    {!passed ? <p className="mt-1 text-xs leading-snug text-muted-foreground">{check.guidance}</p> : null}
+                  </div>
+                  <Badge variant="outline" className={cn("shrink-0", passed && "border-success/30 text-success", check.advisory && "border-brand/30 text-brand")}>
+                    {status}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter className="items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">{passedChecks} of {checks.length} checks passed</span>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setChecksReviewOpen(false)}>Close</Button>
+              <Button type="button" onClick={startChecksTour}>
+                <ClipboardCheck /> Start walkthrough
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ReviewDrawer
         editor={editor}
         open={toolsOpen}
         onOpenChange={setToolsOpen}
-        onStartChecksReview={startChecksTour}
+        onOpenChecksReview={openChecksReview}
         onOpenApplicationCopy={() => {
           setToolsOpen(false);
           setApplicationCopyOpen(true);
