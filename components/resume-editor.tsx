@@ -30,6 +30,7 @@ import {
   Import as ImportIcon,
   Linkedin,
   Link as LinkIcon,
+  Library,
   Loader2,
   MoreHorizontal,
   Palette,
@@ -260,7 +261,7 @@ export function ResumeEditor() {
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [navigatorQuery, setNavigatorQuery] = useState("");
-  const [destructiveAction, setDestructiveAction] = useState<"clear" | "delete-all" | null>(null);
+  const [destructiveAction, setDestructiveAction] = useState<"clear" | "clear-checkpoints" | "delete-all" | null>(null);
   const [localAIOpen, setLocalAIOpen] = useState(false);
   const [localAIInlineTarget, setLocalAIInlineTarget] = useState<LocalAIInlineTarget | null>(null);
   const [localAIImportOpen, setLocalAIImportOpen] = useState(false);
@@ -1027,35 +1028,12 @@ export function ResumeEditor() {
                 type="button"
                 variant="outline"
                 onClick={() => setLibraryOpen(true)}
-                data-autosave-status={storageIssue ? "conflict" : autosaveStatus}
-                aria-label={
-                  storageIssue
-                    ? "Resume library — browser autosave unavailable"
-                    : autosaveStatus === "saving"
-                      ? "Resume library — saving locally"
-                      : autosaveStatus === "conflict"
-                        ? "Resume library — autosave paused for another tab"
-                        : "Resume library — saved locally"
-                }
-                title={
-                  storageIssue
-                    ? "Autosave unavailable — save a JSON copy to keep your work"
-                    : autosaveStatus === "saving"
-                      ? "Saving this resume in this browser…"
-                      : autosaveStatus === "conflict"
-                        ? "Autosave paused until you choose which tab's draft to keep"
-                        : "Saved in this browser. Open the resume library or export JSON for a portable backup."
-                }
+                aria-label="Resume library"
+                title="Open resume library"
                 className="gap-2"
               >
-                {autosaveStatus === "saving" && !storageIssue ? (
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                ) : storageIssue || autosaveStatus === "conflict" ? (
-                  <AlertCircle className="text-warning" aria-hidden="true" />
-                ) : (
-                  <Check className="text-success" aria-hidden="true" />
-                )}
-                <span className="hidden sm:inline">Resumes</span>
+                <Library aria-hidden="true" />
+                <span className="hidden sm:inline">Library</span>
                 {editor.resumeLibrary.length > 1 ? (
                   <span className="hidden h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold leading-none tabular-nums sm:inline-flex">
                     {editor.resumeLibrary.length}
@@ -1955,6 +1933,38 @@ export function ResumeEditor() {
                     <><Eye /> <span>View only</span></>
                   )}
                 </Button>
+                <div
+                  aria-live="polite"
+                  data-autosave-status={storageIssue ? "conflict" : autosaveStatus}
+                  aria-label={
+                    storageIssue
+                      ? "Browser autosave unavailable"
+                      : autosaveStatus === "saving"
+                        ? "Saving locally"
+                        : autosaveStatus === "conflict"
+                          ? "Autosave paused for another tab"
+                          : "Saved locally"
+                  }
+                  title={
+                    storageIssue
+                      ? "Autosave unavailable — save a JSON copy to keep your work"
+                      : autosaveStatus === "saving"
+                        ? "Saving this resume in this browser…"
+                        : autosaveStatus === "conflict"
+                          ? "Autosave paused until you choose which tab's draft to keep"
+                          : "Saved in this browser"
+                  }
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border bg-background px-2 text-xs text-muted-foreground"
+                >
+                  {autosaveStatus === "saving" && !storageIssue ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  ) : storageIssue || autosaveStatus === "conflict" ? (
+                    <AlertCircle className="size-3.5 text-warning" aria-hidden="true" />
+                  ) : (
+                    <Check className="size-3.5 text-success" aria-hidden="true" />
+                  )}
+                  <span>{storageIssue || autosaveStatus === "conflict" ? "Not saved" : autosaveStatus === "saving" ? "Saving" : "Saved"}</span>
+                </div>
                 <Button
                   type="button"
                   variant={historyOpen ? "secondary" : "outline"}
@@ -2039,6 +2049,7 @@ export function ResumeEditor() {
             onSave={editor.openVersionSave}
             onSaveBackup={editor.saveVersionHistoryBackup}
             onOpenBackup={() => editor.historyBackupInputRef.current?.click()}
+            onClear={() => setDestructiveAction("clear-checkpoints")}
             onRestore={editor.restoreVersion}
             onDelete={editor.deleteVersion}
             onUndoDelete={editor.undoDeleteVersion}
@@ -2057,11 +2068,19 @@ export function ResumeEditor() {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{destructiveAction === "delete-all" ? "Delete all browser data?" : "Clear this resume?"}</DialogTitle>
+            <DialogTitle>
+              {destructiveAction === "delete-all"
+                ? "Delete all browser data?"
+                : destructiveAction === "clear-checkpoints"
+                  ? "Clear all checkpoints?"
+                  : "Clear this resume?"}
+            </DialogTitle>
             <DialogDescription>
               {destructiveAction === "delete-all"
                 ? "This removes the resume library, edit history, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export JSON first if you want to keep a copy."
-                : "This clears every resume field. You can restore the current version from the recovery card."}
+                : destructiveAction === "clear-checkpoints"
+                  ? "This removes every saved checkpoint for the current resume. Your live draft and autosave stay intact. This cannot be undone."
+                  : "This clears every resume field. You can restore the current version from the recovery card."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -2078,12 +2097,19 @@ export function ResumeEditor() {
                   setBlankWorkspaceOpen(false);
                   setBlankResumeGuideVisible(false);
                   void deleteSavedBrowserData();
+                } else if (action === "clear-checkpoints") {
+                  setHistoryPreviewItem(null);
+                  editor.clearVersionHistory();
                 } else if (action === "clear") {
                   clearEditor();
                 }
               }}
             >
-              {destructiveAction === "delete-all" ? "Delete all data" : "Clear resume"}
+              {destructiveAction === "delete-all"
+                ? "Delete all data"
+                : destructiveAction === "clear-checkpoints"
+                  ? "Clear checkpoints"
+                  : "Clear resume"}
             </Button>
           </DialogFooter>
         </DialogContent>

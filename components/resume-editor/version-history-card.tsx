@@ -26,6 +26,7 @@ export function VersionHistoryCard({
   onSave,
   onSaveBackup,
   onOpenBackup,
+  onClear,
   onRestore,
   onDelete,
   onUndoDelete,
@@ -44,6 +45,7 @@ export function VersionHistoryCard({
   onSave: () => void;
   onSaveBackup: () => void;
   onOpenBackup: () => void;
+  onClear: () => void;
   onRestore: (item: VersionHistoryItem) => void;
   onDelete: (id: string) => void;
   onUndoDelete: () => void;
@@ -148,6 +150,16 @@ export function VersionHistoryCard({
             <Download />
           </Button>
         </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-1.5 w-full text-destructive hover:text-destructive"
+          onClick={onClear}
+          disabled={!versions.length}
+        >
+          <Trash2 /> Clear checkpoints
+        </Button>
 
         {storageIssue ? (
           <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs leading-snug text-foreground">

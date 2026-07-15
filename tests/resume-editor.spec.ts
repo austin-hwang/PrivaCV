@@ -788,11 +788,16 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await page.reload();
   await loadSample(page);
 
-  // Autosave state is surfaced on the Resumes button: a spinning loader while
-  // saving that settles to a check, mirrored on data-autosave-status + aria.
+  const libraryButton = page.getByRole("button", { name: "Resume library" });
+  await expect(libraryButton.getByText("Library", { exact: true })).toBeVisible();
+  await expect(libraryButton.locator(".lucide-library")).toBeVisible();
+
+  // Autosave state is surfaced beside the editing controls: a spinning loader
+  // while saving that settles to a check, mirrored on data-autosave-status + aria.
   const autosave = page.locator("[data-autosave-status]");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
+  await expect(autosave.getByText("Saved", { exact: true })).toBeVisible();
 
   const summary = page.getByLabel("Professional Summary");
   const savedSummary = await summary.inputValue();
@@ -800,6 +805,8 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await summary.fill("A local-first product engineer who ships dependable tools.");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
   await expect(autosave).toHaveAccessibleName(/saving locally/i);
+  await expect(autosave.getByText("Saving", { exact: true })).toBeVisible();
+  await expect(libraryButton.locator(".animate-spin")).toHaveCount(0);
 
   const versions = await openVersions(page);
   await expect(versions.getByRole("listitem").getByText("Autosave copy", { exact: true })).toBeVisible();
@@ -2917,6 +2924,34 @@ test("keeps every checkpoint without a save limit", async ({ page }) => {
   await expect.poll(() => versions.getByRole("list", { name: "Checkpoint timeline" }).getByRole("listitem").count()).toBeGreaterThanOrEqual(8);
   await expect(versions.getByText("Checkpoint 1", { exact: true })).toBeVisible();
   await expect(versions.getByText("Checkpoint 7", { exact: true })).toBeVisible();
+});
+
+test("clears checkpoints for the current resume without clearing its live draft", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await saveVersion(page, "Before tailoring");
+
+  const versions = await openVersions(page);
+  await versions.getByRole("button", { name: "Select Before tailoring" }).click();
+  await versions.getByRole("button", { name: "Clear checkpoints", exact: true }).click();
+
+  const confirmDialog = page.getByRole("dialog", { name: "Clear all checkpoints?" });
+  await expect(confirmDialog).toContainText("Your live draft and autosave stay intact");
+  await confirmDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(versions.getByRole("button", { name: "Select Before tailoring" })).toBeVisible();
+
+  await versions.getByRole("button", { name: "Clear checkpoints", exact: true }).click();
+  await confirmDialog.getByRole("button", { name: "Clear checkpoints", exact: true }).click();
+
+  await expect(page.getByText("Cleared checkpoints")).toBeVisible();
+  await expect(versions.getByText("0 checkpoints for this resume")).toBeVisible();
+  await expect(versions.getByRole("button", { name: "Clear checkpoints", exact: true })).toBeDisabled();
+  await expect(versions.getByRole("button", { name: "Select Before tailoring" })).toHaveCount(0);
+  await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
+  await expect(page.locator(".resume-sheet .resume-name")).toHaveText("John Doe");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-checkpoint-history-v1"))).toBeNull();
 });
 
 test("differentiates saved checkpoints with an optional note", async ({ page }) => {

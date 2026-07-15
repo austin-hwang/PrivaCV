@@ -441,6 +441,14 @@ export function useResumeEditor() {
     flash(deletedLocally ? "Deleted checkpoint" : "Could not remove the checkpoint from browser storage");
   };
 
+  const clearVersionHistory = () => {
+    const clearedLocally = persistVersionHistory([]);
+    setVersionHistory([]);
+    setDeletedVersion(null);
+    setDraftSourceVersionId(null);
+    flash(clearedLocally ? "Cleared checkpoints" : "Could not clear checkpoints from browser storage");
+  };
+
   const undoDeleteVersion = () => {
     if (!deletedVersion) return;
     const nextHistory = [deletedVersion, ...versionHistory.filter((item) => item.id !== deletedVersion.id)]
@@ -1742,6 +1750,7 @@ export function useResumeEditor() {
     autosavedAt,
     autosavedState,
     checks,
+    clearVersionHistory,
     clearSavedBrowserData,
     clearResume,
     createResume,
