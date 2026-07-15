@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Check, Loader2, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/local-ai-engine";
 import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, isLocalAIRewriteUnchanged, localAIRewriteMaxTokens, validateLocalAIRewrite } from "@/lib/local-ai";
 import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
+import { trackInlineAIEvent } from "@/lib/inline-ai-metrics";
 
 const INLINE_AI_INSTRUCTION_LIMIT = 100;
 const INLINE_AI_PRESETS = [
@@ -44,6 +45,7 @@ export function LocalAIInlineEdit({
 
   const generate = async () => {
     if (!instruction.trim() || !text.trim() || generating) return;
+    trackInlineAIEvent("inline_ai_used");
     setGenerating(true);
     setRetrying(false);
     setOutput("");
@@ -143,7 +145,16 @@ export function LocalAIInlineEdit({
               </div>
               {!generating && output.trim() ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" size="sm" onClick={() => onApply(cleanLocalAIRewrite(output))}><Check /> Apply edit</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      trackInlineAIEvent("inline_ai_accepted");
+                      onApply(cleanLocalAIRewrite(output));
+                    }}
+                  >
+                    <Check /> Apply edit
+                  </Button>
                   <span className="text-[11px] font-normal text-muted-foreground">Review facts before applying.</span>
                 </div>
               ) : null}

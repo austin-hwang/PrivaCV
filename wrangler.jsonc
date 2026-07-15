@@ -23,6 +23,10 @@
     {
       "binding": "EXPORT_METRICS",
       "dataset": "privacv_exports"
+    },
+    {
+      "binding": "INLINE_AI_METRICS",
+      "dataset": "privacv_inline_ai"
     }
   ],
   "observability": {

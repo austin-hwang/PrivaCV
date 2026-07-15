@@ -31,7 +31,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 ## Privacy
 
-PrivaCV is local-first. Resume information is processed and stored in the browser, not in an application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Each export records one anonymous aggregate event and its format, without resume content or an identity or device identifier.
+PrivaCV is local-first. Resume information is processed and stored in the browser, not in an application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Exports and inline-AI request/acceptance actions record anonymous aggregate events without resume content, prompts, generated text, or identity or device identifiers.
 
 See the in-app [privacy page](app/privacy/page.tsx) for the product’s plain-language explanation.
 
@@ -72,7 +72,7 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.example
 
 Use [.env.example](.env.example) as the starting point. Do not use the example domain in production.
 
-### Anonymous export metrics
+### Anonymous product metrics
 
 Production deploys include a Cloudflare Analytics Engine dataset named `privacv_exports`. It records only `resume_export` and the format. To inspect the total and format breakdown through the Analytics Engine SQL API:
 
@@ -86,6 +86,15 @@ FROM privacv_exports
 WHERE blob1 = 'resume_export'
 GROUP BY blob2
 ORDER BY exports DESC;
+```
+
+Inline local-AI milestones use a separate `privacv_inline_ai` dataset. It records only `inline_ai_used` and `inline_ai_accepted`:
+
+```sql
+SELECT blob1 AS event, COUNT(*) AS events
+FROM privacv_inline_ai
+GROUP BY blob1
+ORDER BY events DESC;
 ```
 
 ## Project structure

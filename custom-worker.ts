@@ -2,6 +2,7 @@
 // @ts-expect-error The module does not exist until `opennextjs-cloudflare build` runs.
 import openNextWorker from "./.open-next/worker.js";
 import { handleExportMetric, type ExportMetricsEnv } from "./lib/export-metrics-server";
+import { handleInlineAIMetric, type InlineAIMetricsEnv } from "./lib/inline-ai-metrics-server";
 import { LOCAL_AI_MODELS } from "./lib/local-ai-models";
 
 const MODEL_PROXY_PREFIX = "/api/local-ai/models/";
@@ -23,6 +24,8 @@ type WorkerContext = {
   waitUntil(promise: Promise<unknown>): void;
   passThroughOnException(): void;
 };
+
+type WorkerEnv = ExportMetricsEnv & InlineAIMetricsEnv;
 
 function decodePathSegment(value: string) {
   try {
@@ -131,9 +134,11 @@ async function proxyModelFile(request: Request) {
 }
 
 const worker = {
-  async fetch(request: Request, env: ExportMetricsEnv, ctx: WorkerContext) {
+  async fetch(request: Request, env: WorkerEnv, ctx: WorkerContext) {
     const metricResponse = await handleExportMetric(request, env);
     if (metricResponse) return metricResponse;
+    const inlineAIMetricResponse = await handleInlineAIMetric(request, env);
+    if (inlineAIMetricResponse) return inlineAIMetricResponse;
     if (new URL(request.url).pathname.startsWith(MODEL_PROXY_PREFIX)) {
       return proxyModelFile(request);
     }
