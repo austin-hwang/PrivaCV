@@ -8,6 +8,7 @@ const RESUME_TOOLS = [
   { href: "/resume-templates", label: "Resume templates" },
   { href: "/pdf-to-docx-resume", label: "PDF to DOCX resume" },
   { href: "/plain-text-resume", label: "Plain-text resume" },
+  { href: "/resume-builder-comparison", label: "Resume builder comparison" },
 ];
 
 const COMPANY = [

@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/resume-templates",
     "/pdf-to-docx-resume",
     "/plain-text-resume",
+    "/resume-builder-comparison",
   ];
 
   return [
