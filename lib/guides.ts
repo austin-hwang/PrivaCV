@@ -4,6 +4,8 @@
 export type GuideMeta = {
   slug: string;
   title: string;
+  /** Short label for compact spots like the footer (falls back to title). */
+  navLabel?: string;
   /** Short blurb for the hub list and the page meta description. */
   description: string;
   /** ISO date (YYYY-MM-DD) of the last meaningful update. */
@@ -14,6 +16,7 @@ export const GUIDES: GuideMeta[] = [
   {
     slug: "ats-friendly-resume",
     title: "How to Make an ATS-Friendly Resume",
+    navLabel: "ATS-friendly resume",
     description:
       "What an applicant tracking system actually does with your resume, the formatting rules that matter, and how to check your resume before you apply.",
     updated: "2026-07-15",

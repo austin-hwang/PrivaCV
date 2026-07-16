@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { GUIDES, guidePath } from "@/lib/guides";
 import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
 
@@ -30,7 +31,8 @@ export const metadata: Metadata = {
 
 export default function GuidesPage() {
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-16">
+    <>
+      <main className="mx-auto max-w-5xl px-6 py-16">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{SITE_NAME}</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Resume guides</h1>
       <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">{description}</p>
@@ -49,12 +51,14 @@ export default function GuidesPage() {
         ))}
       </div>
 
-      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="PrivaCV pages">
+      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
         <Link className="underline underline-offset-4" href="/">Open the editor</Link>
         <Link className="underline underline-offset-4" href="/ats-resume-checker">ATS resume checker</Link>
         <Link className="underline underline-offset-4" href="/resume-templates">Resume templates</Link>
       </nav>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

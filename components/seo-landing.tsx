@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAME, absoluteUrl } from "@/lib/site";
 
 export type FaqItem = { question: string; answer: string };
@@ -51,7 +52,8 @@ export function breadcrumbJsonLd(name: string, path: string) {
  */
 export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", cards, prose = [], faqItems, related, breadcrumb }: SeoLandingProps) {
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-16">
+    <>
+      <main className="mx-auto max-w-5xl px-6 py-16">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{SITE_NAME}</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">{h1}</h1>
       <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">{lede}</p>
@@ -99,7 +101,7 @@ export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", cards, prose = [
         </dl>
       </section>
 
-      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="PrivaCV pages">
+      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
         <Link className="underline underline-offset-4" href="/">Open the editor</Link>
         {related.map((link) => (
           <Link key={link.href} className="underline underline-offset-4" href={link.href}>
@@ -109,6 +111,8 @@ export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", cards, prose = [
       </nav>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(breadcrumb.name, breadcrumb.path)) }} />
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

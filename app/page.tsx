@@ -1,5 +1,5 @@
 import { ResumeEditor } from "@/components/resume-editor";
-import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "@/lib/site";
 
 const structuredData = {
@@ -70,33 +70,6 @@ const faqs = [
   },
 ];
 
-const footerGroups = [
-  {
-    title: "Resume tools",
-    links: [
-      { href: "/free-resume-builder", label: "Free resume builder" },
-      { href: "/ats-resume-checker", label: "ATS resume checker" },
-      { href: "/resume-templates", label: "Resume templates" },
-      { href: "/pdf-to-docx-resume", label: "PDF to DOCX resume" },
-      { href: "/plain-text-resume", label: "Plain-text resume" },
-    ],
-  },
-  {
-    title: "Guides",
-    links: [
-      { href: "/guides", label: "All resume guides" },
-      { href: "/guides/ats-friendly-resume", label: "ATS-friendly resume" },
-    ],
-  },
-  {
-    title: "PrivaCV",
-    links: [
-      { href: "/about", label: "About PrivaCV" },
-      { href: "/privacy", label: "Privacy" },
-    ],
-  },
-];
-
 export default function Home() {
   return (
     <>
@@ -139,25 +112,11 @@ export default function Home() {
               </dl>
             </section>
           </div>
-
-          <nav className="mt-16 grid gap-8 border-t pt-10 sm:grid-cols-3" aria-label="PrivaCV pages">
-            {footerGroups.map((group) => (
-              <div key={group.title}>
-                <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{group.title}</h2>
-                <ul className="mt-3 grid gap-2 text-sm">
-                  {group.links.map((link) => (
-                    <li key={link.href}>
-                      <Link className="text-muted-foreground transition-colors hover:text-foreground" href={link.href}>
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
         </div>
       </section>
+      <div className="public-explainer">
+        <SiteFooter />
+      </div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
     </>
   );

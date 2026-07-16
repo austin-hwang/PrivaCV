@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-6 py-16">
+    <>
+      <main className="mx-auto max-w-3xl px-6 py-16">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{SITE_NAME}</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Privacy, in plain language</h1>
       <div className="mt-10 grid gap-8 text-base leading-relaxed text-muted-foreground">
@@ -35,10 +37,12 @@ export default function PrivacyPage() {
           <p className="mt-3">You can save portable JSON backups and delete saved browser data from the editor. If you share a device, export or back up anything you want to keep before deleting local data.</p>
         </section>
       </div>
-      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="PrivaCV pages">
+      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
         <Link className="underline underline-offset-4" href="/">Open the editor</Link>
         <Link className="underline underline-offset-4" href="/about">About PrivaCV</Link>
       </nav>
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

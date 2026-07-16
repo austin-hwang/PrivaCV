@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { type GuideMeta, guidePath } from "@/lib/guides";
 import { SITE_NAME, absoluteUrl } from "@/lib/site";
 
@@ -54,7 +55,8 @@ export function GuideLayout({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-6 py-16">
+    <>
+      <main className="mx-auto max-w-3xl px-6 py-16">
       <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
         <Link className="hover:text-foreground" href="/">Home</Link>
         <span aria-hidden="true"> / </span>
@@ -94,6 +96,8 @@ export function GuideLayout({
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd(guide)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(guide)) }} />
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }
