@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/icon.svg" width="92" alt="PrivaCV logo">
+  <img src="public/icon.svg" width="92" alt="PrivaCV logo">
 </p>
 
 <h1 align="center">PrivaCV</h1>
