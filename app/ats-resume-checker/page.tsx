@@ -61,6 +61,7 @@ export default function AtsResumeCheckerPage() {
       ]}
       faqItems={faqItems}
       related={[
+        { href: "/guides/ats-friendly-resume", label: "Guide: ATS-friendly resume" },
         { href: "/resume-templates", label: "Resume templates" },
         { href: "/plain-text-resume", label: "Plain-text resume" },
         { href: "/about", label: "About PrivaCV" },

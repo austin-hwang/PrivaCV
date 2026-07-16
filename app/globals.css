@@ -204,6 +204,54 @@ html[data-resume-workspace="active"] .public-explainer {
   display: none;
 }
 
+/* Long-form guide article typography. Scoped so it only styles the prose body
+   of a guide, not the surrounding app chrome. */
+.guide-content {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: hsl(var(--muted-foreground));
+}
+.guide-content > * + * {
+  margin-top: 1.15rem;
+}
+.guide-content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  scroll-margin-top: 5rem;
+}
+.guide-content h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+.guide-content ul,
+.guide-content ol {
+  padding-left: 1.4rem;
+  display: grid;
+  gap: 0.45rem;
+}
+.guide-content ul {
+  list-style: disc;
+}
+.guide-content ol {
+  list-style: decimal;
+}
+.guide-content strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.guide-content a {
+  color: hsl(var(--foreground));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .resume-sheet {
   position: relative;
   isolation: isolate;

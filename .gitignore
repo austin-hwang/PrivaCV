@@ -21,3 +21,7 @@ tests/fixtures/public-resumes/downloads/
 
 # Local preview tooling
 .claude/
+
+# Coding-agent scratch artifacts (not part of the project)
+AGENT_LOG.md
+ROADMAP.md

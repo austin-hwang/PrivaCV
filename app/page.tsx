@@ -70,6 +70,33 @@ const faqs = [
   },
 ];
 
+const footerGroups = [
+  {
+    title: "Resume tools",
+    links: [
+      { href: "/free-resume-builder", label: "Free resume builder" },
+      { href: "/ats-resume-checker", label: "ATS resume checker" },
+      { href: "/resume-templates", label: "Resume templates" },
+      { href: "/pdf-to-docx-resume", label: "PDF to DOCX resume" },
+      { href: "/plain-text-resume", label: "Plain-text resume" },
+    ],
+  },
+  {
+    title: "Guides",
+    links: [
+      { href: "/guides", label: "All resume guides" },
+      { href: "/guides/ats-friendly-resume", label: "ATS-friendly resume" },
+    ],
+  },
+  {
+    title: "PrivaCV",
+    links: [
+      { href: "/about", label: "About PrivaCV" },
+      { href: "/privacy", label: "Privacy" },
+    ],
+  },
+];
+
 export default function Home() {
   return (
     <>
@@ -113,14 +140,21 @@ export default function Home() {
             </section>
           </div>
 
-          <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium" aria-label="Explore PrivaCV">
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/free-resume-builder">Free resume builder</Link>
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/ats-resume-checker">ATS resume checker</Link>
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/resume-templates">Resume templates</Link>
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/pdf-to-docx-resume">PDF to DOCX resume</Link>
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/plain-text-resume">Plain-text resume</Link>
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/about">About PrivaCV</Link>
-            <Link className="underline underline-offset-4 hover:text-foreground" href="/privacy">Privacy</Link>
+          <nav className="mt-16 grid gap-8 border-t pt-10 sm:grid-cols-3" aria-label="PrivaCV pages">
+            {footerGroups.map((group) => (
+              <div key={group.title}>
+                <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{group.title}</h2>
+                <ul className="mt-3 grid gap-2 text-sm">
+                  {group.links.map((link) => (
+                    <li key={link.href}>
+                      <Link className="text-muted-foreground transition-colors hover:text-foreground" href={link.href}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </nav>
         </div>
       </section>
