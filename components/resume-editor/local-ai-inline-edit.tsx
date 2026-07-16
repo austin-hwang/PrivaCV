@@ -10,6 +10,7 @@ import {
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
 import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, isLocalAIRewriteUnchanged, localAIRewriteMaxTokens, validateLocalAIRewrite } from "@/lib/local-ai";
+import { hasBlockTags, richContentToPlainMarkdown, sanitizeRichContent } from "@/lib/rich-text";
 import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
 import { trackInlineAIEvent } from "@/lib/inline-ai-metrics";
 
@@ -43,8 +44,12 @@ export function LocalAIInlineEdit({
 
   useEffect(() => () => interruptLocalAIGeneration(), []);
 
+  // The model edits a clean Markdown-ish view of the field; the result is
+  // re-canonicalized to block HTML on apply.
+  const source = hasBlockTags(text) ? richContentToPlainMarkdown(text) : text;
+
   const generate = async () => {
-    if (!instruction.trim() || !text.trim() || generating) return;
+    if (!instruction.trim() || !source.trim() || generating) return;
     trackInlineAIEvent("inline_ai_used");
     setGenerating(true);
     setRetrying(false);
@@ -52,20 +57,20 @@ export function LocalAIInlineEdit({
     setError(null);
     try {
       let result = await generateLocalAIText({
-        messages: buildPromptedLocalRewriteMessages({ label, text, instruction }),
-        maxTokens: localAIRewriteMaxTokens(text),
+        messages: buildPromptedLocalRewriteMessages({ label, text: source, instruction }),
+        maxTokens: localAIRewriteMaxTokens(source),
         onToken: (value) => setOutput(cleanLocalAIRewrite(value)),
       });
-      if (isLocalAIRewriteUnchanged(text, result)) {
+      if (isLocalAIRewriteUnchanged(source, result)) {
         setOutput("");
         setRetrying(true);
         result = await generateLocalAIText({
-          messages: buildPromptedLocalRewriteMessages({ label, text, instruction, retryAfterEcho: true }),
-          maxTokens: localAIRewriteMaxTokens(text),
+          messages: buildPromptedLocalRewriteMessages({ label, text: source, instruction, retryAfterEcho: true }),
+          maxTokens: localAIRewriteMaxTokens(source),
           onToken: (value) => setOutput(cleanLocalAIRewrite(value)),
         });
       }
-      setOutput(validateLocalAIRewrite(text, result));
+      setOutput(validateLocalAIRewrite(source, result));
     } catch (generationError) {
       setOutput("");
       setError(friendlyLocalAIError(generationError));
@@ -140,8 +145,10 @@ export function LocalAIInlineEdit({
           {error ? <p role="alert" className="text-xs font-normal text-destructive">{error}</p> : null}
           {output || generating ? (
             <div className="space-y-2" aria-live="polite">
-              <div className="max-h-44 overflow-y-auto whitespace-pre-wrap rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed">
-                {output || <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}</span>}
+              <div className="max-h-44 overflow-y-auto rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc [&_mark]:rounded-sm [&_mark]:bg-yellow-200/70 [&_mark]:px-0.5 dark:[&_mark]:bg-yellow-500/40">
+                {output
+                  ? <div dangerouslySetInnerHTML={{ __html: sanitizeRichContent(output) }} />
+                  : <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}</span>}
               </div>
               {!generating && output.trim() ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -150,7 +157,7 @@ export function LocalAIInlineEdit({
                     size="sm"
                     onClick={() => {
                       trackInlineAIEvent("inline_ai_accepted");
-                      onApply(cleanLocalAIRewrite(output));
+                      onApply(sanitizeRichContent(cleanLocalAIRewrite(output)));
                     }}
                   >
                     <Check /> Apply edit

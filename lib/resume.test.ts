@@ -140,7 +140,7 @@ describe("resume helpers", () => {
     const state = normalizeResume({
       sectionOrder: ["custom-certifications"],
       customSections: [{ id: "custom-certifications", title: "Certifications", entries: [] }],
-      sectionFormats: { "custom-certifications": "bullets" },
+      sectionFormats: { "custom-certifications": "text" },
       sectionText: { "custom-certifications": "AWS Certified Developer\nCertified Kubernetes Administrator" },
     });
 
@@ -194,21 +194,16 @@ describe("resume helpers", () => {
         title: "B.S. Computer Science",
         subtitle: "State University",
         meta: "2024",
-        details: "Relevant coursework included distributed systems, compilers, and database design.",
-        detailsFormat: "paragraph",
+        details: "<p>Relevant coursework included distributed systems, compilers, and database design.</p>",
       }],
     });
 
-    expect(state.education[0].detailsFormat).toBe("paragraph");
     expect(includedBulletsFrom(state.education[0])).toEqual([]);
     expect(resumePlainText(state)).toContain("\nRelevant coursework included distributed systems, compilers, and database design.");
     expect(resumePlainText(state)).not.toContain("- Relevant coursework");
     const document = strFromU8(unzipSync(resumeDocx(state))["word/document.xml"]);
     expect(document).toContain("Relevant coursework included distributed systems, compilers, and database design.");
     expect(document).not.toContain('w:hanging="180"');
-
-    const legacy = normalizeResume({ education: [{ title: "B.A.", details: "Honors" }] });
-    expect(legacy.education[0].detailsFormat).toBe("bullets");
   });
 
   it("creates granular, portal-friendly copy fields without adding empty values", () => {

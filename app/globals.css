@@ -564,40 +564,110 @@ html[data-resume-workspace="active"] .public-explainer {
   margin-bottom: 1px;
 }
 
-.resume-details-paragraphs {
-  margin-top: 3px;
+/* Block-level rich body (summary, entry details, free-text sections). A field
+   can mix bulleted, numbered, and plain-paragraph lines. */
+.resume-rich ul {
+  margin: 3px 0 0;
+  padding-left: 16px;
+  list-style: disc outside;
 }
 
-.resume-details-paragraph {
+.resume-rich ol {
+  margin: 3px 0 0;
+  padding-left: 18px;
+  list-style: decimal outside;
+}
+
+.resume-rich li {
+  margin-bottom: 1px;
+}
+
+.resume-rich p {
   margin: 0 0 3px;
 }
 
-.resume-details-paragraph:last-child {
+.resume-rich > :first-child {
+  margin-top: 0;
+}
+
+.resume-rich > :last-child {
   margin-bottom: 0;
 }
 
+/* Free-text section bodies read a touch smaller, matching the old layout. */
+.resume-section-body {
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+
 /* Bullet marker style (theme.bulletStyle). disc is the default handled above. */
-.resume-sheet[data-bullet="circle"] .resume-bullets {
+.resume-sheet[data-bullet="circle"] .resume-bullets,
+.resume-sheet[data-bullet="circle"] .resume-rich ul {
   list-style-type: circle;
 }
 
-.resume-sheet[data-bullet="dash"] .resume-bullets {
+.resume-sheet[data-bullet="dash"] .resume-bullets,
+.resume-sheet[data-bullet="dash"] .resume-rich ul {
   list-style: none;
 }
 
-.resume-sheet[data-bullet="dash"] .resume-bullets li {
+.resume-sheet[data-bullet="dash"] .resume-bullets li,
+.resume-sheet[data-bullet="dash"] .resume-rich ul > li {
   position: relative;
 }
 
-.resume-sheet[data-bullet="dash"] .resume-bullets li::before {
+.resume-sheet[data-bullet="dash"] .resume-bullets li::before,
+.resume-sheet[data-bullet="dash"] .resume-rich ul > li::before {
   content: "–";
   position: absolute;
   left: -14px;
 }
 
-.resume-sheet[data-bullet="none"] .resume-bullets {
-  padding-left: 0;
-  list-style: none;
+/* Inline formatting marks inside the printable sheet. <strong>/<em>/<u> use
+   browser defaults; only the highlight needs an explicit, print-safe color. */
+.resume-sheet mark {
+  background-color: #fef08a;
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Rich-text editor (form pane). Content is bare block HTML (ul/ol/li/p). */
+.rte-editable {
+  outline: none;
+}
+
+.rte-editable ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: disc outside;
+}
+
+.rte-editable ol {
+  margin: 0;
+  padding-left: 1.4rem;
+  list-style: decimal outside;
+}
+
+.rte-editable li {
+  margin: 0;
+}
+
+.rte-editable p {
+  margin: 0 0 0.4em;
+}
+
+.rte-editable p:last-child {
+  margin-bottom: 0;
+}
+
+.rte-editable mark {
+  background-color: #fde68a;
+  color: #1f2937;
+  padding: 0 1px;
+  border-radius: 2px;
 }
 
 .resume-skill-line {
@@ -802,7 +872,8 @@ html[data-resume-workspace="active"] .public-explainer {
     break-after: avoid;
   }
 
-  .resume-bullets li {
+  .resume-bullets li,
+  .resume-rich li {
     break-inside: avoid;
   }
 }

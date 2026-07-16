@@ -41,7 +41,7 @@ describe("LocalAIInlineEdit metrics", () => {
     expect(mocks.trackInlineAIEvent).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: /apply edit/i }));
-    await waitFor(() => expect(onApply).toHaveBeenCalledWith("Improved sentence with clearer impact."));
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith("<p>Improved sentence with clearer impact.</p>"));
     expect(mocks.trackInlineAIEvent).toHaveBeenLastCalledWith("inline_ai_accepted");
     expect(mocks.trackInlineAIEvent).toHaveBeenCalledTimes(2);
   });

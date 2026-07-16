@@ -1,7 +1,6 @@
 import { forwardRef, type ClipboardEvent, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
 import { BriefcaseBusiness, Calendar, Code, Dribbble, Figma, Github, Gitlab, Globe2, Instagram, Linkedin, Link as LinkIcon, Mail, MapPin, Newspaper, Phone, Twitter, Youtube } from "lucide-react";
 import {
-  bulletsFrom,
   contactHref,
   entryHasContent,
   getSectionEntries,
@@ -11,7 +10,6 @@ import {
   getSectionTitle,
   hasAnyContent,
   normalizeAccent,
-  paragraphsFrom,
   resolveHeaderLinkIcon,
   resumeHeaderLinks,
   visibleSectionOrder,
@@ -21,6 +19,7 @@ import {
   type HeaderLinkIconId,
   type TagGroup,
 } from "@/lib/resume";
+import { commitRichContent, renderRichContent, stripRichMarks } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 
 type InlineEditHandlers = {
@@ -125,68 +124,52 @@ function InlineText({
 }
 
 /**
- * A multi-line inline-editable list (bullets or skill lines). The rows are
- * React-rendered so the sheet measures at its true height, but while editing no
- * state changes (commit is on blur) so React never rewrites the text and the
- * browser's own Enter/Backspace list handling is left alone. A content-keyed
- * remount after each commit keeps reconciliation clean.
+ * Renders a rich "body" field (summary, entry details, free-text section body)
+ * on the sheet as canonical block HTML — so a field can mix bulleted, numbered,
+ * and plain-paragraph lines. Read-only mode paints the HTML; editable mode is a
+ * content-editable region that commits canonical block HTML on blur (native
+ * Cmd/Ctrl+B/I/U and Enter/list behavior keep working; the full toolbar lives in
+ * the form pane). Uncontrolled while focused and content-keyed so the caret is
+ * never fought. `legacyFormat` interprets old newline-based values.
  */
-function EditableList({
+function RichBody({
   editable,
-  items,
+  value,
+  legacyFormat,
   onCommit,
   spellCheck = true,
   className,
-  containerTag = "ul",
-  itemTag = "li",
-  itemClassName,
-  renderItem,
+  guideLabel,
+  readOnlyProps,
 }: {
   editable?: boolean;
-  items: string[];
-  onCommit: (items: string[]) => void;
-  /** Bullets and skill lines benefit from the browser's native local spellcheck. */
+  value: string;
+  legacyFormat?: string;
+  onCommit?: (value: string) => void;
   spellCheck?: boolean;
   className?: string;
-  containerTag?: "ul" | "div";
-  itemTag?: "li" | "div";
-  itemClassName?: string;
-  renderItem?: (item: string) => React.ReactNode;
+  guideLabel?: string;
+  readOnlyProps?: Record<string, unknown>;
 }) {
-  const Container = containerTag as React.ElementType;
-  const ItemTag = itemTag as React.ElementType;
+  const html = renderRichContent(value, legacyFormat);
+  const guideProps = guideLabel ? { "data-resume-guide-label": guideLabel } : {};
+
   if (!editable) {
-    return (
-      <Container className={className}>
-        {items.map((item, index) => (
-          <ItemTag key={`${item}-${index}`} className={itemClassName}>
-            {renderItem ? renderItem(item) : item}
-          </ItemTag>
-        ))}
-      </Container>
-    );
+    if (!html) return null;
+    return <div className={cn("resume-rich", className)} {...guideProps} {...readOnlyProps} dangerouslySetInnerHTML={{ __html: html }} />;
   }
-  const display = items.length ? items : [""];
+
   return (
-    <Container
-      key={items.join("")}
-      className={cn("resume-editable", className)}
+    <div
+      key={value}
+      className={cn("resume-rich resume-editable", className)}
       contentEditable
       suppressContentEditableWarning
       spellCheck={spellCheck}
-      onBlur={(event: FocusEvent<HTMLElement>) => {
-        const next = Array.from(event.currentTarget.children)
-          .map((child) => (child.textContent ?? "").trim())
-          .filter(Boolean);
-        onCommit(next);
-      }}
-    >
-      {display.map((text, index) => (
-        <ItemTag key={index} className={itemClassName}>
-          {text}
-        </ItemTag>
-      ))}
-    </Container>
+      {...guideProps}
+      onBlur={(event: FocusEvent<HTMLElement>) => onCommit?.(commitRichContent(event.currentTarget))}
+      dangerouslySetInnerHTML={{ __html: html || "<p><br></p>" }}
+    />
   );
 }
 
@@ -356,17 +339,15 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
           ))}
         </div>
       ) : null}
-      {state.summary ? (
-        <InlineText
-          as="p"
+      {stripRichMarks(state.summary).trim() ? (
+        <RichBody
           editable={editable}
           value={state.summary}
-          placeholder="Professional summary"
-          multiline
+          legacyFormat="paragraph"
           onCommit={(value) => onEditField?.("summary", value)}
-          data-resume-guide-label="Summary"
-          className={cn("resume-lead resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")}
-          {...(editable ? {} : previewTargetProps("field-summary", onTargetSelect))}
+          guideLabel="Summary"
+          className={cn("resume-lead", "resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")}
+          readOnlyProps={previewTargetProps("field-summary", onTargetSelect)}
         />
       ) : null}
       {visibleSectionOrder(state).map((section) => (
@@ -514,7 +495,7 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
     activeTarget === `field-${section}` ||
     activeTarget?.startsWith(`field-${section}-`);
   const title = getSectionTitle(state, section).trim();
-  const editableHeading = title && section !== "skills" ? (
+  const editableHeading = title ? (
     <InlineText
       as="h2"
       editable={editable}
@@ -593,7 +574,7 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
     );
   }
 
-  if (sectionFormat === "bullets" || sectionFormat === "paragraphs" || sectionFormat === "labeled-rows") {
+  if (sectionFormat === "text") {
     const printBreakTarget = `section:${section}`;
     const text = getSectionText(state, section).trim();
     if (!text) return null;
@@ -607,15 +588,7 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
         {...(editable ? {} : previewTargetProps(targetId, onTargetSelect))}
       >
         {editableHeading}
-        {sectionFormat === "bullets" ? (
-          <ul className="resume-bullets">
-            {bulletsFrom(text).map((line, index) => <li key={`${section}-${index}`}>{line}</li>)}
-          </ul>
-        ) : (
-          <div className="grid gap-1.5 text-[0.9em] leading-relaxed">
-            {text.split(sectionFormat === "paragraphs" ? /\n\s*\n/ : "\n").map((line, index) => line.trim() ? <p key={`${section}-${index}`}>{line.trim()}</p> : null)}
-          </div>
-        )}
+        <RichBody value={text} legacyFormat="bullets" className="resume-section-body" />
       </section>
     );
   }
@@ -680,33 +653,15 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
               onCommit={(value) => onEditEntry?.(section, originalIndex, "subtitle", value)}
             />
           ) : null}
-          {(() => {
-            if (entry.detailsFormat === "paragraph") {
-              const paragraphs = paragraphsFrom(entry.details);
-              if (!paragraphs.length) return null;
-              return (
-                <EditableList
-                  editable={editable}
-                  items={paragraphs}
-                  containerTag="div"
-                  itemTag="div"
-                  className="resume-details-paragraphs"
-                  itemClassName="resume-details-paragraph"
-                  onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n\n"))}
-                />
-              );
-            }
-            const bullets = bulletsFrom(entry.details);
-            if (!bullets.length) return null;
-            return (
-              <EditableList
-                editable={editable}
-                items={bullets}
-                className="resume-bullets"
-                onCommit={(items) => onEditEntry?.(section, originalIndex, "details", items.join("\n"))}
-              />
-            );
-          })()}
+          {stripRichMarks(entry.details).trim() ? (
+            <RichBody
+              editable={editable}
+              value={entry.details}
+              legacyFormat="bullets"
+              className="resume-entry-body"
+              onCommit={(value) => onEditEntry?.(section, originalIndex, "details", value)}
+            />
+          ) : null}
         </div>
       ))}
     </section>

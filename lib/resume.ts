@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasBlockTags, inlineHtmlToMarkdown, parseRichContent, stripRichMarks } from "@/lib/rich-text";
 
 export const SECTION_KEYS = ["education", "experience", "projects", "skills"] as const;
 
@@ -85,20 +86,18 @@ export const DENSITY_LABELS: Record<Density, string> = {
   compact: "Compact",
 };
 
-export const BULLET_STYLES = ["disc", "circle", "dash", "none"] as const;
+export const BULLET_STYLES = ["disc", "circle", "dash"] as const;
 export type BulletStyle = (typeof BULLET_STYLES)[number];
 export const BULLET_STYLE_LABELS: Record<BulletStyle, string> = {
   disc: "Bullet",
   circle: "Circle",
   dash: "Dash",
-  none: "None",
 };
 /** Literal marker for export paths that can't use CSS list markers (DOCX). */
 export const BULLET_STYLE_MARKERS: Record<BulletStyle, string> = {
   disc: "•",
   circle: "◦",
   dash: "–",
-  none: "",
 };
 
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -145,14 +144,12 @@ export function normalizeAccent(value: string): string {
 
 export type SectionId = SectionKey | `custom-${string}`;
 
-export const SECTION_FORMATS = ["entries", "tag-groups", "bullets", "paragraphs", "labeled-rows"] as const;
+export const SECTION_FORMATS = ["entries", "tag-groups", "text"] as const;
 export type SectionFormat = (typeof SECTION_FORMATS)[number];
 export const SECTION_FORMAT_LABELS: Record<SectionFormat, string> = {
   entries: "Structured entries",
   "tag-groups": "Grouped tags",
-  bullets: "Bulleted list",
-  paragraphs: "Paragraphs",
-  "labeled-rows": "Labeled rows",
+  text: "Free text",
 };
 
 /** A useful starting layout for each common optional section. */
@@ -181,7 +178,6 @@ export const entrySchema = z.object({
   subtitle: z.string().catch(""),
   meta: z.string().catch(""),
   details: z.string().catch(""),
-  detailsFormat: z.enum(["bullets", "paragraph"]).catch("bullets").optional(),
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
@@ -449,7 +445,7 @@ export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
 export function blankEntry(): ResumeEntry {
-  return { title: "", subtitle: "", meta: "", details: "", detailsFormat: "bullets" };
+  return { title: "", subtitle: "", meta: "", details: "" };
 }
 
 export function emptyState(): ResumeState {
@@ -704,8 +700,9 @@ export function visibleSectionOrder(state: ResumeState) {
 export function sectionItemCount(state: ResumeState, section: string) {
   const format = getSectionFormat(state, section);
   if (format === "tag-groups") return getSectionTagGroups(state, section).reduce((count, group) => count + group.tags.length, 0);
-  if (format === "bullets" || format === "labeled-rows") return getSectionText(state, section).split("\n").filter((line) => line.trim()).length;
-  if (format === "paragraphs") return getSectionText(state, section).split(/\n\s*\n/).filter((paragraph) => paragraph.trim()).length;
+  if (format === "text") {
+    return parseRichContent(getSectionText(state, section), "bullets").length;
+  }
   return getSectionEntries(state, section).length;
 }
 
@@ -715,22 +712,64 @@ export function clampTextScale(value: number) {
 }
 
 export function bulletsFrom(details: string) {
+  if (hasBlockTags(details)) {
+    return parseRichContent(details).map((block) => stripRichMarks(block.html).replace(/\s+/g, " ").trim()).filter(Boolean);
+  }
   return details
     .split("\n")
-    .map((line) => line.trim())
+    .map((line) => stripRichMarks(line).trim())
     .filter(Boolean);
 }
 
 export function paragraphsFrom(details: string) {
+  if (hasBlockTags(details)) {
+    return parseRichContent(details).map((block) => stripRichMarks(block.html).replace(/\s+/g, " ").trim()).filter(Boolean);
+  }
   return details
     .split(/\n\s*\n/)
-    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+    .map((paragraph) => stripRichMarks(paragraph).replace(/\s+/g, " ").trim())
     .filter(Boolean);
 }
 
-/** Returns every bullet for an entry (previews and exports show them all). */
+/**
+ * Plain-text lines for one rich field, one per block, list items prefixed with
+ * `mark`. Used by plain-text export and portal copy. Honors mixed block types.
+ */
+function contentPlainLines(value: string, legacyFormat?: string, mark = "- ") {
+  return parseRichContent(value, legacyFormat)
+    .map((block) => {
+      const text = stripRichMarks(block.html).replace(/\s+/g, " ").trim();
+      if (!text) return "";
+      return block.type === "paragraph" ? text : `${mark}${text}`;
+    })
+    .filter(Boolean);
+}
+
+/** Markdown for one rich field: `- `/`1. ` list items, blank-line-separated paragraphs. */
+function contentMarkdown(value: string, legacyFormat?: string) {
+  const blocks = parseRichContent(value, legacyFormat);
+  const lines = blocks.map((block) => {
+    const md = inlineHtmlToMarkdown(block.html);
+    if (block.type === "bullet") return { list: true, md: `- ${md}` };
+    if (block.type === "number") return { list: true, md: `1. ${md}` };
+    return { list: false, md };
+  });
+  return lines.reduce((out, line, index) => {
+    if (index === 0) return line.md;
+    const separator = line.list && lines[index - 1].list ? "\n" : "\n\n";
+    return `${out}${separator}${line.md}`;
+  }, "");
+}
+
+/** Returns the list items (bullets/numbers) of an entry — its concise lines. */
 export function includedBulletsFrom(entry: ResumeEntry) {
-  return entry.detailsFormat === "paragraph" ? [] : bulletsFrom(entry.details);
+  if (hasBlockTags(entry.details)) {
+    return parseRichContent(entry.details)
+      .filter((block) => block.type !== "paragraph")
+      .map((block) => stripRichMarks(block.html).replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+  }
+  return bulletsFrom(entry.details);
 }
 
 export function wordCount(text: string) {
@@ -760,7 +799,7 @@ export function allBullets(state: ResumeState) {
   return visibleSectionOrder(state)
     .flatMap((section) => {
       const format = getSectionFormat(state, section);
-      if (format === "bullets") return bulletsFrom(getSectionText(state, section));
+      if (format === "text") return bulletsFrom(getSectionText(state, section));
       if (format !== "entries") return [];
       return getSectionEntries(state, section).flatMap((entry) => includedBulletsFrom(entry));
     });
@@ -936,7 +975,7 @@ export function buildResumeChecks(
   const measuredEvidence = evidence.filter(({ bullet }) => hasMeasuredEvidence(bullet));
   const evidenceIsBalanced = !evidence.length || measuredEvidence.length / evidence.length >= 0.5;
   const firstUnmeasuredEvidence = evidence.find(({ bullet }) => !hasMeasuredEvidence(bullet));
-  const summaryWords = wordCount(state.summary);
+  const summaryWords = wordCount(stripRichMarks(state.summary));
   const firstBulletTarget =
     visibleSectionOrder(state)
       .filter((section) => section !== "skills")
@@ -1049,11 +1088,7 @@ function entryPlainText(entry: ResumeEntry) {
 
   if (title) lines.push(title);
   if (subtitle || meta) lines.push([subtitle, meta].filter(Boolean).join(" | "));
-  if (entry.detailsFormat === "paragraph") {
-    lines.push(...paragraphsFrom(entry.details));
-  } else {
-    includedBulletsFrom(entry).forEach((bullet) => lines.push(`- ${cleanTextLine(bullet)}`));
-  }
+  lines.push(...contentPlainLines(entry.details, "bullets"));
   return lines;
 }
 
@@ -1067,12 +1102,8 @@ function sectionPlainText(state: ResumeState, label: string, section: string) {
       .filter(Boolean);
     return lines.length ? [...heading, ...lines] : [];
   }
-  if (format === "bullets") {
-    const lines = bulletsFrom(getSectionText(state, section)).map((line) => `- ${cleanTextLine(line)}`);
-    return lines.length ? [...heading, ...lines] : [];
-  }
-  if (format === "paragraphs" || format === "labeled-rows") {
-    const lines = getSectionText(state, section).split("\n").map(cleanTextLine).filter(Boolean);
+  if (format === "text") {
+    const lines = contentPlainLines(getSectionText(state, section), "bullets");
     return lines.length ? [...heading, ...lines] : [];
   }
   const entries = getSectionEntries(state, section).filter(entryHasContent);
@@ -1097,7 +1128,7 @@ export function resumePlainText(state: ResumeState) {
       .filter(Boolean)
       .join(" | "),
   ]);
-  pushBlock(lines, state.summary ? ["Summary", cleanTextLine(state.summary)] : []);
+  pushBlock(lines, state.summary ? ["Summary", cleanTextLine(stripRichMarks(state.summary))] : []);
   visibleSectionOrder(state).forEach((key) => {
     pushBlock(lines, sectionPlainText(state, getSectionTitle(state, key), key));
   });
@@ -1112,13 +1143,8 @@ function entryMarkdown(entry: ResumeEntry): string {
   if (title) blocks.push(`### ${title}`);
   const metaLine = [subtitle, meta].filter(Boolean).join(" · ");
   if (metaLine) blocks.push(`*${metaLine}*`);
-  if (entry.detailsFormat === "paragraph") {
-    const paragraphs = paragraphsFrom(entry.details);
-    if (paragraphs.length) blocks.push(paragraphs.join("\n\n"));
-  } else {
-    const bullets = includedBulletsFrom(entry).map((bullet) => `- ${cleanTextLine(bullet)}`);
-    if (bullets.length) blocks.push(bullets.join("\n"));
-  }
+  const details = contentMarkdown(entry.details, "bullets");
+  if (details) blocks.push(details);
   return blocks.join("\n\n");
 }
 
@@ -1138,15 +1164,9 @@ function sectionMarkdown(state: ResumeState, section: string): string {
       })
       .filter(Boolean);
     if (lines.length) blocks.push(lines.join("\n\n"));
-  } else if (format === "bullets" || format === "labeled-rows") {
-    const source = format === "bullets"
-      ? bulletsFrom(getSectionText(state, section))
-      : getSectionText(state, section).split("\n").map(cleanTextLine).filter(Boolean);
-    const lines = source.map((line) => `- ${cleanTextLine(line)}`);
-    if (lines.length) blocks.push(lines.join("\n"));
-  } else if (format === "paragraphs") {
-    const paragraphs = paragraphsFrom(getSectionText(state, section));
-    if (paragraphs.length) blocks.push(paragraphs.join("\n\n"));
+  } else if (format === "text") {
+    const md = contentMarkdown(getSectionText(state, section), "bullets");
+    if (md) blocks.push(md);
   } else {
     const entries = getSectionEntries(state, section).filter(entryHasContent).map(entryMarkdown).filter(Boolean);
     if (entries.length) blocks.push(entries.join("\n\n"));
@@ -1183,9 +1203,9 @@ export function resumeMarkdown(state: ResumeState) {
   const contact = [...contactBits, ...linkBits].join(" · ");
   if (contact) blocks.push(contact);
 
-  if (cleanTextLine(state.summary)) {
+  if (stripRichMarks(state.summary).trim()) {
     blocks.push("## Summary");
-    blocks.push(paragraphsFrom(state.summary).join("\n\n") || cleanTextLine(state.summary));
+    blocks.push(contentMarkdown(state.summary, "paragraph") || inlineHtmlToMarkdown(state.summary));
   }
 
   visibleSectionOrder(state).forEach((section) => {
@@ -1204,9 +1224,7 @@ function entryApplicationCopyGroup(section: string, label: string, entry: Resume
   const title = applicationCopyValue(entry.title);
   const subtitle = applicationCopyValue(entry.subtitle);
   const meta = applicationCopyValue(entry.meta);
-  const details = entry.detailsFormat === "paragraph"
-    ? paragraphsFrom(entry.details).join("\n\n")
-    : includedBulletsFrom(entry).map((bullet) => `• ${cleanTextLine(bullet)}`).join("\n");
+  const details = contentPlainLines(entry.details, "bullets", "• ").join("\n");
   const entryText = entryPlainText(entry).join("\n");
   // Portal copy labels stay compact, while optional sections still benefit
   // from the same specific metadata names shown in the editor.
@@ -1320,7 +1338,7 @@ function sectionTargetId(section: "experience" | "education" | "projects") {
 }
 
 function snippet(value: string) {
-  const cleaned = cleanTextLine(value);
+  const cleaned = cleanTextLine(stripRichMarks(value));
   if (!cleaned) return "Empty";
   return cleaned.length > 86 ? `${cleaned.slice(0, 83)}...` : cleaned;
 }
@@ -1421,13 +1439,6 @@ function repeatableSectionChangeDetails(
         foundTarget = true;
       }
     });
-    if (before.detailsFormat !== after.detailsFormat) {
-      fieldLabels.push(`Entry ${index + 1} details format`);
-      if (!foundTarget) {
-        targetId = `field-${section}-${index}-details`;
-        foundTarget = true;
-      }
-    }
   }
 
   return { fieldLabels, targetId };
@@ -1465,7 +1476,7 @@ export function exportChangeSummary(previousState: ResumeState, currentState: Re
     changes.push({
       id: "summary",
       label: "Summary changed",
-      detail: `${wordCount(current.summary)} words now`,
+      detail: `${wordCount(stripRichMarks(current.summary))} words now`,
       targetId: "field-summary",
       before: snippet(previous.summary),
       after: snippet(current.summary),

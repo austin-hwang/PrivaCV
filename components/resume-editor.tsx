@@ -66,7 +66,9 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 import { toggleTheme } from "@/components/theme-toggle";
 import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
 import { Input } from "@/components/ui/input";
-import { EntryList, FieldGroup, TagGroupEditor, TextAreaField, TextField } from "@/components/resume-editor/editor-fields";
+import { EntryList, FieldGroup, TagGroupEditor, TextField } from "@/components/resume-editor/editor-fields";
+import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
+import { stripRichMarks } from "@/lib/rich-text";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
 import { ResumePreview } from "@/components/resume-editor/resume-preview";
 import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
@@ -113,7 +115,6 @@ import {
   resolveFontStack,
   SECTION_KEYS,
   SECTION_FORMAT_LABELS,
-  SECTION_FORMATS,
   SECTION_LABELS,
   TEMPLATE_THEMES,
   type BulletStyle,
@@ -152,14 +153,6 @@ const LocalAIBackgroundLoader = dynamic(
 // Structured import repair is too inconsistent on the small local models.
 // Keep the implementation available, but hide its entry points until quality improves.
 const LOCAL_AI_IMPORT_FIX_ENABLED = false;
-
-const SECTION_FORMAT_SHORT_LABELS: Record<SectionFormat, string> = {
-  entries: "Entries",
-  "tag-groups": "Tags",
-  bullets: "Bullets",
-  paragraphs: "Paragraphs",
-  "labeled-rows": "Rows",
-};
 
 type LocalAIInlineTarget = {
   id: string;
@@ -910,7 +903,7 @@ export function ResumeEditor() {
         context: "Header link",
         keywords: link.url,
       })),
-      { id: "field-summary", label: "Professional summary", context: "Summary", keywords: state.summary },
+      { id: "field-summary", label: "Professional summary", context: "Summary", keywords: stripRichMarks(state.summary) },
     ];
 
     for (const section of state.sectionOrder) {
@@ -939,7 +932,7 @@ export function ResumeEditor() {
           id: `field-${section}-content`,
           label: `${sectionTitle} content`,
           context: `${sectionTitle} · ${SECTION_FORMAT_LABELS[format]}`,
-          keywords: getSectionText(state, section),
+          keywords: stripRichMarks(getSectionText(state, section)),
         });
         continue;
       }
@@ -948,7 +941,7 @@ export function ResumeEditor() {
       getSectionEntries(state, section).forEach((entry, index) => {
         const entryLabel = entry.title.trim() || entry.subtitle.trim() || `Entry ${index + 1}`;
         const context = `${sectionTitle} · ${entryLabel}`;
-        const keywords = `${entry.title} ${entry.subtitle} ${entry.meta} ${entry.details}`;
+        const keywords = `${entry.title} ${entry.subtitle} ${entry.meta} ${stripRichMarks(entry.details)}`;
         (Object.keys(schema) as (keyof typeof schema)[]).forEach((field) => {
           items.push({
             id: `field-${section}-${index}-${field}`,
@@ -1223,6 +1216,11 @@ export function ResumeEditor() {
           aria-label="Resume editor"
           onFocusCapture={(event) => {
             const target = event.target as HTMLElement;
+            // The group's expand/collapse button is the sole controller of its
+            // open state (it activates the group itself on open). Letting focus
+            // also set the active target here would auto-open the group a beat
+            // before the click toggles it — opening then immediately closing it.
+            if (target.closest("[data-tag-group-toggle]")) return;
             const tagGroup = target.closest<HTMLElement>("[data-editor-tag-group]");
             if (tagGroup?.id) setActiveTarget(tagGroup.id);
             else if (target.id?.startsWith("field-") || target.id?.startsWith("section-title-")) setActiveTarget(target.id);
@@ -1502,10 +1500,11 @@ export function ResumeEditor() {
               </FieldGroup>
 
               <FieldGroup id="edit-summary" title="Summary" reviewRegion className={cn(summaryActive && ACTIVE_SECTION_CLASS)} {...groupProps("summary")}>
-                <TextAreaField
+                <RichTextEditor
                   id="field-summary"
                   label="Professional Summary"
                   value={state.summary}
+                  legacyFormat="paragraph"
                   placeholder="Brief overview of your experience and strengths."
                   onChange={(value) => updateField("summary", value)}
                   aiAssist={localAIEnabled ? {
@@ -1533,6 +1532,7 @@ export function ResumeEditor() {
                 const customSection = !isBuiltinSection(section);
                 const entries = getSectionEntries(state, section);
                 const sectionFormat = getSectionFormat(state, section);
+                const sectionIsText = sectionFormat === "text";
                 const tagGroups = getSectionTagGroups(state, section);
                 const sectionText = getSectionText(state, section);
                 const sectionHidden = isSectionHidden(state, section);
@@ -1650,7 +1650,7 @@ export function ResumeEditor() {
                             window.setTimeout(() => document.getElementById(`tag-group-${groupId}-label`)?.focus(), 0);
                           }}
                         >
-                          <Plus /> <span className="editor-pane-wide">Add group</span>
+                          <Plus /> <span className="editor-pane-wide">Add</span>
                         </Button>
                       ) : sectionFormat === "entries" ? (
                         <Button
@@ -1726,23 +1726,25 @@ export function ResumeEditor() {
                       aria-labelledby={`section-format-${section}`}
                       className="flex w-full overflow-x-auto rounded-md border border-input bg-background shadow-sm"
                     >
-                      {SECTION_FORMATS.map((format, index) => (
+                      {([
+                        { key: "entries", label: "Entries" },
+                        { key: "tag-groups", label: "Tags" },
+                        { key: "text", label: "Text" },
+                      ] as const).map((option, index) => (
                         <button
-                          key={format}
+                          key={option.key}
                           type="button"
-                          aria-pressed={sectionFormat === format}
-                          aria-label={`${SECTION_FORMAT_LABELS[format]} format`}
-                          title={SECTION_FORMAT_LABELS[format]}
-                          onClick={() => updateSectionFormat(section, format)}
+                          aria-pressed={sectionFormat === option.key}
+                          aria-label={`${option.label} format`}
+                          title={option.label}
+                          onClick={() => updateSectionFormat(section, option.key)}
                           className={cn(
                             "min-w-fit flex-1 border-l px-2 py-2 text-xs font-medium transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                             index === 0 && "border-l-0",
-                            sectionFormat === format
-                              ? "bg-foreground text-background"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            sectionFormat === option.key ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                           )}
                         >
-                          {SECTION_FORMAT_SHORT_LABELS[format]}
+                          {option.label}
                         </button>
                       ))}
                     </div>
@@ -1751,11 +1753,7 @@ export function ResumeEditor() {
                         ? "Use labeled groups and removable tags for concise skills, tools, languages, or competencies."
                         : sectionFormat === "entries"
                           ? "Use a heading, supporting details, and optional bullets for each item."
-                          : sectionFormat === "bullets"
-                            ? "Use one concise bullet per line."
-                            : sectionFormat === "paragraphs"
-                              ? "Use plain paragraphs for narrative or additional information."
-                              : "Use one concise labeled row per line, such as Credential — Issuer, Year."}
+                          : "A free text body. Use the toolbar to make each line a bullet, a number, or a plain paragraph — mix them freely."}
                     </p>
                   </div>
                   {sectionFormat === "tag-groups" ? (
@@ -1765,31 +1763,15 @@ export function ResumeEditor() {
                       activeTarget={activeTarget}
                       onChange={(groups) => updateSectionTagGroups(section, groups)}
                       onGroupCollapse={() => setActiveTarget(null)}
+                      onGroupActivate={(targetId) => setActiveTarget(targetId)}
                     />
-                  ) : sectionFormat === "bullets" ? (
-                    <TextAreaField
+                  ) : sectionIsText ? (
+                    <RichTextEditor
                       id={`field-${section}-content`}
-                      label={`${sectionDisplayTitle} (one bullet per line)`}
+                      label={`${sectionDisplayTitle} content`}
                       value={sectionText}
-                      placeholder="One concise item per line"
-                      onChange={(value) => updateSectionText(section, value)}
-                      aiAssist={sectionTextAIAssist}
-                    />
-                  ) : sectionFormat === "paragraphs" ? (
-                    <TextAreaField
-                      id={`field-${section}-content`}
-                      label={`${sectionDisplayTitle} paragraphs`}
-                      value={sectionText}
-                      placeholder="Write one or more concise paragraphs."
-                      onChange={(value) => updateSectionText(section, value)}
-                      aiAssist={sectionTextAIAssist}
-                    />
-                  ) : sectionFormat === "labeled-rows" ? (
-                    <TextAreaField
-                      id={`field-${section}-content`}
-                      label={`${sectionDisplayTitle} (one labeled row per line)`}
-                      value={sectionText}
-                      placeholder="Certification — Issuer, 2025"
+                      legacyFormat="bullets"
+                      placeholder="Add a line, then use the toolbar for bullets or numbers"
                       onChange={(value) => updateSectionText(section, value)}
                       aiAssist={sectionTextAIAssist}
                     />

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { entryFieldSchema, entryHasContent, type ResumeEntry, type TagGroup } from "@/lib/resume";
+import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
@@ -209,6 +210,7 @@ function TagGroupRow({
       <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
         <button
           type="button"
+          data-tag-group-toggle=""
           aria-expanded={open}
           aria-label={`${open ? "Collapse" : "Expand"} ${group.label || "untitled"} tag group`}
           onClick={onToggle}
@@ -286,12 +288,15 @@ export function TagGroupEditor({
   activeTarget,
   onChange,
   onGroupCollapse,
+  onGroupActivate,
 }: {
   section: string;
   groups: TagGroup[];
   activeTarget?: string | null;
   onChange: (groups: TagGroup[]) => void;
   onGroupCollapse?: () => void;
+  /** Highlights the group (and its preview row) when the toggle opens it. */
+  onGroupActivate?: (targetId: string) => void;
 }) {
   const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => new Set());
 
@@ -325,7 +330,11 @@ export function TagGroupEditor({
             open={open}
             active={activeTarget === targetId}
             onToggle={() => {
-              if (open && activeTarget === targetId) onGroupCollapse?.();
+              if (open) {
+                if (activeTarget === targetId) onGroupCollapse?.();
+              } else {
+                onGroupActivate?.(targetId);
+              }
               setOpenGroupIds((current) => {
                 const next = new Set(current);
                 if (open) next.delete(group.id);
@@ -590,35 +599,11 @@ export function EntryList({
                   value={entry.meta}
                   onChange={(value) => onUpdate(section, index, "meta", value)}
                 />
-                <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
-                  <span>Details format</span>
-                  <div
-                    role="group"
-                    aria-label={`Details format for ${primary}`}
-                    className="flex overflow-hidden rounded-md border border-input bg-background shadow-sm"
-                  >
-                    {(["bullets", "paragraph"] as const).map((format) => (
-                      <button
-                        key={format}
-                        type="button"
-                        aria-pressed={format === "bullets" ? entry.detailsFormat !== "paragraph" : entry.detailsFormat === "paragraph"}
-                        onClick={() => onUpdate(section, index, "detailsFormat", format)}
-                        className={cn(
-                          "border-l px-3 py-1.5 text-xs transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                          (format === "bullets" ? entry.detailsFormat !== "paragraph" : entry.detailsFormat === "paragraph")
-                            ? "bg-foreground text-background"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )}
-                      >
-                        {format === "bullets" ? "Bullets" : "Paragraph"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <TextAreaField
+                <RichTextEditor
                   id={`field-${section}-${index}-details`}
                   label={schema.details}
                   value={entry.details}
+                  legacyFormat="bullets"
                   onChange={(value) => onUpdate(section, index, "details", value)}
                   aiAssist={onAIEdit ? {
                     expanded: aiTargetId === `${section}:${index}`,

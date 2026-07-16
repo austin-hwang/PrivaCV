@@ -8,15 +8,14 @@ import {
   getSectionTagGroups,
   getSectionText,
   getSectionTitle,
-  includedBulletsFrom,
   normalizeAccent,
-  paragraphsFrom,
   resumeHeaderLinks,
   resolveDocxFont,
   visibleSectionOrder,
   type ResumeEntry,
   type ResumeState,
 } from "@/lib/resume";
+import { inlineRuns, parseRichContent, stripRichMarks } from "@/lib/rich-text";
 
 function accentHex(state: ResumeState) {
   return normalizeAccent(state.theme.accent).slice(1);
@@ -39,14 +38,24 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-function textRun(value: string, options: { bold?: boolean; size?: number; color?: string } = {}) {
+function textRun(value: string, options: { bold?: boolean; italic?: boolean; underline?: boolean; highlight?: boolean; size?: number; color?: string } = {}) {
   if (!value) return "";
   const properties = [
     options.bold ? "<w:b/>" : "",
+    options.italic ? "<w:i/>" : "",
+    options.underline ? '<w:u w:val="single"/>' : "",
+    options.highlight ? '<w:highlight w:val="yellow"/>' : "",
     options.size ? `<w:sz w:val=\"${options.size}\"/>` : "",
     options.color ? `<w:color w:val=\"${options.color}\"/>` : "",
   ].join("");
   return `<w:r>${properties ? `<w:rPr>${properties}</w:rPr>` : ""}<w:t xml:space=\"preserve\">${escapeXml(value)}</w:t></w:r>`;
+}
+
+/** Converts a canonical inline-HTML block string into a sequence of DOCX runs. */
+function inlineRunsXml(value: string, base: { size?: number; color?: string } = {}) {
+  return inlineRuns(value)
+    .map((run) => textRun(run.text, { ...base, bold: run.bold, italic: run.italic, underline: run.underline, highlight: run.highlight }))
+    .join("");
 }
 
 function paragraph(content: string, options: { alignment?: "center"; before?: number; after?: number; bullet?: boolean; marker?: string } = {}) {
@@ -82,22 +91,36 @@ function contactRuns(state: ResumeState, relationships: DocxRelationship[]) {
     .join("");
 }
 
+/**
+ * Renders block content (mixed bullets / numbers / paragraphs) as DOCX
+ * paragraphs. Bulleted items use the theme marker; numbered items show a running
+ * ordinal; paragraphs are plain. Numbering resets after any non-numbered line.
+ */
+function blocksToDocx(value: string, legacyFormat: string | undefined, bulletMarker: string, paragraphAfter: number) {
+  let ordinal = 0;
+  return parseRichContent(value, legacyFormat)
+    .map((block) => {
+      if (block.type === "number") {
+        ordinal += 1;
+        return paragraph(inlineRunsXml(block.html), { bullet: true, marker: `${ordinal}.`, after: 24 });
+      }
+      ordinal = 0;
+      if (block.type === "bullet") {
+        return paragraph(inlineRunsXml(block.html), { bullet: bulletMarker !== "", marker: bulletMarker, after: 24 });
+      }
+      return paragraph(inlineRunsXml(block.html), { after: paragraphAfter });
+    })
+    .join("");
+}
+
 function entryParagraphs(entry: ResumeEntry, bulletMarker: string) {
   const parts = [
     entry.title ? textRun(entry.title, { bold: true }) : "",
     entry.subtitle ? textRun(`${entry.title ? " | " : ""}${entry.subtitle}`) : "",
     entry.meta ? textRun(`${entry.title || entry.subtitle ? " | " : ""}${entry.meta}`) : "",
   ].join("");
-  const bullets = includedBulletsFrom(entry);
-  const paragraphs = entry.detailsFormat === "paragraph" ? paragraphsFrom(entry.details) : [];
-  const hasDetails = bullets.length > 0 || paragraphs.length > 0;
-  const heading = parts ? paragraph(parts, { after: hasDetails ? 20 : 90 }) : "";
-  // A "none" style drops the marker and its hanging indent — the line becomes a
-  // plain paragraph so it reads as an unmarked list.
-  const bulleted = bulletMarker !== "";
-  const details = entry.detailsFormat === "paragraph"
-    ? paragraphs.map((text) => paragraph(textRun(text), { after: 45 })).join("")
-    : bullets.map((bullet) => paragraph(textRun(bullet), { bullet: bulleted, marker: bulletMarker, after: 24 })).join("");
+  const details = blocksToDocx(entry.details, "bullets", bulletMarker, 45);
+  const heading = parts ? paragraph(parts, { after: details ? 20 : 90 }) : "";
   return `${heading}${details}`;
 }
 
@@ -113,19 +136,22 @@ function sectionParagraphs(state: ResumeState, section: string) {
     if (!lines.length) return "";
     return `${title ? heading(title) : ""}${lines.map((line) => paragraph(textRun(line), { after: 30 })).join("")}`;
   }
-  if (format === "bullets" || format === "paragraphs" || format === "labeled-rows") {
+  if (format === "text") {
     const text = getSectionText(state, section).trim();
     if (!text) return "";
-    const lines = format === "paragraphs" ? text.split(/\n\s*\n/) : text.split("\n");
-    const bullet = format === "bullets" && BULLET_STYLE_MARKERS[state.theme.bulletStyle] !== "";
-    const marker = BULLET_STYLE_MARKERS[state.theme.bulletStyle];
-    return `${title ? heading(title) : ""}${lines.filter((line) => line.trim()).map((line) => paragraph(textRun(line.trim()), { bullet, marker, after: 30 })).join("")}`;
+    const body = blocksToDocx(text, "bullets", BULLET_STYLE_MARKERS[state.theme.bulletStyle], 30);
+    return `${title ? heading(title) : ""}${body}`;
   }
 
   const entries = getSectionEntries(state, section).filter(entryHasContent);
   if (!entries.length) return "";
   const bulletMarker = BULLET_STYLE_MARKERS[state.theme.bulletStyle];
   return `${title ? heading(title) : ""}${entries.map((entry) => entryParagraphs(entry, bulletMarker)).join("")}`;
+}
+
+function summaryParagraphs(state: ResumeState) {
+  if (!stripRichMarks(state.summary).trim()) return "";
+  return blocksToDocx(state.summary, "paragraph", BULLET_STYLE_MARKERS[state.theme.bulletStyle], 90);
 }
 
 function documentXml(state: ResumeState, relationships: DocxRelationship[]) {
@@ -135,7 +161,7 @@ function documentXml(state: ResumeState, relationships: DocxRelationship[]) {
     state.name ? paragraph(textRun(state.name, { bold: true, size: 32, color: accentHex(state) }), { alignment: align, after: 40 }) : "",
     state.title ? paragraph(textRun(state.title, { size: 22 }), { alignment: align, after: 25 }) : "",
     contacts ? paragraph(contacts, { alignment: align, after: 120 }) : "",
-    state.summary ? paragraph(textRun(state.summary), { after: 90 }) : "",
+    summaryParagraphs(state),
     ...visibleSectionOrder(state).map((section) => sectionParagraphs(state, section)),
   ].join("");
 
