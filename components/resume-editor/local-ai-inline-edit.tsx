@@ -145,7 +145,7 @@ export function LocalAIInlineEdit({
           {error ? <p role="alert" className="text-xs font-normal text-destructive">{error}</p> : null}
           {output || generating ? (
             <div className="space-y-2" aria-live="polite">
-              <div className="max-h-44 overflow-y-auto rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc [&_mark]:rounded-sm [&_mark]:bg-yellow-200/70 [&_mark]:px-0.5 dark:[&_mark]:bg-yellow-500/40">
+              <div className="max-h-44 overflow-y-auto rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc">
                 {output
                   ? <div dangerouslySetInnerHTML={{ __html: sanitizeRichContent(output) }} />
                   : <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}</span>}

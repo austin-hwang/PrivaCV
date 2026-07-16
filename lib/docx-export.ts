@@ -38,13 +38,12 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-function textRun(value: string, options: { bold?: boolean; italic?: boolean; underline?: boolean; highlight?: boolean; size?: number; color?: string } = {}) {
+function textRun(value: string, options: { bold?: boolean; italic?: boolean; underline?: boolean; size?: number; color?: string } = {}) {
   if (!value) return "";
   const properties = [
     options.bold ? "<w:b/>" : "",
     options.italic ? "<w:i/>" : "",
     options.underline ? '<w:u w:val="single"/>' : "",
-    options.highlight ? '<w:highlight w:val="yellow"/>' : "",
     options.size ? `<w:sz w:val=\"${options.size}\"/>` : "",
     options.color ? `<w:color w:val=\"${options.color}\"/>` : "",
   ].join("");
@@ -54,7 +53,7 @@ function textRun(value: string, options: { bold?: boolean; italic?: boolean; und
 /** Converts a canonical inline-HTML block string into a sequence of DOCX runs. */
 function inlineRunsXml(value: string, base: { size?: number; color?: string } = {}) {
   return inlineRuns(value)
-    .map((run) => textRun(run.text, { ...base, bold: run.bold, italic: run.italic, underline: run.underline, highlight: run.highlight }))
+    .map((run) => textRun(run.text, { ...base, bold: run.bold, italic: run.italic, underline: run.underline }))
     .join("");
 }
 

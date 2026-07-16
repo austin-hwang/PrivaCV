@@ -623,17 +623,6 @@ html[data-resume-workspace="active"] .public-explainer {
   left: -14px;
 }
 
-/* Inline formatting marks inside the printable sheet. <strong>/<em>/<u> use
-   browser defaults; only the highlight needs an explicit, print-safe color. */
-.resume-sheet mark {
-  background-color: #fef08a;
-  color: inherit;
-  padding: 0 1px;
-  border-radius: 2px;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-
 /* Rich-text editor (form pane). Content is bare block HTML (ul/ol/li/p). */
 .rte-editable {
   outline: none;
@@ -661,13 +650,6 @@ html[data-resume-workspace="active"] .public-explainer {
 
 .rte-editable p:last-child {
   margin-bottom: 0;
-}
-
-.rte-editable mark {
-  background-color: #fde68a;
-  color: #1f2937;
-  padding: 0 1px;
-  border-radius: 2px;
 }
 
 .resume-skill-line {

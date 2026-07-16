@@ -8,7 +8,6 @@
  *   - `<strong>` bold
  *   - `<em>`     italic
  *   - `<u>`      underline
- *   - `<mark>`   highlight
  *
  * Block structure (bullets / numbered / paragraphs) still lives in the string's
  * line breaks and the per-field format flag — never inside a tag — so the large
@@ -22,11 +21,10 @@ export type InlineRun = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  highlight?: boolean;
 };
 
 /** Inline tags a stored block string may contain. */
-const INLINE_TAG_PATTERN = /<(strong|b|em|i|u|mark)\b/i;
+const INLINE_TAG_PATTERN = /<(strong|b|em|i|u)\b/i;
 
 /** True when a block string carries any of our inline formatting tags. */
 export function hasRichMarks(value: string) {
@@ -65,7 +63,7 @@ function escapeText(value: string) {
 }
 
 function marksEqual(a: InlineRun, b: InlineRun) {
-  return !!a.bold === !!b.bold && !!a.italic === !!b.italic && !!a.underline === !!b.underline && !!a.highlight === !!b.highlight;
+  return !!a.bold === !!b.bold && !!a.italic === !!b.italic && !!a.underline === !!b.underline;
 }
 
 /** Coalesces adjacent runs that share the same marks and drops empty runs. */
@@ -87,8 +85,8 @@ function mergeRuns(runs: InlineRun[]) {
  */
 function tokenizeToRuns(value: string): InlineRun[] {
   const runs: InlineRun[] = [];
-  const marks = { bold: 0, italic: 0, underline: 0, highlight: 0 };
-  const pattern = /<(\/?)(strong|b|em|i|u|mark)\s*>|<br\s*\/?>/gi;
+  const marks = { bold: 0, italic: 0, underline: 0 };
+  const pattern = /<(\/?)(strong|b|em|i|u)\s*>|<br\s*\/?>/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -101,7 +99,6 @@ function tokenizeToRuns(value: string): InlineRun[] {
       ...(marks.bold ? { bold: true } : {}),
       ...(marks.italic ? { italic: true } : {}),
       ...(marks.underline ? { underline: true } : {}),
-      ...(marks.highlight ? { highlight: true } : {}),
     });
   };
 
@@ -114,7 +111,7 @@ function tokenizeToRuns(value: string): InlineRun[] {
     }
     const closing = match[1] === "/";
     const tag = match[2].toLowerCase();
-    const key = tag === "strong" || tag === "b" ? "bold" : tag === "em" || tag === "i" ? "italic" : tag === "u" ? "underline" : "highlight";
+    const key = tag === "strong" || tag === "b" ? "bold" : tag === "em" || tag === "i" ? "italic" : "underline";
     marks[key] = Math.max(0, marks[key] + (closing ? -1 : 1));
   }
   pushText(value.slice(lastIndex));
@@ -149,7 +146,6 @@ function domToRuns(html: string): InlineRun[] {
       if (tag === "strong" || tag === "b") next.bold = true;
       if (tag === "em" || tag === "i") next.italic = true;
       if (tag === "u" || tag === "ins") next.underline = true;
-      if (tag === "mark") next.highlight = true;
       const style = el.style;
       if (style) {
         const weight = style.fontWeight;
@@ -157,8 +153,6 @@ function domToRuns(html: string): InlineRun[] {
         if (style.fontStyle === "italic") next.italic = true;
         const decoration = `${style.textDecoration} ${style.textDecorationLine}`;
         if (decoration.includes("underline")) next.underline = true;
-        const background = style.backgroundColor;
-        if (background && background !== "transparent" && !background.includes("rgba(0, 0, 0, 0)")) next.highlight = true;
       }
       walk(el, next);
     });
@@ -176,7 +170,6 @@ function runsToHtml(runs: InlineRun[]) {
         if (run.italic) text = `<em>${text}</em>`;
         if (run.bold) text = `<strong>${text}</strong>`;
         if (run.underline) text = `<u>${text}</u>`;
-        if (run.highlight) text = `<mark>${text}</mark>`;
       }
       return text;
     })
@@ -219,8 +212,13 @@ export function stripRichMarks(value: string) {
   return tokenizeToRuns(source).map((run) => run.text).join("");
 }
 
-/** Converts a canonical block string to Markdown inline syntax. */
-export function inlineHtmlToMarkdown(value: string) {
+/**
+ * Converts a canonical block string to Markdown inline syntax. Bold/italic map
+ * to `**`/`*`; underline has no markdown so it stays as a `<u>` tag when
+ * `keepUnderline` is set. The AI round-trip passes `false` (underline isn't
+ * carried through an AI edit); Markdown export keeps it.
+ */
+export function inlineHtmlToMarkdown(value: string, keepUnderline = true) {
   return inlineRuns(value)
     .map((run) => {
       if (!run.text.trim()) return run.text;
@@ -229,8 +227,7 @@ export function inlineHtmlToMarkdown(value: string) {
       let core = run.text.slice(lead.length, run.text.length - trail.length);
       if (run.italic) core = `*${core}*`;
       if (run.bold) core = `**${core}**`;
-      if (run.underline) core = `<u>${core}</u>`;
-      if (run.highlight) core = `<mark>${core}</mark>`;
+      if (keepUnderline && run.underline) core = `<u>${core}</u>`;
       return `${lead}${core}${trail}`;
     })
     .join("");
@@ -363,11 +360,17 @@ export function commitRichContent(element: HTMLElement): string {
   return serializeRichBlocks(blocks);
 }
 
-/** Markdown-ish view of block content, used as the local AI's editable input. */
+/**
+ * Markdown editable source for the local AI: one block per line, list items
+ * marked with `-`/`1.`, and bold/italic as `**`/`*` (which small local models
+ * handle far more fluently than HTML tags). Underline is dropped to plain text —
+ * it has no markdown and isn't carried through an AI edit. {@link
+ * sanitizeRichContent} converts the emphasis markers back to tags on apply.
+ */
 export function richContentToPlainMarkdown(value: string, legacyFormat?: string): string {
   return parseRichContent(value, legacyFormat)
     .map((block) => {
-      const md = inlineHtmlToMarkdown(block.html);
+      const md = inlineHtmlToMarkdown(block.html, false);
       if (block.type === "bullet") return `- ${md}`;
       if (block.type === "number") return `1. ${md}`;
       return md;
@@ -376,13 +379,29 @@ export function richContentToPlainMarkdown(value: string, legacyFormat?: string)
 }
 
 /**
+ * Converts markdown emphasis (`**bold**`, `*italic*`) to our canonical
+ * `<strong>`/`<em>` tags. Guards keep it from mangling literal asterisks:
+ * markers may not hug whitespace, an italic `*` may not touch a word char or
+ * another `*` (so `snake_case`, `5*3`, and stray asterisks survive), and a span
+ * never crosses a line break. Bold is handled first so its `*` aren't re-matched.
+ */
+function markdownEmphasisToHtml(value: string): string {
+  return value
+    .replace(/\*\*(?!\s)([^*\n]+?)(?<!\s)\*\*/g, "<strong>$1</strong>")
+    .replace(/(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])/g, "<em>$1</em>");
+}
+
+/**
  * Canonicalizes text coming from outside the editor (AI output) to block HTML.
- * Accepts block HTML, Markdown-ish bullet/number lines, or plain paragraphs.
+ * Accepts block HTML, Markdown bullet/number lines, or plain paragraphs, and
+ * converts markdown `**`/`*` emphasis to `<strong>`/`<em>` (the AI edits a
+ * markdown view). Any `<u>` the model happens to emit still parses through.
  */
 export function sanitizeRichContent(value: string): string {
-  if (hasBlockTags(value)) return renderRichContent(value);
+  const withEmphasis = markdownEmphasisToHtml(value);
+  if (hasBlockTags(withEmphasis)) return renderRichContent(withEmphasis);
   const blocks: RichBlock[] = [];
-  value.replace(/\r\n?/g, "\n").split("\n").forEach((line) => {
+  withEmphasis.replace(/\r\n?/g, "\n").split("\n").forEach((line) => {
     const text = line.trim();
     if (!text) return;
     let match = text.match(/^[-*•◦–—]\s+(.*)$/);
