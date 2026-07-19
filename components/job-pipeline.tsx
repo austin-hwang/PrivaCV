@@ -51,6 +51,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toggleTheme } from "@/components/theme-toggle";
 import { useJobPipeline } from "@/hooks/use-job-pipeline";
+import { useResumeSources, type ResumeSourceOption } from "@/hooks/use-resume-sources";
 import {
   createJobPipelineBackup,
   parseJobPipelineBackup,
@@ -71,6 +72,7 @@ import {
   type JobApplication,
   type JobApplicationDraft,
   type JobApplicationStatus,
+  type ResumeSnapshot,
 } from "@/lib/job-applications";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +93,7 @@ type ApplicationForm = {
   nextAction: string;
   nextActionAt: string;
   jobDescription: string;
+  resumeSourceKey: string;
 };
 
 const EMPTY_APPLICATION_FORM: ApplicationForm = {
@@ -107,6 +110,7 @@ const EMPTY_APPLICATION_FORM: ApplicationForm = {
   nextAction: "",
   nextActionAt: "",
   jobDescription: "",
+  resumeSourceKey: "",
 };
 
 const STATUS_DOT_CLASSES: Record<JobApplicationStatus, string> = {
@@ -159,11 +163,15 @@ function ApplicationFields({
   setField,
   includeDetails = true,
   statusOptions = JOB_APPLICATION_STATUSES,
+  resumeSources,
+  attachedSnapshot,
 }: {
   form: ApplicationForm;
   setField: <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) => void;
   includeDetails?: boolean;
   statusOptions?: readonly JobApplicationStatus[];
+  resumeSources: ResumeSourceOption[];
+  attachedSnapshot?: ResumeSnapshot;
 }) {
   return (
     <div className="grid gap-5">
@@ -185,6 +193,21 @@ function ApplicationFields({
         </Field>
         <Field label="Location" hint="— optional">
           <Input value={form.location} onChange={(event) => setField("location", event.target.value)} placeholder="Remote or Seattle, WA" />
+        </Field>
+        <Field label="Resume for this application" hint="— optional" className="sm:col-span-2">
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            value={form.resumeSourceKey}
+            onChange={(event) => setField("resumeSourceKey", event.target.value)}
+          >
+            <option value="">No resume attached</option>
+            {resumeSources.map((source) => <option key={source.key} value={source.key}>{source.label}</option>)}
+          </select>
+          <span className="text-xs font-normal leading-relaxed text-muted-foreground">
+            {attachedSnapshot
+              ? `Submitted snapshot captured ${formatApplicationDate(attachedSnapshot.capturedAt)} · ${attachedSnapshot.label}`
+              : "PrivaCV captures an immutable copy when this application reaches Applied."}
+          </span>
         </Field>
       </div>
 
@@ -236,21 +259,34 @@ function CreateApplicationDialog({
   onOpenChange,
   saving,
   onCreate,
+  resumeSources,
+  defaultResumeSourceKey,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   saving: boolean;
-  onCreate: (draft: JobApplicationDraft) => Promise<unknown>;
+  onCreate: (form: ApplicationForm) => Promise<unknown>;
+  resumeSources: ResumeSourceOption[];
+  defaultResumeSourceKey: string;
 }) {
   const [form, setForm] = useState<ApplicationForm>(EMPTY_APPLICATION_FORM);
   const [formError, setFormError] = useState<string | null>(null);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (open) {
-      setForm(EMPTY_APPLICATION_FORM);
+    if (open && !wasOpen.current) {
+      setForm({ ...EMPTY_APPLICATION_FORM, resumeSourceKey: defaultResumeSourceKey });
       setFormError(null);
     }
-  }, [open]);
+    wasOpen.current = open;
+  }, [defaultResumeSourceKey, open]);
+
+  useEffect(() => {
+    if (!open || !defaultResumeSourceKey) return;
+    setForm((current) => current.resumeSourceKey
+      ? current
+      : { ...current, resumeSourceKey: defaultResumeSourceKey });
+  }, [defaultResumeSourceKey, open]);
 
   const setField = <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -283,6 +319,7 @@ function CreateApplicationDialog({
             setField={setField}
             includeDetails={false}
             statusOptions={["saved", "preparing", "applied"]}
+            resumeSources={resumeSources}
           />
           {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
           <DialogFooter>
@@ -329,6 +366,8 @@ function ApplicationDetailDialog({
   onOpenChange,
   onSave,
   onDelete,
+  resumeSources,
+  attachedSnapshot,
 }: {
   application: JobApplication | null;
   jobDescription: string;
@@ -337,6 +376,8 @@ function ApplicationDetailDialog({
   onOpenChange: (open: boolean) => void;
   onSave: (applicationId: string, update: ApplicationForm) => Promise<unknown>;
   onDelete: (applicationId: string) => Promise<unknown>;
+  resumeSources: ResumeSourceOption[];
+  attachedSnapshot?: ResumeSnapshot;
 }) {
   const [form, setForm] = useState<ApplicationForm>(EMPTY_APPLICATION_FORM);
   const [formError, setFormError] = useState<string | null>(null);
@@ -357,9 +398,13 @@ function ApplicationDetailDialog({
       nextAction: application.nextAction,
       nextActionAt: application.nextActionAt,
       jobDescription,
+      resumeSourceKey: resumeSources.find((source) => (
+        source.resumeId === application.resumeId
+        && source.checkpointId === application.resumeCheckpointId
+      ))?.key ?? "",
     });
     setFormError(null);
-  }, [application, jobDescription]);
+  }, [application, jobDescription, resumeSources]);
 
   const setField = <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -413,7 +458,7 @@ function ApplicationDetailDialog({
 
             <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
               <div className="p-6">
-                <ApplicationFields form={form} setField={setField} />
+                <ApplicationFields form={form} setField={setField} resumeSources={resumeSources} attachedSnapshot={attachedSnapshot} />
               </div>
               <aside className="border-t bg-muted/20 p-6 lg:border-l lg:border-t-0">
                 <h3 className="text-sm font-semibold">Activity</h3>
@@ -469,6 +514,7 @@ function ApplicationCard({
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold">{application.role}</h3>
             <p className="mt-1 truncate text-sm text-muted-foreground">{application.company}</p>
+            {application.resumeLabel ? <p className="mt-1 truncate text-[11px] text-primary">Resume · {application.resumeLabel}</p> : null}
           </div>
           <GripVertical className="mt-0.5 size-4 shrink-0 text-muted-foreground/40 transition group-hover:text-muted-foreground" aria-hidden="true" />
         </div>
@@ -519,8 +565,28 @@ function downloadFile(contents: string, fileName: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+function resumeLinkFromSource(source: ResumeSourceOption | undefined) {
+  return {
+    resumeId: source?.resumeId,
+    resumeCheckpointId: source?.checkpointId,
+    resumeLabel: source?.label,
+    resumeSnapshot: source ? {
+      resumeId: source.resumeId,
+      ...(source.checkpointId ? { checkpointId: source.checkpointId } : {}),
+      label: source.label,
+      data: source.state,
+    } : undefined,
+  };
+}
+
+function applicationDataFromForm(form: ApplicationForm, source: ResumeSourceOption | undefined): JobApplicationDraft {
+  const { resumeSourceKey: _resumeSourceKey, ...fields } = form;
+  return { ...fields, ...resumeLinkFromSource(source) };
+}
+
 export function JobPipeline() {
   const pipeline = useJobPipeline();
+  const resumeSources = useResumeSources();
   const [view, setView] = useState<PipelineView>("board");
   const [scope, setScope] = useState<PipelineScope>("active");
   const [query, setQuery] = useState("");
@@ -542,6 +608,9 @@ export function JobPipeline() {
   const selectedApplication = pipeline.data.applications.find((application) => application.id === selectedId) ?? null;
   const selectedJobDescription = selectedId ? pipeline.jobSnapshotsByApplication.get(selectedId)?.description ?? "" : "";
   const selectedEvents = selectedId ? pipeline.eventsByApplication.get(selectedId) ?? [] : [];
+  const selectedResumeSnapshot = selectedApplication?.resumeSnapshotId
+    ? pipeline.data.resumeSnapshots.find((snapshot) => snapshot.id === selectedApplication.resumeSnapshotId)
+    : undefined;
   const stats = useMemo(() => jobPipelineStats(pipeline.data.applications), [pipeline.data.applications]);
 
   const visibleApplications = useMemo(() => sortJobApplications(pipeline.data.applications.filter((application) => {
@@ -557,7 +626,7 @@ export function JobPipeline() {
       : JOB_APPLICATION_STATUSES;
 
   const saveApplication = async (applicationId: string, form: ApplicationForm) => {
-    await pipeline.updateApplication(applicationId, form);
+    await pipeline.updateApplication(applicationId, applicationDataFromForm(form, resumeSources.byKey.get(form.resumeSourceKey)));
     setActionMessage({ type: "success", text: "Application saved" });
   };
 
@@ -565,7 +634,14 @@ export function JobPipeline() {
     const application = pipeline.data.applications.find((item) => item.id === applicationId);
     if (!application || application.status === status) return;
     try {
-      await pipeline.moveApplication(applicationId, status);
+      const source = resumeSources.sources.find((candidate) => (
+        candidate.resumeId === application.resumeId
+        && candidate.checkpointId === application.resumeCheckpointId
+      ));
+      await pipeline.updateApplication(applicationId, {
+        status,
+        ...(source ? resumeLinkFromSource(source) : {}),
+      });
       setActionMessage({ type: "success", text: `Moved ${application.role} to ${JOB_APPLICATION_STATUS_META[status].label}` });
     } catch {
       setActionMessage({ type: "error", text: "The application could not be moved." });
@@ -825,8 +901,10 @@ export function JobPipeline() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         saving={pipeline.saving}
-        onCreate={async (draft) => {
-          const application = await pipeline.createApplication(draft);
+        resumeSources={resumeSources.sources}
+        defaultResumeSourceKey={resumeSources.defaultSourceKey}
+        onCreate={async (form) => {
+          const application = await pipeline.createApplication(applicationDataFromForm(form, resumeSources.byKey.get(form.resumeSourceKey)));
           setActionMessage({ type: "success", text: `${application.role} added to ${JOB_APPLICATION_STATUS_META[application.status].label}` });
           return application;
         }}
@@ -839,6 +917,8 @@ export function JobPipeline() {
         onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         onSave={saveApplication}
         onDelete={pipeline.deleteApplication}
+        resumeSources={resumeSources.sources}
+        attachedSnapshot={selectedResumeSnapshot}
       />
     </div>
   );

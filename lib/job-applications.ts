@@ -1,3 +1,5 @@
+import type { ResumeState } from "@/lib/resume";
+
 export const JOB_APPLICATION_STATUSES = [
   "saved",
   "preparing",
@@ -61,6 +63,10 @@ export type JobApplication = {
   updatedAt: string;
   appliedAt?: string;
   closedAt?: string;
+  resumeId?: string;
+  resumeCheckpointId?: string;
+  resumeLabel?: string;
+  resumeSnapshotId?: string;
 };
 
 export type JobSnapshot = {
@@ -78,11 +84,19 @@ export type ResumeSnapshot = {
   checkpointId?: string;
   label: string;
   capturedAt: string;
-  /** Reserved for an immutable resume snapshot when resume linking is added. */
-  data?: unknown;
+  source: "current" | "checkpoint";
+  /** Immutable copy of exactly what was attached to the application. */
+  data: ResumeState;
 };
 
-export type ApplicationEventType = "created" | "status_changed" | "note";
+export type ResumeSnapshotInput = {
+  resumeId: string;
+  checkpointId?: string;
+  label: string;
+  data: ResumeState;
+};
+
+export type ApplicationEventType = "created" | "status_changed" | "resume_attached" | "note";
 
 export type ApplicationEvent = {
   id: string;
@@ -98,6 +112,7 @@ export type ApplicationEvent = {
 export type JobApplicationDraft = Pick<JobApplication, "company" | "role"> &
   Partial<Omit<JobApplication, "id" | "company" | "role" | "createdAt" | "updatedAt">> & {
     jobDescription?: string;
+    resumeSnapshot?: ResumeSnapshotInput;
   };
 
 export type JobPipelineData = {
@@ -128,6 +143,10 @@ export function isClosedJobApplicationStatus(status: JobApplicationStatus) {
   return closedStatusSet.has(status);
 }
 
+export function shouldCaptureResumeSnapshot(status: JobApplicationStatus) {
+  return appliedStatusSet.has(status);
+}
+
 export function createJobPipelineId(prefix: "application" | "event" | "resume") {
   const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}-${randomId}`;
@@ -156,6 +175,10 @@ export function createJobApplicationRecord(draft: JobApplicationDraft, now = new
     updatedAt: now,
     ...(appliedAt ? { appliedAt } : {}),
     ...(closedAt ? { closedAt } : {}),
+    ...(draft.resumeId ? { resumeId: draft.resumeId } : {}),
+    ...(draft.resumeCheckpointId ? { resumeCheckpointId: draft.resumeCheckpointId } : {}),
+    ...(draft.resumeLabel ? { resumeLabel: draft.resumeLabel } : {}),
+    ...(draft.resumeSnapshotId ? { resumeSnapshotId: draft.resumeSnapshotId } : {}),
   };
 }
 
@@ -214,6 +237,7 @@ export function jobApplicationMatches(application: JobApplication, query: string
     application.source,
     application.contactName,
     application.notes,
+    application.resumeLabel ?? "",
   ].some((value) => value.toLocaleLowerCase().includes(normalized));
 }
 
@@ -265,6 +289,7 @@ export function applicationToCsvRow(application: JobApplication) {
     application.appliedAt ?? "",
     application.closedAt ?? "",
     application.notes,
+    application.resumeLabel ?? "",
     application.createdAt,
     application.updatedAt,
   ];
@@ -285,6 +310,7 @@ export const JOB_APPLICATION_CSV_HEADERS = [
   "Applied at",
   "Closed at",
   "Notes",
+  "Submitted resume",
   "Created at",
   "Updated at",
 ];

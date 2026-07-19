@@ -2,7 +2,9 @@ import {
   JOB_APPLICATION_STATUS_META,
   createApplicationEvent,
   createJobApplicationRecord,
+  createJobPipelineId,
   isJobApplicationStatus,
+  shouldCaptureResumeSnapshot,
   transitionJobApplication,
   type ApplicationEvent,
   type JobApplication,
@@ -10,7 +12,9 @@ import {
   type JobPipelineData,
   type JobSnapshot,
   type ResumeSnapshot,
+  type ResumeSnapshotInput,
 } from "@/lib/job-applications";
+import { normalizeResume } from "@/lib/resume";
 
 const DATABASE_NAME = "privacv-job-pipeline";
 const DATABASE_VERSION = 1;
@@ -30,6 +34,7 @@ export type JobPipelineBackup = JobPipelineData & {
 
 export type JobApplicationUpdate = Partial<Omit<JobApplication, "id" | "createdAt" | "updatedAt">> & {
   jobDescription?: string;
+  resumeSnapshot?: ResumeSnapshotInput;
 };
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -121,14 +126,18 @@ export async function loadJobPipelineData(): Promise<JobPipelineData> {
 
 export async function createStoredJobApplication(draft: JobApplicationDraft) {
   const database = await openJobPipelineDatabase();
-  const application = createJobApplicationRecord(draft);
+  let application = createJobApplicationRecord(draft);
+  const resumeSnapshot = draft.resumeSnapshot && shouldCaptureResumeSnapshot(application.status)
+    ? createResumeSnapshot(application.id, draft.resumeSnapshot, application.createdAt)
+    : null;
+  if (resumeSnapshot) application = { ...application, resumeSnapshotId: resumeSnapshot.id };
   const createdEvent = createApplicationEvent(
     application.id,
     "created",
     `Added to ${JOB_APPLICATION_STATUS_META[application.status].label}`,
     { occurredAt: application.createdAt, toStatus: application.status },
   );
-  const transaction = database.transaction([APPLICATIONS_STORE, EVENTS_STORE, JOB_SNAPSHOTS_STORE], "readwrite");
+  const transaction = database.transaction([APPLICATIONS_STORE, EVENTS_STORE, JOB_SNAPSHOTS_STORE, RESUME_SNAPSHOTS_STORE], "readwrite");
   transaction.objectStore(APPLICATIONS_STORE).add(application);
   transaction.objectStore(EVENTS_STORE).add(createdEvent);
 
@@ -142,6 +151,15 @@ export async function createStoredJobApplication(draft: JobApplicationDraft) {
       updatedAt: application.updatedAt,
     };
     transaction.objectStore(JOB_SNAPSHOTS_STORE).put(snapshot);
+  }
+  if (resumeSnapshot) {
+    transaction.objectStore(RESUME_SNAPSHOTS_STORE).put(resumeSnapshot);
+    transaction.objectStore(EVENTS_STORE).add(createApplicationEvent(
+      application.id,
+      "resume_attached",
+      "Captured submitted resume",
+      { occurredAt: application.createdAt, detail: resumeSnapshot.label },
+    ));
   }
 
   await transactionComplete(transaction);
@@ -177,9 +195,23 @@ export async function updateStoredJobApplication(applicationId: string, update: 
     updatedAt: now,
   };
   delete (updated as JobApplication & { jobDescription?: string }).jobDescription;
+  delete (updated as JobApplication & { resumeSnapshot?: ResumeSnapshotInput }).resumeSnapshot;
+
+  const resumeSelectionChanged = Boolean(update.resumeSnapshot) && (
+    existing.resumeId !== update.resumeSnapshot?.resumeId
+    || existing.resumeCheckpointId !== update.resumeSnapshot?.checkpointId
+  );
+  const crossedIntoSubmittedState = !shouldCaptureResumeSnapshot(existing.status) && shouldCaptureResumeSnapshot(updated.status);
+  const capturedResume = update.resumeSnapshot
+    && shouldCaptureResumeSnapshot(updated.status)
+    && (!existing.resumeSnapshotId || resumeSelectionChanged || crossedIntoSubmittedState)
+      ? createResumeSnapshot(applicationId, update.resumeSnapshot, now)
+      : null;
+  if (capturedResume) updated.resumeSnapshotId = capturedResume.id;
 
   const stores = [APPLICATIONS_STORE, EVENTS_STORE];
   if (typeof update.jobDescription === "string" || update.sourceUrl !== undefined) stores.push(JOB_SNAPSHOTS_STORE);
+  if (capturedResume) stores.push(RESUME_SNAPSHOTS_STORE);
   const existingSnapshot = stores.includes(JOB_SNAPSHOTS_STORE)
     ? await requestResult(
       database.transaction(JOB_SNAPSHOTS_STORE, "readonly").objectStore(JOB_SNAPSHOTS_STORE).get(applicationId) as IDBRequest<JobSnapshot | undefined>,
@@ -199,6 +231,16 @@ export async function updateStoredJobApplication(applicationId: string, update: 
         toStatus: updated.status,
         detail: `${JOB_APPLICATION_STATUS_META[existing.status].label} → ${JOB_APPLICATION_STATUS_META[updated.status].label}`,
       },
+    ));
+  }
+
+  if (capturedResume) {
+    transaction.objectStore(RESUME_SNAPSHOTS_STORE).put(capturedResume);
+    transaction.objectStore(EVENTS_STORE).add(createApplicationEvent(
+      applicationId,
+      "resume_attached",
+      "Captured submitted resume",
+      { occurredAt: now, detail: capturedResume.label },
     ));
   }
 
@@ -271,6 +313,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function createResumeSnapshot(applicationId: string, input: ResumeSnapshotInput, capturedAt: string): ResumeSnapshot {
+  return {
+    id: createJobPipelineId("resume"),
+    applicationId,
+    resumeId: input.resumeId,
+    ...(input.checkpointId ? { checkpointId: input.checkpointId } : {}),
+    label: input.label,
+    capturedAt,
+    source: input.checkpointId ? "checkpoint" : "current",
+    data: normalizeResume(input.data),
+  };
+}
+
 export function parseJobPipelineBackup(value: string): JobPipelineBackup {
   const parsed: unknown = JSON.parse(value);
   if (!isRecord(parsed) || parsed.format !== JOB_PIPELINE_BACKUP_FORMAT || parsed.version !== JOB_PIPELINE_BACKUP_VERSION) {
@@ -309,6 +364,10 @@ export function parseJobPipelineBackup(value: string): JobPipelineBackup {
       updatedAt: item.updatedAt,
       ...(typeof item.appliedAt === "string" ? { appliedAt: item.appliedAt } : {}),
       ...(typeof item.closedAt === "string" ? { closedAt: item.closedAt } : {}),
+      ...(typeof item.resumeId === "string" ? { resumeId: item.resumeId } : {}),
+      ...(typeof item.resumeCheckpointId === "string" ? { resumeCheckpointId: item.resumeCheckpointId } : {}),
+      ...(typeof item.resumeLabel === "string" ? { resumeLabel: item.resumeLabel } : {}),
+      ...(typeof item.resumeSnapshotId === "string" ? { resumeSnapshotId: item.resumeSnapshotId } : {}),
     }];
   });
   if (applications.length !== parsed.applications.length) throw new Error("The backup contains an invalid application record.");
@@ -317,7 +376,7 @@ export function parseJobPipelineBackup(value: string): JobPipelineBackup {
     isRecord(item)
     && typeof item.id === "string"
     && typeof item.applicationId === "string"
-    && ["created", "status_changed", "note"].includes(String(item.type))
+    && ["created", "status_changed", "resume_attached", "note"].includes(String(item.type))
     && typeof item.title === "string"
     && typeof item.occurredAt === "string"
   ));
@@ -335,6 +394,8 @@ export function parseJobPipelineBackup(value: string): JobPipelineBackup {
     && typeof item.applicationId === "string"
     && typeof item.label === "string"
     && typeof item.capturedAt === "string"
+    && (item.source === "current" || item.source === "checkpoint")
+    && isRecord(item.data)
   ));
   if (events.length !== parsed.events.length || jobSnapshots.length !== parsed.jobSnapshots.length || resumeSnapshots.length !== parsed.resumeSnapshots.length) {
     throw new Error("The backup contains an invalid history or snapshot record.");

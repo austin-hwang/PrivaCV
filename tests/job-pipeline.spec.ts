@@ -36,3 +36,45 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Senior Product Designer" }).getByText("Moved to Applied")).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Senior Product Designer" }).getByLabel("Job description snapshot")).toHaveValue("Lead product design for a privacy-focused platform.");
 });
+
+test("captures an immutable checkpoint when an application is submitted", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Sample", exact: true }).click();
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+
+  await page.getByRole("button", { name: "Edit history", exact: true }).click();
+  const history = page.getByRole("region", { name: /edit history/i });
+  await history.getByRole("button", { name: /save current version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Product baseline");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+
+  await page.goto("/applications");
+  await page.getByRole("button", { name: "Add application" }).click();
+  const createDialog = page.getByRole("dialog", { name: "Add an application" });
+  await createDialog.getByLabel("Company").fill("Northstar Labs");
+  await createDialog.getByLabel("Role").fill("Product Lead");
+  await createDialog.getByLabel("Status").selectOption("applied");
+  await createDialog.getByLabel("Resume for this application").selectOption({ label: "John Doe — Product baseline" });
+  await createDialog.getByRole("button", { name: "Add application" }).click();
+
+  await page.getByRole("button", { name: /Product Lead/ }).click();
+  const detail = page.getByRole("dialog", { name: "Product Lead" });
+  await expect(detail.getByText(/Submitted snapshot captured/)).toContainText("John Doe — Product baseline");
+  await expect(detail.getByText("Captured submitted resume")).toBeVisible();
+
+  const snapshot = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("privacv-job-pipeline");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return await new Promise<{ label: string; checkpointId?: string; data: { name?: string } }>((resolve, reject) => {
+      const request = database.transaction("resumeSnapshots", "readonly").objectStore("resumeSnapshots").getAll();
+      request.onsuccess = () => resolve(request.result[0]);
+      request.onerror = () => reject(request.error);
+    });
+  });
+  expect(snapshot).toMatchObject({ label: "John Doe — Product baseline", data: { name: "John Doe" } });
+  expect(snapshot.checkpointId).toBeTruthy();
+});

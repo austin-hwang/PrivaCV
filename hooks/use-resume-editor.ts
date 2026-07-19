@@ -6,6 +6,13 @@ import { trackResumeExport } from "@/lib/export-metrics";
 import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
 import { resumeDocxBlob } from "@/lib/docx-export";
 import {
+  buildLegacyResumeWorkspace,
+  clearResumeWorkspace,
+  loadOrMigrateResumeWorkspace,
+  saveCheckpointHistories,
+  saveResumeLibrary,
+} from "@/lib/resume-db";
+import {
   blankEntry,
   buildResumeChecks,
   clampTextScale,
@@ -46,10 +53,7 @@ import {
   importReviewDraftFingerprint,
   limitAutomaticCheckpoints,
   mergeVersionHistory,
-  parseCheckpointHistory,
-  parseResumeLibrary,
   parseStoredImportReview,
-  parseVersionHistory,
   parseVersionHistoryBackup,
   storedImportReview,
   versionHistoryFingerprint,
@@ -228,6 +232,7 @@ export function useResumeEditor() {
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const historyBackupInputRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLDivElement>(null);
+  const resumeLibraryRef = useRef<ResumeLibraryItem[]>([]);
   const requestExportRef = useRef<() => void>(() => undefined);
   // A deliberate privacy reset should not immediately recreate an empty draft
   // in browser storage. The next actual edit resumes normal autosave.
@@ -242,6 +247,7 @@ export function useResumeEditor() {
       snapshotImportReview?: ImportReviewState | null;
     },
   ) => boolean>(() => false);
+  resumeLibraryRef.current = resumeLibrary;
 
   const hasContent = hasAnyContent(state);
   const checks = useMemo(() => buildResumeChecks(state, pageCount), [pageCount, state]);
@@ -300,21 +306,26 @@ export function useResumeEditor() {
   }, []);
 
   /**
-   * Version checkpoints can grow much faster than the active draft. Write
-   * them synchronously at the action boundary so a person never receives a
-   * false "saved" confirmation when the browser has run out of room.
+   * Version checkpoints can grow much faster than the active draft. Await the
+   * authoritative IndexedDB write at user action boundaries so a person never
+   * receives a false "saved" confirmation when browser storage is unavailable.
    */
-  const persistVersionHistory = useCallback((nextHistory: VersionHistoryItem[]) => {
+  const persistVersionHistory = useCallback(async (nextHistory: VersionHistoryItem[]) => {
+    if (!activeResumeId) return false;
+    const nextByResume = { ...checkpointHistoryByResume, [activeResumeId]: nextHistory };
+    if (!nextHistory.length) delete nextByResume[activeResumeId];
+    // IndexedDB is authoritative. These localStorage writes are a temporary
+    // compatibility mirror for older tabs and exported test fixtures.
     try {
-      if (!activeResumeId) return false;
-      const nextByResume = { ...checkpointHistoryByResume, [activeResumeId]: nextHistory };
-      if (!nextHistory.length) delete nextByResume[activeResumeId];
       if (Object.keys(nextByResume).length) localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(nextByResume));
       else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
-      // Keep the legacy active-history key readable for checkpoint backup
-      // compatibility while the library uses its own storage record.
       mirrorLegacyActiveHistory(nextHistory);
-      setCheckpointHistoryByResume(nextByResume);
+    } catch {
+      // A full localStorage mirror is not required once IndexedDB is active.
+    }
+    setCheckpointHistoryByResume(nextByResume);
+    try {
+      await saveCheckpointHistories(nextByResume);
       confirmStorageAvailable();
       return true;
     } catch {
@@ -365,7 +376,7 @@ export function useResumeEditor() {
       importReview: snapshotImportReview,
     };
     const nextHistory = limitAutomaticCheckpoints([entry, ...versionHistory]);
-    persistVersionHistory(nextHistory);
+    void persistVersionHistory(nextHistory);
     setVersionHistory(nextHistory);
     lastAutomaticCheckpointAtRef.current = timestamp;
     return true;
@@ -410,7 +421,7 @@ export function useResumeEditor() {
     setVersionSaveOpen(true);
   };
 
-  const saveVersion = () => {
+  const saveVersion = async () => {
     if (!hasAnyContent(state)) {
       flash("Add resume details first");
       return;
@@ -434,7 +445,7 @@ export function useResumeEditor() {
       importReview,
     };
     const nextHistory = [entry, ...versionHistory];
-    const saved = persistVersionHistory(nextHistory);
+    const saved = await persistVersionHistory(nextHistory);
     // Keep the checkpoint visible for this session even when browser storage
     // is unavailable, but also give the person a durable copy immediately.
     setVersionHistory(nextHistory);
@@ -488,44 +499,46 @@ export function useResumeEditor() {
     flash(`Restored ${item.label}`);
   };
 
-  const deleteVersion = (id: string) => {
+  const deleteVersion = async (id: string) => {
     const deleted = versionHistory.find((item) => item.id === id) ?? null;
     const nextHistory = versionHistory.filter((item) => item.id !== id);
-    const deletedLocally = persistVersionHistory(nextHistory);
+    const deletedLocally = await persistVersionHistory(nextHistory);
     setVersionHistory(nextHistory);
     setDeletedVersion(deleted);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
     flash(deletedLocally ? "Deleted checkpoint" : "Could not remove the checkpoint from browser storage");
   };
 
-  const clearVersionHistory = () => {
-    const clearedLocally = persistVersionHistory([]);
+  const clearVersionHistory = async () => {
+    const clearedLocally = await persistVersionHistory([]);
     setVersionHistory([]);
     setDeletedVersion(null);
     setDraftSourceVersionId(null);
     flash(clearedLocally ? "Cleared checkpoints" : "Could not clear checkpoints from browser storage");
   };
 
-  const undoDeleteVersion = () => {
+  const undoDeleteVersion = async () => {
     if (!deletedVersion) return;
     const nextHistory = [deletedVersion, ...versionHistory.filter((item) => item.id !== deletedVersion.id)]
       .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime());
-    const restoredLocally = persistVersionHistory(nextHistory);
+    const restoredLocally = await persistVersionHistory(nextHistory);
     setVersionHistory(nextHistory);
     setDeletedVersion(null);
     flash(restoredLocally ? "Restored deleted checkpoint" : "Checkpoint restored for this session only");
   };
 
   const persistResumeLibrary = useCallback((library: ResumeLibraryItem[], nextActiveId = activeResumeId) => {
+    // Keep a small compatibility mirror while IndexedDB remains the source of
+    // truth. A mirror quota failure must not turn a successful IndexedDB save
+    // into a false storage warning.
     try {
       localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(library));
       if (nextActiveId) localStorage.setItem(ACTIVE_RESUME_KEY, nextActiveId);
-      confirmStorageAvailable();
-      return true;
     } catch {
-      reportStorageIssue();
-      return false;
+      // Best effort only.
     }
+    void saveResumeLibrary(library, nextActiveId).then(confirmStorageAvailable).catch(reportStorageIssue);
+    return true;
   }, [activeResumeId, confirmStorageAvailable, reportStorageIssue]);
 
   const libraryWithCurrentDraft = useCallback((library = resumeLibrary) => {
@@ -659,8 +672,9 @@ export function useResumeEditor() {
         if (Object.keys(next).length) localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(next));
         else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
       } catch {
-        reportStorageIssue();
+        // IndexedDB remains authoritative when the compatibility mirror fails.
       }
+      void saveCheckpointHistories(next).then(confirmStorageAvailable).catch(reportStorageIssue);
       return next;
     });
     if (deletingActive) {
@@ -688,89 +702,89 @@ export function useResumeEditor() {
   };
 
   useEffect(() => {
-    try {
-      const legacy = localStorage.getItem("resume-editor-data-v1");
-      const saved = localStorage.getItem(STORAGE_KEY) ?? legacy;
-      const savedState = saved ? normalizeResume(JSON.parse(saved)) : emptyState();
-      const savedReview = parseStoredImportReview(localStorage.getItem(IMPORT_REVIEW_KEY));
-      const storedLibrary = parseResumeLibrary(localStorage.getItem(RESUME_LIBRARY_KEY));
-      const storedCheckpoints = parseCheckpointHistory(localStorage.getItem(CHECKPOINT_HISTORY_KEY));
-      let library = storedLibrary;
-      let activeId = localStorage.getItem(ACTIVE_RESUME_KEY);
-      let activeState = savedState;
-      let activeReview = savedReview;
-      let activeUpdatedAt = localStorage.getItem(AUTOSAVE_TIME_KEY) ?? new Date().toISOString();
+    let cancelled = false;
+    const hydrate = async () => {
+      const legacy = {
+        savedDraft: localStorage.getItem(STORAGE_KEY),
+        legacyDraft: localStorage.getItem("resume-editor-data-v1"),
+        importReview: localStorage.getItem(IMPORT_REVIEW_KEY),
+        resumeLibrary: localStorage.getItem(RESUME_LIBRARY_KEY),
+        activeResumeId: localStorage.getItem(ACTIVE_RESUME_KEY),
+        checkpointHistory: localStorage.getItem(CHECKPOINT_HISTORY_KEY),
+        legacyVersionHistory: localStorage.getItem(VERSION_HISTORY_KEY),
+        autosaveTime: localStorage.getItem(AUTOSAVE_TIME_KEY),
+      };
+      try {
+        const { workspace, migrated } = await loadOrMigrateResumeWorkspace(legacy);
+        if (cancelled) return;
 
-      if (!library.length) {
-        const now = new Date().toISOString();
-        const currentId = `resume-${Date.now().toString(36)}`;
-        const legacyVersions = parseVersionHistory(localStorage.getItem(VERSION_HISTORY_KEY));
-        library = [
-          {
-            id: currentId,
-            label: versionLabel(savedState),
-            createdAt: localStorage.getItem(AUTOSAVE_TIME_KEY) ?? now,
-            updatedAt: localStorage.getItem(AUTOSAVE_TIME_KEY) ?? now,
-            state: savedState,
-            importReview: savedReview,
-          },
-          ...legacyVersions.map((item, index) => ({
-            id: `resume-migrated-${item.id || index}`,
-            label: item.label,
-            createdAt: item.savedAt,
-            updatedAt: item.savedAt,
-            state: item.state,
-            importReview: item.importReview,
-          })),
-        ];
-        activeId = currentId;
-        try {
-          localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(library));
-          localStorage.setItem(ACTIVE_RESUME_KEY, currentId);
-          localStorage.removeItem(VERSION_HISTORY_KEY);
-        } catch {
-          reportStorageIssue();
-        }
-      } else {
-        const activeItem = library.find((item) => item.id === activeId) ?? library[0];
-        activeId = activeItem.id;
-        activeState = activeItem.state;
-        activeReview = activeItem.importReview;
-        activeUpdatedAt = activeItem.updatedAt;
-        try {
-          localStorage.setItem(ACTIVE_RESUME_KEY, activeId);
-        } catch {
-          reportStorageIssue();
-        }
-      }
+        const activeHistory = workspace.activeResumeId
+          ? workspace.checkpointHistoryByResume[workspace.activeResumeId] ?? []
+          : [];
+        setResumeLibrary(workspace.resumeLibrary);
+        setActiveResumeId(workspace.activeResumeId);
+        setCheckpointHistoryByResume(workspace.checkpointHistoryByResume);
+        setVersionHistory(activeHistory);
+        setState(workspace.activeState);
+        setAutosavedState(workspace.activeState);
+        setAutosavedAt(workspace.activeUpdatedAt);
+        setImportReview(workspace.activeReview);
 
-      setResumeLibrary(library);
-      setActiveResumeId(activeId);
-      setCheckpointHistoryByResume(storedCheckpoints);
-      const activeHistory = activeId ? storedCheckpoints[activeId] ?? [] : [];
-      setVersionHistory(activeHistory);
-      if (storedLibrary.length) {
+        // Keep legacy keys readable during the migration window. IndexedDB is
+        // loaded first on every future visit, so these values are mirrors only.
         try {
+          localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(workspace.resumeLibrary));
+          if (workspace.activeResumeId) localStorage.setItem(ACTIVE_RESUME_KEY, workspace.activeResumeId);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace.activeState));
+          localStorage.setItem(AUTOSAVE_TIME_KEY, workspace.activeUpdatedAt);
+          if (workspace.activeReview) localStorage.setItem(IMPORT_REVIEW_KEY, JSON.stringify(storedImportReview(workspace.activeReview)));
+          else localStorage.removeItem(IMPORT_REVIEW_KEY);
+          if (Object.keys(workspace.checkpointHistoryByResume).length) {
+            localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(workspace.checkpointHistoryByResume));
+          } else {
+            localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
+          }
           mirrorLegacyActiveHistory(activeHistory);
+          if (migrated) localStorage.removeItem(VERSION_HISTORY_KEY);
         } catch {
+          // The IndexedDB copy is already durable even if a legacy mirror is
+          // too large for localStorage.
+        }
+
+        localStorage.removeItem("resume-editor-last-export-v1");
+        localStorage.removeItem("resume-editor-role-focus-v1");
+        localStorage.removeItem("resume-editor-role-focus-label-v1");
+        confirmStorageAvailable();
+      } catch {
+        if (!cancelled) {
+          // Keep the editor usable for this session when IndexedDB is blocked.
+          // The legacy copy is a fallback only; failed IndexedDB writes still
+          // surface as unavailable and trigger checkpoint backup downloads.
+          try {
+            const workspace = buildLegacyResumeWorkspace(legacy);
+            const activeHistory = workspace.activeResumeId
+              ? workspace.checkpointHistoryByResume[workspace.activeResumeId] ?? []
+              : [];
+            setResumeLibrary(workspace.resumeLibrary);
+            setActiveResumeId(workspace.activeResumeId);
+            setCheckpointHistoryByResume(workspace.checkpointHistoryByResume);
+            setVersionHistory(activeHistory);
+            setState(workspace.activeState);
+            setAutosavedState(workspace.activeState);
+            setAutosavedAt(workspace.activeUpdatedAt);
+            setImportReview(workspace.activeReview);
+          } catch {
+            // Malformed legacy data must not prevent the editor from opening.
+          }
           reportStorageIssue();
         }
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
-      setState(activeState);
-      setAutosavedState(activeState);
-      setAutosavedAt(activeUpdatedAt);
-      setImportReview(activeReview);
-      localStorage.removeItem("resume-editor-last-export-v1");
-      // Role Focus was removed because it added a distracting detour without
-      // reliably improving a person's resume. Clear its old private data too.
-      localStorage.removeItem("resume-editor-role-focus-v1");
-      localStorage.removeItem("resume-editor-role-focus-label-v1");
-    } catch {
-      reportStorageIssue();
-    } finally {
-      setLoaded(true);
-    }
-  }, [mirrorLegacyActiveHistory, reportStorageIssue]);
+    };
+    void hydrate();
+    return () => { cancelled = true; };
+  }, [confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue]);
 
   // `storage` fires only in the other tab. Keep a different draft visible
   // until the person decides, rather than silently replacing active work or
@@ -807,45 +821,53 @@ export function useResumeEditor() {
     }
     setAutosaveStatus("saving");
     const timer = window.setTimeout(() => {
+      const savedAt = new Date().toISOString();
+      const normalizedState = normalizeResume(state);
+      let nextActiveId = activeResumeId;
+      let nextLibrary = resumeLibraryRef.current;
+      if (activeResumeId) {
+        nextLibrary = nextLibrary.map((item) => item.id === activeResumeId
+          ? {
+              ...item,
+              label: item.label === "Untitled resume" && hasAnyContent(state) ? versionLabel(state) : item.label,
+              updatedAt: savedAt,
+              state: normalizedState,
+              importReview,
+            }
+          : item);
+      } else {
+        nextActiveId = `resume-${Date.now().toString(36)}`;
+        nextLibrary = [{
+          id: nextActiveId,
+          label: versionLabel(state),
+          createdAt: savedAt,
+          updatedAt: savedAt,
+          state: normalizedState,
+          importReview,
+        }];
+        setActiveResumeId(nextActiveId);
+      }
+      setResumeLibrary(nextLibrary);
+
+      // Maintain legacy mirrors for older tabs while IndexedDB is the source
+      // of truth and the condition for showing a successful autosave.
       try {
-        const savedAt = new Date().toISOString();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         localStorage.setItem(AUTOSAVE_TIME_KEY, savedAt);
-        if (activeResumeId) {
-          setResumeLibrary((current) => {
-            const next = current.map((item) => item.id === activeResumeId
-              ? {
-                  ...item,
-                  label: item.label === "Untitled resume" && hasAnyContent(state) ? versionLabel(state) : item.label,
-                  updatedAt: savedAt,
-                  state: normalizeResume(state),
-                  importReview,
-                }
-              : item);
-            localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(next));
-            return next;
-          });
-        } else {
-          const id = `resume-${Date.now().toString(36)}`;
-          const item: ResumeLibraryItem = {
-            id,
-            label: versionLabel(state),
-            createdAt: savedAt,
-            updatedAt: savedAt,
-            state: normalizeResume(state),
-            importReview,
-          };
-          localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify([item]));
-          localStorage.setItem(ACTIVE_RESUME_KEY, id);
-          setResumeLibrary([item]);
-          setActiveResumeId(id);
-        }
+        localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(nextLibrary));
+        if (nextActiveId) localStorage.setItem(ACTIVE_RESUME_KEY, nextActiveId);
+      } catch {
+        // Compatibility mirrors can exceed localStorage quota; IndexedDB below
+        // remains authoritative.
+      }
+
+      void saveResumeLibrary(nextLibrary, nextActiveId, savedAt).then(() => {
         confirmStorageAvailable();
-        setAutosavedState(normalizeResume(state));
+        setAutosavedState(normalizedState);
         setAutosavedAt(savedAt);
         setAutosaveStatus("saved");
         if (
-          activeResumeId &&
+          nextActiveId &&
           hasAnyContent(state) &&
           Date.now() - lastAutomaticCheckpointAtRef.current >= PERIODIC_CHECKPOINT_INTERVAL_MS
         ) {
@@ -855,9 +877,10 @@ export function useResumeEditor() {
             note: "Saved automatically after 10 minutes of continued editing.",
           });
         }
-      } catch {
+      }).catch(() => {
         reportStorageIssue();
-      }
+        setAutosaveStatus("conflict");
+      });
     }, 400);
     return () => window.clearTimeout(timer);
   }, [activeResumeId, confirmStorageAvailable, externalDraft, importReview, loaded, reportStorageIssue, state]);
@@ -1499,7 +1522,13 @@ export function useResumeEditor() {
    * is intentionally separate from Clear, whose recovery point is useful when
    * someone merely wants to start over while keeping their local work safe.
    */
-  const clearSavedBrowserData = () => {
+  const clearSavedBrowserData = async () => {
+    try {
+      await clearResumeWorkspace();
+      confirmStorageAvailable();
+    } catch {
+      reportStorageIssue();
+    }
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("resume-editor-data-v1");
@@ -1512,9 +1541,8 @@ export function useResumeEditor() {
       localStorage.removeItem(AUTOSAVE_TIME_KEY);
       localStorage.removeItem("resume-editor-role-focus-v1");
       localStorage.removeItem("resume-editor-role-focus-label-v1");
-      confirmStorageAvailable();
     } catch {
-      reportStorageIssue();
+      // The authoritative IndexedDB workspace was already cleared.
     }
     skipNextAutosaveRef.current = true;
     setState(emptyState());
@@ -1602,7 +1630,7 @@ export function useResumeEditor() {
     }
   };
 
-  const importVersionHistoryBackup = () => {
+  const importVersionHistoryBackup = async () => {
     if (!historyBackupToImport) return;
     const importedCount = mergedHistoryBackup.checkpoints.filter((checkpoint) =>
       mergedHistoryBackup.incomingUnique.some(
@@ -1610,7 +1638,7 @@ export function useResumeEditor() {
       ),
     ).length;
     const matchingCount = mergedHistoryBackup.matchingCheckpoints.length;
-    const saved = persistVersionHistory(mergedHistoryBackup.checkpoints);
+    const saved = await persistVersionHistory(mergedHistoryBackup.checkpoints);
     setVersionHistory(mergedHistoryBackup.checkpoints);
     setHistoryBackupToImport(null);
     setDeletedVersion(null);
@@ -1888,6 +1916,7 @@ export function useResumeEditor() {
     isImporting,
     jsonInputRef,
     keepCurrentDraft,
+    loaded,
     loadSample,
     mergedHistoryBackup,
     moveEntry,

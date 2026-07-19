@@ -488,10 +488,10 @@ test("keeps the mobile section navigation below the persistent workspace header"
 
 test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(Storage.prototype, "setItem", {
+    Object.defineProperty(IDBFactory.prototype, "open", {
       configurable: true,
       value: () => {
-        throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+        throw new DOMException("IndexedDB is unavailable", "InvalidStateError");
       },
     });
   });
@@ -529,10 +529,10 @@ test("records only an anonymous format event when a resume is exported", async (
 
 test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(Storage.prototype, "setItem", {
+    Object.defineProperty(IDBFactory.prototype, "open", {
       configurable: true,
       value: () => {
-        throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+        throw new DOMException("IndexedDB is unavailable", "InvalidStateError");
       },
     });
   });
@@ -802,10 +802,11 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
   await expect(autosave.getByText("Saved", { exact: true })).toBeVisible();
 
-  const summary = page.getByLabel("Professional Summary");
-  const savedSummary = await summary.inputValue();
+  const summary = page.getByRole("textbox", { name: "Professional Summary" });
+  const savedSummary = await summary.textContent();
   await page.waitForTimeout(450);
   await summary.fill("A local-first product engineer who ships dependable tools.");
+  await summary.press("Tab");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
   await expect(autosave).toHaveAccessibleName(/saving locally/i);
   await expect(autosave.getByText("Saving", { exact: true })).toBeVisible();
@@ -817,7 +818,7 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   const autosaveCard = versions.locator("li", { hasText: "Autosave copy" });
   await autosaveCard.getByRole("button", { name: "Select Autosave copy" }).click();
   await versions.getByRole("button", { name: "Confirm restore" }).click();
-  await expect(summary).toHaveValue(savedSummary);
+  await expect(summary).toHaveText(savedSummary ?? "");
   await expect(page.getByText("Restored Autosave copy")).toBeVisible();
 });
 

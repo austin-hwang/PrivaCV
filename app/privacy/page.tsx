@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <div className="mt-10 grid gap-8 text-base leading-relaxed text-muted-foreground">
         <section>
           <h2 className="text-2xl font-semibold text-foreground">Your resume and job search stay in your browser</h2>
-          <p className="mt-3">PrivaCV runs as a local-first editor. Resume content is processed in your browser, while the job pipeline stores applications, notes, timeline events, and job-description snapshots in your browser&apos;s IndexedDB database. PrivaCV does not require an account or upload this information to a PrivaCV server.</p>
+          <p className="mt-3">PrivaCV runs as a local-first editor. Resume drafts, saved versions, applications, notes, timeline events, job descriptions, and submitted-resume snapshots are stored in your browser&apos;s IndexedDB databases. PrivaCV does not require an account or upload this information to a PrivaCV server.</p>
         </section>
         <section>
           <h2 className="text-2xl font-semibold text-foreground">Files you choose to import</h2>

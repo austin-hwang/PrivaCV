@@ -415,6 +415,7 @@ export function ResumeEditor() {
     isImporting,
     jsonInputRef,
     keepCurrentDraft,
+    loaded,
     loadSample,
     moveEntry,
     moveSection,
@@ -479,7 +480,7 @@ export function ResumeEditor() {
     setLocalAIOpen(false);
     await clearAllLocalAIData();
     await clearStoredJobPipelineData().catch(() => undefined);
-    clearSavedBrowserData();
+    await clearSavedBrowserData();
   };
   const toggleLocalAIInlineEdit = (target: LocalAIInlineTarget) => {
     setLocalAIInlineTarget((current) => current?.id === target.id ? null : target);
@@ -1041,13 +1042,21 @@ export function ResumeEditor() {
     observer.observe(wrap);
     if (resumeRef.current) observer.observe(resumeRef.current);
     return () => observer.disconnect();
-  }, [SHEET_WIDTH_PX, resumeRef]);
+  }, [SHEET_WIDTH_PX, loaded, resumeRef]);
 
   const previewFrameStyle = {
     "--resume-preview-scale": previewScale,
     "--resume-preview-frame-width": `${Math.round(SHEET_WIDTH_PX * previewScale)}px`,
     "--resume-preview-frame-height": `${Math.round(sheetHeight * previewScale)}px`,
   } as CSSProperties;
+
+  if (!loaded) {
+    return (
+      <div className="flex min-h-36 items-center justify-center gap-2 border-b bg-card text-sm text-muted-foreground" role="status">
+        <Loader2 className="animate-spin" /> Loading your private workspace
+      </div>
+    );
+  }
 
   return (
     <>
