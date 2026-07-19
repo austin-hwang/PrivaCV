@@ -12,6 +12,7 @@ import {
   CircleDot,
   Download,
   FileText,
+  GitBranch,
   GripVertical,
   KanbanSquare,
   LayoutList,
@@ -49,6 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { JobPipelineSankey } from "@/components/job-pipeline-sankey";
 import { toggleTheme } from "@/components/theme-toggle";
 import { useJobPipeline } from "@/hooks/use-job-pipeline";
 import { useResumeSources, type ResumeSourceOption } from "@/hooks/use-resume-sources";
@@ -74,9 +76,10 @@ import {
   type JobApplicationStatus,
   type ResumeSnapshot,
 } from "@/lib/job-applications";
+import { buildJobSankeyData } from "@/lib/job-application-sankey";
 import { cn } from "@/lib/utils";
 
-type PipelineView = "board" | "list";
+type PipelineView = "board" | "list" | "sankey";
 type PipelineScope = "active" | "closed" | "all";
 
 type ApplicationForm = {
@@ -618,6 +621,10 @@ export function JobPipeline() {
     if (scope === "closed" && !isClosedJobApplicationStatus(application.status)) return false;
     return jobApplicationMatches(application, query);
   })), [pipeline.data.applications, query, scope]);
+  const sankeyData = useMemo(
+    () => buildJobSankeyData(visibleApplications, pipeline.data.events),
+    [pipeline.data.events, visibleApplications],
+  );
 
   const visibleStatuses: readonly JobApplicationStatus[] = scope === "active"
     ? ACTIVE_JOB_APPLICATION_STATUSES
@@ -788,6 +795,19 @@ export function JobPipeline() {
               <div className="flex rounded-lg border bg-background p-1" aria-label="Pipeline layout">
                 <Button type="button" size="sm" variant={view === "board" ? "secondary" : "ghost"} aria-label="Board view" aria-pressed={view === "board"} onClick={() => setView("board")}><KanbanSquare /> Board</Button>
                 <Button type="button" size="sm" variant={view === "list" ? "secondary" : "ghost"} aria-label="List view" aria-pressed={view === "list"} onClick={() => setView("list")}><LayoutList /> List</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={view === "sankey" ? "secondary" : "ghost"}
+                  aria-label="Sankey view"
+                  aria-pressed={view === "sankey"}
+                  onClick={() => {
+                    setScope("all");
+                    setView("sankey");
+                  }}
+                >
+                  <GitBranch /> Sankey
+                </Button>
               </div>
             </div>
           </div>
@@ -854,6 +874,11 @@ export function JobPipeline() {
                 })}
               </div>
             </div>
+          ) : view === "sankey" ? (
+            <JobPipelineSankey
+              data={sankeyData}
+              onExport={(result) => setActionMessage({ type: result.ok ? "success" : "error", text: result.message })}
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] text-left text-sm">

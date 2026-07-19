@@ -11,6 +11,29 @@ type PageMetadataOptions = {
   type?: "website" | "article";
 };
 
+type WebApplicationJsonLdOptions = {
+  name: string;
+  description: string;
+  path: string;
+  featureList: string[];
+};
+
+/** Schema.org product facts for public feature pages. This deliberately avoids
+ * ratings or reviews until PrivaCV has genuine user-review data to publish. */
+export function webApplicationJsonLd({ name, description, path, featureList }: WebApplicationJsonLdOptions) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name,
+    description,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Any device with a modern web browser",
+    url: absoluteUrl(path),
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    featureList,
+  };
+}
+
 /**
  * Route metadata must include the complete Open Graph and Twitter objects.
  * Next.js replaces nested metadata objects rather than deeply merging them,

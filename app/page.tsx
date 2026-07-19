@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ResumeEditor } from "@/components/resume-editor";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "@/lib/site";
@@ -34,13 +35,14 @@ const structuredData = {
         "PDF, DOCX, and pasted-text resume import",
         "ATS-friendly plain-text review",
         "Browser-only resume library and edit history",
-        "Private browser-only job application tracking",
+        "Private browser-only job application tracking with resume snapshots",
+        "Job search Sankey diagram with local PNG export",
       ],
     },
   ],
 };
 
-const features = [
+const features: Array<{ title: string; body: string; href?: string }> = [
   {
     title: "Nothing leaves your browser",
     body: "You write, save versions, track applications, and export on your own device. Your resume and job search are not uploaded to our servers.",
@@ -56,6 +58,11 @@ const features = [
   {
     title: "Free, no sign-up",
     body: "There's no account to create and no watermark on what you download. Open the page and start typing.",
+  },
+  {
+    title: "Track applications privately",
+    body: "Organize follow-ups, interviews, outcomes, and submitted resume versions, then turn the full search into a shareable Sankey image.",
+    href: "/job-application-tracker",
   },
 ];
 
@@ -95,7 +102,11 @@ export default function Home() {
           <div className="mt-10 grid gap-5 sm:grid-cols-2">
             {features.map((feature) => (
               <article key={feature.title} className="rounded-lg border bg-card p-5">
-                <h2 className="font-semibold">{feature.title}</h2>
+                <h2 className="font-semibold">
+                  {feature.href
+                    ? <Link className="underline-offset-4 hover:underline" href={feature.href}>{feature.title}</Link>
+                    : feature.title}
+                </h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.body}</p>
               </article>
             ))}

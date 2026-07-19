@@ -9,7 +9,42 @@ export function GET() {
   const templates = absoluteUrl("/resume-templates") ?? "/resume-templates";
   const pdfToDocx = absoluteUrl("/pdf-to-docx-resume") ?? "/pdf-to-docx-resume";
   const plainText = absoluteUrl("/plain-text-resume") ?? "/plain-text-resume";
-  const body = `# PrivaCV\n\n> A private, browser-based resume editor for creating, tailoring, reviewing, and exporting clean, text-based resumes.\n\nPrivaCV does not require an account, subscription, watermark, or resume upload. Resume editing, imports, exports, the resume library, and edit history stay in the browser.\n\n## Product facts\n\n- Category: resume editor / resume builder\n- Privacy: local-first browser editing; resume text is not uploaded to use the editor\n- Exports: PDF, editable DOCX, Markdown, plain text, and portable JSON\n- Imports: PDF, DOCX, pasted text, JSON, and checkpoint-history backups\n- Resume format: clean text-based templates with plain-text review intended to support ATS-friendly applications\n- Local AI: optional; model files are downloaded only when a user chooses to prepare a model, and resume text is not sent to an AI API\n\n## Public pages\n\n- [Use PrivaCV](${home}): the resume editor\n- [Free resume builder](${freeBuilder}): free, no-account resume building in the browser\n- [ATS resume checker](${atsChecker}): review the plain text an ATS reads and check structure and evidence\n- [Resume templates](${templates}): clean, ATS-friendly, text-based templates\n- [PDF to DOCX resume](${pdfToDocx}): convert a PDF resume into an editable Word file\n- [Plain-text resume](${plainText}): create a plain-text resume for online applications\n- [About PrivaCV](${about}): product and ATS-friendly-resume details\n- [Privacy](${privacy}): local-first data handling\n`;
+  const jobTracker = absoluteUrl("/job-application-tracker") ?? "/job-application-tracker";
+  const jobSankey = absoluteUrl("/job-search-sankey") ?? "/job-search-sankey";
+  const applications = absoluteUrl("/applications") ?? "/applications";
+  const body = `# PrivaCV
+
+> A private, browser-based resume editor and job application tracker for creating, tailoring, reviewing, exporting, and organizing a job search.
+
+PrivaCV does not require an account, subscription, watermark, or resume upload. Resume editing, imports, exports, the resume library, edit history, applications, and job-search visualizations stay in the browser.
+
+## Product facts
+
+- Category: resume editor / resume builder / job application tracker
+- Privacy: local-first browser editing; resume and application data are not uploaded to use the product
+- Exports: PDF, editable DOCX, Markdown, plain text, portable JSON, job-pipeline CSV, and Sankey PNG
+- Imports: PDF, DOCX, pasted text, JSON, checkpoint-history backups, and job-pipeline backups
+- Resume format: clean text-based templates with plain-text review intended to support ATS-friendly applications
+- Local AI: optional; model files are downloaded only when a user chooses to prepare a model, and resume text is not sent to an AI API
+- Job application tracker: local Kanban and list views with stages, follow-up dates, notes, job descriptions, and timeline events
+- Resume linking: attach a current resume or checkpoint and preserve an immutable local snapshot of the submitted version
+- Job search Sankey: reconstruct application-to-interview-to-offer flows and export a high-resolution PNG in the browser
+- Job-search portability: CSV export plus complete JSON backup and restore
+
+## Public pages
+
+- [Use PrivaCV](${home}): the resume editor
+- [Free resume builder](${freeBuilder}): free, no-account resume building in the browser
+- [ATS resume checker](${atsChecker}): review the plain text an ATS reads and check structure and evidence
+- [Resume templates](${templates}): clean, ATS-friendly, text-based templates
+- [PDF to DOCX resume](${pdfToDocx}): convert a PDF resume into an editable Word file
+- [Plain-text resume](${plainText}): create a plain-text resume for online applications
+- [Private job application tracker](${jobTracker}): track applications, follow-ups, resumes, interviews, and outcomes locally
+- [Job search Sankey generator](${jobSankey}): automatically visualize the application funnel and export it as PNG
+- [Open the private application workspace](${applications}): the no-account tracker application
+- [About PrivaCV](${about}): product and ATS-friendly-resume details
+- [Privacy](${privacy}): local-first data handling
+`;
 
   return new Response(body, {
     headers: {

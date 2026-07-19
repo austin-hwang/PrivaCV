@@ -41,6 +41,7 @@ export default function PrivacyPage() {
       </div>
       <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
         <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
+        <Link className="underline underline-offset-4" href="/job-application-tracker">Learn about the private job tracker</Link>
         <Link className="underline underline-offset-4" href="/applications">Open the job pipeline</Link>
         <Link className="underline underline-offset-4" href="/about">About PrivaCV</Link>
       </nav>

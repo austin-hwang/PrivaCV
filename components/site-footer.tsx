@@ -3,7 +3,8 @@ import { GUIDES, guidePath } from "@/lib/guides";
 import { SITE_NAME } from "@/lib/site";
 
 const RESUME_TOOLS = [
-  { href: "/applications", label: "Job application tracker" },
+  { href: "/job-application-tracker", label: "Job application tracker" },
+  { href: "/job-search-sankey", label: "Job search Sankey generator" },
   { href: "/free-resume-builder", label: "Free resume builder" },
   { href: "/ats-resume-checker", label: "ATS resume checker" },
   { href: "/resume-templates", label: "Resume templates" },

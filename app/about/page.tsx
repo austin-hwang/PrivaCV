@@ -66,7 +66,7 @@ export default function AboutPage() {
       <div className="mt-12 grid gap-10 text-base leading-relaxed text-muted-foreground md:grid-cols-2">
         <section>
           <h2 className="text-2xl font-semibold text-foreground">What PrivaCV is for</h2>
-          <p className="mt-3">PrivaCV is for people who want to create a clean resume and organize their job search without creating an account or handing personal data to a career platform. It supports structured editing, ATS-friendly review, PDF and DOCX export, and a local job application pipeline.</p>
+          <p className="mt-3">PrivaCV is for people who want to create a clean resume and organize their job search without creating an account or handing personal data to a career platform. It supports structured editing, ATS-friendly review, PDF and DOCX export, and a <Link className="underline underline-offset-4" href="/job-application-tracker">local job application tracker</Link> with resume snapshots and Sankey export.</p>
         </section>
         <section>
           <h2 className="text-2xl font-semibold text-foreground">What makes a resume ATS-friendly</h2>
@@ -87,7 +87,7 @@ export default function AboutPage() {
             <li>Tailor experience, projects, education, skills, and custom sections for a specific application.</li>
             <li>Review resume checks, compare versions, and export clean PDF, DOCX, or plain-text copies.</li>
             <li>Keep your resume library and per-resume edit history in browser storage under your control.</li>
-            <li>Track applications, next actions, interviews, and outcomes in a private local pipeline.</li>
+            <li><Link className="underline underline-offset-4" href="/job-application-tracker">Track applications</Link>, next actions, interviews, resume versions, and outcomes in a private local pipeline.</li>
           </ul>
         </section>
       </div>

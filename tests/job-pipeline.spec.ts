@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
   await page.goto("/applications");
@@ -77,4 +78,28 @@ test("captures an immutable checkpoint when an application is submitted", async 
   });
   expect(snapshot).toMatchObject({ label: "John Doe — Product baseline", data: { name: "John Doe" } });
   expect(snapshot.checkpointId).toBeTruthy();
+});
+
+test("renders the job search as a Sankey diagram and downloads a PNG", async ({ page }) => {
+  await page.goto("/applications");
+  await page.getByRole("button", { name: "Add application" }).click();
+  const createDialog = page.getByRole("dialog", { name: "Add an application" });
+  await createDialog.getByLabel("Company").fill("Orbit Systems");
+  await createDialog.getByLabel("Role").fill("Staff Engineer");
+  await createDialog.getByLabel("Status").selectOption("applied");
+  await createDialog.getByRole("button", { name: "Add application" }).click();
+
+  await page.getByRole("button", { name: "Sankey view" }).click();
+  await expect(page.getByRole("button", { name: "Sankey view" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Job search Sankey" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Job search Sankey diagram" })).toContainText("Awaiting response");
+
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save as PNG" }).click();
+  const image = await download;
+  expect(image.suggestedFilename()).toMatch(/^privacv-job-search-sankey-\d{4}-\d{2}-\d{2}\.png$/);
+  const imagePath = await image.path();
+  expect(imagePath).toBeTruthy();
+  expect((await readFile(imagePath!)).subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  await expect(page.getByText("Sankey image downloaded", { exact: true })).toBeVisible();
 });

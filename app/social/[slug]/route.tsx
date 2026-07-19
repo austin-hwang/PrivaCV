@@ -1,11 +1,13 @@
 import { ImageResponse } from "next/og";
+import type { JobSankeyData } from "@/lib/job-application-sankey";
+import { buildJobSankeyLayout, type JobSankeyLayoutOptions } from "@/lib/job-sankey-layout";
 
 type SocialCard = {
   eyebrow: string;
   title: string;
   detail: string;
   accent: string;
-  visual: "editor" | "ats" | "templates" | "convert" | "text" | "compare" | "guide" | "privacy";
+  visual: "editor" | "ats" | "templates" | "convert" | "text" | "compare" | "guide" | "privacy" | "pipeline" | "sankey";
 };
 
 const cards: Record<string, SocialCard> = {
@@ -58,6 +60,20 @@ const cards: Record<string, SocialCard> = {
     accent: "#fb7185",
     visual: "compare",
   },
+  "job-application-tracker": {
+    eyebrow: "Free · private · no account",
+    title: "Track every application on your device",
+    detail: "Pipeline · follow-ups · resume snapshots · backups",
+    accent: "#60a5fa",
+    visual: "pipeline",
+  },
+  "job-search-sankey": {
+    eyebrow: "Free job search Sankey generator",
+    title: "Visualize your job search flow",
+    detail: "Applications · interviews · offers · outcomes · PNG",
+    accent: "#a78bfa",
+    visual: "sankey",
+  },
   "resume-guides": {
     eyebrow: "Practical resume guidance",
     title: "Clear advice without ATS folklore",
@@ -87,6 +103,40 @@ const cards: Record<string, SocialCard> = {
     visual: "privacy",
   },
 };
+
+const socialSankeyData: JobSankeyData = {
+  total: 84,
+  excluded: 7,
+  nodes: [
+    { id: "applications", label: "Applications", count: 84, column: 0, color: "#2563eb" },
+    { id: "interviewing", label: "Interviews", count: 31, column: 1, color: "#7c3aed" },
+    { id: "offer", label: "Offers", count: 8, column: 2, color: "#d97706" },
+    { id: "accepted", label: "Accepted", count: 2, column: 3, color: "#16a34a" },
+    { id: "rejected", label: "Not selected", count: 61, column: 3, color: "#dc2626" },
+    { id: "awaiting", label: "Waiting", count: 21, column: 3, color: "#0284c7" },
+  ],
+  links: [
+    { source: "applications", target: "interviewing", value: 31 },
+    { source: "applications", target: "rejected", value: 32 },
+    { source: "applications", target: "awaiting", value: 21 },
+    { source: "interviewing", target: "offer", value: 8 },
+    { source: "interviewing", target: "rejected", value: 23 },
+    { source: "offer", target: "accepted", value: 2 },
+    { source: "offer", target: "rejected", value: 6 },
+  ],
+};
+
+const socialSankeyLayoutOptions: JobSankeyLayoutOptions = {
+  width: 450,
+  height: 410,
+  chartTop: 100,
+  chartHeight: 255,
+  nodeWidth: 16,
+  nodeGap: 20,
+  columnX: [30, 164, 278, 362],
+};
+
+const socialSankeyLayout = buildJobSankeyLayout(socialSankeyData, socialSankeyLayoutOptions);
 
 function Line({ width = "100%", accent = false }: { width?: string; accent?: boolean }) {
   return <div style={{ background: accent ? "#60a5fa" : "#d8dee8", borderRadius: 8, display: "flex", height: accent ? 7 : 5, width }} />;
@@ -172,6 +222,78 @@ function FeatureVisual({ card }: { card: SocialCard }) {
             <div style={{ display: "flex" }}>{label}</div><CheckIcon size={27} />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (card.visual === "pipeline") {
+    const columns = [
+      { label: "APPLIED", color: "#60a5fa", cards: ["Staff Engineer", "Product Lead", "Design Systems"] },
+      { label: "INTERVIEW", color: "#a78bfa", cards: ["Platform Eng.", "Senior PM"] },
+      { label: "OFFER", color: "#f59e0b", cards: ["Frontend Lead"] },
+    ];
+    return (
+      <div style={{ background: "#202530", border: "1px solid #3b4352", borderRadius: 16, display: "flex", gap: 11, height: 430, padding: 18, width: 450 }}>
+        {columns.map((column) => (
+          <div key={column.label} style={{ background: "#292f3b", borderRadius: 10, display: "flex", flex: 1, flexDirection: "column", padding: 11 }}>
+            <div style={{ alignItems: "center", color: "#cbd5e1", display: "flex", fontSize: 11, fontWeight: 800, gap: 7 }}>
+              <div style={{ background: column.color, borderRadius: 99, display: "flex", height: 8, width: 8 }} />
+              {column.label}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+              {column.cards.map((label, index) => (
+                <div key={label} style={{ background: "#fff", borderRadius: 8, color: "#111827", display: "flex", flexDirection: "column", minHeight: 72, padding: 11 }}>
+                  <div style={{ display: "flex", fontSize: 12, fontWeight: 700 }}>{label}</div>
+                  <div style={{ color: "#64748b", display: "flex", fontSize: 9, marginTop: 6 }}>{["Northstar", "Orbit", "Acme"][index] ?? "Studio"}</div>
+                  <div style={{ background: column.color, borderRadius: 99, display: "flex", height: 4, marginTop: 10, opacity: .7, width: `${72 - index * 12}%` }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (card.visual === "sankey") {
+    return (
+      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 22px 55px rgba(0,0,0,.25)", display: "flex", height: socialSankeyLayout.height, overflow: "hidden", position: "relative", width: socialSankeyLayout.width }}>
+        <svg
+          viewBox={`0 0 ${socialSankeyLayout.width} ${socialSankeyLayout.height}`}
+          width={socialSankeyLayout.width}
+          height={socialSankeyLayout.height}
+          style={{ left: 0, position: "absolute", top: 0 }}
+        >
+          <rect width={socialSankeyLayout.width} height={socialSankeyLayout.height} fill="#ffffff" />
+          {socialSankeyLayout.links.map((link) => (
+            <path key={`${link.source}-${link.target}`} d={link.path} fill={link.color} fillOpacity="0.25" stroke={link.color} strokeOpacity="0.12" />
+          ))}
+          {socialSankeyLayout.nodes.map((node) => (
+            <rect key={node.id} x={node.x} y={node.y} width={node.width} height={node.height} rx="3" fill={node.color} />
+          ))}
+        </svg>
+        <div style={{ color: "#0f172a", display: "flex", fontSize: 19, fontWeight: 700, left: 28, position: "absolute", top: 24 }}>My job search</div>
+        <div style={{ color: "#64748b", display: "flex", fontSize: 11, left: 28, position: "absolute", top: 52 }}>84 submitted applications · 7 saved roles excluded</div>
+        {socialSankeyLayout.nodes.map((node) => {
+          const percentage = Math.round((node.count / socialSankeyData.total) * 100);
+          return (
+            <div
+              key={node.id}
+              style={{
+                color: "#0f172a",
+                display: "flex",
+                flexDirection: "column",
+                left: node.x + node.width + 5,
+                position: "absolute",
+                top: node.y + node.height / 2 - 13,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <div style={{ display: "flex", fontSize: 10, fontWeight: 700 }}>{node.label}</div>
+              <div style={{ color: "#64748b", display: "flex", fontSize: 8, marginTop: 2 }}>{node.count} · {percentage}%</div>
+            </div>
+          );
+        })}
       </div>
     );
   }

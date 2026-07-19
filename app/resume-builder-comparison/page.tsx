@@ -95,9 +95,10 @@ export default function ResumeBuilderComparisonPage() {
             print-ready PDF, an editable Word file, plain text, Markdown, or a JSON backup — all free.
           </p>
           <p className="mt-3">
-            It&apos;s a fair trade-off, not a clean sweep: the paid tools ship larger template libraries, and Teal and
-            Rezi add job-tracking features PrivaCV doesn&apos;t. If a big template gallery or an all-in-one job tracker is
-            what you need most, those tools may fit better. If price and privacy matter most, PrivaCV is built for that.
+            It&apos;s a fair trade-off, not a clean sweep: the paid tools ship larger template libraries, cloud sync, and
+            broader AI-assisted career workflows. PrivaCV instead combines private resume editing with a local job
+            application tracker and Sankey export. If team collaboration or a large cloud template gallery matters
+            most, those tools may fit better. If price, portability, and privacy matter most, PrivaCV is built for that.
           </p>
         </section>
 
@@ -118,6 +119,7 @@ export default function ResumeBuilderComparisonPage() {
           <Link className="underline underline-offset-4" href="/free-resume-builder">Free resume builder</Link>
           <Link className="underline underline-offset-4" href="/ats-resume-checker">ATS resume checker</Link>
           <Link className="underline underline-offset-4" href="/resume-templates">Resume templates</Link>
+          <Link className="underline underline-offset-4" href="/job-application-tracker">Job application tracker</Link>
         </nav>
 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }} />
