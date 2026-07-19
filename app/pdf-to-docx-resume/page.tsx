@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { SeoLanding, type FaqItem } from "@/components/seo-landing";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
 
-const title = "Convert a PDF Resume to Word (DOCX)";
+const title = "PDF Resume to Word Converter — Free, No Upload";
 const description =
-  "Turn a PDF resume back into an editable Word (DOCX) file. Import your PDF, review each field, and export a clean DOCX, all in your browser with no upload and no account.";
+  "Import a PDF resume, review the extracted fields, and export an editable DOCX. Free, no account, and your resume never leaves your browser.";
 
 const faqItems: FaqItem[] = [
   {
@@ -23,12 +23,12 @@ const faqItems: FaqItem[] = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/pdf-to-docx-resume" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/pdf-to-docx-resume") },
-};
+  path: "/pdf-to-docx-resume",
+  socialImage: "pdf-to-docx-resume",
+});
 
 export default function PdfToDocxResumePage() {
   return (
@@ -36,6 +36,7 @@ export default function PdfToDocxResumePage() {
       h1="Convert a PDF resume to an editable Word file"
       lede={description}
       ctaLabel="Convert your PDF resume"
+      heroImage={{ src: "/social/pdf-to-docx-resume", alt: "PDF resume converted into an editable Word document in the browser" }}
       breadcrumb={{ name: title, path: "/pdf-to-docx-resume" }}
       cards={[
         {

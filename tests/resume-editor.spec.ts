@@ -243,30 +243,31 @@ function makeDocxWithFooterContact() {
 test("presents credible browser metadata and public launch assets", async ({ page, request }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle("PrivaCV — Private, ATS-Friendly Resume Editor");
+  await expect(page).toHaveTitle("PrivaCV: Free Private Resume Editor — No Sign-Up");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
     /Build, tailor, and export a clean resume locally/i,
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     "content",
-    "PrivaCV — Private, ATS-Friendly Resume Editor",
+    "PrivaCV: Free Private Resume Editor — No Sign-Up",
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://privacv.app");
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", "https://privacv.app");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest\.webmanifest$/);
-  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg(?:\?.*)?$/);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/icon");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("type", "image/png");
 
   const appleIconHref = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
   expect(appleIconHref).toBeTruthy();
 
-  const [manifest, robots, sitemap, icon, appleIcon] = await Promise.all([
+  const [manifest, robots, sitemap, icon, appleIcon, socialImage] = await Promise.all([
     request.get("/manifest.webmanifest"),
     request.get("/robots.txt"),
     request.get("/sitemap.xml"),
-    request.get("/icon.svg"),
+    request.get("/icon"),
     request.get(appleIconHref!),
+    request.get("/social/home"),
   ]);
   expect(manifest.ok()).toBeTruthy();
   expect(await manifest.json()).toMatchObject({ short_name: "PrivaCV", display: "standalone" });
@@ -275,9 +276,22 @@ test("presents credible browser metadata and public launch assets", async ({ pag
   expect(sitemap.ok()).toBeTruthy();
   expect(await sitemap.text()).toContain("<loc>https://privacv.app/</loc>");
   expect(icon.ok()).toBeTruthy();
-  expect(icon.headers()["content-type"]).toContain("image/svg+xml");
+  expect(icon.headers()["content-type"]).toContain("image/png");
   expect(appleIcon.ok()).toBeTruthy();
   expect(appleIcon.headers()["content-type"]).toContain("image/png");
+  expect(socialImage.ok()).toBeTruthy();
+  expect(socialImage.headers()["content-type"]).toContain("image/png");
+
+  await page.goto("/free-resume-builder");
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    "content",
+    "https://privacv.app/social/free-resume-builder",
+  );
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "PrivaCV");
+  await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute(
+    "content",
+    "Free Resume Builder — No Sign-Up or Watermark | PrivaCV",
+  );
 });
 
 test("protects the local workspace with production response security headers", async ({ request }) => {
@@ -973,7 +987,7 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
 
   await exportPdf(page);
   await expect(page.locator("html")).toHaveAttribute("data-print-title", "John_Doe_Resume");
-  await expect(page).toHaveTitle("PrivaCV — Private, ATS-Friendly Resume Editor");
+  await expect(page).toHaveTitle("PrivaCV: Free Private Resume Editor — No Sign-Up");
 });
 
 test("makes validated contact details actionable in the preview", async ({ page }) => {

@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GuideLayout } from "@/components/guide-layout";
 import { getGuide, guidePath } from "@/lib/guides";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
 
 const guide = getGuide("ats-friendly-resume")!;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: guide.title,
   description: guide.description,
-  alternates: SITE_URL ? { canonical: guidePath(guide.slug) } : undefined,
-  openGraph: { title: `${guide.title} | ${SITE_NAME}`, description: guide.description, url: absoluteUrl(guidePath(guide.slug)) },
-};
+  path: guidePath(guide.slug),
+  socialImage: "ats-friendly-resume",
+  type: "article",
+});
 
 export default function AtsFriendlyResumeGuide() {
   return (

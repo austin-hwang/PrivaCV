@@ -18,6 +18,7 @@ const merriweather = Merriweather({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-serif",
+  preload: false,
 });
 
 // Open, self-hosted equivalents keep every selectable resume font consistent
@@ -59,27 +60,31 @@ const carlito = Carlito({
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: {
-    default: "PrivaCV: Private, ATS-Friendly Resume Editor",
+    default: "PrivaCV: Free Private Resume Editor — No Sign-Up",
     template: "%s | PrivaCV",
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   category: "BusinessApplication",
   keywords: ["PrivaCV", "resume editor", "resume builder", "ATS-friendly resume", "private resume editor", "free resume editor", "PDF resume", "DOCX resume"],
-  alternates: SITE_URL ? { canonical: "/" } : undefined,
+  alternates: { canonical: "/" },
+  icons: {
+    icon: [{ url: "/icon", type: "image/png", sizes: "96x96" }],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    title: "PrivaCV: Private, ATS-Friendly Resume Editor",
+    title: "PrivaCV: Free Private Resume Editor — No Sign-Up",
     description: SITE_DESCRIPTION,
     url: SITE_URL?.toString(),
-    images: SITE_URL ? [{ url: "/api/og", width: 1200, height: 630, alt: "PrivaCV, a private, ATS-friendly resume editor"}] : undefined,
+    images: [{ url: "/social/home", width: 1200, height: 630, alt: "PrivaCV free private resume editor" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PrivaCV: Private, ATS-Friendly Resume Editor",
+    title: "PrivaCV: Free Private Resume Editor — No Sign-Up",
     description: SITE_DESCRIPTION,
-    images: SITE_URL ? ["/api/og"] : undefined,
+    images: ["/social/home"],
   },
   robots: { index: true, follow: true },
 };

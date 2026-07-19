@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { type GuideMeta, guidePath } from "@/lib/guides";
@@ -18,7 +19,8 @@ function articleJsonLd(guide: GuideMeta) {
     "@type": "Article",
     headline: guide.title,
     description: guide.description,
-    datePublished: guide.updated,
+    image: absoluteUrl("/social/ats-friendly-resume"),
+    datePublished: guide.published ?? guide.updated,
     dateModified: guide.updated,
     mainEntityOfPage: url,
     author: { "@type": "Organization", name: SITE_NAME, url: absoluteUrl("/") },
@@ -26,7 +28,7 @@ function articleJsonLd(guide: GuideMeta) {
       "@type": "Organization",
       name: SITE_NAME,
       url: absoluteUrl("/"),
-      logo: { "@type": "ImageObject", url: absoluteUrl("/icon") },
+      logo: { "@type": "ImageObject", url: absoluteUrl("/icon"), width: 96, height: 96 },
     },
   };
 }
@@ -58,7 +60,7 @@ export function GuideLayout({
     <>
       <main className="mx-auto max-w-3xl px-6 py-16">
       <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
-        <Link className="hover:text-foreground" href="/">Home</Link>
+        <Link className="hover:text-foreground" href="/" prefetch={false}>Home</Link>
         <span aria-hidden="true"> / </span>
         <Link className="hover:text-foreground" href="/guides">Guides</Link>
       </nav>
@@ -67,6 +69,15 @@ export function GuideLayout({
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">{guide.title}</h1>
       <p className="mt-3 text-sm text-muted-foreground">Last updated {formatUpdated(guide.updated)}</p>
       <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{guide.description}</p>
+
+      <Image
+        className="mt-8 h-auto w-full rounded-xl border shadow-sm"
+        src="/social/ats-friendly-resume"
+        alt="ATS-friendly resume checklist covering layout, headings, selectable text, and plain-text review"
+        width={1200}
+        height={630}
+        sizes="(max-width: 768px) 100vw, 768px"
+      />
 
       <div className="guide-content mt-10">{children}</div>
 
@@ -79,6 +90,7 @@ export function GuideLayout({
         <Link
           className="mt-4 inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
           href="/"
+          prefetch={false}
         >
           Open the editor
         </Link>

@@ -8,16 +8,25 @@ const structuredData = {
     {
       "@type": "WebSite",
       name: SITE_NAME,
+      alternateName: "privacv.app",
       url: absoluteUrl(),
     },
     {
-      "@type": "SoftwareApplication",
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: absoluteUrl(),
+      logo: absoluteUrl("/icon"),
+    },
+    {
+      "@type": "WebApplication",
       name: SITE_NAME,
       description: SITE_DESCRIPTION,
       applicationCategory: "BusinessApplication",
       applicationSubCategory: "Resume editor",
       operatingSystem: "Web",
       url: absoluteUrl(),
+      image: absoluteUrl("/social/home"),
+      screenshot: absoluteUrl("/social/home"),
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       featureList: [
         "Local browser-based resume editing",

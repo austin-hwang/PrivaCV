@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 const faqItems = [
   {
@@ -32,11 +33,12 @@ const structuredData = {
   })),
 };
 
-export const metadata: Metadata = {
-  title: "About the private resume editor",
-  description: "Learn how PrivaCV helps job seekers create clean, ATS-friendly resumes locally in their browser without accounts, subscriptions, or resume uploads.",
-  alternates: SITE_URL ? { canonical: "/about" } : undefined,
-};
+export const metadata: Metadata = createPageMetadata({
+  title: "About the Private Resume Editor",
+  description: "Learn how PrivaCV creates clean, ATS-friendly resumes locally in your browser—with no account, subscription, watermark, or resume upload.",
+  path: "/about",
+  socialImage: "about",
+});
 
 export default function AboutPage() {
   return (
@@ -102,7 +104,7 @@ export default function AboutPage() {
       </section>
 
       <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-        <Link className="underline underline-offset-4" href="/">Open the editor</Link>
+        <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
         <Link className="underline underline-offset-4" href="/privacy">Read the privacy details</Link>
       </nav>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />

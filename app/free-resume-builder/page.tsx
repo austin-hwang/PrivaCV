@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { SeoLanding, type FaqItem } from "@/components/seo-landing";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
 
-const title = "Free Resume Builder";
+const title = "Free Resume Builder — No Sign-Up or Watermark";
 const description =
-  "Build a professional resume free in your browser. No account, no subscription, and no watermark. Write it, tailor it, and export a clean PDF or editable Word file, with everything kept on your own device.";
+  "Build and download an ATS-friendly resume free. No sign-up, watermark, or paywall. Your data stays on your device; export PDF or editable Word.";
 
 const faqItems: FaqItem[] = [
   {
@@ -23,12 +23,12 @@ const faqItems: FaqItem[] = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/free-resume-builder" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/free-resume-builder") },
-};
+  path: "/free-resume-builder",
+  socialImage: "free-resume-builder",
+});
 
 export default function FreeResumeBuilderPage() {
   return (
@@ -36,6 +36,7 @@ export default function FreeResumeBuilderPage() {
       h1="A free resume builder that works in your browser"
       lede={description}
       ctaLabel="Build your resume free"
+      heroImage={{ src: "/social/free-resume-builder", alt: "PrivaCV editor beside an ATS-friendly resume preview" }}
       breadcrumb={{ name: title, path: "/free-resume-builder" }}
       cards={[
         {

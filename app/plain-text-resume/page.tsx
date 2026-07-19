@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { SeoLanding, type FaqItem } from "@/components/seo-landing";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
 
-const title = "Plain-Text Resume";
+const title = "Plain-Text Resume Builder — Free .TXT Export";
 const description =
-  "Make a clean plain-text resume for online applications and paste-into forms. Preview the exact text an ATS reads, then copy it or download a .txt file. Free, in your browser, with no account.";
+  "Preview exactly what an ATS reads, then copy or download a clean .txt resume for application forms. Free, private, and no account required.";
 
 const faqItems: FaqItem[] = [
   {
@@ -23,12 +23,12 @@ const faqItems: FaqItem[] = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/plain-text-resume" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/plain-text-resume") },
-};
+  path: "/plain-text-resume",
+  socialImage: "plain-text-resume",
+});
 
 export default function PlainTextResumePage() {
   return (
@@ -36,6 +36,7 @@ export default function PlainTextResumePage() {
       h1="Create a clean plain-text resume"
       lede={description}
       ctaLabel="Build a plain-text resume"
+      heroImage={{ src: "/social/plain-text-resume", alt: "Clean plain-text resume preview for online application forms" }}
       breadcrumb={{ name: title, path: "/plain-text-resume" }}
       cards={[
         {

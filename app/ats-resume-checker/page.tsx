@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { SeoLanding, type FaqItem } from "@/components/seo-landing";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
 
-const title = "ATS Resume Checker";
+const title = "Free ATS Resume Checker — Private, No Upload";
 const description =
-  "See how an applicant tracking system will read your resume, right in your browser. PrivaCV shows the exact plain text a parser pulls out and flags gaps in your contact details, structure, and evidence. No upload, no account.";
+  "See the exact text an ATS reads and catch contact, structure, density, and evidence issues. Free, no account, and your resume never leaves your browser.";
 
 const faqItems: FaqItem[] = [
   {
@@ -23,12 +23,12 @@ const faqItems: FaqItem[] = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/ats-resume-checker" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/ats-resume-checker") },
-};
+  path: "/ats-resume-checker",
+  socialImage: "ats-resume-checker",
+});
 
 export default function AtsResumeCheckerPage() {
   return (
@@ -36,6 +36,7 @@ export default function AtsResumeCheckerPage() {
       h1="ATS resume checker that runs in your browser"
       lede={description}
       ctaLabel="Check your resume in the editor"
+      heroImage={{ src: "/social/ats-resume-checker", alt: "ATS resume checks for contact details, structure, bullets, and evidence" }}
       breadcrumb={{ name: title, path: "/ats-resume-checker" }}
       cards={[
         {

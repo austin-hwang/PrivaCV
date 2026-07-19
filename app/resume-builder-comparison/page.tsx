@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ComparisonTable } from "@/components/comparison-table";
 import { breadcrumbJsonLd, faqJsonLd, type FaqItem } from "@/components/seo-landing";
 import { SiteFooter } from "@/components/site-footer";
 import { COMPARISON_LAST_VERIFIED } from "@/lib/competitors";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
+import { SITE_NAME } from "@/lib/site";
 
-const title = "Resume Builder Comparison";
+const title = "Resume Builder Comparison: Free vs Paid Tools";
 const description =
-  "Compare PrivaCV to Zety, Resume.io, Teal, Rezi, and Canva on price, privacy, exports, and ATS-friendliness. Most resume builders need an account and a subscription to download; PrivaCV is free and keeps your resume on your device.";
+  "Compare PrivaCV, Zety, Resume.io, Teal, Rezi, and Canva on price, privacy, ATS output, and file exports. Pricing verified July 2026.";
 
 const faqItems: FaqItem[] = [
   {
@@ -32,12 +34,12 @@ const faqItems: FaqItem[] = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/resume-builder-comparison" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/resume-builder-comparison") },
-};
+  path: "/resume-builder-comparison",
+  socialImage: "resume-builder-comparison",
+});
 
 export default function ResumeBuilderComparisonPage() {
   return (
@@ -51,10 +53,20 @@ export default function ResumeBuilderComparisonPage() {
           <Link
             className="inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
             href="/"
+            prefetch={false}
           >
             Build your resume free
           </Link>
         </div>
+
+        <Image
+          className="mt-10 h-auto w-full rounded-xl border shadow-sm"
+          src="/social/resume-builder-comparison"
+          alt="Resume builder comparison covering free export, accounts, privacy, Word export, and ATS output"
+          width={1200}
+          height={630}
+          sizes="(max-width: 1024px) 100vw, 1024px"
+        />
 
         <section className="mt-12">
           <div className="flex items-baseline justify-between gap-4">
@@ -102,7 +114,7 @@ export default function ResumeBuilderComparisonPage() {
         </section>
 
         <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-          <Link className="underline underline-offset-4" href="/">Open the editor</Link>
+          <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
           <Link className="underline underline-offset-4" href="/free-resume-builder">Free resume builder</Link>
           <Link className="underline underline-offset-4" href="/ats-resume-checker">ATS resume checker</Link>
           <Link className="underline underline-offset-4" href="/resume-templates">Resume templates</Link>

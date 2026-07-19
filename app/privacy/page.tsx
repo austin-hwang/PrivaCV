@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
+import { SITE_NAME } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Privacy",
-  description: "PrivaCV is a local-first resume editor. Learn what stays in your browser and when optional model downloads occur.",
-  alternates: SITE_URL ? { canonical: "/privacy" } : undefined,
-};
+  description: "See what PrivaCV keeps in your browser, what anonymous metrics contain, and when optional local AI model downloads occur.",
+  path: "/privacy",
+  socialImage: "privacy",
+});
 
 export default function PrivacyPage() {
   return (
@@ -38,7 +40,7 @@ export default function PrivacyPage() {
         </section>
       </div>
       <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-        <Link className="underline underline-offset-4" href="/">Open the editor</Link>
+        <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
         <Link className="underline underline-offset-4" href="/about">About PrivaCV</Link>
       </nav>
       </main>

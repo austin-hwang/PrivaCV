@@ -5,7 +5,7 @@ export const APP_STAGE = "alpha";
 
 export const SITE_NAME = "PrivaCV";
 export const SITE_DESCRIPTION =
-  "Build, tailor, and export a clean resume locally in your browser with PrivaCV. No account, subscription, watermark, or uploaded resume required.";
+  "Build, tailor, and export a clean resume locally in your browser. Free, with no account, subscription, watermark, or resume upload required.";
 const DEFAULT_SITE_URL = "https://privacv.app";
 
 /**

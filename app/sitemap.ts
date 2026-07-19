@@ -4,6 +4,9 @@ import { absoluteUrl } from "@/lib/site";
 
 /** Public pages use privacv.app by default and can be overridden for previews. */
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Update this only when the public page content or metadata changes. Using
+  // the request time makes every page look freshly modified on every crawl.
+  const publicPageUpdated = new Date("2026-07-19T00:00:00Z");
   const landerPaths = [
     "/free-resume-builder",
     "/ats-resume-checker",
@@ -14,21 +17,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   return [
-    { url: absoluteUrl("/"), lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
+    { url: absoluteUrl("/"), lastModified: publicPageUpdated },
     ...landerPaths.map((path) => ({
       url: absoluteUrl(path),
-      lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
+      lastModified: publicPageUpdated,
     })),
-    { url: absoluteUrl("/guides"), lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
+    { url: absoluteUrl("/guides"), lastModified: publicPageUpdated },
     ...GUIDES.map((guide) => ({
       url: absoluteUrl(guidePath(guide.slug)),
       lastModified: new Date(`${guide.updated}T00:00:00Z`),
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
     })),
-    { url: absoluteUrl("/about"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
-    { url: absoluteUrl("/privacy"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: absoluteUrl("/about"), lastModified: publicPageUpdated },
+    { url: absoluteUrl("/privacy"), lastModified: publicPageUpdated },
   ];
 }

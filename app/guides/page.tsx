@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { GUIDES, guidePath } from "@/lib/guides";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
+import { SITE_NAME, absoluteUrl } from "@/lib/site";
 
 const title = "Resume Guides";
 const description =
@@ -22,12 +23,12 @@ const structuredData = {
   })),
 };
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/guides" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/guides") },
-};
+  path: "/guides",
+  socialImage: "resume-guides",
+});
 
 export default function GuidesPage() {
   return (
@@ -52,7 +53,7 @@ export default function GuidesPage() {
       </div>
 
       <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-        <Link className="underline underline-offset-4" href="/">Open the editor</Link>
+        <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
         <Link className="underline underline-offset-4" href="/ats-resume-checker">ATS resume checker</Link>
         <Link className="underline underline-offset-4" href="/resume-templates">Resume templates</Link>
       </nav>

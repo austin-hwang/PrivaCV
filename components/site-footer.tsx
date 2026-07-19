@@ -51,7 +51,7 @@ export function SiteFooter() {
           ))}
         </nav>
         <p className="mt-10 text-xs text-muted-foreground">
-          <Link href="/" className="font-semibold text-foreground transition-opacity hover:opacity-80">{SITE_NAME}</Link>
+          <Link href="/" prefetch={false} className="font-semibold text-foreground transition-opacity hover:opacity-80">{SITE_NAME}</Link>
           <span> · Private, ATS-friendly resume editing that stays in your browser.</span>
         </p>
       </div>

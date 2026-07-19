@@ -10,16 +10,19 @@ export type GuideMeta = {
   description: string;
   /** ISO date (YYYY-MM-DD) of the last meaningful update. */
   updated: string;
+  /** ISO date (YYYY-MM-DD) when the guide was first published. */
+  published?: string;
 };
 
 export const GUIDES: GuideMeta[] = [
   {
     slug: "ats-friendly-resume",
-    title: "How to Make an ATS-Friendly Resume",
+    title: "ATS-Friendly Resume: 7 Formatting Rules That Work",
     navLabel: "ATS-friendly resume",
     description:
-      "What an applicant tracking system actually does with your resume, the formatting rules that matter, and how to check your resume before you apply.",
-    updated: "2026-07-15",
+      "Learn which layouts, headings, fonts, keywords, and file types ATS software reads reliably—plus a 7-point checklist to use before you apply.",
+    published: "2026-07-15",
+    updated: "2026-07-19",
   },
 ];
 

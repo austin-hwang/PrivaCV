@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { SeoLanding, type FaqItem } from "@/components/seo-landing";
 import { RESUME_TEMPLATES } from "@/lib/resume";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site";
+import { createPageMetadata } from "@/lib/seo";
 
-const title = "Resume Templates";
+const title = "Free ATS-Friendly Resume Templates | PDF & Word";
 const description =
-  "Clean, ATS-friendly resume templates you can use free in your browser. Every one is text-based and prints to PDF, and you can adjust the type, spacing, headings, and accent color. No account, no watermark.";
+  "Choose six clean, single-column resume templates. Customize fonts, spacing, headings, and color, then export free to PDF or Word—no account or watermark.";
 
 const faqItems: FaqItem[] = [
   {
@@ -24,12 +24,12 @@ const faqItems: FaqItem[] = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title,
   description,
-  alternates: SITE_URL ? { canonical: "/resume-templates" } : undefined,
-  openGraph: { title: `${title} | ${SITE_NAME}`, description, url: absoluteUrl("/resume-templates") },
-};
+  path: "/resume-templates",
+  socialImage: "resume-templates",
+});
 
 export default function ResumeTemplatesPage() {
   return (
@@ -38,7 +38,14 @@ export default function ResumeTemplatesPage() {
       lede={description}
       ctaLabel="Start with a template"
       breadcrumb={{ name: title, path: "/resume-templates" }}
-      cards={RESUME_TEMPLATES.map((template) => ({ title: template.label, body: template.description }))}
+      cards={RESUME_TEMPLATES.map((template) => ({
+        title: template.label,
+        body: template.description,
+        image: {
+          src: `/resume-template-preview/${template.id}.png`,
+          alt: `${template.label} ATS-friendly resume template preview`,
+        },
+      }))}
       prose={[
         {
           heading: "How to choose a resume template",

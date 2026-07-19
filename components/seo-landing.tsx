@@ -1,9 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAME, absoluteUrl } from "@/lib/site";
 
 export type FaqItem = { question: string; answer: string };
-type Card = { title: string; body: string };
+type Card = { title: string; body: string; image?: { src: string; alt: string } };
 type ProseSection = { heading: string; paragraphs: string[] };
 type RelatedLink = { href: string; label: string };
 
@@ -12,6 +13,7 @@ export type SeoLandingProps = {
   lede: string;
   ctaLabel: string;
   ctaHref?: string;
+  heroImage?: { src: string; alt: string };
   cards: Card[];
   prose?: ProseSection[];
   faqItems: FaqItem[];
@@ -20,7 +22,8 @@ export type SeoLandingProps = {
   breadcrumb: { name: string; path: string };
 };
 
-/** JSON-LD for a page's FAQ block, so eligible pages can earn rich results. */
+/** Semantic FAQ data. Search engines decide whether a page type is eligible
+ * for an enhanced result; the visible FAQ remains useful either way. */
 export function faqJsonLd(faqItems: FaqItem[]) {
   return {
     "@context": "https://schema.org",
@@ -50,7 +53,7 @@ export function breadcrumbJsonLd(name: string, path: string) {
  * own copy plus a route-level `metadata` export; this renders the crawlable body
  * and the FAQ structured data.
  */
-export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", cards, prose = [], faqItems, related, breadcrumb }: SeoLandingProps) {
+export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", heroImage, cards, prose = [], faqItems, related, breadcrumb }: SeoLandingProps) {
   return (
     <>
       <main className="mx-auto max-w-5xl px-6 py-16">
@@ -62,15 +65,37 @@ export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", cards, prose = [
         <Link
           className="inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
           href={ctaHref}
+          prefetch={false}
         >
           {ctaLabel}
         </Link>
       </div>
 
+      {heroImage ? (
+        <Image
+          className="mt-10 h-auto w-full max-w-4xl rounded-xl border shadow-sm"
+          src={heroImage.src}
+          alt={heroImage.alt}
+          width={1200}
+          height={630}
+          sizes="(max-width: 1024px) 100vw, 896px"
+        />
+      ) : null}
+
       {cards.length > 0 ? (
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <article key={card.title} className="rounded-lg border bg-card p-5">
+              {card.image ? (
+                <Image
+                  className="mb-5 h-auto w-full rounded-md border bg-muted"
+                  src={card.image.src}
+                  alt={card.image.alt}
+                  width={800}
+                  height={1040}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                />
+              ) : null}
               <h2 className="font-semibold">{card.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
             </article>
@@ -102,7 +127,7 @@ export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", cards, prose = [
       </section>
 
       <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-        <Link className="underline underline-offset-4" href="/">Open the editor</Link>
+        <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
         {related.map((link) => (
           <Link key={link.href} className="underline underline-offset-4" href={link.href}>
             {link.label}

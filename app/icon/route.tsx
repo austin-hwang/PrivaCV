@@ -1,15 +1,5 @@
 import { ImageResponse } from "next/og";
 
-// A raster favicon (PNG). Google's favicon-in-search only uses raster formats
-// (.ico/.png/.gif), not SVG, so the icon is rendered from the same PrivaCV
-// mark rather than served as a standalone .svg.
-export const size = {
-  width: 96,
-  height: 96,
-};
-
-export const contentType = "image/png";
-
 const mark = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="16" fill="#151b27"/>
   <path d="M15 10h23l10 10v33H15z" fill="#f8fafc"/>
@@ -21,13 +11,19 @@ const mark = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" vie
   <path d="M40 50.5v2" stroke="#f8fafc" stroke-linecap="round" stroke-width="2"/>
 </svg>`;
 
-export default function Icon() {
+/** Stable raster favicon URL for search crawlers and installed-app metadata. */
+export function GET() {
   return new ImageResponse(
     (
       <div style={{ display: "flex", width: "100%", height: "100%" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img width="96" height="96" src={`data:image/svg+xml;utf8,${encodeURIComponent(mark)}`} alt="" />
       </div>
     ),
-    size,
+    {
+      width: 96,
+      height: 96,
+      headers: { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
+    },
   );
 }
