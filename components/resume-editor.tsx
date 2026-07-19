@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowRight,
@@ -65,6 +66,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { toggleTheme } from "@/components/theme-toggle";
 import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
+import { clearStoredJobPipelineData } from "@/lib/job-application-db";
 import { Input } from "@/components/ui/input";
 import { EntryList, FieldGroup, TagGroupEditor, TextField } from "@/components/resume-editor/editor-fields";
 import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
@@ -476,6 +478,7 @@ export function ResumeEditor() {
     setLocalAIImportOpen(false);
     setLocalAIOpen(false);
     await clearAllLocalAIData();
+    await clearStoredJobPipelineData().catch(() => undefined);
     clearSavedBrowserData();
   };
   const toggleLocalAIInlineEdit = (target: LocalAIInlineTarget) => {
@@ -1062,6 +1065,11 @@ export function ResumeEditor() {
             </Badge>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Button asChild variant="outline" className="hidden lg:inline-flex">
+              <Link href="/applications" prefetch={false}>
+                <BriefcaseBusiness /> Pipeline
+              </Link>
+            </Button>
             <Button
               type="button"
               variant={toolsOpen ? "secondary" : "outline"}
@@ -1155,6 +1163,11 @@ export function ResumeEditor() {
                 </Button>
               </MenuTrigger>
               <MenuContent>
+                <MenuLabel>Navigate</MenuLabel>
+                <MenuItem className="lg:hidden" onSelect={() => window.location.assign("/applications")}>
+                  <BriefcaseBusiness /> Job pipeline
+                </MenuItem>
+                <MenuSeparator />
                 <MenuLabel>Workspace data</MenuLabel>
                 <MenuItem onSelect={loadSample}>
                   <FileText /> Sample
@@ -2111,7 +2124,7 @@ export function ResumeEditor() {
             </DialogTitle>
             <DialogDescription>
               {destructiveAction === "delete-all"
-                ? "This removes the resume library, edit history, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export JSON first if you want to keep a copy."
+                ? "This removes the resume library, edit history, job pipeline, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export backups first if you want to keep a copy."
                 : destructiveAction === "clear-checkpoints"
                   ? "This removes every saved checkpoint for the current resume. Your live draft and autosave stay intact. This cannot be undone."
                   : "This clears every resume field. You can restore the current version from the recovery card."}

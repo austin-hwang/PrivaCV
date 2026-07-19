@@ -34,6 +34,7 @@ const structuredData = {
         "PDF, DOCX, and pasted-text resume import",
         "ATS-friendly plain-text review",
         "Browser-only resume library and edit history",
+        "Private browser-only job application tracking",
       ],
     },
   ],
@@ -42,7 +43,7 @@ const structuredData = {
 const features = [
   {
     title: "Nothing leaves your browser",
-    body: "You write, save versions, and export on your own device. Your resume is never uploaded to our servers, because we don't keep a copy anywhere.",
+    body: "You write, save versions, track applications, and export on your own device. Your resume and job search are not uploaded to our servers.",
   },
   {
     title: "Reads cleanly in an ATS",
@@ -71,7 +72,7 @@ const faqs = [
   },
   {
     q: "Where does my resume go?",
-    a: "It stays in your browser. Editing, imports, exports, your saved resumes, and edit history all live in local storage on your device.",
+    a: "It stays in your browser. Editing, imports, exports, saved resumes, edit history, and your job pipeline all live in browser storage on your device.",
   },
   {
     q: "Will it get through an ATS?",

@@ -19,8 +19,8 @@ export default function PrivacyPage() {
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Privacy, in plain language</h1>
       <div className="mt-10 grid gap-8 text-base leading-relaxed text-muted-foreground">
         <section>
-          <h2 className="text-2xl font-semibold text-foreground">Your resume stays in your browser</h2>
-          <p className="mt-3">PrivaCV runs as a local-first editor. The resume content you type or import is processed in your browser. The resume library, edit history, and exports are also handled locally; the editor does not require an account or a resume upload.</p>
+          <h2 className="text-2xl font-semibold text-foreground">Your resume and job search stay in your browser</h2>
+          <p className="mt-3">PrivaCV runs as a local-first editor. Resume content is processed in your browser, while the job pipeline stores applications, notes, timeline events, and job-description snapshots in your browser&apos;s IndexedDB database. PrivaCV does not require an account or upload this information to a PrivaCV server.</p>
         </section>
         <section>
           <h2 className="text-2xl font-semibold text-foreground">Files you choose to import</h2>
@@ -36,11 +36,12 @@ export default function PrivacyPage() {
         </section>
         <section>
           <h2 className="text-2xl font-semibold text-foreground">Your control</h2>
-          <p className="mt-3">You can save portable JSON backups and delete saved browser data from the editor. If you share a device, export or back up anything you want to keep before deleting local data.</p>
+          <p className="mt-3">You can save portable JSON backups, export the job pipeline as CSV, delete individual applications, or delete all saved browser data. If you share a device, export or back up anything you want to keep before deleting local data.</p>
         </section>
       </div>
       <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
         <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
+        <Link className="underline underline-offset-4" href="/applications">Open the job pipeline</Link>
         <Link className="underline underline-offset-4" href="/about">About PrivaCV</Link>
       </nav>
       </main>
