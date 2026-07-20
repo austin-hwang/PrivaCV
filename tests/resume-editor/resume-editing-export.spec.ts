@@ -285,13 +285,20 @@ test("keeps the Skills section whole on the exported page the preview shows it o
   const pageText = await Promise.all(
     Array.from({ length: doc.numPages }, async (_, index) => {
       const content = await (await doc.getPage(index + 1)).getTextContent();
-      return content.items.map((item) => ("str" in item ? item.str : "")).join(" ").toLocaleUpperCase();
+      // PDF text extraction can split a visually contiguous word into separate
+      // glyph runs (for example, "S K ILLS"). Page placement is what matters.
+      return content.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .join("")
+        .replace(/\s+/g, "")
+        .toLocaleUpperCase();
     }),
   );
   expect(doc.numPages).toBe(2);
   for (const marker of markers) {
-    expect(pageText[0]).not.toContain(marker.toLocaleUpperCase());
-    expect(pageText[1]).toContain(marker.toLocaleUpperCase());
+    const normalizedMarker = marker.replace(/\s+/g, "").toLocaleUpperCase();
+    expect(pageText[0]).not.toContain(normalizedMarker);
+    expect(pageText[1]).toContain(normalizedMarker);
   }
 });
 
@@ -420,7 +427,7 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await newLink.getByRole("button", { name: /move github up/i }).click();
   await expect(page.locator("[data-header-link]").first().locator('input[type="url"]')).toHaveValue("github.com/johndoe");
 
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("github.com/johndoe");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain('"icon":"portfolio"');
   await page.reload();
   await expect(page.getByLabel("GitHub URL")).toHaveValue("github.com/johndoe");
   await expect(page.getByLabel(/GitHub icon/i).locator(".lucide-briefcase-business")).toBeVisible();

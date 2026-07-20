@@ -66,8 +66,13 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Build production application
+        run: pnpm build
+
       - name: Run browser tests
         run: pnpm test:e2e
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
 
       - name: Upload failure artifacts
         if: failure()

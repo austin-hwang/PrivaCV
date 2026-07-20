@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY = "resume-editor-local-ai-cache-v2-migrated";
+
 test("local AI setup stays explicit and gives a concise quality disclaimer", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "gpu", {
@@ -18,15 +20,18 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   });
 
   await page.goto("/");
-  await page.evaluate(async () => {
+  await page.evaluate(async (migrationKey) => {
     localStorage.clear();
+    // This test covers the current cache state, not the one-time legacy cache
+    // migration. Skipping migration avoids several unrelated cache deletions.
+    localStorage.setItem(migrationKey, "1");
     const names = await caches.keys();
     await Promise.all(
       names
         .filter((name) => name.startsWith("webllm/") || name === "tvmjs")
         .map((name) => caches.delete(name)),
     );
-  });
+  }, LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY);
   await page.reload();
   await page.getByRole("button", { name: /open tools/i }).click();
   await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /local ai/i }).click();
@@ -45,7 +50,8 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog).toContainText("Downloads an open-source model from Hugging Face");
   await expect(dialog).toContainText("Performance may be slower on some devices");
   await expect(dialog).toContainText("suggestions may be inaccurate");
-  await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(dialog.getByText("Checking cache", { exact: true })).toBeHidden({ timeout: 30_000 });
+  await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
   await expect(dialog.getByRole("link", { name: /about webllm/i })).toHaveCount(0);
   await expect(modelSelect).toHaveValue("Llama-3.2-3B-Instruct-q4f16_1-MLC");

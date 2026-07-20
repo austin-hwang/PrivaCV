@@ -238,6 +238,7 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   // Autosave state is surfaced beside the editing controls: a spinning loader
   // while saving that settles to a check, mirrored on data-autosave-status + aria.
   const autosave = page.locator("[data-autosave-status]");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("John Doe");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
   await expect(autosave.getByText("Saved", { exact: true })).toBeVisible();

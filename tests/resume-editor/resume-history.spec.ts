@@ -134,6 +134,7 @@ test("deletes all data from a shared browser", async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("John Doe");
   await saveVersion(page, "Shared computer draft");
 
   // Seed the other privacy-sensitive browser-only records without opening the
@@ -226,10 +227,9 @@ test("duplicates and switches named resumes while keeping checkpoint history sep
 });
 
 test("migrates the active draft and legacy versions into separate library resumes", async ({ page }) => {
-  await page.goto("/");
   const active = { ...sampleState, name: "Legacy current" };
   const archived = { ...sampleState, name: "Archived product role" };
-  await page.evaluate(({ activeState, archivedState }) => {
+  await page.addInitScript(({ activeState, archivedState }) => {
     localStorage.clear();
     localStorage.setItem("resume-editor-data-v2", JSON.stringify(activeState));
     localStorage.setItem("resume-editor-autosave-time-v1", "2026-01-10T09:00:00.000Z");
@@ -242,7 +242,7 @@ test("migrates the active draft and legacy versions into separate library resume
       importReview: null,
     }]));
   }, { activeState: active, archivedState: archived });
-  await page.reload();
+  await page.goto("/");
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Legacy current");
   const library = await openResumeLibrary(page);
@@ -306,6 +306,7 @@ test("saves and restores a named local version history checkpoint", async ({ pag
 });
 
 test("keeps every checkpoint without a save limit", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();

@@ -21,7 +21,7 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
   await page.goto("/applications");
 
   await expect(page).toHaveTitle("Private Job Application Tracker | PrivaCV");
-  await expect(page.getByRole("heading", { name: "Applications" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Applications", exact: true })).toBeVisible();
   await expect(page.locator("[data-local-save-status]")).toHaveAccessibleName("Saved locally");
   const workspaceNav = page.getByRole("navigation", { name: "Workspace" });
   await expect(workspaceNav.getByRole("link", { name: "Resume" })).toHaveAttribute("href", "/");
