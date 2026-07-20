@@ -4,13 +4,15 @@
 
 <h1 align="center">PrivaCV</h1>
 
-<p align="center">A private, ATS-friendly resume editor that works in your browser.</p>
+<p align="center">Private, local-first tools for resumes and job applications.</p>
 
 <p align="center">
-  No account · No subscription · No watermark · No resume upload
+  No account · No subscription · No watermark · No resume or application upload
 </p>
 
-PrivaCV helps job seekers create, tailor, review, and export clean, text-based resumes. Your resume library, per-resume edit history, imports, and exported files stay on your device.
+[Open PrivaCV](https://privacv.app) · [Privacy](https://privacv.app/privacy) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+
+PrivaCV helps job seekers create, tailor, review, and export clean, text-based resumes, then track applications through a private lifecycle pipeline. Resume libraries, checkpoints, applications, job descriptions, and exported files stay on the device.
 
 ## Why PrivaCV
 
@@ -18,6 +20,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 - **Built for readable applications.** Use clean templates, preview the printed layout, and review the exact plain text before applying.
 - **Flexible import and export.** Start from scratch or import PDF, DOCX, pasted text, JSON, or a saved backup. Export PDF, editable DOCX, plain text, and JSON.
 - **Tailor with confidence.** Review checks, manage browser-only versions, and omit lower-relevance bullets without deleting the source material.
+- **Track the whole search.** Move applications through a Linear-inspired pipeline, keep immutable submission snapshots, and export a Sankey diagram for sharing.
 
 ## Highlights
 
@@ -28,18 +31,21 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 - Local browser autosave, named checkpoints, backups, restore points, and undo
 - Responsive editor and print layout with page-boundary guidance
 - Optional local AI assistance that runs in the browser after a person explicitly prepares a model
+- IndexedDB application pipeline with status history, next actions, job snapshots, submitted-resume snapshots, CSV/JSON backup, and restore
+- Connected Sankey visualization with downloadable PNG output
 
 ## Privacy
 
-PrivaCV is local-first. Resume information is processed and stored in the browser, not in an application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Exports and inline-AI request/acceptance actions record anonymous aggregate events without resume content, prompts, generated text, or identity or device identifiers.
+PrivaCV is local-first. Resume and job-search information is processed and stored in browser IndexedDB databases, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Exports and inline-AI request/acceptance actions record anonymous aggregate events without resume content, application data, prompts, generated text, or identity or device identifiers.
 
-See the in-app [privacy page](app/privacy/page.tsx) for the product’s plain-language explanation.
+See the live [privacy page](https://privacv.app/privacy) or its [source](app/privacy/page.tsx) for the plain-language explanation. Please read the privacy requirements in [CONTRIBUTING.md](CONTRIBUTING.md) before adding storage, network requests, fixtures, or telemetry.
 
 ## Run locally
 
-Prerequisite: Node.js and [pnpm](https://pnpm.io/).
+Prerequisites: Node.js 22 and Corepack. The repository pins its pnpm version in `package.json`.
 
 ```sh
+corepack enable
 pnpm install
 pnpm dev
 ```
@@ -56,9 +62,17 @@ pnpm test:e2e
 pnpm build
 ```
 
+Install Chromium once before the browser suite:
+
+```sh
+pnpm exec playwright install chromium
+```
+
+The default suite is self-contained and excludes downloaded third-party resumes. Maintainers can run the optional hash-pinned import corpus with `pnpm test:public-resumes`; see [its fixture policy](tests/fixtures/public-resumes/README.md) first.
+
 ## Deploying
 
-The project is configured for Cloudflare via OpenNext.
+The production project is configured for Cloudflare via OpenNext. Forks must change the worker, route, service, and dataset names in `wrangler.jsonc` before deploying; the committed values describe the live PrivaCV deployment.
 
 ```sh
 pnpm deploy
@@ -102,10 +116,17 @@ ORDER BY events DESC;
 | Path | Purpose |
 | --- | --- |
 | `app/` | Next.js routes, metadata, public pages, and global styles |
-| `components/` | Editor, brand, and UI components |
-| `hooks/` | Client-side editor state and persistence |
-| `lib/` | Resume model, imports, exports, checks, and workspace logic |
-| `tests/` | Playwright browser coverage |
+| `components/` | Resume editor, application pipeline, shared product shell, and UI primitives |
+| `hooks/` | Client-side workflow coordination and persistence |
+| `lib/` | Resume/application domains, IndexedDB adapters, imports, exports, checks, and Sankey layout |
+| `tests/` | Playwright browser coverage and opt-in integration fixture metadata |
+| `docs/` | Architecture and maintainer documentation |
+
+Read [docs/architecture.md](docs/architecture.md) before changing persistence, privacy boundaries, metrics, or cross-feature module ownership.
+
+## Contributing and security
+
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), use synthetic data in every public artifact, and run the full local check set before opening a pull request. Report vulnerabilities privately by following [SECURITY.md](SECURITY.md); never attach a real resume or application record to a public issue.
 
 ## Technology
 

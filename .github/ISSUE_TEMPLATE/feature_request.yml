@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest an improvement to the PrivaCV experience.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What job should this help someone accomplish?
+      description: Describe the user need or friction before proposing the interface.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Explain the smallest useful version and any alternatives you considered.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Resume editor
+        - Applications tracker
+        - Sankey visualization
+        - Import or export
+        - Local AI
+        - Public content or SEO
+        - Developer experience
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy or data-flow considerations
+      description: Note any new storage, network requests, telemetry, or sensitive data involved.

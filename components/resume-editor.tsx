@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
-import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -10,37 +9,25 @@ import {
   ArrowUp,
   AlertCircle,
   BriefcaseBusiness,
-  Calendar,
   Check,
   ChevronDown,
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
-  ClipboardCheck,
   ClipboardCopy,
   ClipboardPaste,
-  Code,
   Download,
-  Dribbble,
   Eye,
   EyeOff,
   FileCode,
   FileJson,
   FileText,
-  Figma,
-  Github,
-  Gitlab,
-  Globe2,
   GripVertical,
   History,
-  Instagram,
-  Linkedin,
-  Link as LinkIcon,
   Library,
   Loader2,
   MoreHorizontal,
   Moon,
-  Newspaper,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
@@ -53,24 +40,27 @@ import {
   Sparkles,
   Sun,
   Trash2,
-  Twitter,
   Undo2,
   Upload,
-  Youtube,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationHeader } from "@/components/application-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { toggleTheme } from "@/components/theme-toggle";
 import { FEEDBACK_URL } from "@/lib/site";
 import { clearStoredJobPipelineData } from "@/lib/job-application-db";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { EntryList, FieldGroup, TagGroupEditor, TextField } from "@/components/resume-editor/editor-fields";
+import { ResumeDesignControls } from "@/components/resume-editor/design-controls";
+import { ResumeHeaderFields } from "@/components/resume-editor/header-fields";
+import {
+  DestructiveResumeDialog,
+  ResumeChecksDialog,
+  type DestructiveResumeAction,
+} from "@/components/resume-editor/review-dialogs";
 import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
 import { stripRichMarks } from "@/lib/rich-text";
 import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
@@ -85,15 +75,10 @@ import { StartPanel } from "@/components/resume-editor/start-panel";
 import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
 import { useResumeEditor } from "@/hooks/use-resume-editor";
 import {
-  ACCENT_PRESETS,
   clampTextScale,
   entryFieldSchema,
-  BULLET_STYLE_LABELS,
-  BULLET_STYLES,
   CUSTOM_SECTION_PRESETS,
   CUSTOM_SECTION_PRESET_FORMATS,
-  DENSITIES,
-  DENSITY_LABELS,
   exportChangeSummary,
   getSectionEntries,
   getSectionFormat,
@@ -104,28 +89,16 @@ import {
   inferHeaderLinkLabel,
   isSectionHidden,
   sectionItemCount,
-  HEADING_STYLE_LABELS,
-  HEADING_STYLES,
-  HEADER_LINK_ICON_OPTIONS,
   isBuiltinSection,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
-  normalizeAccent,
   resumeExportFingerprint,
-  RESUME_FONTS,
-  RESUME_TEMPLATES,
   resumePlainText,
-  resolveHeaderLinkIcon,
-  resolveFontStack,
   SECTION_KEYS,
   SECTION_FORMAT_LABELS,
   SECTION_LABELS,
   TEMPLATE_THEMES,
-  type BulletStyle,
-  type Density,
-  type HeadingStyle,
   type HeaderLink,
-  type HeaderLinkIconId,
   type ResumeTemplateId,
   type ResumeTheme,
   type SectionFormat,
@@ -167,40 +140,6 @@ type LocalAIInlineTarget = {
   index?: number;
 };
 
-function ThemeSegment<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-      <div className="flex flex-wrap gap-1 rounded-md border bg-muted/40 p-1">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "flex-1 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              value === option.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // Applied to whichever editor group holds the field currently being edited, so
 // the section you're working in is highlighted (header and summary included).
 const ACTIVE_SECTION_CLASS =
@@ -208,131 +147,6 @@ const ACTIVE_SECTION_CLASS =
 const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-phone", "field-location"];
 const isHeaderTarget = (targetId: string) =>
   HEADER_FIELD_IDS.includes(targetId) || targetId.startsWith("field-header-link-") || targetId === "add-header-link";
-
-const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
-  website: Globe2,
-  linkedin: Linkedin,
-  github: Github,
-  gitlab: Gitlab,
-  twitter: Twitter,
-  instagram: Instagram,
-  youtube: Youtube,
-  dribbble: Dribbble,
-  figma: Figma,
-  portfolio: BriefcaseBusiness,
-  blog: Newspaper,
-  calendar: Calendar,
-  code: Code,
-  link: LinkIcon,
-};
-
-function HeaderLinkIcon({ icon }: { icon: HeaderLinkIconId }) {
-  const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
-  return <Icon aria-hidden="true" className="size-4" />;
-}
-
-function HeaderLinkEditorIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
-  return <HeaderLinkIcon icon={resolveHeaderLinkIcon(link)} />;
-}
-
-// Lets a person pick a link's icon by clicking it directly rather than via a
-// separate <select>. Manages its own open state and closes on outside click,
-// Escape, or selection.
-function HeaderLinkIconPicker({
-  id,
-  value,
-  label,
-  onChange,
-}: {
-  id: string;
-  value: HeaderLinkIconId;
-  label: string;
-  onChange: (icon: HeaderLinkIconId) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const button = rootRef.current?.querySelector("button");
-    const rect = button?.getBoundingClientRect();
-    if (rect) setPosition({ top: rect.bottom + 4, left: rect.left });
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    const handleReposition = () => setOpen(false);
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("scroll", handleReposition, true);
-    window.addEventListener("resize", handleReposition);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("scroll", handleReposition, true);
-      window.removeEventListener("resize", handleReposition);
-    };
-  }, [open]);
-
-  const currentLabel = HEADER_LINK_ICON_OPTIONS.find((option) => option.id === value)?.label ?? "Website";
-
-  return (
-    <div ref={rootRef} className="relative shrink-0">
-      <button
-        type="button"
-        id={id}
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`${label} icon — ${currentLabel}`}
-        title="Choose an icon"
-        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <HeaderLinkIcon icon={value} />
-      </button>
-      {open && position
-        ? createPortal(
-            <div
-              ref={panelRef}
-              role="menu"
-              aria-label={`${label} icon options`}
-              style={{ top: position.top, left: position.left }}
-              className="fixed z-50 grid grid-cols-4 gap-1 rounded-md border bg-popover p-1.5 text-popover-foreground shadow-lg"
-            >
-              {HEADER_LINK_ICON_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onChange(option.id);
-                    setOpen(false);
-                  }}
-                  aria-current={option.id === value}
-                  aria-label={option.label}
-                  title={option.label}
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
-                    option.id === value && "bg-muted text-foreground ring-1 ring-ring",
-                  )}
-                >
-                  <HeaderLinkIcon icon={option.id} />
-                </button>
-              ))}
-            </div>,
-            document.body,
-          )
-        : null}
-    </div>
-  );
-}
 
 // Skills can render as grouped tags, bullets, paragraphs, or rows, so its old
 // textarea target is not guaranteed to exist. Keep review tours anchored to the
@@ -371,7 +185,7 @@ export function ResumeEditor() {
   const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [navigatorQuery, setNavigatorQuery] = useState("");
-  const [destructiveAction, setDestructiveAction] = useState<"clear" | "clear-checkpoints" | "delete-all" | null>(null);
+  const [destructiveAction, setDestructiveAction] = useState<DestructiveResumeAction | null>(null);
   const [localAIOpen, setLocalAIOpen] = useState(false);
   const [localAIInlineTarget, setLocalAIInlineTarget] = useState<LocalAIInlineTarget | null>(null);
   const [localAIImportOpen, setLocalAIImportOpen] = useState(false);
@@ -623,131 +437,13 @@ export function ResumeEditor() {
   // the left pane stays purely about content. Preset, font, and accent are the
   // choices people reach for most; the rest sits under Advanced.
   const designControls = (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Preset</span>
-          <Select
-            value={state.template}
-            onChange={(event) => applyTemplate(event.target.value as ResumeTemplateId)}
-            aria-label="Resume preset"
-          >
-            {RESUME_TEMPLATES.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label className="grid gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Font</span>
-          <Select
-            value={state.theme.font}
-            onChange={(event) => updateTheme({ font: event.target.value })}
-            style={{ fontFamily: resolveFontStack(state.theme.font) }}
-            aria-label="Resume font"
-          >
-            {RESUME_FONTS.map((font) => (
-              <option key={font.id} value={font.id}>
-                {font.label} · {font.kind}
-              </option>
-            ))}
-          </Select>
-        </label>
-      </div>
-
-      <div className="grid gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Accent color</span>
-        <div className="flex flex-wrap items-center gap-1.5" aria-label="Accent color">
-          {ACCENT_PRESETS.map((accent) => {
-            const selected = normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
-            return (
-              <button
-                key={accent.id}
-                type="button"
-                aria-pressed={selected}
-                aria-label={accent.label}
-                title={accent.label}
-                onClick={() => updateTheme({ accent: accent.value })}
-                className={cn(
-                  "size-7 rounded-full border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                  selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
-                )}
-                style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
-              />
-            );
-          })}
-          <label className="ml-1 inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
-            Custom
-            <input
-              type="color"
-              value={normalizeAccent(state.theme.accent)}
-              onChange={(event) => updateTheme({ accent: event.target.value })}
-              className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
-              aria-label="Custom accent color"
-            />
-          </label>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        aria-expanded={designAdvancedOpen}
-        onClick={() => setDesignAdvancedOpen((open) => !open)}
-        className="flex w-full items-center gap-1.5 rounded-md text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <ChevronRight className={cn("size-3.5 transition-transform", designAdvancedOpen && "rotate-90")} />
-        Advanced
-        <span className="font-normal">header, density, headings, bullets, divider</span>
-      </button>
-
-      {designAdvancedOpen ? (
-        <div className="grid gap-4 rounded-md border bg-muted/20 p-3">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ThemeSegment
-              label="Header"
-              value={state.theme.headerAlign}
-              options={[
-                { value: "left", label: "Left" },
-                { value: "center", label: "Center" },
-              ]}
-              onChange={(headerAlign) => updateTheme({ headerAlign })}
-            />
-            <ThemeSegment
-              label="Density"
-              value={state.theme.density}
-              options={DENSITIES.map((density) => ({ value: density as Density, label: DENSITY_LABELS[density] }))}
-              onChange={(density) => updateTheme({ density })}
-            />
-          </div>
-
-          <ThemeSegment
-            label="Section headings"
-            value={state.theme.headingStyle}
-            options={HEADING_STYLES.map((style) => ({ value: style as HeadingStyle, label: HEADING_STYLE_LABELS[style] }))}
-            onChange={(headingStyle) => updateTheme({ headingStyle })}
-          />
-
-          <ThemeSegment
-            label="Bullet style"
-            value={state.theme.bulletStyle}
-            options={BULLET_STYLES.map((style) => ({ value: style as BulletStyle, label: BULLET_STYLE_LABELS[style] }))}
-            onChange={(bulletStyle) => updateTheme({ bulletStyle })}
-          />
-
-          <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
-            <span className="text-xs font-medium">Divider under header</span>
-            <input
-              type="checkbox"
-              checked={state.theme.headerDivider}
-              onChange={(event) => updateTheme({ headerDivider: event.target.checked })}
-              className="size-4 accent-foreground"
-              aria-label="Divider under header"
-            />
-          </label>
-        </div>
-      ) : null}
-    </div>
+    <ResumeDesignControls
+      state={state}
+      advancedOpen={designAdvancedOpen}
+      onAdvancedOpenChange={setDesignAdvancedOpen}
+      onTemplateChange={applyTemplate}
+      onThemeChange={updateTheme}
+    />
   );
 
   const focusEditorTarget = useCallback((targetId: string) => {
@@ -1396,114 +1092,17 @@ export function ResumeEditor() {
 
           {workspaceHasStarted ? (
             <div className="space-y-6">
-              <FieldGroup id="edit-header" title="Header" reviewRegion className={cn(headerActive && ACTIVE_SECTION_CLASS)} {...groupProps("header")}>
-                <TextField
-                  id="field-name"
-                  label="Full Name"
-                  value={state.name}
-                  placeholder="Jane Doe"
-                  autoComplete="name"
-                  spellCheck={false}
-                  onChange={(value) => updateField("name", value)}
-                />
-                <TextField
-                  id="field-title"
-                  label="Title / Role"
-                  value={state.title}
-                  placeholder="Senior Software Engineer"
-                  autoComplete="organization-title"
-                  spellCheck
-                  onChange={(value) => updateField("title", value)}
-                />
-                <div className="editor-pane-grid grid gap-3">
-                  <TextField
-                    id="field-email"
-                    label="Email"
-                    value={state.email}
-                    placeholder="jane@example.com"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    spellCheck={false}
-                    onChange={(value) => updateField("email", value)}
-                  />
-                  <TextField
-                    id="field-phone"
-                    label="Phone"
-                    value={state.phone}
-                    placeholder="(555) 123-4567"
-                    type="tel"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    spellCheck={false}
-                    onChange={(value) => updateField("phone", value)}
-                  />
-                </div>
-                <TextField
-                  id="field-location"
-                  label="Location"
-                  value={state.location}
-                  placeholder="San Francisco, CA"
-                  autoComplete="address-level2"
-                  spellCheck={false}
-                  onChange={(value) => updateField("location", value)}
-                />
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground">Links</p>
-                      <p className="text-[11px] text-muted-foreground">Website, LinkedIn, GitHub, portfolio, or another profile.</p>
-                    </div>
-                    <Button id="add-header-link" type="button" variant="outline" size="sm" className="h-8" onClick={addHeaderLink}>
-                      <Plus /> Add link
-                    </Button>
-                  </div>
-                  {state.headerLinks.length ? (
-                    <div className="overflow-hidden rounded-md border bg-muted/10">
-                      {state.headerLinks.map((link, index) => {
-                        const fieldLabel = link.label.trim() || `Link ${index + 1}`;
-                        return (
-                          <div key={link.id} data-header-link={link.id} className="flex items-center gap-2 border-b p-2 last:border-b-0">
-                            <HeaderLinkIconPicker
-                              id={`field-header-link-${link.id}-icon`}
-                              value={link.icon}
-                              label={fieldLabel}
-                              onChange={(icon) => updateHeaderLink(link.id, { icon })}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>{fieldLabel} URL</label>
-                              <Input
-                                id={`field-header-link-${link.id}-url`}
-                                type="url"
-                                inputMode="url"
-                                autoComplete="url"
-                                spellCheck={false}
-                                value={link.url}
-                                placeholder="github.com/janedoe"
-                                aria-label={`${fieldLabel} URL`}
-                                onChange={(event) => updateHeaderLink(link.id, { url: event.target.value })}
-                              />
-                            </div>
-                            <div className="flex shrink-0 items-center">
-                              <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} aria-label={`Move ${fieldLabel} up`} onClick={() => moveHeaderLink(index, -1)}>
-                                <ArrowUp />
-                              </Button>
-                              <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === state.headerLinks.length - 1} aria-label={`Move ${fieldLabel} down`} onClick={() => moveHeaderLink(index, 1)}>
-                                <ArrowDown />
-                              </Button>
-                              <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${fieldLabel}`} onClick={() => removeHeaderLink(link.id)}>
-                                <Trash2 />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">No profile links added.</p>
-                  )}
-                </div>
-              </FieldGroup>
+              <ResumeHeaderFields
+                state={state}
+                active={headerActive}
+                collapsed={collapsedGroups.has("header")}
+                onToggleCollapsed={() => toggleGroup("header")}
+                onUpdateField={updateField}
+                onUpdateLink={updateHeaderLink}
+                onAddLink={addHeaderLink}
+                onRemoveLink={removeHeaderLink}
+                onMoveLink={moveHeaderLink}
+              />
 
               <FieldGroup id="edit-summary" title="Summary" reviewRegion className={cn(summaryActive && ACTIVE_SECTION_CLASS)} {...groupProps("summary")}>
                 <RichTextEditor
@@ -2068,59 +1667,22 @@ export function ResumeEditor() {
         </section>
       </main>
 
-      <Dialog
-        open={destructiveAction !== null}
-        onOpenChange={(open) => {
-          if (!open) setDestructiveAction(null);
+      <DestructiveResumeDialog
+        action={destructiveAction}
+        onActionChange={setDestructiveAction}
+        onConfirm={(action) => {
+          setDestructiveAction(null);
+          if (action === "delete-all") {
+            setBlankWorkspaceOpen(false);
+            void deleteSavedBrowserData();
+          } else if (action === "clear-checkpoints") {
+            setHistoryPreviewItem(null);
+            editor.clearVersionHistory();
+          } else {
+            clearEditor();
+          }
         }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {destructiveAction === "delete-all"
-                ? "Delete all browser data?"
-                : destructiveAction === "clear-checkpoints"
-                  ? "Clear all checkpoints?"
-                  : "Clear this resume?"}
-            </DialogTitle>
-            <DialogDescription>
-              {destructiveAction === "delete-all"
-                ? "This removes the resume library, edit history, applications, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export backups first if you want to keep a copy."
-                : destructiveAction === "clear-checkpoints"
-                  ? "This removes every saved checkpoint for the current resume. Your live draft and autosave stay intact. This cannot be undone."
-                  : "This clears every resume field. You can restore the current version from the recovery card."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDestructiveAction(null)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                const action = destructiveAction;
-                setDestructiveAction(null);
-                if (action === "delete-all") {
-                  setBlankWorkspaceOpen(false);
-                  void deleteSavedBrowserData();
-                } else if (action === "clear-checkpoints") {
-                  setHistoryPreviewItem(null);
-                  editor.clearVersionHistory();
-                } else if (action === "clear") {
-                  clearEditor();
-                }
-              }}
-            >
-              {destructiveAction === "delete-all"
-                ? "Delete all data"
-                : destructiveAction === "clear-checkpoints"
-                  ? "Clear checkpoints"
-                  : "Clear resume"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
 
       <ResumeNavigator
         open={navigatorOpen}
@@ -2131,52 +1693,13 @@ export function ResumeEditor() {
         onSelect={focusEditorTarget}
       />
 
-      <Dialog open={checksReviewOpen} onOpenChange={setChecksReviewOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Resume review</DialogTitle>
-            <DialogDescription>
-              Review every check at a glance, then walk through each one on your resume.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2" aria-label="Resume checks">
-            {checks.map((check) => {
-              const passed = check.ok && !check.advisory;
-              const status = passed ? "Passed" : check.advisory ? "Suggestion" : "Review";
-              return (
-                <div key={check.id} data-resume-check={check.id} className="flex items-start gap-3 rounded-md border bg-muted/20 p-3">
-                  <span
-                    className={cn(
-                      "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full",
-                      passed ? "bg-success/15 text-success" : check.advisory ? "bg-brand/10 text-brand" : "bg-warning/20 text-foreground",
-                    )}
-                    aria-hidden="true"
-                  >
-                    {passed ? <Check className="size-3.5" /> : <AlertCircle className="size-3.5" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">{check.label}</p>
-                    <p className="text-xs leading-snug text-muted-foreground">{check.detail}</p>
-                    {!passed ? <p className="mt-1 text-xs leading-snug text-muted-foreground">{check.guidance}</p> : null}
-                  </div>
-                  <Badge variant="outline" className={cn("shrink-0", passed && "border-success/30 text-success", check.advisory && "border-brand/30 text-brand")}>
-                    {status}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-          <DialogFooter className="items-center sm:justify-between">
-            <span className="text-xs text-muted-foreground">{passedChecks} of {checks.length} checks passed</span>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setChecksReviewOpen(false)}>Close</Button>
-              <Button type="button" onClick={startChecksTour}>
-                <ClipboardCheck /> Start walkthrough
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ResumeChecksDialog
+        open={checksReviewOpen}
+        checks={checks}
+        passedChecks={passedChecks}
+        onOpenChange={setChecksReviewOpen}
+        onStartWalkthrough={startChecksTour}
+      />
 
       <ReviewDrawer
         editor={editor}

@@ -2,7 +2,10 @@
   "name": "resume-editor",
   "version": "0.1.0",
   "private": true,
-  "description": "PrivaCV — a privacy-first resume editor for clean ATS-friendly PDFs and plain-text exports.",
+  "description": "PrivaCV — private, local-first tools for resumes and job applications.",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -10,7 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:public-resumes": "node scripts/fetch-public-resume-fixtures.mjs && playwright test tests/public-resume-import.spec.ts",
+    "test:public-resumes": "node scripts/fetch-public-resume-fixtures.mjs && PLAYWRIGHT_PUBLIC_RESUMES=1 playwright test tests/public-resume-import.spec.ts",
     "test:e2e": "playwright test",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import manifest from "./fixtures/public-resumes/manifest.json";
 
 const fixtureDirectory = path.resolve("tests/fixtures/public-resumes/downloads");
@@ -19,6 +19,34 @@ type ImportedState = {
   projects: ImportedEntry[];
   customSections: Array<{ title: string }>;
 };
+type ContactField = "name" | "title" | "email" | "phone" | "location" | "website";
+type FixtureExpected = Partial<Record<ContactField, string>> & {
+  contactFieldsPresent?: ContactField[];
+  experienceTitles?: string[];
+  educationTitles?: string[];
+  projectTitles?: string[];
+  skillsInclude?: string[];
+  experienceDetailsInclude?: string[];
+  projectDetailsInclude?: string[];
+  customSectionTitles?: string[];
+};
+
+async function readStoredResumeState(page: Page) {
+  return page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("privacv-resume-workspace");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const records = await new Promise<Array<{ state: ImportedState }>>((resolve, reject) => {
+      const request = database.transaction("resumes", "readonly").objectStore("resumes").getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return records[0]?.state ?? null;
+  });
+}
 
 for (const fixture of manifest) {
   test(`imports public resume fixture: ${fixture.filename}`, async ({ page }) => {
@@ -35,12 +63,15 @@ for (const fixture of manifest) {
       buffer: readFileSync(fixturePath),
     });
     await expect(page.getByText(/Imported (PDF|Word document) - please review/)).toBeVisible();
-    await expect.poll(async () => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).not.toBeNull();
+    await expect.poll(async () => (await readStoredResumeState(page))?.name).toBe(fixture.expected.name);
 
-    const state = await page.evaluate(() => JSON.parse(localStorage.getItem("resume-editor-data-v2") ?? "null")) as ImportedState;
-    const expected = fixture.expected;
+    const state = await readStoredResumeState(page) as ImportedState;
+    const expected = fixture.expected as FixtureExpected;
     for (const field of ["name", "title", "email", "phone", "location", "website"] as const) {
-      if (field in expected) expect(state[field]).toBe(expected[field]);
+      if (expected[field] !== undefined) expect(state[field]).toBe(expected[field]);
+    }
+    if (expected.contactFieldsPresent) {
+      for (const field of expected.contactFieldsPresent) expect(state[field]).toBeTruthy();
     }
     if (expected.experienceTitles) expect(state.experience.map((entry) => entry.title)).toEqual(expected.experienceTitles);
     if (expected.educationTitles) expect(state.education.map((entry) => entry.title)).toEqual(expected.educationTitles);

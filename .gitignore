@@ -9,6 +9,9 @@ tests/fixtures/public-resumes/downloads/
 *.tsbuildinfo
 .env*.local
 
+# Personal resume exports (keep examples under tests/fixtures synthetic)
+/resume.json
+
 # OpenNext
 .open-next
 
