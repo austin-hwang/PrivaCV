@@ -361,8 +361,11 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await page.getByRole("button", { name: "Compact", exact: true }).click();
   await expect(sheet).toHaveAttribute("data-density", "compact");
 
-  // The theme is saved locally and restored on reload.
-  await page.waitForTimeout(450);
+  // Reload only after IndexedDB confirms the debounced save. A fixed delay can
+  // expire before storage finishes on a slower CI runner.
+  const autosave = page.locator("[data-autosave-status]");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await page.reload();
   await expect(sheet).toHaveAttribute("data-heading", "plain");
   await expect(sheet).toHaveAttribute("data-density", "compact");
@@ -2433,9 +2436,16 @@ test("keeps the Skills section whole on the exported page the preview shows it o
   ).join("\n");
   await setRichText(page.locator("#field-experience-0-details"), details, "bullet");
 
-  // The preview reserves a full break for the block and shows it on page 2.
+  // The preview shows the complete block on page 2. Depending on font metrics,
+  // Skills may land there naturally or need a synthetic break spacer; both are
+  // correct as long as the visible and exported page placement agree.
   await expect(page.getByText("2 pages in preview", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-resume-print-section="skills"]')).toHaveClass(/resume-print-break-before/);
+  const skillsSection = page.locator('[data-resume-print-section="skills"]');
+  await expect.poll(() => skillsSection.evaluate((element) => {
+    const section = element as HTMLElement;
+    const contentTop = section.offsetTop + Number.parseFloat(getComputedStyle(section).paddingTop);
+    return Math.floor(contentTop / (11 * 96)) + 1;
+  })).toBe(2);
 
   await page.emulateMedia({ media: "print" });
   const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
