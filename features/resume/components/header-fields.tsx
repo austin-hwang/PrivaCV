@@ -22,7 +22,7 @@ import {
   Twitter,
   Youtube,
 } from "lucide-react";
-import { FieldGroup, TextField } from "@/components/resume-editor/editor-fields";
+import { FieldGroup, TextField } from "@/features/resume/components/editor-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ResumePreview } from "@/components/resume-editor/resume-preview";
+import { ResumePreview } from "@/features/resume/components/resume-preview";
 import { formatCheckpointTime, versionHeadline, type ResumeLibraryItem } from "@/lib/resume-workspace";
 
 const THUMBNAIL_SCALE = 0.22;

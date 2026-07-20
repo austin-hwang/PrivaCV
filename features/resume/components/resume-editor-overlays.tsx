@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useResumeEditor } from "@/hooks/use-resume-editor";
+import { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import { applicationCopyGroups, plainTextStats } from "@/lib/resume";
 
 export function ResumeEditorOverlays({

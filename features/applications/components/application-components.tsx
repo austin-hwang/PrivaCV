@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ResumeSourceOption } from "@/hooks/use-resume-sources";
+import type { ResumeSourceOption } from "@/features/applications/hooks/use-resume-sources";
 import {
   JOB_APPLICATION_STATUSES,
   JOB_APPLICATION_STATUS_META,

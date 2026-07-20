@@ -29,14 +29,16 @@ Changes to storage schemas must include a forward migration, normalization at th
 ## Module responsibilities
 
 - `app/` contains App Router pages, metadata, route handlers, and global CSS.
-- `components/resume-editor.tsx` and `components/job-pipeline.tsx` are workspace coordinators. They compose feature components, but should not own reusable rendering or browser I/O.
-- `components/resume-editor/` and `components/job-pipeline/` contain feature-owned views, dialogs, and controls. New workspace UI should start here instead of expanding the coordinators.
+- `features/resume/` owns the resume workspace coordinator, views, and workflow hooks. Its editor hook composes focused content-action, pagination, history, persistence, library, import, and export hooks; browser I/O stays at those boundaries instead of leaking into rendering components. Workspace chrome such as `resume-workspace-header.tsx` is composed separately from the editor and preview panes.
+- `features/applications/` owns the job-pipeline coordinator, application views, and pipeline hooks.
+- `features/shared/` contains product-shell UI shared by multiple workspaces, such as the application header. It must not depend on either feature.
 - `components/ui/` contains product-agnostic visual primitives.
-- `hooks/` coordinates interactive workflows and persistence adapters. Hooks should delegate pure transformations and browser file operations to `lib/` modules.
 - `lib/` contains domain models, pure transformations, import/export code, browser utilities, and storage adapters. `lib/browser-files.ts` is the shared boundary for generated downloads and clipboard fallbacks.
 - `tests/` contains Playwright behavior tests grouped by product capability (for example, public-site checks live in `site.spec.ts`); unit tests live beside their `lib/` modules.
 
-The resume domain and application domain should not import UI components. UI may call domain functions and persistence adapters. Shared product navigation belongs in the top-level component layer. Prefer a feature folder once a workspace view has independent props, behavior, or tests; keep the top-level workspace file focused on state composition and routing events between those pieces.
+The resume domain and application domain do not import UI components. UI may call domain functions and persistence adapters. Cross-feature imports should go through a feature's public `index.ts` entry point; code inside a feature may import its own modules directly. ESLint enforces route, shared-layer, and cross-feature import boundaries. Keep workspace coordinators focused on composition and routing events between focused components and hooks.
+
+Resume browser tests live in capability suites under `tests/resume-editor/` and reuse only interaction helpers from `tests/resume-editor-support.ts`. Add new coverage to the narrowest suite so failures and focused local runs remain easy to understand.
 
 ## Network boundary
 
@@ -48,4 +50,4 @@ Any change to this boundary requires updates to `app/privacy/page.tsx`, `README.
 
 The production project uses OpenNext for Cloudflare. `wrangler.jsonc` intentionally describes the live PrivaCV worker, domain, service binding, and Analytics Engine datasets. A fork should change those names and routes before running deployment commands. Local development only needs Node.js, pnpm, and `NEXT_PUBLIC_SITE_URL` when testing a non-default canonical origin.
 
-CI treats the hash-pinned public-resume import suite as opt-in because it downloads third-party documents. The normal browser suite is self-contained and must stay green without external fixture downloads.
+CI treats the hash-pinned public-resume import suite as opt-in because it downloads third-party documents. The normal browser suite is self-contained, runs isolated tests in parallel, and must stay green without external fixture downloads. Set `PLAYWRIGHT_WORKERS` to tune concurrency on constrained machines.

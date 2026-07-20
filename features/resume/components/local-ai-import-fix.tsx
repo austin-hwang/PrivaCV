@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
+import { ChangeSummaryGrid } from "@/features/resume/components/version-changes";
 import {
   friendlyLocalAIError,
   generateLocalAIText,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/local-ai-engine";
 import { buildImportRepairMessages, LOCAL_AI_IMPORT_JSON_SCHEMA, parseLocalAIImportProposal } from "@/lib/local-ai";
 import { exportChangeSummary, resumePlainText, type ResumeState } from "@/lib/resume";
-import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
+import { useLocalAIReady } from "@/features/resume/hooks/use-local-ai-runtime";
 
 export function LocalAIImportFix({
   sourceText,

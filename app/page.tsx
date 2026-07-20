@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ResumeEditor } from "@/components/resume-editor";
+import { ResumeEditor } from "@/features/resume";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "@/lib/site";
 

@@ -1,0 +1,305 @@
+import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { strFromU8, unzipSync } from "fflate";
+import { resumeDocx } from "@/lib/docx-export";
+import { sampleState } from "@/lib/resume";
+import {
+  MAX_PDF_BYTES,
+  advanceReviewTo,
+  closeVersions,
+  expandAllEntries,
+  expandAllTagGroups,
+  expectGuidedHighlightToFrame,
+  exportPdf,
+  loadSample,
+  makeDocxWithFieldLink,
+  makeDocxWithFooterContact,
+  makeDocxWithHeaderContact,
+  makeDocxWithLabelOnlyLink,
+  makeTextPdf,
+  openDesign,
+  openExport,
+  openMenu,
+  openResumeLibrary,
+  openResumeReview,
+  openTools,
+  openVersions,
+  removeSection,
+  saveVersion,
+  setRichText,
+  setRichTextBlocks,
+  summaryEditor,
+} from "../resume-editor-support";
+
+test("keeps the editor interactive while development security headers are active", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await loadSample(page);
+
+  await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
+});
+
+test("starts a fresh resume from the onboarding without hiding the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await expect(page.getByText(/change the layout and theme later from Design/i)).toBeVisible();
+  const preview = page.locator(".resume-sheet");
+  await page.getByRole("menuitem", { name: /modern/i }).hover();
+  await expect(preview).toHaveClass(/resume-template-modern/);
+  await expect(preview).toHaveAttribute("data-divider", "on");
+  await expect(preview).toHaveAttribute("data-header-align", "center");
+  await page.getByRole("menuitem", { name: /compact/i }).hover();
+  await expect(preview).toHaveClass(/resume-template-compact/);
+  await expect(preview).toHaveAttribute("data-density", "compact");
+  await expect(preview).toHaveCSS("font-family", /Carlito/);
+  await page.getByRole("menuitem", { name: /executive/i }).hover();
+  await expect(preview).toHaveClass(/resume-template-executive/);
+  await expect(preview.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await page.getByRole("menuitem", { name: /technical/i }).hover();
+  await expect(preview).toHaveClass(/resume-template-technical/);
+  await expect(preview).toHaveCSS("font-family", /Arimo/);
+  await page.getByRole("menuitem", { name: /classic/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+  await expect(page.getByText("Start fresh")).toBeHidden();
+  await expect(page.getByLabel("Resume editor")).toBeVisible();
+  // The Classic preset seeds ruled section headings.
+  await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "ruled");
+
+  await page.reload();
+  await page.getByRole("button", { name: /start a blank resume/i }).click();
+  await page.getByRole("menuitem", { name: /modern/i }).click();
+  await expect(page.locator("#field-name")).toBeFocused();
+  // The Modern preset seeds an accent bar heading style.
+  await expect(page.locator(".resume-sheet")).toHaveAttribute("data-heading", "bar");
+});
+
+test("customizes and persists a professional resume theme", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const sheet = page.locator(".resume-sheet");
+
+  // Appearance controls live in the inline Design panel above the preview.
+  await openDesign(page);
+
+  // A preset is a professional starting point that sets every theme axis.
+  await page.getByLabel("Resume preset").selectOption("modern");
+  await expect(sheet).toHaveAttribute("data-heading", "bar");
+  await expect(sheet).toHaveAttribute("data-divider", "on");
+  await expect(sheet).toHaveAttribute("data-header-align", "center");
+  await expect(sheet).toHaveAttribute("data-bullet", "circle");
+  await expect(sheet).toHaveCSS("font-family", /Inter/);
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(31, 58, 95)");
+
+  // Individual controls layer on top of the preset.
+  await page.getByRole("button", { name: "Burgundy" }).click();
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await page.getByLabel("Resume font").selectOption("georgia");
+  await expect(sheet).toHaveCSS("font-family", /Gelasio/);
+
+  // Header, headings, and density sit under the panel's Advanced disclosure.
+  await page.getByRole("button", { name: /^Advanced/ }).click();
+  await page.getByRole("button", { name: "Plain", exact: true }).click();
+  await expect(sheet).toHaveAttribute("data-heading", "plain");
+  await page.getByRole("button", { name: "Compact", exact: true }).click();
+  await expect(sheet).toHaveAttribute("data-density", "compact");
+
+  // Reload only after IndexedDB confirms the debounced save. A fixed delay can
+  // expire before storage finishes on a slower CI runner.
+  const autosave = page.locator("[data-autosave-status]");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
+  await page.reload();
+  await expect(sheet).toHaveAttribute("data-heading", "plain");
+  await expect(sheet).toHaveAttribute("data-density", "compact");
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await expect(sheet).toHaveCSS("font-family", /Gelasio/);
+
+  // Choosing a sample replaces the draft content but should not quietly reset
+  // the visual design the person is currently evaluating.
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^sample$/i }).click();
+  await expect(sheet).toHaveAttribute("data-heading", "plain");
+  await expect(sheet).toHaveAttribute("data-density", "compact");
+  await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
+  await expect(sheet).toHaveCSS("font-family", /Gelasio/);
+});
+
+test("self-hosts every selectable resume font without device fallbacks", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+  await openDesign(page);
+
+  const sheet = page.locator(".resume-sheet");
+  const expectedFonts = [
+    ["merriweather", "Merriweather"],
+    ["georgia", "Gelasio"],
+    ["times", "Tinos"],
+    ["inter", "Inter"],
+    ["arial", "Arimo"],
+    ["calibri", "Carlito"],
+  ] as const;
+  const resolvedFamilies: string[] = [];
+
+  for (const [fontId, familyName] of expectedFonts) {
+    await page.getByLabel("Resume font").selectOption(fontId);
+    await expect(sheet).toHaveCSS("font-family", new RegExp(familyName));
+    const font = await sheet.evaluate(async (element) => {
+      const family = getComputedStyle(element).fontFamily.split(",")[0];
+      await document.fonts.load(`16px ${family}`, "Resume font consistency");
+      return { family, loaded: document.fonts.check(`16px ${family}`) };
+    });
+    expect(font.loaded).toBe(true);
+    resolvedFamilies.push(font.family);
+  }
+
+  expect(new Set(resolvedFamilies).size).toBe(expectedFonts.length);
+});
+
+test("keeps desktop section navigation flush with the app header", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const [header, navigation] = await Promise.all([
+    page.locator("header.app-chrome").boundingBox(),
+    page.getByRole("navigation", { name: "Jump to a resume section" }).boundingBox(),
+  ]);
+  expect(header).not.toBeNull();
+  expect(navigation).not.toBeNull();
+  expect(Math.abs(navigation!.y - (header!.y + header!.height))).toBeLessThanOrEqual(1);
+});
+
+test("keeps the mobile section navigation below the persistent workspace header", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const navigation = page.getByRole("navigation", { name: "Jump to a resume section" });
+  await expect(navigation).toHaveCSS("position", "sticky");
+  await expect(navigation).toHaveCSS("top", "118px");
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(117);
+  await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeLessThanOrEqual(119);
+});
+
+test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(IDBFactory.prototype, "open", {
+      configurable: true,
+      value: () => {
+        throw new DOMException("IndexedDB is unavailable", "InvalidStateError");
+      },
+    });
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+
+  await loadSample(page);
+
+  const storageWarning = page.getByText("Browser autosave is unavailable", { exact: true }).locator("..");
+  await expect(storageWarning).toContainText("Browser autosave is unavailable");
+  await expect(storageWarning).toContainText("may not survive a refresh");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: /save json copy/i }).click();
+  await expect((await download).suggestedFilename()).toBe("John_Doe.json");
+});
+
+test("records only an anonymous format event when a resume is exported", async ({ page }) => {
+  const exportEvents: unknown[] = [];
+  await page.route("**/api/metrics/export", async (route) => {
+    exportEvents.push(route.request().postDataJSON());
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  expect(exportEvents).toEqual([]);
+  const download = page.waitForEvent("download");
+  await openExport(page);
+  await page.getByRole("menuitem", { name: /export json/i }).click();
+  await expect((await download).suggestedFilename()).toBe("John_Doe.json");
+  await expect.poll(() => exportEvents).toEqual([{ format: "json" }]);
+});
+
+test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(IDBFactory.prototype, "open", {
+      configurable: true,
+      value: () => {
+        throw new DOMException("IndexedDB is unavailable", "InvalidStateError");
+      },
+    });
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await loadSample(page);
+
+  const versions = await openVersions(page);
+  await expect(versions.getByText(/checkpoints shown here may not survive a refresh/i)).toBeVisible();
+  await versions.getByRole("button", { name: /save current version/i }).click();
+  await page.getByLabel("Checkpoint name").fill("Tailored product role");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: /save checkpoint/i }).click();
+  await expect((await download).suggestedFilename()).toBe("John_Doe-checkpoints.json");
+  await expect(page.getByText("Browser storage unavailable — checkpoint backup downloaded", { exact: true })).toBeVisible();
+  await expect(versions.getByRole("list").getByText("Tailored product role", { exact: true })).toBeVisible();
+});
+
+test("keeps import, export, and secondary toolbar actions usable from the keyboard", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const moreTrigger = page.getByRole("button", { name: /^more actions$/i });
+  await moreTrigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /use light mode/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /resume library/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /upload pdf or word/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /paste resume text/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /open saved json/i })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(moreTrigger).toBeFocused();
+
+  const exportTrigger = page.getByRole("button", { name: /^export$/i });
+  await exportTrigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /export pdf/i })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(exportTrigger).toBeFocused();
+
+  const trigger = page.getByRole("button", { name: /^more actions$/i });
+  await trigger.focus();
+  await page.keyboard.press("ArrowDown");
+
+  await expect(page.getByRole("menuitem", { name: /use light mode/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /copy for applications/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /open saved json/i })).toHaveCount(1);
+  await page.keyboard.press("End");
+  await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(page.getByRole("menuitem", { name: /clear resume/i })).toBeFocused();
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(trigger).toBeFocused();
+});

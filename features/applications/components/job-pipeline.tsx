@@ -20,7 +20,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { ApplicationHeader } from "@/components/application-header";
+import { ApplicationHeader } from "@/features/shared/components/application-header";
 import {
   ApplicationCard,
   ApplicationDetailDialog,
@@ -31,15 +31,15 @@ import {
   applicationDataFromForm,
   resumeLinkFromSource,
   type ApplicationForm,
-} from "@/components/job-pipeline/application-components";
-import { JobPipelineSankey } from "@/components/job-pipeline-sankey";
+} from "@/features/applications/components/application-components";
+import { JobPipelineSankey } from "@/features/applications/components/job-pipeline-sankey";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui/menu";
 import { toggleTheme } from "@/components/theme-toggle";
-import { useJobPipeline } from "@/hooks/use-job-pipeline";
-import { useResumeSources } from "@/hooks/use-resume-sources";
+import { useJobPipeline } from "@/features/applications/hooks/use-job-pipeline";
+import { useResumeSources } from "@/features/applications/hooks/use-resume-sources";
 import { createJobPipelineBackup, parseJobPipelineBackup } from "@/lib/job-application-db";
 import { buildJobSankeyData } from "@/lib/job-application-sankey";
 import {

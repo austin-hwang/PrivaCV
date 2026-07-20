@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   trackInlineAIEvent: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-local-ai-runtime", () => ({ useLocalAIReady: () => true }));
+vi.mock("@/features/resume/hooks/use-local-ai-runtime", () => ({ useLocalAIReady: () => true }));
 vi.mock("@/lib/local-ai-engine", () => ({
   friendlyLocalAIError: (error: unknown) => String(error),
   generateLocalAIText: mocks.generateLocalAIText,
@@ -18,7 +18,7 @@ vi.mock("@/lib/local-ai-engine", () => ({
 }));
 vi.mock("@/lib/inline-ai-metrics", () => ({ trackInlineAIEvent: mocks.trackInlineAIEvent }));
 
-import { LocalAIInlineEdit } from "@/components/resume-editor/local-ai-inline-edit";
+import { LocalAIInlineEdit } from "@/features/resume/components/local-ai-inline-edit";
 
 describe("LocalAIInlineEdit metrics", () => {
   it("records a request and acceptance without passing any text to analytics", async () => {

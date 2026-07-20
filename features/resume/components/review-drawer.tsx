@@ -4,7 +4,7 @@ import { ClipboardCheck, ClipboardCopy, Cpu, MessageSquarePlus, Search } from "l
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { useResumeEditor } from "@/hooks/use-resume-editor";
+import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 
 export function ReviewDrawer({
   editor,

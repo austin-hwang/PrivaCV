@@ -11,7 +11,7 @@ import {
 } from "@/lib/local-ai-engine";
 import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, isLocalAIRewriteUnchanged, localAIRewriteMaxTokens, validateLocalAIRewrite } from "@/lib/local-ai";
 import { hasBlockTags, richContentToPlainMarkdown, sanitizeRichContent } from "@/lib/rich-text";
-import { useLocalAIReady } from "@/hooks/use-local-ai-runtime";
+import { useLocalAIReady } from "@/features/resume/hooks/use-local-ai-runtime";
 import { trackInlineAIEvent } from "@/lib/inline-ai-metrics";
 
 const INLINE_AI_INSTRUCTION_LIMIT = 100;

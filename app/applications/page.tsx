@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JobPipeline } from "@/components/job-pipeline";
+import { JobPipeline } from "@/features/applications";
 import { createPageMetadata } from "@/lib/seo";
 
 const title = "Private Job Application Tracker";

@@ -8,72 +8,61 @@ import {
   ArrowRight,
   ArrowUp,
   AlertCircle,
-  BriefcaseBusiness,
   Check,
   ChevronDown,
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
-  ClipboardCopy,
-  ClipboardPaste,
   Download,
   Eye,
   EyeOff,
-  FileCode,
-  FileJson,
   FileText,
   GripVertical,
   History,
   Library,
   Loader2,
   MoreHorizontal,
-  Moon,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
   Plus,
-  Printer,
   RotateCcw,
   Search,
-  SlidersHorizontal,
   Sparkles,
-  Sun,
   Trash2,
   Undo2,
-  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ApplicationHeader } from "@/components/application-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
-import { toggleTheme } from "@/components/theme-toggle";
 import { FEEDBACK_URL } from "@/lib/site";
 import { clearStoredJobPipelineData } from "@/lib/job-application-db";
 import { Input } from "@/components/ui/input";
-import { EntryList, FieldGroup, TagGroupEditor, TextField } from "@/components/resume-editor/editor-fields";
-import { ResumeDesignControls } from "@/components/resume-editor/design-controls";
-import { ResumeHeaderFields } from "@/components/resume-editor/header-fields";
+import { EntryList, FieldGroup, TagGroupEditor, TextField } from "@/features/resume/components/editor-fields";
+import { ResumeDesignControls } from "@/features/resume/components/design-controls";
+import { ResumeHeaderFields } from "@/features/resume/components/header-fields";
 import {
   DestructiveResumeDialog,
   ResumeChecksDialog,
   type DestructiveResumeAction,
-} from "@/components/resume-editor/review-dialogs";
-import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
+} from "@/features/resume/components/review-dialogs";
+import { RichTextEditor } from "@/features/resume/components/rich-text-editor";
 import { stripRichMarks } from "@/lib/rich-text";
-import { ResumeEditorOverlays } from "@/components/resume-editor/resume-editor-overlays";
-import { ResumePreview } from "@/components/resume-editor/resume-preview";
-import { ReviewDrawer } from "@/components/resume-editor/review-drawer";
-import { VersionHistoryCard } from "@/components/resume-editor/version-history-card";
-import { ResumeLibraryCard } from "@/components/resume-editor/resume-library-card";
-import { GuidedReview, type GuidedReviewStep } from "@/components/resume-editor/guided-review";
-import { SectionNav, type SectionNavItem } from "@/components/resume-editor/section-nav";
-import { ResumeNavigator, type ResumeNavigatorItem } from "@/components/resume-editor/resume-navigator";
-import { StartPanel } from "@/components/resume-editor/start-panel";
-import { ChangeSummaryGrid } from "@/components/resume-editor/version-changes";
-import { useResumeEditor } from "@/hooks/use-resume-editor";
+import { ResumeEditorOverlays } from "@/features/resume/components/resume-editor-overlays";
+import { ResumePreview } from "@/features/resume/components/resume-preview";
+import { ReviewDrawer } from "@/features/resume/components/review-drawer";
+import { VersionHistoryCard } from "@/features/resume/components/version-history-card";
+import { ResumeLibraryCard } from "@/features/resume/components/resume-library-card";
+import { GuidedReview, type GuidedReviewStep } from "@/features/resume/components/guided-review";
+import { SectionNav, type SectionNavItem } from "@/features/resume/components/section-nav";
+import { ResumeNavigator, type ResumeNavigatorItem } from "@/features/resume/components/resume-navigator";
+import { StartPanel } from "@/features/resume/components/start-panel";
+import { ChangeSummaryGrid } from "@/features/resume/components/version-changes";
+import { ResumeWorkspaceHeader } from "@/features/resume/components/resume-workspace-header";
+import { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import {
   clampTextScale,
   entryFieldSchema,
@@ -111,19 +100,19 @@ import { cn } from "@/lib/utils";
 // this dialog out of the server graph prevents its large client runtime from
 // being bundled into the Cloudflare Worker while preserving on-demand use.
 const LocalAIDialog = dynamic(
-  () => import("@/components/resume-editor/local-ai-dialog").then((module) => module.LocalAIDialog),
+  () => import("@/features/resume/components/local-ai-dialog").then((module) => module.LocalAIDialog),
   { ssr: false },
 );
 const LocalAIInlineEdit = dynamic(
-  () => import("@/components/resume-editor/local-ai-inline-edit").then((module) => module.LocalAIInlineEdit),
+  () => import("@/features/resume/components/local-ai-inline-edit").then((module) => module.LocalAIInlineEdit),
   { ssr: false },
 );
 const LocalAIImportFix = dynamic(
-  () => import("@/components/resume-editor/local-ai-import-fix").then((module) => module.LocalAIImportFix),
+  () => import("@/features/resume/components/local-ai-import-fix").then((module) => module.LocalAIImportFix),
   { ssr: false },
 );
 const LocalAIBackgroundLoader = dynamic(
-  () => import("@/components/resume-editor/local-ai-background-loader").then((module) => module.LocalAIBackgroundLoader),
+  () => import("@/features/resume/components/local-ai-background-loader").then((module) => module.LocalAIBackgroundLoader),
   { ssr: false },
 );
 
@@ -754,157 +743,24 @@ export function ResumeEditor() {
   return (
     <>
       {localAIEnabled ? <LocalAIBackgroundLoader /> : null}
-      <ApplicationHeader
-        active="resume"
-        saveState={storageIssue || autosaveStatus === "conflict" ? "conflict" : autosaveStatus}
-        context={editor.resumeLibrary.length ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setLibraryOpen(true)}
-                aria-label={`Open resume library: ${activeResumeLabel}`}
-                title="Open resume library"
-                className="hidden max-w-52 gap-1.5 px-2 lg:inline-flex"
-              >
-                <Library aria-hidden="true" />
-                <span className="truncate">{activeResumeLabel}</span>
-                <ChevronDown className="size-3.5" aria-hidden="true" />
-              </Button>
-            ) : null}
-        actions={
-          <>
-            <Button
-              type="button"
-              variant={toolsOpen ? "secondary" : "outline"}
-              onClick={() => setToolsOpen((open) => !open)}
-              aria-label={toolsOpen ? "Collapse tools panel" : "Open tools"}
-              aria-expanded={toolsOpen}
-              aria-controls="tools-panel"
-              className="gap-2"
-            >
-              <SlidersHorizontal />
-              <span className="hidden sm:inline">Tools</span>
-              {hasContent ? (
-                <span
-                  className={cn(
-                    "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
-                    checksReady ? "bg-success/15 text-success" : "bg-warning/15 text-foreground",
-                  )}
-                >
-                  {passedChecks}/{checks.length}
-                </span>
-              ) : null}
-            </Button>
-            <Menu>
-              <MenuTrigger>
-                <Button type="button" aria-label="Export">
-                  <Download /> <span className="hidden sm:inline">Export</span>
-                  <ChevronDown className="hidden size-3.5 sm:block" />
-                </Button>
-              </MenuTrigger>
-              <MenuContent>
-                <MenuLabel>Export resume</MenuLabel>
-                <MenuItem onSelect={requestExport}>
-                  <Printer /> Export PDF
-                </MenuItem>
-                <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
-                  <FileText /> Export Word (.docx)
-                </MenuItem>
-                <MenuItem onSelect={saveMarkdown} disabled={!hasContent}>
-                  <FileCode /> Export Markdown (.md)
-                </MenuItem>
-                <MenuItem onSelect={saveJson}>
-                  <FileJson /> Export JSON
-                </MenuItem>
-                <MenuItem onSelect={() => setTextReviewOpen(true)} disabled={!hasContent}>
-                  <ClipboardCopy /> Copy resume text
-                </MenuItem>
-              </MenuContent>
-            </Menu>
-            <Menu>
-              <MenuTrigger>
-                <Button type="button" variant="outline" size="icon" aria-label="More actions">
-                  <MoreHorizontal />
-                </Button>
-              </MenuTrigger>
-              <MenuContent>
-                <MenuLabel>Appearance</MenuLabel>
-                <MenuItem onSelect={() => setIsDarkTheme(toggleTheme())}>
-                  {isDarkTheme ? <Sun /> : <Moon />} {isDarkTheme ? "Use light mode" : "Use dark mode"}
-                </MenuItem>
-                <MenuSeparator />
-                <MenuLabel>Resume</MenuLabel>
-                {editor.resumeLibrary.length ? (
-                  <MenuItem onSelect={() => setLibraryOpen(true)}>
-                    <Library /> Resume library{editor.resumeLibrary.length > 1 ? ` (${editor.resumeLibrary.length})` : ""}
-                  </MenuItem>
-                ) : null}
-                <MenuItem className="lg:hidden" onSelect={() => window.location.assign("/applications")}>
-                  <BriefcaseBusiness /> Applications
-                </MenuItem>
-                <MenuSeparator />
-                <MenuLabel>Import resume</MenuLabel>
-                <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
-                  <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
-                </MenuItem>
-                <MenuItem onSelect={() => setTextImportOpen(true)}>
-                  <ClipboardPaste /> Paste resume text
-                </MenuItem>
-                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
-                  <FileJson /> Open saved JSON
-                </MenuItem>
-                <MenuSeparator />
-                <MenuLabel>Workspace data</MenuLabel>
-                <MenuItem onSelect={loadSample}>
-                  <FileText /> Sample
-                </MenuItem>
-                <MenuItem
-                  destructive
-                  onSelect={() => setDestructiveAction("clear")}
-                >
-                  <RotateCcw /> Clear resume
-                </MenuItem>
-                <MenuItem
-                  destructive
-                  onSelect={() => setDestructiveAction("delete-all")}
-                >
-                  <Trash2 /> Delete all data
-                </MenuItem>
-              </MenuContent>
-            </Menu>
-          </>
-        }
-        secondary={
-          <div className="border-t px-4 py-2 lg:hidden">
-            <div className="grid grid-cols-2 rounded-md border bg-muted/30 p-1" aria-label="Resume workspace view">
-              <Button
-                id="mobile-editor-tab"
-                type="button"
-                size="sm"
-                variant={mobileWorkspaceView === "editor" ? "secondary" : "ghost"}
-                aria-pressed={mobileWorkspaceView === "editor"}
-                aria-controls="resume-editor-pane"
-                onClick={() => setMobileWorkspaceView("editor")}
-              >
-                <FileText /> Edit resume
-              </Button>
-              <Button
-                id="mobile-preview-tab"
-                type="button"
-                size="sm"
-                variant={mobileWorkspaceView === "preview" ? "secondary" : "ghost"}
-                aria-pressed={mobileWorkspaceView === "preview"}
-                aria-controls="resume-preview-pane"
-                onClick={() => setMobileWorkspaceView("preview")}
-              >
-                <Eye /> Preview
-              </Button>
-            </div>
-          </div>
-        }
+      <ResumeWorkspaceHeader
+        editor={editor}
+        activeResumeLabel={activeResumeLabel}
+        isDarkTheme={isDarkTheme}
+        setIsDarkTheme={setIsDarkTheme}
+        toolsOpen={toolsOpen}
+        setToolsOpen={setToolsOpen}
+        checksReady={checksReady}
+        checksLength={checks.length}
+        setLibraryOpen={setLibraryOpen}
+        setTextReviewOpen={setTextReviewOpen}
+        setTextImportOpen={setTextImportOpen}
+        setDestructiveAction={setDestructiveAction}
+        importFileInputRef={importFileInputRef}
+        jsonInputRef={jsonInputRef}
+        mobileWorkspaceView={mobileWorkspaceView}
+        setMobileWorkspaceView={setMobileWorkspaceView}
       />
-
       <main
         ref={workspaceRef}
         className={cn(

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { entryFieldSchema, entryHasContent, type ResumeEntry, type TagGroup } from "@/lib/resume";
-import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
+import { RichTextEditor } from "@/features/resume/components/rich-text-editor";
 import { cn } from "@/lib/utils";
 
 type TextInputType = "email" | "tel" | "text" | "url";
