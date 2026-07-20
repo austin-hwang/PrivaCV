@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  AlarmClock,
   AlertTriangle,
   Archive,
+  BarChart3,
   BriefcaseBusiness,
   CheckCircle2,
   CircleDot,
@@ -33,6 +35,8 @@ import {
   type ApplicationForm,
 } from "@/features/applications/components/application-components";
 import { JobPipelineSankey } from "@/features/applications/components/job-pipeline-sankey";
+import { RemindersView } from "@/features/applications/components/reminders-view";
+import { InsightsView } from "@/features/applications/components/insights-view";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +46,7 @@ import { useJobPipeline } from "@/features/applications/hooks/use-job-pipeline";
 import { useResumeSources } from "@/features/applications/hooks/use-resume-sources";
 import { createJobPipelineBackup, parseJobPipelineBackup } from "@/lib/job-application-db";
 import { buildJobSankeyData } from "@/lib/job-application-sankey";
+import { remindersToIcs, type ReminderItem } from "@/lib/job-reminders";
 import {
   ACTIVE_JOB_APPLICATION_STATUSES,
   CLOSED_JOB_APPLICATION_STATUSES,
@@ -58,7 +63,7 @@ import {
 } from "@/lib/job-applications";
 import { cn } from "@/lib/utils";
 
-type PipelineView = "board" | "list" | "sankey";
+type PipelineView = "board" | "list" | "reminders" | "insights" | "sankey";
 type PipelineScope = "active" | "closed" | "all";
 
 function downloadFile(contents: string, fileName: string, type: string) {
@@ -130,6 +135,7 @@ export function JobPipeline() {
       : scope === "closed"
         ? CLOSED_JOB_APPLICATION_STATUSES
         : JOB_APPLICATION_STATUSES;
+  const showListControls = view === "board" || view === "list";
 
   const saveApplication = async (applicationId: string, form: ApplicationForm) => {
     await pipeline.updateApplication(
@@ -181,6 +187,18 @@ export function JobPipeline() {
       "text/csv;charset=utf-8",
     );
     setActionMessage({ type: "success", text: "Applications CSV downloaded" });
+  };
+  const exportReminders = (items: ReminderItem[]) => {
+    if (!items.length) return;
+    downloadFile(
+      remindersToIcs(items),
+      `privacv-reminders-${new Date().toISOString().slice(0, 10)}.ics`,
+      "text/calendar;charset=utf-8",
+    );
+    setActionMessage({
+      type: "success",
+      text: `Exported ${items.length} ${items.length === 1 ? "reminder" : "reminders"} to calendar`,
+    });
   };
   const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -353,38 +371,50 @@ export function JobPipeline() {
 
         <section className="mt-7 overflow-hidden rounded-xl border bg-card shadow-xs">
           <div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center lg:justify-between">
-            <div
-              className="flex flex-wrap items-center gap-1 rounded-lg bg-muted/50 p-1"
-              aria-label="Application scope"
-            >
-              {(["active", "closed", "all"] as const).map((item) => (
-                <Button
-                  key={item}
-                  type="button"
-                  size="sm"
-                  variant={scope === item ? "secondary" : "ghost"}
-                  aria-pressed={scope === item}
-                  onClick={() => setScope(item)}
-                  className="capitalize"
-                >
-                  {item}
-                </Button>
-              ))}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <label className="relative min-w-0 sm:w-72">
-                <span className="sr-only">Search applications</span>
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search roles, companies, notes..."
-                />
-              </label>
+            {showListControls ? (
               <div
-                className="flex rounded-lg border bg-background p-1"
+                className="flex flex-wrap items-center gap-1 rounded-lg bg-muted/50 p-1"
+                aria-label="Application scope"
+              >
+                {(["active", "closed", "all"] as const).map((item) => (
+                  <Button
+                    key={item}
+                    type="button"
+                    size="sm"
+                    variant={scope === item ? "secondary" : "ghost"}
+                    aria-pressed={scope === item}
+                    onClick={() => setScope(item)}
+                    className="capitalize"
+                  >
+                    {item}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="px-1 text-sm font-medium text-muted-foreground">
+                {view === "reminders"
+                  ? "Due dates and scheduled activities"
+                  : view === "insights"
+                    ? "Funnel and pace across your search"
+                    : "How applications flow across stages"}
+              </p>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              {showListControls ? (
+                <label className="relative min-w-0 sm:w-72">
+                  <span className="sr-only">Search applications</span>
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search roles, companies, notes..."
+                  />
+                </label>
+              ) : null}
+              <div
+                className="flex flex-wrap rounded-lg border bg-background p-1"
                 aria-label="Application view"
               >
                 <Button
@@ -410,6 +440,26 @@ export function JobPipeline() {
                 <Button
                   type="button"
                   size="sm"
+                  variant={view === "reminders" ? "secondary" : "ghost"}
+                  aria-label="Reminders view"
+                  aria-pressed={view === "reminders"}
+                  onClick={() => setView("reminders")}
+                >
+                  <AlarmClock /> Reminders
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={view === "insights" ? "secondary" : "ghost"}
+                  aria-label="Insights view"
+                  aria-pressed={view === "insights"}
+                  onClick={() => setView("insights")}
+                >
+                  <BarChart3 /> Insights
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant={view === "sankey" ? "secondary" : "ghost"}
                   aria-label="Sankey view"
                   aria-pressed={view === "sankey"}
@@ -428,6 +478,15 @@ export function JobPipeline() {
             <div className="flex min-h-80 items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="animate-spin" /> Loading your pipeline
             </div>
+          ) : view === "reminders" ? (
+            <RemindersView
+              applications={pipeline.data.applications}
+              events={pipeline.data.events}
+              onOpen={setSelectedId}
+              onExport={exportReminders}
+            />
+          ) : view === "insights" ? (
+            <InsightsView applications={pipeline.data.applications} events={pipeline.data.events} />
           ) : visibleApplications.length === 0 ? (
             <EmptyPipeline
               scoped={Boolean(pipeline.data.applications.length)}
@@ -613,6 +672,9 @@ export function JobPipeline() {
         }}
         onSave={saveApplication}
         onDelete={pipeline.deleteApplication}
+        onLogActivity={pipeline.logActivity}
+        onUpdateActivity={pipeline.updateActivity}
+        onDeleteActivity={pipeline.deleteActivity}
         resumeSources={resumeSources.sources}
         attachedSnapshot={selectedResumeSnapshot}
       />

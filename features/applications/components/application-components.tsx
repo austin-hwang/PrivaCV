@@ -1,16 +1,26 @@
 "use client";
 
 import {
+  ArrowRightLeft,
   ArrowUpRight,
+  BadgeCheck,
   BriefcaseBusiness,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
+  FileText,
   GripVertical,
   Loader2,
   MapPin,
+  Pencil,
+  Phone,
   Plus,
+  Send,
+  Sparkles,
+  StickyNote,
   Trash2,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +37,18 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ResumeSourceOption } from "@/features/applications/hooks/use-resume-sources";
+import type { ApplicationActivityInput, ApplicationActivityUpdate } from "@/lib/job-application-db";
 import {
+  APPLICATION_ACTIVITY_META,
+  APPLICATION_ACTIVITY_TYPES,
   JOB_APPLICATION_STATUSES,
   JOB_APPLICATION_STATUS_META,
   formatApplicationDate,
+  isApplicationActivityType,
   isApplicationOverdue,
+  type ApplicationActivityType,
   type ApplicationEvent,
+  type ApplicationEventType,
   type JobApplication,
   type JobApplicationDraft,
   type JobApplicationStatus,
@@ -375,40 +391,248 @@ export function CreateApplicationDialog({
   );
 }
 
-function Timeline({ events }: { events: ApplicationEvent[] }) {
+const EVENT_ICONS: Record<ApplicationEventType, LucideIcon> = {
+  created: Sparkles,
+  status_changed: ArrowRightLeft,
+  resume_attached: FileText,
+  note: StickyNote,
+  interview: Users,
+  call: Phone,
+  follow_up: Send,
+  offer_update: BadgeCheck,
+};
+
+/** ISO datetime → value for an <input type="datetime-local">. */
+function toDateTimeLocal(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** datetime-local value → ISO datetime, or undefined when empty/invalid. */
+function fromDateTimeLocal(value: string) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+function ActivityComposer({
+  applicationId,
+  editing,
+  disabled,
+  onLog,
+  onUpdate,
+  onCancelEdit,
+}: {
+  applicationId: string;
+  editing: ApplicationEvent | null;
+  disabled: boolean;
+  onLog: (applicationId: string, input: ApplicationActivityInput) => Promise<unknown>;
+  onUpdate: (eventId: string, update: ApplicationActivityUpdate) => Promise<unknown>;
+  onCancelEdit: () => void;
+}) {
+  const [type, setType] = useState<ApplicationActivityType>("note");
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState("");
+  const [when, setWhen] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    setType(isApplicationActivityType(editing.type) ? editing.type : "note");
+    setTitle(editing.title);
+    setDetail(editing.detail ?? "");
+    setWhen(toDateTimeLocal(editing.occurredAt));
+    setError(null);
+  }, [editing]);
+
+  const reset = () => {
+    setType("note");
+    setTitle("");
+    setDetail("");
+    setWhen("");
+    setError(null);
+  };
+
+  const submit = async () => {
+    if (!title.trim()) {
+      setError("Add a short title for this activity.");
+      return;
+    }
+    const occurredAt = fromDateTimeLocal(when);
+    try {
+      if (editing) {
+        await onUpdate(editing.id, {
+          type,
+          title,
+          detail,
+          occurredAt: occurredAt ?? editing.occurredAt,
+        });
+        onCancelEdit();
+      } else {
+        await onLog(applicationId, {
+          type,
+          title,
+          ...(detail.trim() ? { detail } : {}),
+          ...(occurredAt ? { occurredAt } : {}),
+        });
+      }
+      reset();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : "The activity could not be saved.",
+      );
+    }
+  };
+
+  return (
+    <div className="grid gap-2 rounded-lg border bg-card p-3">
+      <div className="grid grid-cols-[7rem_1fr] gap-2">
+        <Select
+          aria-label="Activity type"
+          value={type}
+          onChange={(event) => setType(event.target.value as ApplicationActivityType)}
+        >
+          {APPLICATION_ACTIVITY_TYPES.map((activityType) => (
+            <option key={activityType} value={activityType}>
+              {APPLICATION_ACTIVITY_META[activityType].label}
+            </option>
+          ))}
+        </Select>
+        <Input
+          aria-label="Activity title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void submit();
+            }
+          }}
+          placeholder={APPLICATION_ACTIVITY_META[type].placeholder}
+        />
+      </div>
+      <Textarea
+        className="min-h-16 text-sm"
+        value={detail}
+        onChange={(event) => setDetail(event.target.value)}
+        placeholder="Details — optional"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="datetime-local"
+          aria-label="When"
+          className="h-9 w-auto flex-1"
+          value={when}
+          onChange={(event) => setWhen(event.target.value)}
+        />
+        {editing ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onCancelEdit}
+            disabled={disabled}
+          >
+            Cancel
+          </Button>
+        ) : null}
+        <Button type="button" size="sm" onClick={() => void submit()} disabled={disabled}>
+          {editing ? <CheckCircle2 /> : <Plus />} {editing ? "Save" : "Log"}
+        </Button>
+      </div>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
+function Timeline({
+  events,
+  editingId,
+  onEdit,
+  onDelete,
+}: {
+  events: ApplicationEvent[];
+  editingId: string | null;
+  onEdit: (event: ApplicationEvent) => void;
+  onDelete: (event: ApplicationEvent) => void;
+}) {
   if (!events.length)
     return <p className="text-sm text-muted-foreground">No activity recorded yet.</p>;
+  const now = Date.now();
   return (
     <ol className="grid gap-0">
-      {events.map((event, index) => (
-        <li key={event.id} className="grid grid-cols-[1rem_1fr] gap-3">
-          <div className="flex flex-col items-center">
-            <span
-              className={cn(
-                "mt-1.5 size-2 rounded-full",
-                event.toStatus ? STATUS_DOT_CLASSES[event.toStatus] : "bg-muted-foreground",
-              )}
-            />
-            {index < events.length - 1 ? (
-              <span className="mt-1 min-h-8 w-px flex-1 bg-border" />
-            ) : null}
-          </div>
-          <div className="pb-5">
-            <p className="text-sm font-medium">{event.title}</p>
-            {event.detail ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">{event.detail}</p>
-            ) : null}
-            <time
-              className="mt-1 block text-[11px] text-muted-foreground"
-              dateTime={event.occurredAt}
-            >
-              {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(
-                new Date(event.occurredAt),
-              )}
-            </time>
-          </div>
-        </li>
-      ))}
+      {events.map((event, index) => {
+        const Icon = EVENT_ICONS[event.type] ?? StickyNote;
+        const editable = isApplicationActivityType(event.type);
+        const scheduled = new Date(event.occurredAt).getTime() > now;
+        return (
+          <li key={event.id} className="group/event grid grid-cols-[1rem_1fr] gap-3">
+            <div className="flex flex-col items-center">
+              <span
+                className={cn(
+                  "mt-0.5 flex size-4 items-center justify-center rounded-full",
+                  event.toStatus ? STATUS_DOT_CLASSES[event.toStatus] : "bg-muted",
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "size-2.5",
+                    event.toStatus ? "text-white" : "text-muted-foreground",
+                  )}
+                />
+              </span>
+              {index < events.length - 1 ? (
+                <span className="mt-1 min-h-8 w-px flex-1 bg-border" />
+              ) : null}
+            </div>
+            <div className="pb-5">
+              <div className="flex items-start justify-between gap-2">
+                <p className={cn("text-sm font-medium", editingId === event.id && "text-primary")}>
+                  {event.title}
+                </p>
+                {editable ? (
+                  <span className="flex shrink-0 gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover/event:opacity-100">
+                    <button
+                      type="button"
+                      aria-label="Edit activity"
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onClick={() => onEdit(event)}
+                    >
+                      <Pencil className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete activity"
+                      className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => onDelete(event)}
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </span>
+                ) : null}
+              </div>
+              {event.detail ? (
+                <p className="mt-0.5 text-xs text-muted-foreground">{event.detail}</p>
+              ) : null}
+              <time
+                className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground"
+                dateTime={event.occurredAt}
+              >
+                {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(
+                  new Date(event.occurredAt),
+                )}
+                {scheduled ? (
+                  <span className="rounded-full bg-primary/10 px-1.5 font-medium text-primary">
+                    Scheduled
+                  </span>
+                ) : null}
+              </time>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -421,6 +645,9 @@ export function ApplicationDetailDialog({
   onOpenChange,
   onSave,
   onDelete,
+  onLogActivity,
+  onUpdateActivity,
+  onDeleteActivity,
   resumeSources,
   attachedSnapshot,
 }: {
@@ -431,13 +658,26 @@ export function ApplicationDetailDialog({
   onOpenChange: (open: boolean) => void;
   onSave: (applicationId: string, update: ApplicationForm) => Promise<unknown>;
   onDelete: (applicationId: string) => Promise<unknown>;
+  onLogActivity: (applicationId: string, input: ApplicationActivityInput) => Promise<unknown>;
+  onUpdateActivity: (eventId: string, update: ApplicationActivityUpdate) => Promise<unknown>;
+  onDeleteActivity: (eventId: string) => Promise<unknown>;
   resumeSources: ResumeSourceOption[];
   attachedSnapshot?: ResumeSnapshot;
 }) {
   const [form, setForm] = useState<ApplicationForm>(EMPTY_APPLICATION_FORM);
   const [formError, setFormError] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ApplicationEvent | null>(null);
+  const loadedApplicationId = useRef<string | null>(null);
   useEffect(() => {
-    if (!application) return;
+    if (!application) {
+      loadedApplicationId.current = null;
+      return;
+    }
+    // Only reset the form when a different application opens, so logging an activity
+    // (which refreshes the pipeline) never clobbers unsaved edits in this form.
+    if (loadedApplicationId.current === application.id) return;
+    loadedApplicationId.current = application.id;
+    setEditingEvent(null);
     setForm({
       company: application.company,
       role: application.role,
@@ -532,10 +772,32 @@ export function ApplicationDetailDialog({
               <aside className="border-t bg-muted/20 p-6 lg:border-l lg:border-t-0">
                 <h3 className="text-sm font-semibold">Activity</h3>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Lifecycle changes are saved automatically on this device.
+                  Log interviews, calls, and follow-ups. Each saves on this device on its own.
                 </p>
+                <div className="mt-4">
+                  <ActivityComposer
+                    applicationId={application.id}
+                    editing={editingEvent}
+                    disabled={saving}
+                    onLog={onLogActivity}
+                    onUpdate={onUpdateActivity}
+                    onCancelEdit={() => setEditingEvent(null)}
+                  />
+                </div>
                 <div className="mt-5">
-                  <Timeline events={events} />
+                  <Timeline
+                    events={events}
+                    editingId={editingEvent?.id ?? null}
+                    onEdit={setEditingEvent}
+                    onDelete={(event) => {
+                      if (
+                        window.confirm(
+                          `Delete this ${event.title} activity? This cannot be undone.`,
+                        )
+                      )
+                        void onDeleteActivity(event.id);
+                    }}
+                  />
                 </div>
               </aside>
             </div>

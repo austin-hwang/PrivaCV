@@ -3,11 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearStoredJobPipelineData,
+  createStoredApplicationEvent,
   createStoredJobApplication,
+  deleteStoredApplicationEvent,
   deleteStoredJobApplication,
   loadJobPipelineData,
   restoreJobPipelineBackup,
+  updateStoredApplicationEvent,
   updateStoredJobApplication,
+  type ApplicationActivityInput,
+  type ApplicationActivityUpdate,
   type JobApplicationUpdate,
   type JobPipelineBackup,
 } from "@/lib/job-application-db";
@@ -117,6 +122,23 @@ export function useJobPipeline() {
     [mutate],
   );
 
+  const logActivity = useCallback(
+    (applicationId: string, input: ApplicationActivityInput) =>
+      mutate(() => createStoredApplicationEvent(applicationId, input)),
+    [mutate],
+  );
+
+  const updateActivity = useCallback(
+    (eventId: string, update: ApplicationActivityUpdate) =>
+      mutate(() => updateStoredApplicationEvent(eventId, update)),
+    [mutate],
+  );
+
+  const deleteActivity = useCallback(
+    (eventId: string) => mutate(() => deleteStoredApplicationEvent(eventId)),
+    [mutate],
+  );
+
   const restoreBackup = useCallback(
     (backup: JobPipelineBackup) => mutate(() => restoreJobPipelineBackup(backup)),
     [mutate],
@@ -153,6 +175,9 @@ export function useJobPipeline() {
     updateApplication,
     moveApplication,
     deleteApplication,
+    logActivity,
+    updateActivity,
+    deleteActivity,
     clearPipeline,
     restoreBackup,
     refresh,

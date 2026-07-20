@@ -116,7 +116,49 @@ export type ResumeSnapshotInput = {
   data: ResumeState;
 };
 
-export type ApplicationEventType = "created" | "status_changed" | "resume_attached" | "note";
+export const APPLICATION_SYSTEM_EVENT_TYPES = [
+  "created",
+  "status_changed",
+  "resume_attached",
+] as const;
+
+/** Event kinds a person logs by hand on the timeline. */
+export const APPLICATION_ACTIVITY_TYPES = [
+  "note",
+  "interview",
+  "call",
+  "follow_up",
+  "offer_update",
+] as const;
+
+export type ApplicationActivityType = (typeof APPLICATION_ACTIVITY_TYPES)[number];
+
+export type ApplicationEventType =
+  | (typeof APPLICATION_SYSTEM_EVENT_TYPES)[number]
+  | ApplicationActivityType;
+
+export const APPLICATION_ACTIVITY_META: Record<
+  ApplicationActivityType,
+  { label: string; placeholder: string; schedulable: boolean }
+> = {
+  note: { label: "Note", placeholder: "What happened or what to remember", schedulable: false },
+  interview: {
+    label: "Interview",
+    placeholder: "Round, interviewers, and format",
+    schedulable: true,
+  },
+  call: { label: "Call", placeholder: "Recruiter or hiring-manager call", schedulable: true },
+  follow_up: {
+    label: "Follow-up",
+    placeholder: "Message sent or reply expected",
+    schedulable: true,
+  },
+  offer_update: {
+    label: "Offer update",
+    placeholder: "Terms, deadline, or negotiation",
+    schedulable: true,
+  },
+};
 
 export type ApplicationEvent = {
   id: string;
@@ -172,6 +214,20 @@ export function isClosedJobApplicationStatus(status: JobApplicationStatus) {
 
 export function shouldCaptureResumeSnapshot(status: JobApplicationStatus) {
   return appliedStatusSet.has(status);
+}
+
+const activityTypeSet = new Set<string>(APPLICATION_ACTIVITY_TYPES);
+const eventTypeSet = new Set<string>([
+  ...APPLICATION_SYSTEM_EVENT_TYPES,
+  ...APPLICATION_ACTIVITY_TYPES,
+]);
+
+export function isApplicationActivityType(value: unknown): value is ApplicationActivityType {
+  return typeof value === "string" && activityTypeSet.has(value);
+}
+
+export function isApplicationEventType(value: unknown): value is ApplicationEventType {
+  return typeof value === "string" && eventTypeSet.has(value);
 }
 
 export function createJobPipelineId(prefix: "application" | "event" | "resume") {

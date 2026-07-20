@@ -270,10 +270,16 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(libraryButton.locator(".animate-spin")).toHaveCount(0);
 
   const versions = await openVersions(page);
-  await expect(
-    versions.getByRole("listitem").getByText("Autosave copy", { exact: true }),
-  ).toBeVisible();
-  await expect(versions.getByText("Autosaved", { exact: true })).toBeVisible();
+  const autosaveEntry = versions
+    .getByRole("listitem")
+    .filter({ hasText: "Autosave copy" })
+    .first();
+  await expect(autosaveEntry).toBeVisible();
+  // The freshest autosave is also the live draft, so it reads "Live draft" until a
+  // later save supersedes it and it becomes "Autosaved". Either marker confirms the
+  // autosave surfaced as an automatic version — asserting only "Autosaved" races the
+  // debounce on slower (production) servers.
+  await expect(autosaveEntry.getByText(/Autosaved|Live draft/)).toBeVisible();
 });
 
 test("creates a deduplicated periodic checkpoint after sustained editing", async ({ page }) => {

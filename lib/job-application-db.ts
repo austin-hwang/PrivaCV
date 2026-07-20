@@ -3,9 +3,12 @@ import {
   createApplicationEvent,
   createJobApplicationRecord,
   createJobPipelineId,
+  isApplicationActivityType,
+  isApplicationEventType,
   isJobApplicationStatus,
   shouldCaptureResumeSnapshot,
   transitionJobApplication,
+  type ApplicationActivityType,
   type ApplicationEvent,
   type JobApplication,
   type JobApplicationDraft,
@@ -327,6 +330,109 @@ export async function deleteStoredJobApplication(applicationId: string) {
   await transactionComplete(transaction);
 }
 
+export type ApplicationActivityInput = {
+  type: ApplicationActivityType;
+  title: string;
+  detail?: string;
+  /** ISO datetime; defaults to now. May be in the future for scheduled activities. */
+  occurredAt?: string;
+};
+
+export type ApplicationActivityUpdate = Partial<ApplicationActivityInput>;
+
+async function requireApplication(database: IDBDatabase, applicationId: string) {
+  const existing = await requestResult(
+    database
+      .transaction(APPLICATIONS_STORE, "readonly")
+      .objectStore(APPLICATIONS_STORE)
+      .get(applicationId) as IDBRequest<JobApplication | undefined>,
+  );
+  if (!existing) throw new Error("This application no longer exists.");
+  return existing;
+}
+
+export async function createStoredApplicationEvent(
+  applicationId: string,
+  input: ApplicationActivityInput,
+) {
+  if (!isApplicationActivityType(input.type))
+    throw new Error("This activity type is not supported.");
+  const title = input.title.trim();
+  if (!title) throw new Error("Add a short title for this activity.");
+  const database = await openJobPipelineDatabase();
+  const existing = await requireApplication(database, applicationId);
+  const now = new Date().toISOString();
+  const event = createApplicationEvent(applicationId, input.type, title, {
+    occurredAt: input.occurredAt?.trim() || now,
+    ...(input.detail?.trim() ? { detail: input.detail.trim() } : {}),
+  });
+  const transaction = database.transaction([EVENTS_STORE, APPLICATIONS_STORE], "readwrite");
+  transaction.objectStore(EVENTS_STORE).add(event);
+  transaction.objectStore(APPLICATIONS_STORE).put({ ...existing, updatedAt: now });
+  await transactionComplete(transaction);
+  return event;
+}
+
+export async function updateStoredApplicationEvent(
+  eventId: string,
+  update: ApplicationActivityUpdate,
+) {
+  const database = await openJobPipelineDatabase();
+  const existing = await requestResult(
+    database
+      .transaction(EVENTS_STORE, "readonly")
+      .objectStore(EVENTS_STORE)
+      .get(eventId) as IDBRequest<ApplicationEvent | undefined>,
+  );
+  if (!existing) throw new Error("This activity no longer exists.");
+  if (!isApplicationActivityType(existing.type))
+    throw new Error("Only activities you logged can be edited.");
+
+  const nextType =
+    update.type && isApplicationActivityType(update.type) ? update.type : existing.type;
+  const nextTitle = update.title?.trim() ?? existing.title;
+  if (!nextTitle) throw new Error("Add a short title for this activity.");
+  const detail = update.detail !== undefined ? update.detail.trim() : existing.detail;
+  const updated: ApplicationEvent = {
+    id: existing.id,
+    applicationId: existing.applicationId,
+    type: nextType,
+    title: nextTitle,
+    occurredAt: update.occurredAt?.trim() || existing.occurredAt,
+    ...(detail ? { detail } : {}),
+  };
+
+  const application = await requestResult(
+    database
+      .transaction(APPLICATIONS_STORE, "readonly")
+      .objectStore(APPLICATIONS_STORE)
+      .get(existing.applicationId) as IDBRequest<JobApplication | undefined>,
+  );
+  const now = new Date().toISOString();
+  const transaction = database.transaction([EVENTS_STORE, APPLICATIONS_STORE], "readwrite");
+  transaction.objectStore(EVENTS_STORE).put(updated);
+  if (application)
+    transaction.objectStore(APPLICATIONS_STORE).put({ ...application, updatedAt: now });
+  await transactionComplete(transaction);
+  return updated;
+}
+
+export async function deleteStoredApplicationEvent(eventId: string) {
+  const database = await openJobPipelineDatabase();
+  const existing = await requestResult(
+    database
+      .transaction(EVENTS_STORE, "readonly")
+      .objectStore(EVENTS_STORE)
+      .get(eventId) as IDBRequest<ApplicationEvent | undefined>,
+  );
+  if (!existing) return;
+  if (!isApplicationActivityType(existing.type))
+    throw new Error("Only activities you logged can be removed.");
+  const transaction = database.transaction(EVENTS_STORE, "readwrite");
+  transaction.objectStore(EVENTS_STORE).delete(eventId);
+  await transactionComplete(transaction);
+}
+
 export async function clearStoredJobPipelineData() {
   const database = await openJobPipelineDatabase();
   const transaction = database.transaction(
@@ -439,7 +545,7 @@ export function parseJobPipelineBackup(value: string): JobPipelineBackup {
       isRecord(item) &&
       typeof item.id === "string" &&
       typeof item.applicationId === "string" &&
-      ["created", "status_changed", "resume_attached", "note"].includes(String(item.type)) &&
+      isApplicationEventType(item.type) &&
       typeof item.title === "string" &&
       typeof item.occurredAt === "string",
   );
