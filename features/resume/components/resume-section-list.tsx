@@ -253,6 +253,7 @@ export function ResumeSectionList({
                   <span
                     draggable
                     aria-hidden="true"
+                    data-section-drag-handle=""
                     title="Drag to reorder; keyboard move actions are in the section menu"
                     className="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
                     onDragStart={(event) => startSectionDrag(event, section, sectionTitle)}

@@ -796,14 +796,22 @@ function tagGroupId(section: string, index: number) {
   return `${section}-group-${index + 1}`;
 }
 
-export function normalizeTagGroups(groups: TagGroup[], section = "section", keepEmpty = false) {
+export function normalizeTagGroups(
+  groups: TagGroup[],
+  section = "section",
+  keepEmpty = false,
+  // Trimming the label on every keystroke strips the trailing space between
+  // words, making a multi-word label impossible to type. Live editing passes
+  // false and defers trimming to load/serialization.
+  trimLabel = true,
+) {
   return groups
     .map((group, index) => ({
       id: group.id.trim() || tagGroupId(section, index),
-      label: group.label.trim(),
+      label: trimLabel ? group.label.trim() : group.label,
       tags: [...new Set(group.tags.map((tag) => tag.trim()).filter(Boolean))],
     }))
-    .filter((group) => keepEmpty || group.label || group.tags.length);
+    .filter((group) => keepEmpty || group.label.trim() || group.tags.length);
 }
 
 export function parseTagGroups(value: string, section = "section") {

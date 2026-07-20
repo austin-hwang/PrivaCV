@@ -203,17 +203,35 @@ function TagGroupRow({
   group,
   open,
   active,
+  index,
+  total,
+  dragging,
+  dropTarget,
   onToggle,
   onChange,
+  onMove,
   onRemove,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
 }: {
   targetId: string;
   group: TagGroup;
   open: boolean;
   active: boolean;
+  index: number;
+  total: number;
+  dragging: boolean;
+  dropTarget: boolean;
   onToggle: () => void;
   onChange: (next: TagGroup) => void;
+  onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
+  onDragStart: (event: DragEvent<HTMLElement>) => void;
+  onDragEnd: () => void;
+  onDragOver: (event: DragEvent<HTMLElement>) => void;
+  onDrop: (event: DragEvent<HTMLElement>) => void;
 }) {
   const [draft, setDraft] = useState("");
   const addTag = () => {
@@ -228,10 +246,16 @@ function TagGroupRow({
     <div
       id={targetId}
       data-editor-tag-group=""
+      data-dragging={dragging || undefined}
+      data-drop-target={dropTarget || undefined}
       tabIndex={-1}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       className={cn(
         "scroll-mt-44 border-b transition-colors last:border-b-0 lg:scroll-mt-16",
         active && "bg-brand-soft/10 ring-1 ring-inset ring-brand/30",
+        dragging && "opacity-45 ring-2 ring-inset ring-muted-foreground/20",
+        dropTarget && "bg-primary/5 ring-2 ring-inset ring-primary/25",
       )}
     >
       <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
@@ -257,16 +281,52 @@ function TagGroupRow({
             {group.tags.length ? ` · ${group.tags.slice(0, 3).join(", ")}` : ""}
           </span>
         </button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/tag-group:opacity-100 group-focus-within/tag-group:opacity-100"
-          aria-label={`Remove ${group.label || "tag"} group`}
-          onClick={onRemove}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/tag-group:opacity-100 group-focus-within/tag-group:opacity-100">
+          <span
+            draggable
+            aria-hidden="true"
+            title="Drag to reorder; use the move buttons for keyboard reordering"
+            className="inline-flex size-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          >
+            <GripVertical className="size-3.5" />
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
+            aria-label={`Move ${group.label || "tag"} group up`}
+            title="Move group up"
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+          >
+            <ArrowUp className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
+            aria-label={`Move ${group.label || "tag"} group down`}
+            title="Move group down"
+            disabled={index === total - 1}
+            onClick={() => onMove(1)}
+          >
+            <ArrowDown className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
+            aria-label={`Remove ${group.label || "tag"} group`}
+            onClick={onRemove}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
       </div>
       {open ? (
         <div className="grid gap-2 px-3 pb-3 pt-1">
@@ -349,6 +409,21 @@ export function TagGroupEditor({
   onGroupActivate?: (targetId: string) => void;
 }) {
   const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => new Set());
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const dragType = "application/x-resume-tag-group";
+
+  const finishGroupDrag = () => {
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+  };
+  const reorderGroup = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= groups.length || to >= groups.length) return;
+    const next = [...groups];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
 
   // A jump from the view-only preview targets the group row itself. Open that
   // nested row as well as the containing section so its actual fields are
@@ -373,7 +448,7 @@ export function TagGroupEditor({
           No groups yet. Add one from the section header.
         </p>
       ) : null}
-      {groups.map((group) => {
+      {groups.map((group, index) => {
         const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
         const targetId = `field-${section}-group-${group.id}`;
         return (
@@ -383,6 +458,30 @@ export function TagGroupEditor({
             group={group}
             open={open}
             active={activeTarget === targetId}
+            index={index}
+            total={groups.length}
+            dragging={draggedIndex === index}
+            dropTarget={dropTargetIndex === index && draggedIndex !== index}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData(dragType, String(index));
+              event.dataTransfer.setData("text/plain", `taggroup:${index}`);
+              setDraggedIndex(index);
+              setDropTargetIndex(null);
+            }}
+            onDragEnd={finishGroupDrag}
+            onDragOver={(event) => {
+              if (draggedIndex === null) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              setDropTargetIndex(index);
+            }}
+            onDrop={(event) => {
+              if (draggedIndex === null) return;
+              event.preventDefault();
+              reorderGroup(draggedIndex, index);
+              finishGroupDrag();
+            }}
             onToggle={() => {
               if (open) {
                 if (activeTarget === targetId) onGroupCollapse?.();
@@ -407,6 +506,13 @@ export function TagGroupEditor({
                 return openGroups;
               });
               onChange(groups.map((candidate) => (candidate.id === group.id ? next : candidate)));
+            }}
+            onMove={(direction) => {
+              const target = index + direction;
+              if (target < 0 || target >= groups.length) return;
+              const reordered = [...groups];
+              [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+              onChange(reordered);
             }}
             onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
           />

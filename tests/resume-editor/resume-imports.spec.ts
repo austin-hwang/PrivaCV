@@ -1169,7 +1169,7 @@ test("reorders resume sections by dragging their handles", async ({ page }) => {
   // during the pointer gesture.
   await page.getByRole("button", { name: /collapse all/i }).click();
   await page
-    .locator('[data-arrange-section="skills"] [draggable="true"]')
+    .locator('[data-arrange-section="skills"] [data-section-drag-handle]')
     .dragTo(page.locator('[data-arrange-section="education"]'));
 
   const headings = page.locator(".resume-sheet .resume-section-title");
@@ -1228,7 +1228,7 @@ test("makes the active section drag and destination visible", async ({ page }) =
   await page.reload();
   await loadSample(page);
 
-  const source = page.locator('[data-arrange-section="skills"] [draggable="true"]');
+  const source = page.locator('[data-arrange-section="skills"] [data-section-drag-handle]');
   const sourceRow = page.locator('[data-arrange-section="skills"]');
   const targetRow = page.locator('[data-arrange-section="education"]');
   const dataTransfer = await page.evaluateHandle(() => new DataTransfer());

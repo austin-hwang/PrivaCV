@@ -290,7 +290,9 @@ export function useResumeContentActions({
       );
     }
     setState((current) => {
-      const normalized = normalizeTagGroups(groups, section, true);
+      // keepEmpty so a blank new group survives; trimLabel=false so a trailing
+      // space between words is preserved while the person is still typing.
+      const normalized = normalizeTagGroups(groups, section, true, false);
       return {
         ...current,
         sectionTagGroups: { ...current.sectionTagGroups, [section]: normalized },
