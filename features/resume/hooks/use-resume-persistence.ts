@@ -163,12 +163,18 @@ export function useResumePersistence({
           reportStorageIssue();
         }
       } finally {
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) {
+          // Hydration already loaded (and, when necessary, migrated) the
+          // authoritative workspace. Do not emit a redundant autosave that can
+          // race with a real edit made in another tab immediately after load.
+          skipNextAutosaveRef.current = true;
+          setLoaded(true);
+        }
       }
     };
     void hydrate();
     return () => { cancelled = true; };
-  }, [confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue, setActiveResumeId, setAutosavedAt, setAutosavedState, setCheckpointHistoryByResume, setImportReview, setLoaded, setResumeLibrary, setState, setVersionHistory]);
+  }, [confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue, setActiveResumeId, setAutosavedAt, setAutosavedState, setCheckpointHistoryByResume, setImportReview, setLoaded, setResumeLibrary, setState, setVersionHistory, skipNextAutosaveRef]);
 
   useEffect(() => {
     const handleExternalDraft = (event: StorageEvent) => {

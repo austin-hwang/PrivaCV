@@ -332,7 +332,7 @@ test("keeps required import review when using an imported draft from another tab
     "• Built reliable systems.",
   ].join("\n"));
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
-  await expandAllEntries(page);
+  await expandAllEntries(otherTab);
   await expect(otherTab.locator("#import-review-panel")).toBeVisible();
   await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
 
@@ -605,10 +605,12 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
 
   // A bullet edits in place and syncs back to the entry details field.
-  const firstBullet = page.locator(".resume-entry .resume-entry-body li").first();
-  await firstBullet.click();
+  const firstEntryBody = page.locator(".resume-entry .resume-entry-body").first();
+  const firstBullet = firstEntryBody.locator("li").first();
+  await firstEntryBody.focus();
   await firstBullet.selectText();
-  await page.keyboard.type("Rewrote the deploy pipeline, cutting release time in half.");
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("Rebuilt intake and prioritization");
+  await page.keyboard.insertText("Rewrote the deploy pipeline, cutting release time in half.");
   await page.locator(".resume-name").click();
   await expect(page.locator("#field-experience-0-details")).toContainText("Rewrote the deploy pipeline");
 
