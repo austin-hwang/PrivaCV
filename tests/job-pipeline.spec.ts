@@ -1,15 +1,37 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+test("switches between the resume and application workspaces", async ({ page }) => {
+  await page.goto("/applications");
+  const applicationsNav = page.getByRole("navigation", { name: "Workspace" });
+  await expect(page.locator("[data-local-save-status]")).toHaveAttribute("data-local-save-status", "saved");
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await expect(page.getByRole("menuitem", { name: /use light mode/i })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await applicationsNav.getByRole("link", { name: "Resume" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  const resumeNav = page.getByRole("navigation", { name: "Workspace" });
+  await expect(resumeNav.getByRole("link", { name: "Resume" })).toHaveAttribute("aria-current", "page");
+  await resumeNav.getByRole("link", { name: "Applications" }).click();
+  await expect(page).toHaveURL(/\/applications$/);
+});
+
 test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
   await page.goto("/applications");
 
   await expect(page).toHaveTitle("Private Job Application Tracker | PrivaCV");
-  await expect(page.getByRole("heading", { name: "Job pipeline" })).toBeVisible();
-  await expect(page.getByText("Local only", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Applications" })).toBeVisible();
+  await expect(page.locator("[data-local-save-status]")).toHaveAccessibleName("Saved locally");
+  const workspaceNav = page.getByRole("navigation", { name: "Workspace" });
+  await expect(workspaceNav.getByRole("link", { name: "Resume" })).toHaveAttribute("href", "/");
+  await expect(workspaceNav.getByRole("link", { name: "Applications" })).toHaveAttribute("aria-current", "page");
 
   await page.getByRole("button", { name: "Add application" }).click();
   const createDialog = page.getByRole("dialog", { name: "Add an application" });
+  await expect(createDialog.getByLabel("Status")).toHaveCSS("appearance", "none");
+  await expect(createDialog.locator("[data-select-caret]")).toHaveCount(2);
+  await expect(createDialog.locator("[data-select-caret]").first()).toHaveCSS("right", "12px");
   await createDialog.getByLabel("Company").fill("Northstar Labs");
   await createDialog.getByLabel("Role").fill("Senior Product Designer");
   await createDialog.getByLabel("Location").fill("Remote");

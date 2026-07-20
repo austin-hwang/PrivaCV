@@ -77,6 +77,7 @@ export function GuideLayout({
         width={1200}
         height={630}
         sizes="(max-width: 768px) 100vw, 768px"
+        priority
       />
 
       <div className="guide-content mt-10">{children}</div>

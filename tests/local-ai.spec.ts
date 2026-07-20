@@ -37,7 +37,7 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(modelSelect).toBeEnabled();
   await expect(modelSelect).toBeFocused();
   await expect(modelSelect).toHaveCSS("appearance", "none");
-  const modelCaret = dialog.locator("[data-model-select-caret]");
+  const modelCaret = dialog.locator("[data-select-caret]");
   await expect(modelCaret).toBeVisible();
   await expect(modelCaret).toHaveCSS("right", "12px");
   await expect(dialog).toHaveCSS("z-index", "80");

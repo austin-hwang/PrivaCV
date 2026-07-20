@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
   // Let release checks use an isolated cache while a local dev server is open.
   // Production keeps Next's normal `.next` output unless explicitly overridden.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  // OpenNext's Cloudflare deployment serves our generated social cards directly,
+  // but does not expose Next's `/_next/image` optimizer endpoint. Keeping local
+  // images unoptimized avoids broken article images while preserving responsive
+  // dimensions, lazy loading, and the original generated PNG response.
+  images: { unoptimized: true },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

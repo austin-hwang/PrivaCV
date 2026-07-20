@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardCheck, ClipboardCopy, Cpu, MessageSquarePlus, Moon, Search, Sun } from "lucide-react";
+import { ClipboardCheck, ClipboardCopy, Cpu, MessageSquarePlus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -15,8 +15,6 @@ export function ReviewDrawer({
   onOpenLocalAI,
   localAIEnabled,
   onOpenNavigator,
-  isDarkTheme,
-  onToggleTheme,
   feedbackUrl,
 }: {
   editor: ReturnType<typeof useResumeEditor>;
@@ -27,8 +25,6 @@ export function ReviewDrawer({
   onOpenLocalAI: () => void;
   localAIEnabled: boolean;
   onOpenNavigator: () => void;
-  isDarkTheme: boolean;
-  onToggleTheme: () => void;
   feedbackUrl: string | null;
 }) {
   const { checks, hasContent, passedChecks } = editor;
@@ -85,13 +81,6 @@ export function ReviewDrawer({
                   </span>
                 </Button>
               ) : null}
-              <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onToggleTheme}>
-                {isDarkTheme ? <Sun /> : <Moon />}
-                <span>
-                  <span className="block text-sm font-semibold">{isDarkTheme ? "Switch to light mode" : "Switch to night mode"}</span>
-                  <span className="block text-xs font-normal text-muted-foreground">Change the editor appearance on this device.</span>
-                </span>
-              </Button>
               <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenNavigator}>
                 <Search />
                 <span>

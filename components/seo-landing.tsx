@@ -79,6 +79,7 @@ export function SeoLanding({ h1, lede, ctaLabel, ctaHref = "/", heroImage, cards
           width={1200}
           height={630}
           sizes="(max-width: 1024px) 100vw, 896px"
+          priority
         />
       ) : null}
 

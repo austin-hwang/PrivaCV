@@ -33,13 +33,13 @@ import {
   Globe2,
   GripVertical,
   History,
-  Import as ImportIcon,
   Instagram,
   Linkedin,
   Link as LinkIcon,
   Library,
   Loader2,
   MoreHorizontal,
+  Moon,
   Newspaper,
   Palette,
   PanelLeftClose,
@@ -51,6 +51,7 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  Sun,
   Trash2,
   Twitter,
   Undo2,
@@ -58,16 +59,17 @@ import {
   Youtube,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { BrandMark } from "@/components/brand-mark";
+import { ApplicationHeader } from "@/components/application-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { toggleTheme } from "@/components/theme-toggle";
-import { APP_STAGE, FEEDBACK_URL } from "@/lib/site";
+import { FEEDBACK_URL } from "@/lib/site";
 import { clearStoredJobPipelineData } from "@/lib/job-application-db";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { EntryList, FieldGroup, TagGroupEditor, TextField } from "@/components/resume-editor/editor-fields";
 import { RichTextEditor } from "@/components/resume-editor/rich-text-editor";
 import { stripRichMarks } from "@/lib/rich-text";
@@ -625,40 +627,32 @@ export function ResumeEditor() {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Preset</span>
-          <div className="relative">
-            <select
-              value={state.template}
-              onChange={(event) => applyTemplate(event.target.value as ResumeTemplateId)}
-              className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Resume preset"
-            >
-              {RESUME_TEMPLATES.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
+          <Select
+            value={state.template}
+            onChange={(event) => applyTemplate(event.target.value as ResumeTemplateId)}
+            aria-label="Resume preset"
+          >
+            {RESUME_TEMPLATES.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.label}
+              </option>
+            ))}
+          </Select>
         </label>
         <label className="grid gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Font</span>
-          <div className="relative">
-            <select
-              value={state.theme.font}
-              onChange={(event) => updateTheme({ font: event.target.value })}
-              className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              style={{ fontFamily: resolveFontStack(state.theme.font) }}
-              aria-label="Resume font"
-            >
-              {RESUME_FONTS.map((font) => (
-                <option key={font.id} value={font.id}>
-                  {font.label} · {font.kind}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
+          <Select
+            value={state.theme.font}
+            onChange={(event) => updateTheme({ font: event.target.value })}
+            style={{ fontFamily: resolveFontStack(state.theme.font) }}
+            aria-label="Resume font"
+          >
+            {RESUME_FONTS.map((font) => (
+              <option key={font.id} value={font.id}>
+                {font.label} · {font.kind}
+              </option>
+            ))}
+          </Select>
         </label>
       </div>
 
@@ -1049,6 +1043,9 @@ export function ResumeEditor() {
     "--resume-preview-frame-width": `${Math.round(SHEET_WIDTH_PX * previewScale)}px`,
     "--resume-preview-frame-height": `${Math.round(sheetHeight * previewScale)}px`,
   } as CSSProperties;
+  const activeResumeLabel = editor.resumeLibrary.find((item) => item.id === editor.activeResumeId)?.label
+    || state.name.trim()
+    || "Untitled resume";
 
   if (!loaded) {
     return (
@@ -1061,24 +1058,26 @@ export function ResumeEditor() {
   return (
     <>
       {localAIEnabled ? <LocalAIBackgroundLoader /> : null}
-      <header className="app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <div className="flex min-w-0 items-center gap-2">
-            <BrandMark className="size-8" />
-            <span className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</span>
-            <Badge
-              variant="secondary"
-              className="shrink-0 rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-[0.1em]"
-            >
-              {APP_STAGE}
-            </Badge>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button asChild variant="outline" className="hidden lg:inline-flex">
-              <Link href="/applications" prefetch={false}>
-                <BriefcaseBusiness /> Pipeline
-              </Link>
-            </Button>
+      <ApplicationHeader
+        active="resume"
+        saveState={storageIssue || autosaveStatus === "conflict" ? "conflict" : autosaveStatus}
+        context={editor.resumeLibrary.length ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setLibraryOpen(true)}
+                aria-label={`Open resume library: ${activeResumeLabel}`}
+                title="Open resume library"
+                className="hidden max-w-52 gap-1.5 px-2 lg:inline-flex"
+              >
+                <Library aria-hidden="true" />
+                <span className="truncate">{activeResumeLabel}</span>
+                <ChevronDown className="size-3.5" aria-hidden="true" />
+              </Button>
+            ) : null}
+        actions={
+          <>
             <Button
               type="button"
               variant={toolsOpen ? "secondary" : "outline"}
@@ -1101,44 +1100,6 @@ export function ResumeEditor() {
                 </span>
               ) : null}
             </Button>
-            {editor.resumeLibrary.length ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setLibraryOpen(true)}
-                aria-label="Resume library"
-                title="Open resume library"
-                className="gap-2"
-              >
-                <Library aria-hidden="true" />
-                <span className="hidden sm:inline">Library</span>
-                {editor.resumeLibrary.length > 1 ? (
-                  <span className="hidden h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold leading-none tabular-nums sm:inline-flex">
-                    {editor.resumeLibrary.length}
-                  </span>
-                ) : null}
-              </Button>
-            ) : null}
-            <Menu>
-              <MenuTrigger>
-                <Button type="button" variant="outline" aria-label="Import">
-                  <ImportIcon /> <span className="hidden sm:inline">Import</span>
-                  <ChevronDown className="hidden size-3.5 sm:block" />
-                </Button>
-              </MenuTrigger>
-              <MenuContent>
-                <MenuLabel>Import resume</MenuLabel>
-                <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
-                  <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
-                </MenuItem>
-                <MenuItem onSelect={() => setTextImportOpen(true)}>
-                  <ClipboardPaste /> Paste resume text
-                </MenuItem>
-                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
-                  <FileJson /> Open saved JSON
-                </MenuItem>
-              </MenuContent>
-            </Menu>
             <Menu>
               <MenuTrigger>
                 <Button type="button" aria-label="Export">
@@ -1172,9 +1133,30 @@ export function ResumeEditor() {
                 </Button>
               </MenuTrigger>
               <MenuContent>
-                <MenuLabel>Navigate</MenuLabel>
+                <MenuLabel>Appearance</MenuLabel>
+                <MenuItem onSelect={() => setIsDarkTheme(toggleTheme())}>
+                  {isDarkTheme ? <Sun /> : <Moon />} {isDarkTheme ? "Use light mode" : "Use dark mode"}
+                </MenuItem>
+                <MenuSeparator />
+                <MenuLabel>Resume</MenuLabel>
+                {editor.resumeLibrary.length ? (
+                  <MenuItem onSelect={() => setLibraryOpen(true)}>
+                    <Library /> Resume library{editor.resumeLibrary.length > 1 ? ` (${editor.resumeLibrary.length})` : ""}
+                  </MenuItem>
+                ) : null}
                 <MenuItem className="lg:hidden" onSelect={() => window.location.assign("/applications")}>
-                  <BriefcaseBusiness /> Job pipeline
+                  <BriefcaseBusiness /> Applications
+                </MenuItem>
+                <MenuSeparator />
+                <MenuLabel>Import resume</MenuLabel>
+                <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
+                  <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
+                </MenuItem>
+                <MenuItem onSelect={() => setTextImportOpen(true)}>
+                  <ClipboardPaste /> Paste resume text
+                </MenuItem>
+                <MenuItem onSelect={() => jsonInputRef.current?.click()}>
+                  <FileJson /> Open saved JSON
                 </MenuItem>
                 <MenuSeparator />
                 <MenuLabel>Workspace data</MenuLabel>
@@ -1195,35 +1177,37 @@ export function ResumeEditor() {
                 </MenuItem>
               </MenuContent>
             </Menu>
+          </>
+        }
+        secondary={
+          <div className="border-t px-4 py-2 lg:hidden">
+            <div className="grid grid-cols-2 rounded-md border bg-muted/30 p-1" aria-label="Resume workspace view">
+              <Button
+                id="mobile-editor-tab"
+                type="button"
+                size="sm"
+                variant={mobileWorkspaceView === "editor" ? "secondary" : "ghost"}
+                aria-pressed={mobileWorkspaceView === "editor"}
+                aria-controls="resume-editor-pane"
+                onClick={() => setMobileWorkspaceView("editor")}
+              >
+                <FileText /> Edit resume
+              </Button>
+              <Button
+                id="mobile-preview-tab"
+                type="button"
+                size="sm"
+                variant={mobileWorkspaceView === "preview" ? "secondary" : "ghost"}
+                aria-pressed={mobileWorkspaceView === "preview"}
+                aria-controls="resume-preview-pane"
+                onClick={() => setMobileWorkspaceView("preview")}
+              >
+                <Eye /> Preview
+              </Button>
+            </div>
           </div>
-        </div>
-        <div className="border-t px-4 py-2 lg:hidden">
-          <div className="grid grid-cols-2 rounded-md border bg-muted/30 p-1" aria-label="Resume workspace view">
-            <Button
-              id="mobile-editor-tab"
-              type="button"
-              size="sm"
-              variant={mobileWorkspaceView === "editor" ? "secondary" : "ghost"}
-              aria-pressed={mobileWorkspaceView === "editor"}
-              aria-controls="resume-editor-pane"
-              onClick={() => setMobileWorkspaceView("editor")}
-            >
-              <FileText /> Edit resume
-            </Button>
-            <Button
-              id="mobile-preview-tab"
-              type="button"
-              size="sm"
-              variant={mobileWorkspaceView === "preview" ? "secondary" : "ghost"}
-              aria-pressed={mobileWorkspaceView === "preview"}
-              aria-controls="resume-preview-pane"
-              onClick={() => setMobileWorkspaceView("preview")}
-            >
-              <Eye /> Preview
-            </Button>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
       <main
         ref={workspaceRef}
@@ -1989,38 +1973,6 @@ export function ResumeEditor() {
                     <><Eye /> <span className="preview-toolbar-label">View only</span></>
                   )}
                 </Button>
-                <div
-                  aria-live="polite"
-                  data-autosave-status={storageIssue ? "conflict" : autosaveStatus}
-                  aria-label={
-                    storageIssue
-                      ? "Browser autosave unavailable"
-                      : autosaveStatus === "saving"
-                        ? "Saving locally"
-                        : autosaveStatus === "conflict"
-                          ? "Autosave paused for another tab"
-                          : "Saved locally"
-                  }
-                  title={
-                    storageIssue
-                      ? "Autosave unavailable — save a JSON copy to keep your work"
-                      : autosaveStatus === "saving"
-                        ? "Saving this resume in this browser…"
-                        : autosaveStatus === "conflict"
-                          ? "Autosave paused until you choose which tab's draft to keep"
-                          : "Saved in this browser"
-                  }
-                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border bg-background px-2 text-xs text-muted-foreground"
-                >
-                  {autosaveStatus === "saving" && !storageIssue ? (
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                  ) : storageIssue || autosaveStatus === "conflict" ? (
-                    <AlertCircle className="size-3.5 text-warning" aria-hidden="true" />
-                  ) : (
-                    <Check className="size-3.5 text-success" aria-hidden="true" />
-                  )}
-                  <span className="preview-toolbar-label">{storageIssue || autosaveStatus === "conflict" ? "Not saved" : autosaveStatus === "saving" ? "Saving" : "Saved"}</span>
-                </div>
                 <Button
                   type="button"
                   variant={historyOpen ? "secondary" : "outline"}
@@ -2133,7 +2085,7 @@ export function ResumeEditor() {
             </DialogTitle>
             <DialogDescription>
               {destructiveAction === "delete-all"
-                ? "This removes the resume library, edit history, job pipeline, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export backups first if you want to keep a copy."
+                ? "This removes the resume library, edit history, applications, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export backups first if you want to keep a copy."
                 : destructiveAction === "clear-checkpoints"
                   ? "This removes every saved checkpoint for the current resume. Your live draft and autosave stay intact. This cannot be undone."
                   : "This clears every resume field. You can restore the current version from the recovery card."}
@@ -2244,8 +2196,6 @@ export function ResumeEditor() {
           setToolsOpen(false);
           setNavigatorOpen(true);
         }}
-        isDarkTheme={isDarkTheme}
-        onToggleTheme={() => setIsDarkTheme(toggleTheme())}
         feedbackUrl={FEEDBACK_URL}
       />
 

@@ -3,14 +3,17 @@ import { GUIDES, guidePath } from "@/lib/guides";
 import { SITE_NAME } from "@/lib/site";
 
 const RESUME_TOOLS = [
-  { href: "/job-application-tracker", label: "Job application tracker" },
-  { href: "/job-search-sankey", label: "Job search Sankey generator" },
   { href: "/free-resume-builder", label: "Free resume builder" },
   { href: "/ats-resume-checker", label: "ATS resume checker" },
   { href: "/resume-templates", label: "Resume templates" },
   { href: "/pdf-to-docx-resume", label: "PDF to DOCX resume" },
   { href: "/plain-text-resume", label: "Plain-text resume" },
   { href: "/resume-builder-comparison", label: "Resume builder comparison" },
+];
+
+const JOB_SEARCH_TOOLS = [
+  { href: "/job-application-tracker", label: "Job application tracker" },
+  { href: "/job-search-sankey", label: "Job search Sankey generator" },
 ];
 
 const COMPANY = [
@@ -23,6 +26,7 @@ const COMPANY = [
 export function SiteFooter() {
   const groups = [
     { title: "Resume tools", links: RESUME_TOOLS },
+    { title: "Job search", links: JOB_SEARCH_TOOLS },
     {
       title: "Guides",
       links: [
@@ -36,7 +40,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t">
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <nav className="grid gap-8 sm:grid-cols-3" aria-label="Footer">
+        <nav className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4" aria-label="Footer">
           {groups.map((group) => (
             <div key={group.title}>
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{group.title}</h2>

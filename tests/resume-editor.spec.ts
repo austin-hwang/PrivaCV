@@ -556,8 +556,12 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  const importTrigger = page.getByRole("button", { name: /^import$/i });
-  await importTrigger.focus();
+  const moreTrigger = page.getByRole("button", { name: /^more actions$/i });
+  await moreTrigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /use light mode/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /resume library/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /upload pdf or word/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
@@ -565,7 +569,7 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /open saved json/i })).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(importTrigger).toBeFocused();
+  await expect(moreTrigger).toBeFocused();
 
   const exportTrigger = page.getByRole("button", { name: /^export$/i });
   await exportTrigger.focus();
@@ -578,9 +582,9 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await trigger.focus();
   await page.keyboard.press("ArrowDown");
 
-  await expect(page.getByRole("menuitem", { name: /^sample$/i })).toBeFocused();
+  await expect(page.getByRole("menuitem", { name: /use light mode/i })).toBeFocused();
   await expect(page.getByRole("menuitem", { name: /copy for applications/i })).toHaveCount(0);
-  await expect(page.getByRole("menuitem", { name: /open saved json/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /open saved json/i })).toHaveCount(1);
   await page.keyboard.press("End");
   await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();
   await page.keyboard.press("ArrowUp");
@@ -791,8 +795,8 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await page.reload();
   await loadSample(page);
 
-  const libraryButton = page.getByRole("button", { name: "Resume library" });
-  await expect(libraryButton.getByText("Library", { exact: true })).toBeVisible();
+  const libraryButton = page.getByRole("button", { name: /open resume library:/i });
+  await expect(libraryButton.getByText("John Doe", { exact: true })).toBeVisible();
   await expect(libraryButton.locator(".lucide-library")).toBeVisible();
 
   // Autosave state is surfaced beside the editing controls: a spinning loader
@@ -1293,8 +1297,8 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
   await expect(toolsToggle).toHaveAttribute("aria-expanded", "false");
   await expect(toolsPanel).toBeHidden();
 
-  await toolsToggle.click();
-  await toolsPanel.getByRole("button", { name: /switch to night mode/i }).click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: /use dark mode/i }).click();
   expect(await page.getByRole("button", { name: "Export", exact: true }).evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 255)");
   expect(await page.locator("[data-brand-surface]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(21, 27, 39)");
   expect(await page.locator("[data-brand-document]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(248, 250, 252)");
@@ -1759,7 +1763,7 @@ test("automatically checkpoints the current draft before a pasted import replace
   await page.getByLabel("Full Name").fill("Existing Draft");
   await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("Existing Draft");
 
-  await page.getByRole("button", { name: "Import", exact: true }).click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
   await page.getByRole("menuitem", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
   await importDialog.getByLabel("Resume text").fill(

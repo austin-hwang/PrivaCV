@@ -15,6 +15,10 @@ test("publishes crawlable tracker and Sankey pages while keeping the workspace p
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Make a Sankey diagram from your job search");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://privacv.app/job-search-sankey");
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://privacv.app/social/job-search-sankey");
+  const sankeyHero = page.getByRole("img", { name: "Job search Sankey showing applications flowing into interviews, offers, and outcomes" });
+  await expect(sankeyHero).toHaveAttribute("src", "/social/job-search-sankey");
+  await expect.poll(() => sankeyHero.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1200);
+  await expect(page.getByRole("heading", { name: "Job search", exact: true })).toBeVisible();
 
   await page.goto("/applications");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");

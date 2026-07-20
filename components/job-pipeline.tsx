@@ -11,13 +11,13 @@ import {
   ChevronRight,
   CircleDot,
   Download,
-  FileText,
   GitBranch,
   GripVertical,
   KanbanSquare,
   LayoutList,
   Loader2,
   MapPin,
+  MoreHorizontal,
   Moon,
   Plus,
   Search,
@@ -37,8 +37,8 @@ import {
   type ReactNode,
 } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ApplicationHeader } from "@/components/application-header";
 import { Badge } from "@/components/ui/badge";
-import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,6 +49,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui/menu";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { JobPipelineSankey } from "@/components/job-pipeline-sankey";
 import { toggleTheme } from "@/components/theme-toggle";
@@ -186,26 +188,24 @@ function ApplicationFields({
           <Input required value={form.role} onChange={(event) => setField("role", event.target.value)} placeholder="Product designer" />
         </Field>
         <Field label="Status">
-          <select
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <Select
             value={form.status}
             onChange={(event) => setField("status", event.target.value as JobApplicationStatus)}
           >
             {statusOptions.map((status) => <option key={status} value={status}>{JOB_APPLICATION_STATUS_META[status].label}</option>)}
-          </select>
+          </Select>
         </Field>
         <Field label="Location" hint="— optional">
           <Input value={form.location} onChange={(event) => setField("location", event.target.value)} placeholder="Remote or Seattle, WA" />
         </Field>
         <Field label="Resume for this application" hint="— optional" className="sm:col-span-2">
-          <select
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <Select
             value={form.resumeSourceKey}
             onChange={(event) => setField("resumeSourceKey", event.target.value)}
           >
             <option value="">No resume attached</option>
             {resumeSources.map((source) => <option key={source.key} value={source.key}>{source.label}</option>)}
-          </select>
+          </Select>
           <span className="text-xs font-normal leading-relaxed text-muted-foreground">
             {attachedSnapshot
               ? `Submitted snapshot captured ${formatApplicationDate(attachedSnapshot.capturedAt)} · ${attachedSnapshot.label}`
@@ -548,7 +548,7 @@ function EmptyPipeline({ scoped, onCreate }: { scoped: boolean; onCreate: () => 
       <span className="flex size-14 items-center justify-center rounded-2xl border bg-card shadow-sm">
         <BriefcaseBusiness className="size-6 text-primary" />
       </span>
-      <h2 className="mt-5 text-xl font-semibold">{scoped ? "No applications in this view" : "Build your private job pipeline"}</h2>
+      <h2 className="mt-5 text-xl font-semibold">{scoped ? "No applications in this view" : "Build your private applications workspace"}</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         {scoped
           ? "Try another filter or add a new opportunity."
@@ -665,13 +665,13 @@ export function JobPipeline() {
 
   const exportJson = () => {
     const backup = createJobPipelineBackup(pipeline.data);
-    downloadFile(JSON.stringify(backup, null, 2), `privacv-job-pipeline-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
-    setActionMessage({ type: "success", text: "Job pipeline backup downloaded" });
+    downloadFile(JSON.stringify(backup, null, 2), `privacv-applications-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
+    setActionMessage({ type: "success", text: "Applications backup downloaded" });
   };
 
   const exportCsv = () => {
-    downloadFile(jobApplicationsCsv(pipeline.data.applications), `privacv-job-pipeline-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8");
-    setActionMessage({ type: "success", text: "Job pipeline CSV downloaded" });
+    downloadFile(jobApplicationsCsv(pipeline.data.applications), `privacv-applications-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8");
+    setActionMessage({ type: "success", text: "Applications CSV downloaded" });
   };
 
   const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -693,44 +693,39 @@ export function JobPipeline() {
     try {
       await pipeline.clearPipeline();
       setSelectedId(null);
-      setActionMessage({ type: "success", text: "All job pipeline data deleted from this device" });
+      setActionMessage({ type: "success", text: "All application data deleted from this device" });
     } catch {
-      setActionMessage({ type: "error", text: "The job pipeline data could not be deleted." });
+      setActionMessage({ type: "error", text: "The application data could not be deleted." });
     }
   };
 
   return (
     <div className="min-h-dvh bg-stage">
-      <header className="sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <BrandMark className="size-8" />
-            <span className="truncate text-base font-semibold tracking-tight lg:text-lg">PrivaCV</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            {pipeline.saving ? <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex"><Loader2 className="size-3.5 animate-spin" /> Saving locally</span> : null}
-            <Button asChild variant="outline">
-              <Link href="/" prefetch={false}><FileText /> <span className="hidden sm:inline">Resume editor</span></Link>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={isDarkTheme ? "Use light theme" : "Use dark theme"}
-              onClick={() => setIsDarkTheme(toggleTheme())}
-            >
-              {isDarkTheme ? <Sun /> : <Moon />}
-            </Button>
-          </div>
-        </div>
-      </header>
+      <ApplicationHeader
+        active="applications"
+        saveState={pipeline.storageError ? "conflict" : pipeline.loading ? "loading" : pipeline.saving ? "saving" : "saved"}
+        actions={
+          <Menu>
+            <MenuTrigger>
+              <Button type="button" variant="outline" size="icon" aria-label="More actions">
+                <MoreHorizontal />
+              </Button>
+            </MenuTrigger>
+            <MenuContent>
+              <MenuLabel>Appearance</MenuLabel>
+              <MenuItem onSelect={() => setIsDarkTheme(toggleTheme())}>
+                {isDarkTheme ? <Sun /> : <Moon />} {isDarkTheme ? "Use light mode" : "Use dark mode"}
+              </MenuItem>
+            </MenuContent>
+          </Menu>
+        }
+      />
 
       <main className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6 lg:py-8">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Job pipeline</h1>
-              <Badge variant="outline" className="border-success/30 bg-success/10 text-success">Local only</Badge>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Applications</h1>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">A private view of every opportunity, next step, interview, and outcome. Everything here stays in this browser.</p>
           </div>
@@ -743,7 +738,7 @@ export function JobPipeline() {
           </div>
         </div>
 
-        <section className="mt-7 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" aria-label="Pipeline summary">
+        <section className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-3 xl:grid-cols-6" aria-label="Applications summary">
           {[
             { label: "Active", value: stats.active, icon: CircleDot },
             { label: "Interviewing", value: stats.interviewing, icon: UserRound },
@@ -752,12 +747,12 @@ export function JobPipeline() {
             { label: "Closed", value: stats.closed, icon: Archive },
             { label: "Total", value: stats.total, icon: BriefcaseBusiness },
           ].map((item) => (
-            <div key={item.label} className="rounded-lg border bg-card p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-2 text-muted-foreground">
-                <span className="text-xs font-medium">{item.label}</span>
-                <item.icon className="size-4" />
+            <div key={item.label} className="flex min-w-0 items-center justify-between gap-3 bg-card px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                <item.icon className="size-3.5 shrink-0" />
+                <span className="truncate text-xs font-medium">{item.label}</span>
               </div>
-              <p className="mt-2 text-2xl font-semibold tabular-nums">{item.value}</p>
+              <p className="text-lg font-semibold tabular-nums">{item.value}</p>
             </div>
           ))}
         </section>
@@ -792,7 +787,7 @@ export function JobPipeline() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input className="pl-9" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search roles, companies, notes..." />
               </label>
-              <div className="flex rounded-lg border bg-background p-1" aria-label="Pipeline layout">
+              <div className="flex rounded-lg border bg-background p-1" aria-label="Application view">
                 <Button type="button" size="sm" variant={view === "board" ? "secondary" : "ghost"} aria-label="Board view" aria-pressed={view === "board"} onClick={() => setView("board")}><KanbanSquare /> Board</Button>
                 <Button type="button" size="sm" variant={view === "list" ? "secondary" : "ghost"} aria-label="List view" aria-pressed={view === "list"} onClick={() => setView("list")}><LayoutList /> List</Button>
                 <Button
