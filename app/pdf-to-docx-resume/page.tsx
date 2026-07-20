@@ -36,7 +36,10 @@ export default function PdfToDocxResumePage() {
       h1="Convert a PDF resume to an editable Word file"
       lede={description}
       ctaLabel="Convert your PDF resume"
-      heroImage={{ src: "/social/pdf-to-docx-resume", alt: "PDF resume converted into an editable Word document in the browser" }}
+      heroImage={{
+        src: "/social/pdf-to-docx-resume",
+        alt: "PDF resume converted into an editable Word document in the browser",
+      }}
       breadcrumb={{ name: title, path: "/pdf-to-docx-resume" }}
       cards={[
         {

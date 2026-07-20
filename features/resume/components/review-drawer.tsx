@@ -3,7 +3,13 @@
 import { ClipboardCheck, ClipboardCopy, Cpu, MessageSquarePlus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 
 export function ReviewDrawer({
@@ -34,7 +40,11 @@ export function ReviewDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
-      <SheetContent id="tools-panel" aria-describedby={undefined} className="top-[120px] overflow-y-auto border-t lg:top-[61px]">
+      <SheetContent
+        id="tools-panel"
+        aria-describedby={undefined}
+        className="top-[120px] overflow-y-auto border-t lg:top-[61px]"
+      >
         <SheetHeader>
           <SheetTitle>Tools</SheetTitle>
           <SheetDescription>Review your resume and open browser tools.</SheetDescription>
@@ -44,7 +54,12 @@ export function ReviewDrawer({
           <section aria-label="Tools">
             <div className="grid gap-2">
               {hasContent ? (
-                <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenChecksReview}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
+                  onClick={onOpenChecksReview}
+                >
                   <ClipboardCheck className={checksReady ? "text-success" : "text-warning"} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">Resume Review</span>
@@ -69,32 +84,55 @@ export function ReviewDrawer({
                 <ClipboardCopy />
                 <span>
                   <span className="block text-sm font-semibold">Copy for applications</span>
-                  <span className="block text-xs font-normal text-muted-foreground">Copy individual fields for application forms.</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Copy individual fields for application forms.
+                  </span>
                 </span>
               </Button>
               {localAIEnabled ? (
-                <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenLocalAI}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
+                  onClick={onOpenLocalAI}
+                >
                   <Cpu className="text-violet-600 dark:text-violet-300" />
                   <span>
                     <span className="block text-sm font-semibold">Local AI</span>
-                    <span className="block text-xs font-normal text-muted-foreground">Download or manage private on-device models.</span>
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Download or manage private on-device models.
+                    </span>
                   </span>
                 </Button>
               ) : null}
-              <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" onClick={onOpenNavigator}>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
+                onClick={onOpenNavigator}
+              >
                 <Search />
                 <span>
                   <span className="block text-sm font-semibold">Navigate resume</span>
-                  <span className="block text-xs font-normal text-muted-foreground">Jump directly to any field with Cmd or Ctrl + K.</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Jump directly to any field with Cmd or Ctrl + K.
+                  </span>
                 </span>
               </Button>
               {feedbackUrl ? (
-                <Button type="button" variant="outline" className="h-auto justify-start gap-3 whitespace-normal py-3 text-left" asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
+                  asChild
+                >
                   <a href={feedbackUrl} target="_blank" rel="noreferrer">
                     <MessageSquarePlus />
                     <span>
                       <span className="block text-sm font-semibold">Feedback</span>
-                      <span className="block text-xs font-normal text-muted-foreground">Share feedback or vote on features.</span>
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Share feedback or vote on features.
+                      </span>
                     </span>
                   </a>
                 </Button>

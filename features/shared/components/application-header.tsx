@@ -10,10 +10,18 @@ import { cn } from "@/lib/utils";
 export type LocalSaveState = "loading" | "saving" | "saved" | "conflict";
 
 const SAVE_STATUS: Record<LocalSaveState, { label: string; ariaLabel: string; title: string }> = {
-  loading: { label: "Loading", ariaLabel: "Loading local data", title: "Loading data from this browser" },
+  loading: {
+    label: "Loading",
+    ariaLabel: "Loading local data",
+    title: "Loading data from this browser",
+  },
   saving: { label: "Saving", ariaLabel: "Saving locally", title: "Saving changes in this browser" },
   saved: { label: "Saved", ariaLabel: "Saved locally", title: "Saved in this browser" },
-  conflict: { label: "Not saved", ariaLabel: "Local save unavailable", title: "Changes are not currently saved in this browser" },
+  conflict: {
+    label: "Not saved",
+    ariaLabel: "Local save unavailable",
+    title: "Changes are not currently saved in this browser",
+  },
 };
 
 export function LocalSaveStatus({ state }: { state: LocalSaveState }) {
@@ -56,16 +64,27 @@ export function ApplicationHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-sm backdrop-blur", className)}>
+    <header
+      className={cn(
+        "app-chrome sticky top-0 z-50 border-b bg-card/95 shadow-xs backdrop-blur-sm",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-6">
         <div className="flex min-w-0 items-center gap-2">
-          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link
+            href="/"
+            prefetch={false}
+            className="flex min-w-0 items-center gap-2 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <BrandMark className="size-8" />
-            <span className="hidden truncate text-base font-semibold tracking-tight sm:inline lg:text-lg">PrivaCV</span>
+            <span className="hidden truncate text-base font-semibold tracking-tight sm:inline lg:text-lg">
+              PrivaCV
+            </span>
           </Link>
           <Badge
             variant="secondary"
-            className="hidden shrink-0 rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-[0.1em] sm:inline-flex"
+            className="hidden shrink-0 rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-widest sm:inline-flex"
           >
             {APP_STAGE}
           </Badge>

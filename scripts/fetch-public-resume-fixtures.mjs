@@ -12,11 +12,14 @@ await mkdir(outputDirectory, { recursive: true });
 
 for (const fixture of manifest) {
   const response = await fetch(fixture.url, { redirect: "follow" });
-  if (!response.ok) throw new Error(`Could not download ${fixture.filename}: HTTP ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Could not download ${fixture.filename}: HTTP ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
   const digest = createHash("sha256").update(bytes).digest("hex");
   if (digest !== fixture.sha256) {
-    throw new Error(`${fixture.filename} changed upstream (expected ${fixture.sha256}, received ${digest})`);
+    throw new Error(
+      `${fixture.filename} changed upstream (expected ${fixture.sha256}, received ${digest})`,
+    );
   }
   await writeFile(path.join(outputDirectory, fixture.filename), bytes);
   console.log(`verified ${fixture.filename} (${bytes.length} bytes)`);

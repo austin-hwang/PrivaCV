@@ -12,18 +12,25 @@ test("migrates legacy resume data to IndexedDB and reloads from the database", a
 
   await page.goto("/");
   await expect(page.getByLabel("Full Name")).toHaveValue("IndexedDB Resume");
-  await expect.poll(() => page.evaluate(async () => {
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("privacv-resume-workspace");
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    return await new Promise<string | undefined>((resolve, reject) => {
-      const request = database.transaction("resumes", "readonly").objectStore("resumes").getAll();
-      request.onsuccess = () => resolve(request.result[0]?.state?.name);
-      request.onerror = () => reject(request.error);
-    });
-  })).toBe("IndexedDB Resume");
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("privacv-resume-workspace");
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        return await new Promise<string | undefined>((resolve, reject) => {
+          const request = database
+            .transaction("resumes", "readonly")
+            .objectStore("resumes")
+            .getAll();
+          request.onsuccess = () => resolve(request.result[0]?.state?.name);
+          request.onerror = () => reject(request.error);
+        });
+      }),
+    )
+    .toBe("IndexedDB Resume");
 
   await page.evaluate(() => {
     localStorage.removeItem("resume-editor-data-v2");

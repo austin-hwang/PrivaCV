@@ -22,12 +22,23 @@ function useMenu() {
  * Lightweight click-away dropdown. Kept dependency-free (no extra Radix package)
  * since the menu only holds secondary toolbar actions.
  */
-export function Menu({ children, className, onOpenChange }: { children: React.ReactNode; className?: string; onOpenChange?: (open: boolean) => void }) {
+export function Menu({
+  children,
+  className,
+  onOpenChange,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const [open, setOpenState] = React.useState(false);
-  const setOpen = React.useCallback((nextOpen: boolean) => {
-    setOpenState(nextOpen);
-    onOpenChange?.(nextOpen);
-  }, [onOpenChange]);
+  const setOpen = React.useCallback(
+    (nextOpen: boolean) => {
+      setOpenState(nextOpen);
+      onOpenChange?.(nextOpen);
+    },
+    [onOpenChange],
+  );
   const ref = React.useRef<HTMLDivElement>(null);
   const menuId = React.useId();
   const contentId = `menu-content-${menuId}`;
@@ -91,7 +102,15 @@ export function MenuTrigger({
   });
 }
 
-export function MenuContent({ children, className, align = "end" }: { children: React.ReactNode; className?: string; align?: "start" | "end" }) {
+export function MenuContent({
+  children,
+  className,
+  align = "end",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  align?: "start" | "end";
+}) {
   const { open, setOpen, contentId, triggerId } = useMenu();
   const contentRef = React.useRef<HTMLDivElement>(null);
 
@@ -174,8 +193,10 @@ export function MenuItem({
       role="menuitem"
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:bg-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
-        destructive ? "text-destructive hover:bg-destructive/10 [&_svg]:text-destructive" : "hover:bg-accent hover:text-accent-foreground",
+        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:bg-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
+        destructive
+          ? "text-destructive hover:bg-destructive/10 [&_svg]:text-destructive"
+          : "hover:bg-accent hover:text-accent-foreground",
         className,
       )}
       onClick={() => {
@@ -195,5 +216,9 @@ export function MenuSeparator() {
 }
 
 export function MenuLabel({ children }: { children: React.ReactNode }) {
-  return <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{children}</p>;
+  return (
+    <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      {children}
+    </p>
+  );
 }

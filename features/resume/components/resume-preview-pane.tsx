@@ -30,7 +30,10 @@ import type { VersionHistoryItem } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
 const LocalAIImportFix = dynamic(
-  () => import("@/features/resume/components/local-ai-import-fix").then((module) => module.LocalAIImportFix),
+  () =>
+    import("@/features/resume/components/local-ai-import-fix").then(
+      (module) => module.LocalAIImportFix,
+    ),
   { ssr: false },
 );
 
@@ -60,17 +63,48 @@ export function ResumePreviewPane({
   currentImportSourceText: string;
   usingCurrentDraftForAIImport: boolean;
   focusEditorTarget: (targetId: string) => void;
-  updateHeaderLink: (id: string, patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>) => void;
+  updateHeaderLink: (
+    id: string,
+    patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>,
+  ) => void;
 }) {
   const {
-    activeTarget, designOpen, editorCollapsed, historyOpen, historyPreviewItem, inlineEdit,
-    localAIImportOpen, mobileWorkspaceView, previewFrameStyle, previewWrapRef, printing,
-    workspaceHasStarted, setDesignOpen, setDestructiveAction, setEditorCollapsed, setHistoryOpen,
-    setHistoryPreviewItem, setInlineEdit, setLocalAIImportOpen, setLocalAIOpen, setMobileWorkspaceView,
+    activeTarget,
+    designOpen,
+    editorCollapsed,
+    historyOpen,
+    historyPreviewItem,
+    inlineEdit,
+    localAIImportOpen,
+    mobileWorkspaceView,
+    previewFrameStyle,
+    previewWrapRef,
+    printing,
+    workspaceHasStarted,
+    setDesignOpen,
+    setDestructiveAction,
+    setEditorCollapsed,
+    setHistoryOpen,
+    setHistoryPreviewItem,
+    setInlineEdit,
+    setLocalAIImportOpen,
+    setLocalAIOpen,
+    setMobileWorkspaceView,
   } = ui;
   const {
-    applyAIImportFix, hasContent, importReview, pageCount, pageGuides, printBreaks, resumeRef,
-    state, storageIssue, tightenLayout, updateEntry, updateField, updateSectionTagGroups,
+    applyAIImportFix,
+    hasContent,
+    importReview,
+    pageCount,
+    pageGuides,
+    printBreaks,
+    resumeRef,
+    state,
+    storageIssue,
+    tightenLayout,
+    updateEntry,
+    updateField,
+    updateSectionTagGroups,
     updateSectionTitle,
   } = editor;
   const canTightenLayout = state.theme.density !== "compact" || state.textScale > MIN_TEXT_SCALE;
@@ -84,11 +118,16 @@ export function ResumePreviewPane({
       )}
       aria-label="Resume preview"
     >
-      <div className={cn(
-        "mx-auto flex w-full items-start gap-3",
-        historyOpen ? "max-w-[calc(8.5in+17rem)] flex-col lg:flex-row" : "max-w-[8.5in]",
-      )}>
-        <div ref={previewWrapRef} className="flex w-full min-w-0 max-w-[8.5in] flex-1 flex-col items-center gap-3">
+      <div
+        className={cn(
+          "mx-auto flex w-full items-start gap-3",
+          historyOpen ? "max-w-[calc(8.5in+17rem)] flex-col lg:flex-row" : "max-w-[8.5in]",
+        )}
+      >
+        <div
+          ref={previewWrapRef}
+          className="flex w-full min-w-0 max-w-[8.5in] flex-1 flex-col items-center gap-3"
+        >
           <div className="app-chrome preview-toolbar flex w-full items-center gap-2 overflow-x-auto pb-1">
             {workspaceHasStarted ? (
               <Button
@@ -114,13 +153,18 @@ export function ResumePreviewPane({
                 max={MAX_TEXT_SCALE}
                 step="0.02"
                 value={state.textScale}
-                onChange={(event) => updateField("textScale", clampTextScale(Number(event.target.value)))}
+                onChange={(event) =>
+                  updateField("textScale", clampTextScale(Number(event.target.value)))
+                }
                 aria-label="Resume text size"
               />
-              <output className="w-9 text-right tabular-nums">{Math.round(state.textScale * 100)}%</output>
+              <output className="w-9 text-right tabular-nums">
+                {Math.round(state.textScale * 100)}%
+              </output>
             </label>
             <p className="shrink-0 text-xs text-muted-foreground">
-              {pageCount} {pageCount === 1 ? "page" : "pages"}<span className="preview-toolbar-label"> in preview</span>
+              {pageCount} {pageCount === 1 ? "page" : "pages"}
+              <span className="preview-toolbar-label"> in preview</span>
             </p>
             {pageCount > 1 && canTightenLayout ? (
               <Button
@@ -129,11 +173,15 @@ export function ResumePreviewPane({
                 size="sm"
                 className="h-8 shrink-0 gap-1.5 px-2 text-xs"
                 onClick={tightenLayout}
-                aria-label={state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"}
+                aria-label={
+                  state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"
+                }
                 title="Uses compact spacing first, then reduces text size by 2%. Your resume content stays unchanged."
               >
                 <ChevronsDownUp />
-                <span className="preview-toolbar-label">{state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}</span>
+                <span className="preview-toolbar-label">
+                  {state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}
+                </span>
               </Button>
             ) : null}
             <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -146,7 +194,11 @@ export function ResumePreviewPane({
                   aria-label="Fix import with AI"
                   disabled={!currentImportSourceText}
                   onClick={() => setLocalAIImportOpen(true)}
-                  title={importReview.sourceText ? "Remap the original extracted text with local AI" : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"}
+                  title={
+                    importReview.sourceText
+                      ? "Remap the original extracted text with local AI"
+                      : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"
+                  }
                 >
                   <Sparkles /> <span className="preview-toolbar-label">Fix import with AI</span>
                 </Button>
@@ -157,11 +209,29 @@ export function ResumePreviewPane({
                 size="sm"
                 className="hidden h-8 gap-1.5 px-2 lg:inline-flex"
                 aria-pressed={inlineEdit}
-                aria-label={inlineEdit ? "Editing mode — switch to view only" : "View only mode — switch to editing"}
+                aria-label={
+                  inlineEdit
+                    ? "Editing mode — switch to view only"
+                    : "View only mode — switch to editing"
+                }
                 onClick={() => setInlineEdit((value) => !value)}
-                title={inlineEdit ? "Editing is on — switch to view only" : "View only — switch to editing"}
+                title={
+                  inlineEdit
+                    ? "Editing is on — switch to view only"
+                    : "View only — switch to editing"
+                }
               >
-                {inlineEdit ? <><Pencil /><span className="preview-toolbar-label">Editing</span></> : <><Eye /><span className="preview-toolbar-label">View only</span></>}
+                {inlineEdit ? (
+                  <>
+                    <Pencil />
+                    <span className="preview-toolbar-label">Editing</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye />
+                    <span className="preview-toolbar-label">View only</span>
+                  </>
+                )}
               </Button>
               <Button
                 type="button"
@@ -171,7 +241,11 @@ export function ResumePreviewPane({
                 aria-label="Edit history"
                 aria-expanded={historyOpen}
                 aria-controls="edit-history-panel"
-                title={historyOpen ? "Close this resume's checkpoint timeline" : "Open this resume's checkpoint timeline"}
+                title={
+                  historyOpen
+                    ? "Close this resume's checkpoint timeline"
+                    : "Open this resume's checkpoint timeline"
+                }
                 onClick={() => setHistoryOpen((open) => !open)}
               >
                 <History />
@@ -183,21 +257,46 @@ export function ResumePreviewPane({
                 className="hidden size-8 lg:inline-flex"
                 aria-pressed={editorCollapsed}
                 aria-label={editorCollapsed ? "Show editor" : "Hide editor"}
-                title={editorCollapsed ? "Show the editor panel" : "Hide the editor panel for a focused canvas"}
+                title={
+                  editorCollapsed
+                    ? "Show the editor panel"
+                    : "Hide the editor panel for a focused canvas"
+                }
                 onClick={() => setEditorCollapsed((value) => !value)}
               >
                 {editorCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
               </Button>
-              <Button type="button" variant="outline" size="sm" className="lg:hidden" onClick={() => setMobileWorkspaceView("editor")}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="lg:hidden"
+                onClick={() => setMobileWorkspaceView("editor")}
+              >
                 <FileText /> Edit resume
               </Button>
-              <Button type="button" variant={historyOpen ? "secondary" : "outline"} size="sm" className="lg:hidden" aria-label="Edit history" aria-expanded={historyOpen} aria-controls="edit-history-panel" onClick={() => setHistoryOpen((open) => !open)}>
+              <Button
+                type="button"
+                variant={historyOpen ? "secondary" : "outline"}
+                size="sm"
+                className="lg:hidden"
+                aria-label="Edit history"
+                aria-expanded={historyOpen}
+                aria-controls="edit-history-panel"
+                onClick={() => setHistoryOpen((open) => !open)}
+              >
                 <History /> <span className="preview-toolbar-label">History</span>
               </Button>
             </div>
           </div>
           {workspaceHasStarted && designOpen ? (
-            <div id="design-panel" data-print-exclude="" className="w-full rounded-lg border bg-card p-4 shadow-sm">{designControls}</div>
+            <div
+              id="design-panel"
+              data-print-exclude=""
+              className="w-full rounded-lg border bg-card p-4 shadow-xs"
+            >
+              {designControls}
+            </div>
           ) : null}
           {aiImportFixEnabled && localAIImportOpen && importReview && currentImportSourceText ? (
             <LocalAIImportFix
@@ -221,14 +320,20 @@ export function ResumePreviewPane({
               activeTarget={historyPreviewItem ? null : activeTarget}
               onTargetSelect={historyPreviewItem ? undefined : focusEditorTarget}
               editable={inlineEdit && workspaceHasStarted && !printing && !historyPreviewItem}
-              onEditField={(field, value) => updateField(field as Parameters<typeof updateField>[0], value)}
+              onEditField={(field, value) =>
+                updateField(field as Parameters<typeof updateField>[0], value)
+              }
               onEditHeaderLink={updateHeaderLink}
               onEditSectionTitle={updateSectionTitle}
               onEditEntry={updateEntry}
-              onEditTagGroup={(section, groupId, patch) => updateSectionTagGroups(
-                section,
-                getSectionTagGroups(state, section).map((group) => group.id === groupId ? { ...group, ...patch } : group),
-              )}
+              onEditTagGroup={(section, groupId, patch) =>
+                updateSectionTagGroups(
+                  section,
+                  getSectionTagGroups(state, section).map((group) =>
+                    group.id === groupId ? { ...group, ...patch } : group,
+                  ),
+                )
+              }
             />
           </div>
         </div>

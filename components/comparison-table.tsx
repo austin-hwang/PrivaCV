@@ -6,7 +6,10 @@ function CellContent({ value }: { value: Cell }) {
   if (value === true) {
     return (
       <>
-        <Check className="mx-auto size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+        <Check
+          className="mx-auto size-4 text-emerald-600 dark:text-emerald-400"
+          aria-hidden="true"
+        />
         <span className="sr-only">Yes</span>
       </>
     );
@@ -40,22 +43,22 @@ export function ComparisonTable() {
         <caption className="sr-only">Resume builder feature and pricing comparison</caption>
         <thead>
           <tr className="border-b bg-muted/30">
-            <th scope="col" className="sticky left-0 z-10 bg-muted/30 p-3 text-left align-bottom font-semibold">
+            <th
+              scope="col"
+              className="sticky left-0 z-10 bg-muted/30 p-3 text-left align-bottom font-semibold"
+            >
               <span className="text-xs uppercase tracking-wide text-muted-foreground">Feature</span>
             </th>
             {COMPARATORS.map((c) => (
               <th
                 key={c.name}
                 scope="col"
-                className={cn(
-                  "p-3 text-center align-bottom",
-                  c.isUs && "bg-primary/5",
-                )}
+                className={cn("p-3 text-center align-bottom", c.isUs && "bg-primary/5")}
               >
                 <div className={cn("font-semibold", c.isUs && "text-primary")}>{c.name}</div>
                 <div className="mt-1 text-sm font-semibold">{c.price}</div>
                 {c.priceNote ? (
-                  <div className="mx-auto mt-1 max-w-[9rem] text-[11px] font-normal leading-tight text-muted-foreground">
+                  <div className="mx-auto mt-1 max-w-36 text-[11px] font-normal leading-tight text-muted-foreground">
                     {c.priceNote}
                   </div>
                 ) : null}
@@ -66,9 +69,16 @@ export function ComparisonTable() {
         <tbody>
           {FEATURE_ROWS.map((row) => (
             <tr key={row.label} className="border-b last:border-0">
-              <th scope="row" className="sticky left-0 z-10 bg-background p-3 text-left font-medium">
+              <th
+                scope="row"
+                className="sticky left-0 z-10 bg-background p-3 text-left font-medium"
+              >
                 {row.label}
-                {row.hint ? <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{row.hint}</span> : null}
+                {row.hint ? (
+                  <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                    {row.hint}
+                  </span>
+                ) : null}
               </th>
               {row.values.map((value, i) => (
                 <td

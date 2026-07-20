@@ -92,7 +92,11 @@ export function GuidedReview({
   const [animate, setAnimate] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [offscreenDirection, setOffscreenDirection] = useState<"above" | "below" | null>(null);
-  const [cardPos, setCardPos] = useState<{ top: number; left: number; placement: "below" | "above" | "bottom" | "right" } | null>(null);
+  const [cardPos, setCardPos] = useState<{
+    top: number;
+    left: number;
+    placement: "below" | "above" | "bottom" | "right";
+  } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   // True while a step change is scrolling its target into view. During this
   // window we hold the previous frame instead of snapping the card to the
@@ -150,10 +154,13 @@ export function GuidedReview({
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const cardH = cardRef.current?.offsetHeight ?? 200;
-    const isInViewport = r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
+    const isInViewport =
+      r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
     const nextOffscreenDirection = !isInViewport ? (r.bottom <= 0 ? "above" : "below") : null;
 
-    setOffscreenDirection((prev) => (prev === nextOffscreenDirection ? prev : nextOffscreenDirection));
+    setOffscreenDirection((prev) =>
+      prev === nextOffscreenDirection ? prev : nextOffscreenDirection,
+    );
     // A ring without its element looks like a rendering error. Hide it when a
     // person scrolls the active field away, then leave the tour card available
     // with a direct route back to the exact field.
@@ -169,7 +176,10 @@ export function GuidedReview({
           left: Math.max(12, (vw - width) / 2),
           placement: (vw < 640 ? "bottom" : "below") as "below" | "above" | "bottom" | "right",
         };
-        return prev && Math.abs(prev.top - next.top) < 1 && Math.abs(prev.left - next.left) < 1 && prev.placement === next.placement
+        return prev &&
+          Math.abs(prev.top - next.top) < 1 &&
+          Math.abs(prev.left - next.left) < 1 &&
+          prev.placement === next.placement
           ? prev
           : next;
       });
@@ -177,24 +187,42 @@ export function GuidedReview({
     }
 
     setRect((prev) =>
-      prev && prev.top === r.top && prev.left === r.left && prev.width === r.width && prev.height === r.height ? prev : r,
+      prev &&
+      prev.top === r.top &&
+      prev.left === r.left &&
+      prev.width === r.width &&
+      prev.height === r.height
+        ? prev
+        : r,
     );
 
-    const setPos = (next: { top: number; left: number; placement: "below" | "above" | "bottom" | "right" }) =>
+    const setPos = (next: {
+      top: number;
+      left: number;
+      placement: "below" | "above" | "bottom" | "right";
+    }) =>
       setCardPos((prev) =>
-        prev && Math.abs(prev.top - next.top) < 1 && Math.abs(prev.left - next.left) < 1 && prev.placement === next.placement
+        prev &&
+        Math.abs(prev.top - next.top) < 1 &&
+        Math.abs(prev.left - next.left) < 1 &&
+        prev.placement === next.placement
           ? prev
           : next,
       );
 
     if (vw < 640) {
       // On phones, pin the card to the bottom so it never crowds the field.
-      setPos({ top: vh - cardH - 12, left: Math.max(12, (vw - Math.min(CARD_WIDTH, vw - 24)) / 2), placement: "bottom" });
+      setPos({
+        top: vh - cardH - 12,
+        left: Math.max(12, (vw - Math.min(CARD_WIDTH, vw - 24)) / 2),
+        placement: "bottom",
+      });
       return;
     }
 
     const width = Math.min(CARD_WIDTH, vw - 24);
-    const clampTop = (value: number) => Math.min(Math.max(value, 12), Math.max(12, vh - cardH - 12));
+    const clampTop = (value: number) =>
+      Math.min(Math.max(value, 12), Math.max(12, vh - cardH - 12));
 
     // Prefer floating to the right of the highlighted region so every field
     // inside it stays visible and editable.
@@ -296,18 +324,44 @@ export function GuidedReview({
   const HOLE = 6;
   const backdropClass = "pointer-events-auto absolute bg-foreground/40 dark:bg-background/70";
   const backdrop = !modal ? null : rect ? (
-    <div data-guided-review-backdrop aria-hidden="true" className="pointer-events-none fixed inset-0">
-      <div className={backdropClass} style={{ top: 0, left: 0, right: 0, height: Math.max(0, rect.top - HOLE) }} />
-      <div className={backdropClass} style={{ top: rect.bottom + HOLE, left: 0, right: 0, bottom: 0 }} />
-      <div className={backdropClass} style={{ top: Math.max(0, rect.top - HOLE), left: 0, width: Math.max(0, rect.left - HOLE), height: rect.height + HOLE * 2 }} />
-      <div className={backdropClass} style={{ top: Math.max(0, rect.top - HOLE), left: rect.right + HOLE, right: 0, height: rect.height + HOLE * 2 }} />
+    <div
+      data-guided-review-backdrop
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0"
+    >
+      <div
+        className={backdropClass}
+        style={{ top: 0, left: 0, right: 0, height: Math.max(0, rect.top - HOLE) }}
+      />
+      <div
+        className={backdropClass}
+        style={{ top: rect.bottom + HOLE, left: 0, right: 0, bottom: 0 }}
+      />
+      <div
+        className={backdropClass}
+        style={{
+          top: Math.max(0, rect.top - HOLE),
+          left: 0,
+          width: Math.max(0, rect.left - HOLE),
+          height: rect.height + HOLE * 2,
+        }}
+      />
+      <div
+        className={backdropClass}
+        style={{
+          top: Math.max(0, rect.top - HOLE),
+          left: rect.right + HOLE,
+          right: 0,
+          height: rect.height + HOLE * 2,
+        }}
+      />
     </div>
   ) : (
     <div className={cn(backdropClass, "inset-0")} data-guided-review-backdrop aria-hidden="true" />
   );
 
   return createPortal(
-    <div className="app-chrome pointer-events-none fixed inset-0 z-[60]" aria-hidden={false}>
+    <div className="app-chrome pointer-events-none fixed inset-0 z-60" aria-hidden={false}>
       {backdrop}
       {rect ? (
         <div
@@ -338,26 +392,36 @@ export function GuidedReview({
       >
         <div className="mb-2 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{step.eyebrow}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {step.eyebrow}
+            </p>
             <p className="text-sm font-semibold leading-snug">{step.title}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close guided review"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        {step.description ? <p className="text-xs leading-snug text-muted-foreground">{step.description}</p> : null}
+        {step.description ? (
+          <p className="text-xs leading-snug text-muted-foreground">{step.description}</p>
+        ) : null}
         {offscreenDirection ? (
           <div className="mt-3 rounded-md border bg-muted/40 p-2.5">
             <p className="text-xs leading-snug text-muted-foreground">
               The field is {offscreenDirection}. Scroll back to continue.
             </p>
-            <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={returnToTarget}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={returnToTarget}
+            >
               Return to field
             </Button>
           </div>
@@ -397,11 +461,22 @@ export function GuidedReview({
               <ArrowLeft /> Back
             </Button>
             {isLast ? (
-              <Button type="button" size="sm" className="h-8 px-3" disabled={finishDisabled} onClick={onFinish}>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 px-3"
+                disabled={finishDisabled}
+                onClick={onFinish}
+              >
                 <Check /> {finishLabel}
               </Button>
             ) : (
-              <Button type="button" size="sm" className="h-8 px-3" onClick={() => onIndexChange(index + 1)}>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 px-3"
+                onClick={() => onIndexChange(index + 1)}
+              >
                 Next <ArrowRight />
               </Button>
             )}

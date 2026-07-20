@@ -76,7 +76,10 @@ function terminalNode(status: JobApplicationStatus): JobSankeyNodeId {
   return "awaiting";
 }
 
-export function buildJobSankeyData(applications: JobApplication[], events: ApplicationEvent[]): JobSankeyData {
+export function buildJobSankeyData(
+  applications: JobApplication[],
+  events: ApplicationEvent[],
+): JobSankeyData {
   const nodeCounts = new Map<JobSankeyNodeId, number>();
   const linkCounts = new Map<string, JobSankeyLink>();
 
@@ -90,8 +93,9 @@ export function buildJobSankeyData(applications: JobApplication[], events: Appli
   let excluded = 0;
   applications.forEach((application) => {
     const statuses = journeyStatuses(application, events);
-    const submitted = Boolean(application.appliedAt)
-      || [...statuses].some((status) => SUBMITTED_STATUSES.has(status));
+    const submitted =
+      Boolean(application.appliedAt) ||
+      [...statuses].some((status) => SUBMITTED_STATUSES.has(status));
     if (!submitted) {
       excluded += 1;
       return;
@@ -129,9 +133,10 @@ export function buildJobSankeyData(applications: JobApplication[], events: Appli
   });
 
   return {
-    nodes: JOB_SANKEY_NODE_IDS
-      .filter((id) => (nodeCounts.get(id) ?? 0) > 0)
-      .map((id) => ({ ...NODE_META[id], count: nodeCounts.get(id) ?? 0 })),
+    nodes: JOB_SANKEY_NODE_IDS.filter((id) => (nodeCounts.get(id) ?? 0) > 0).map((id) => ({
+      ...NODE_META[id],
+      count: nodeCounts.get(id) ?? 0,
+    })),
     links: [...linkCounts.values()],
     total: nodeCounts.get("applications") ?? 0,
     excluded,

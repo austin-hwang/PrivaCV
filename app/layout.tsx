@@ -66,7 +66,16 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   category: "BusinessApplication",
-  keywords: ["PrivaCV", "resume editor", "resume builder", "ATS-friendly resume", "private resume editor", "free resume editor", "PDF resume", "DOCX resume"],
+  keywords: [
+    "PrivaCV",
+    "resume editor",
+    "resume builder",
+    "ATS-friendly resume",
+    "private resume editor",
+    "free resume editor",
+    "PDF resume",
+    "DOCX resume",
+  ],
   alternates: { canonical: "/" },
   icons: {
     icon: [{ url: "/icon", type: "image/png", sizes: "96x96" }],
@@ -78,7 +87,9 @@ export const metadata: Metadata = {
     title: "PrivaCV: Free Private Resume Editor — No Sign-Up",
     description: SITE_DESCRIPTION,
     url: SITE_URL?.toString(),
-    images: [{ url: "/social/home", width: 1200, height: 630, alt: "PrivaCV free private resume editor" }],
+    images: [
+      { url: "/social/home", width: 1200, height: 630, alt: "PrivaCV free private resume editor" },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -102,7 +113,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={`${inter.variable} ${merriweather.variable} ${gelasio.variable} ${tinos.variable} ${arimo.variable} ${carlito.variable}`}>
+      <body
+        className={`${inter.variable} ${merriweather.variable} ${gelasio.variable} ${tinos.variable} ${arimo.variable} ${carlito.variable}`}
+      >
         {children}
         <KofiWidget />
       </body>

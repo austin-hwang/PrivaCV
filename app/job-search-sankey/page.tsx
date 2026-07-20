@@ -9,23 +9,28 @@ const description =
 const faqItems: FaqItem[] = [
   {
     question: "What is a job search Sankey diagram?",
-    answer: "It is a flow chart whose bands show how applications progressed into interviews, offers, acceptances, rejections, withdrawals, or no response. Wider bands represent more applications.",
+    answer:
+      "It is a flow chart whose bands show how applications progressed into interviews, offers, acceptances, rejections, withdrawals, or no response. Wider bands represent more applications.",
   },
   {
     question: "Do I have to count every stage myself?",
-    answer: "No. Update application statuses in the PrivaCV tracker and the Sankey view reconstructs the funnel from the recorded timeline.",
+    answer:
+      "No. Update application statuses in the PrivaCV tracker and the Sankey view reconstructs the funnel from the recorded timeline.",
   },
   {
     question: "Can I post the chart on Reddit or social media?",
-    answer: "Yes. The Sankey view downloads a high-resolution PNG with stage counts, percentages, a date, and a clean light background suitable for sharing.",
+    answer:
+      "Yes. The Sankey view downloads a high-resolution PNG with stage counts, percentages, a date, and a clean light background suitable for sharing.",
   },
   {
     question: "Which applications are included?",
-    answer: "The diagram includes roles that reached Applied or a later stage. Saved and Preparing opportunities are excluded and reported separately so they do not inflate the application funnel.",
+    answer:
+      "The diagram includes roles that reached Applied or a later stage. Saved and Preparing opportunities are excluded and reported separately so they do not inflate the application funnel.",
   },
   {
     question: "Is my job-search history uploaded to make the image?",
-    answer: "No. The diagram is calculated from the local application timeline, and the browser renders the PNG on your device.",
+    answer:
+      "No. The diagram is calculated from the local application timeline, and the browser renders the PNG on your device.",
   },
 ];
 
@@ -58,7 +63,10 @@ export default function JobSearchSankeyPage() {
         lede={description}
         ctaLabel="Create your job search Sankey"
         ctaHref="/applications"
-        heroImage={{ src: "/social/job-search-sankey", alt: "Job search Sankey showing applications flowing into interviews, offers, and outcomes" }}
+        heroImage={{
+          src: "/social/job-search-sankey",
+          alt: "Job search Sankey showing applications flowing into interviews, offers, and outcomes",
+        }}
         breadcrumb={{ name: title, path: "/job-search-sankey" }}
         cards={[
           {
@@ -109,7 +117,10 @@ export default function JobSearchSankeyPage() {
           { href: "/guides/ats-friendly-resume", label: "ATS-friendly resume guide" },
         ]}
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
     </>
   );
 }

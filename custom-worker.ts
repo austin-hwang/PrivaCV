@@ -3,6 +3,10 @@
 import openNextWorker from "./.open-next/worker.js";
 import { handleExportMetric, type ExportMetricsEnv } from "./lib/export-metrics-server";
 import { handleInlineAIMetric, type InlineAIMetricsEnv } from "./lib/inline-ai-metrics-server";
+import {
+  handleJobApplicationMetric,
+  type JobApplicationMetricsEnv,
+} from "./lib/job-application-metrics-server";
 import { LOCAL_AI_MODELS } from "./lib/local-ai-models";
 
 const MODEL_PROXY_PREFIX = "/api/local-ai/models/";
@@ -25,7 +29,7 @@ type WorkerContext = {
   passThroughOnException(): void;
 };
 
-type WorkerEnv = ExportMetricsEnv & InlineAIMetricsEnv;
+type WorkerEnv = ExportMetricsEnv & InlineAIMetricsEnv & JobApplicationMetricsEnv;
 
 function decodePathSegment(value: string) {
   try {
@@ -43,7 +47,9 @@ async function proxyModelFile(request: Request) {
   const pathname = new URL(request.url).pathname;
   const segments = pathname.slice(MODEL_PROXY_PREFIX.length).split("/").map(decodePathSegment);
   const [modelId, resolveSegment, mainSegment, ...requestedFile] = segments;
-  const file = MODEL_CACHE_PATH_VERSIONS.has(requestedFile[0] ?? "") ? requestedFile.slice(1) : requestedFile;
+  const file = MODEL_CACHE_PATH_VERSIONS.has(requestedFile[0] ?? "")
+    ? requestedFile.slice(1)
+    : requestedFile;
   if (
     !modelId ||
     !APPROVED_MODEL_IDS.has(modelId) ||
@@ -139,6 +145,8 @@ const worker = {
     if (metricResponse) return metricResponse;
     const inlineAIMetricResponse = await handleInlineAIMetric(request, env);
     if (inlineAIMetricResponse) return inlineAIMetricResponse;
+    const jobApplicationMetricResponse = await handleJobApplicationMetric(request, env);
+    if (jobApplicationMetricResponse) return jobApplicationMetricResponse;
     if (new URL(request.url).pathname.startsWith(MODEL_PROXY_PREFIX)) {
       return proxyModelFile(request);
     }

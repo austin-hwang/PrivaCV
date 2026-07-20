@@ -33,7 +33,9 @@ describe("LocalAIInlineEdit metrics", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText(/AI edit instruction/i), { target: { value: "Make this clearer." } });
+    fireEvent.change(screen.getByLabelText(/AI edit instruction/i), {
+      target: { value: "Make this clearer." },
+    });
     fireEvent.click(screen.getByRole("button", { name: /^edit$/i }));
 
     await screen.findByText("Improved sentence with clearer impact.");
@@ -41,7 +43,9 @@ describe("LocalAIInlineEdit metrics", () => {
     expect(mocks.trackInlineAIEvent).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: /apply edit/i }));
-    await waitFor(() => expect(onApply).toHaveBeenCalledWith("<p>Improved sentence with clearer impact.</p>"));
+    await waitFor(() =>
+      expect(onApply).toHaveBeenCalledWith("<p>Improved sentence with clearer impact.</p>"),
+    );
     expect(mocks.trackInlineAIEvent).toHaveBeenLastCalledWith("inline_ai_accepted");
     expect(mocks.trackInlineAIEvent).toHaveBeenCalledTimes(2);
   });

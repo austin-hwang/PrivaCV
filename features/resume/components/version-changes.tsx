@@ -46,7 +46,7 @@ export function VersionChangeRow({
   );
 
   const className =
-    "group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "group flex min-h-24 gap-2 rounded-md border bg-background p-3 text-left text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
 
   if (onSelect) {
     return (
@@ -93,10 +93,18 @@ export function ChangeSummaryGrid({
                 : `${hiddenCount} more changed ${hiddenCount === 1 ? "area" : "areas"}`}
             </p>
             <p className="text-xs text-muted-foreground">
-              {showAll ? "Collapse the audit trail when you are done reviewing." : "Expand the full audit trail before exporting or restoring."}
+              {showAll
+                ? "Collapse the audit trail when you are done reviewing."
+                : "Expand the full audit trail before exporting or restoring."}
             </p>
           </div>
-          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setShowAll((current) => !current)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setShowAll((current) => !current)}
+          >
             {showAll ? <ChevronUp /> : <ChevronDown />}
             {showAll ? "Show fewer changes" : "Show all changes"}
           </Button>
@@ -114,12 +122,19 @@ function ChangeFieldLabels({ labels }: { labels?: string[] }) {
   return (
     <div className="mt-2 flex flex-wrap gap-1">
       {visibleLabels.map((label) => (
-        <Badge key={label} variant="secondary" className="h-5 max-w-full truncate px-1.5 text-[10px] font-medium normal-case tracking-normal">
+        <Badge
+          key={label}
+          variant="secondary"
+          className="h-5 max-w-full truncate px-1.5 text-[10px] font-medium normal-case tracking-normal"
+        >
           {label}
         </Badge>
       ))}
       {hiddenCount > 0 ? (
-        <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-medium normal-case tracking-normal">
+        <Badge
+          variant="outline"
+          className="h-5 px-1.5 text-[10px] font-medium normal-case tracking-normal"
+        >
           +{hiddenCount} more
         </Badge>
       ) : null}

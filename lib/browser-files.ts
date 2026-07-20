@@ -42,7 +42,8 @@ export async function copyText(text: string) {
     }
   }
 
-  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const activeElement =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const fallback = document.createElement("textarea");
   fallback.value = text;
   fallback.readOnly = true;
@@ -70,5 +71,10 @@ export async function copyText(text: string) {
 }
 
 export function safeFilename(name: string, fallback = "download") {
-  return name.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || fallback;
+  return (
+    name
+      .trim()
+      .replace(/[^\w.-]+/g, "_")
+      .replace(/^_+|_+$/g, "") || fallback
+  );
 }

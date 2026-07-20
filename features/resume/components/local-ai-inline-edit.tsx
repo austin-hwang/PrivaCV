@@ -9,7 +9,13 @@ import {
   generateLocalAIText,
   interruptLocalAIGeneration,
 } from "@/lib/local-ai-engine";
-import { buildPromptedLocalRewriteMessages, cleanLocalAIRewrite, isLocalAIRewriteUnchanged, localAIRewriteMaxTokens, validateLocalAIRewrite } from "@/lib/local-ai";
+import {
+  buildPromptedLocalRewriteMessages,
+  cleanLocalAIRewrite,
+  isLocalAIRewriteUnchanged,
+  localAIRewriteMaxTokens,
+  validateLocalAIRewrite,
+} from "@/lib/local-ai";
 import { hasBlockTags, richContentToPlainMarkdown, sanitizeRichContent } from "@/lib/rich-text";
 import { useLocalAIReady } from "@/features/resume/hooks/use-local-ai-runtime";
 import { trackInlineAIEvent } from "@/lib/inline-ai-metrics";
@@ -19,7 +25,10 @@ const INLINE_AI_PRESETS = [
   { label: "Concise", instruction: "Make this more concise." },
   { label: "Proofread", instruction: "Proofread and fix grammar." },
   { label: "Stronger impact", instruction: "Strengthen the impact without adding facts." },
-  { label: "Measurable", instruction: "Highlight measurable scope or results using only existing facts." },
+  {
+    label: "Measurable",
+    instruction: "Highlight measurable scope or results using only existing facts.",
+  },
 ] as const;
 
 export function LocalAIInlineEdit({
@@ -65,7 +74,12 @@ export function LocalAIInlineEdit({
         setOutput("");
         setRetrying(true);
         result = await generateLocalAIText({
-          messages: buildPromptedLocalRewriteMessages({ label, text: source, instruction, retryAfterEcho: true }),
+          messages: buildPromptedLocalRewriteMessages({
+            label,
+            text: source,
+            instruction,
+            retryAfterEcho: true,
+          }),
           maxTokens: localAIRewriteMaxTokens(source),
           onToken: (value) => setOutput(cleanLocalAIRewrite(value)),
         });
@@ -86,13 +100,27 @@ export function LocalAIInlineEdit({
   };
 
   return (
-    <div className="space-y-2 rounded-md border border-violet-200 bg-violet-50/70 p-3 text-foreground shadow-sm dark:border-violet-500/40 dark:bg-violet-950/30" aria-label={`Edit ${label} with local AI`}>
+    <div
+      className="space-y-2 rounded-md border border-violet-200 bg-violet-50/70 p-3 text-foreground shadow-xs dark:border-violet-500/40 dark:bg-violet-950/30"
+      aria-label={`Edit ${label} with local AI`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-950 dark:text-violet-100"><Sparkles className="size-3.5" /> Edit this text locally</p>
-          <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">Describe one small change. Facts are preserved and nothing applies automatically.</p>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-950 dark:text-violet-100">
+            <Sparkles className="size-3.5" /> Edit this text locally
+          </p>
+          <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">
+            Describe one small change. Facts are preserved and nothing applies automatically.
+          </p>
         </div>
-        <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onClose} aria-label="Close AI edit">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          onClick={onClose}
+          aria-label="Close AI edit"
+        >
           <X />
         </Button>
       </div>
@@ -130,9 +158,18 @@ export function LocalAIInlineEdit({
             className="bg-background"
           />
           {generating ? (
-            <Button type="button" variant="outline" size="sm" onClick={stop}><Square /> Stop</Button>
+            <Button type="button" variant="outline" size="sm" onClick={stop}>
+              <Square /> Stop
+            </Button>
           ) : (
-            <Button type="button" size="sm" onClick={() => void generate()} disabled={!ready || !instruction.trim()}><Sparkles /> Edit</Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void generate()}
+              disabled={!ready || !instruction.trim()}
+            >
+              <Sparkles /> Edit
+            </Button>
           )}
         </div>
         <p className="text-right text-[10px] font-normal tabular-nums text-muted-foreground">
@@ -142,13 +179,22 @@ export function LocalAIInlineEdit({
 
       {ready ? (
         <>
-          {error ? <p role="alert" className="text-xs font-normal text-destructive">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-xs font-normal text-destructive">
+              {error}
+            </p>
+          ) : null}
           {output || generating ? (
             <div className="space-y-2" aria-live="polite">
               <div className="max-h-44 overflow-y-auto rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc">
-                {output
-                  ? <div dangerouslySetInnerHTML={{ __html: sanitizeRichContent(output) }} />
-                  : <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}</span>}
+                {output ? (
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeRichContent(output) }} />
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" />{" "}
+                    {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}
+                  </span>
+                )}
               </div>
               {!generating && output.trim() ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -162,7 +208,9 @@ export function LocalAIInlineEdit({
                   >
                     <Check /> Apply edit
                   </Button>
-                  <span className="text-[11px] font-normal text-muted-foreground">Review facts before applying.</span>
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    Review facts before applying.
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -170,8 +218,12 @@ export function LocalAIInlineEdit({
         </>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-background/80 p-2.5">
-          <p className="text-xs font-normal text-muted-foreground">Load a downloaded model before editing.</p>
-          <Button type="button" variant="outline" size="sm" onClick={onOpenSetup}><Sparkles /> Open setup</Button>
+          <p className="text-xs font-normal text-muted-foreground">
+            Load a downloaded model before editing.
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={onOpenSetup}>
+            <Sparkles /> Open setup
+          </Button>
         </div>
       )}
     </div>

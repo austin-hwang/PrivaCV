@@ -31,7 +31,9 @@ import {
   summaryEditor,
 } from "../resume-editor-support";
 
-test("keeps the editor interactive while development security headers are active", async ({ page }) => {
+test("keeps the editor interactive while development security headers are active", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -180,7 +182,9 @@ test("keeps desktop section navigation flush with the app header", async ({ page
   expect(Math.abs(navigation!.y - (header!.y + header!.height))).toBeLessThanOrEqual(1);
 });
 
-test("keeps the mobile section navigation below the persistent workspace header", async ({ page }) => {
+test("keeps the mobile section navigation below the persistent workspace header", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -191,7 +195,9 @@ test("keeps the mobile section navigation below the persistent workspace header"
   await expect(navigation).toHaveCSS("position", "sticky");
   await expect(navigation).toHaveCSS("top", "118px");
   await page.evaluate(() => window.scrollTo(0, 600));
-  await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(117);
+  await expect
+    .poll(async () => (await navigation.boundingBox())?.y ?? -1)
+    .toBeGreaterThanOrEqual(117);
   await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeLessThanOrEqual(119);
 });
 
@@ -209,7 +215,9 @@ test("warns clearly and offers a JSON backup when browser autosave fails", async
 
   await loadSample(page);
 
-  const storageWarning = page.getByText("Browser autosave is unavailable", { exact: true }).locator("..");
+  const storageWarning = page
+    .getByText("Browser autosave is unavailable", { exact: true })
+    .locator("..");
   await expect(storageWarning).toContainText("Browser autosave is unavailable");
   await expect(storageWarning).toContainText("may not survive a refresh");
   const download = page.waitForEvent("download");
@@ -236,7 +244,9 @@ test("records only an anonymous format event when a resume is exported", async (
   await expect.poll(() => exportEvents).toEqual([{ format: "json" }]);
 });
 
-test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({ page }) => {
+test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     Object.defineProperty(IDBFactory.prototype, "open", {
       configurable: true,
@@ -250,17 +260,25 @@ test("backs up a checkpoint instead of claiming it persisted when browser storag
   await loadSample(page);
 
   const versions = await openVersions(page);
-  await expect(versions.getByText(/checkpoints shown here may not survive a refresh/i)).toBeVisible();
+  await expect(
+    versions.getByText(/checkpoints shown here may not survive a refresh/i),
+  ).toBeVisible();
   await versions.getByRole("button", { name: /save current version/i }).click();
   await page.getByLabel("Checkpoint name").fill("Tailored product role");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /save checkpoint/i }).click();
   await expect((await download).suggestedFilename()).toBe("John_Doe-checkpoints.json");
-  await expect(page.getByText("Browser storage unavailable — checkpoint backup downloaded", { exact: true })).toBeVisible();
-  await expect(versions.getByRole("list").getByText("Tailored product role", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Browser storage unavailable — checkpoint backup downloaded", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    versions.getByRole("list").getByText("Tailored product role", { exact: true }),
+  ).toBeVisible();
 });
 
-test("keeps import, export, and secondary toolbar actions usable from the keyboard", async ({ page }) => {
+test("keeps import, export, and secondary toolbar actions usable from the keyboard", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();

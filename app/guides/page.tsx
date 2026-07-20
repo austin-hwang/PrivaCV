@@ -34,30 +34,47 @@ export default function GuidesPage() {
   return (
     <>
       <main className="mx-auto max-w-5xl px-6 py-16">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{SITE_NAME}</p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight">Resume guides</h1>
-      <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">{description}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {SITE_NAME}
+        </p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight">Resume guides</h1>
+        <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
+          {description}
+        </p>
 
-      <div className="mt-12 grid gap-5">
-        {GUIDES.map((guide) => (
-          <Link
-            key={guide.slug}
-            href={guidePath(guide.slug)}
-            className="block rounded-lg border bg-card p-6 transition-colors hover:border-foreground/30"
-          >
-            <h2 className="text-xl font-semibold tracking-tight">{guide.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{guide.description}</p>
-            <span className="mt-3 inline-block text-sm font-medium underline underline-offset-4">Read the guide</span>
+        <div className="mt-12 grid gap-5">
+          {GUIDES.map((guide) => (
+            <Link
+              key={guide.slug}
+              href={guidePath(guide.slug)}
+              className="block rounded-lg border bg-card p-6 transition-colors hover:border-foreground/30"
+            >
+              <h2 className="text-xl font-semibold tracking-tight">{guide.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {guide.description}
+              </p>
+              <span className="mt-3 inline-block text-sm font-medium underline underline-offset-4">
+                Read the guide
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
+          <Link className="underline underline-offset-4" href="/" prefetch={false}>
+            Open the editor
           </Link>
-        ))}
-      </div>
-
-      <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-        <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
-        <Link className="underline underline-offset-4" href="/ats-resume-checker">ATS resume checker</Link>
-        <Link className="underline underline-offset-4" href="/resume-templates">Resume templates</Link>
-      </nav>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+          <Link className="underline underline-offset-4" href="/ats-resume-checker">
+            ATS resume checker
+          </Link>
+          <Link className="underline underline-offset-4" href="/resume-templates">
+            Resume templates
+          </Link>
+        </nav>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </main>
       <SiteFooter />
     </>

@@ -23,7 +23,9 @@ test("keeps rich clipboard markup out of one-line canvas fields", async ({ page 
     const clipboard = new DataTransfer();
     clipboard.setData("text/plain", "Ada Lovelace\nPrincipal Engineer");
     clipboard.setData("text/html", "<strong>Ada Lovelace</strong><em>Principal Engineer</em>");
-    element.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: clipboard }));
+    element.dispatchEvent(
+      new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: clipboard }),
+    );
   });
 
   await expect(name).toHaveText("Ada Lovelace Principal Engineer");

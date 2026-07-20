@@ -45,9 +45,15 @@ export default function ResumeBuilderComparisonPage() {
   return (
     <>
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{SITE_NAME}</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">PrivaCV vs Zety, Resume.io, Teal, Rezi &amp; Canva</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">{description}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {SITE_NAME}
+        </p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight">
+          PrivaCV vs Zety, Resume.io, Teal, Rezi &amp; Canva
+        </h1>
+        <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
+          {description}
+        </p>
 
         <div className="mt-6">
           <Link
@@ -60,7 +66,7 @@ export default function ResumeBuilderComparisonPage() {
         </div>
 
         <Image
-          className="mt-10 h-auto w-full rounded-xl border shadow-sm"
+          className="mt-10 h-auto w-full rounded-xl border shadow-xs"
           src="/social/resume-builder-comparison"
           alt="Resume builder comparison covering free export, accounts, privacy, Word export, and ATS output"
           width={1200}
@@ -70,35 +76,45 @@ export default function ResumeBuilderComparisonPage() {
 
         <section className="mt-12">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="text-2xl font-semibold tracking-tight">Feature &amp; pricing comparison</h2>
-            <span className="shrink-0 text-xs text-muted-foreground">Last verified {COMPARISON_LAST_VERIFIED}</span>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Feature &amp; pricing comparison
+            </h2>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              Last verified {COMPARISON_LAST_VERIFIED}
+            </span>
           </div>
           <div className="mt-5">
             <ComparisonTable />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Pricing and tiers change frequently. Figures reflect each vendor&apos;s publicly listed plans as of{" "}
-            {COMPARISON_LAST_VERIFIED}; confirm current details on their own pricing pages.
+            Pricing and tiers change frequently. Figures reflect each vendor&apos;s publicly listed
+            plans as of {COMPARISON_LAST_VERIFIED}; confirm current details on their own pricing
+            pages.
           </p>
         </section>
 
         <section className="mt-12 max-w-3xl text-base leading-relaxed text-muted-foreground">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">How to read this comparison</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            How to read this comparison
+          </h2>
           <p className="mt-3">
-            Zety, Resume.io, Teal, Rezi, and Canva are capable, well-known tools. They&apos;re also cloud services: you
-            create an account, your resume is saved on their servers, and in most cases you subscribe to download a
-            clean, watermark-free file. Trials often auto-renew into recurring charges if you forget to cancel.
+            Zety, Resume.io, Teal, Rezi, and Canva are capable, well-known tools. They&apos;re also
+            cloud services: you create an account, your resume is saved on their servers, and in
+            most cases you subscribe to download a clean, watermark-free file. Trials often
+            auto-renew into recurring charges if you forget to cancel.
           </p>
           <p className="mt-3">
-            PrivaCV takes the opposite approach. There&apos;s no account and no subscription, the AI runs locally in your
-            browser, and your resume, saved versions, and edit history stay on your own device. You can export a
-            print-ready PDF, an editable Word file, plain text, Markdown, or a JSON backup — all free.
+            PrivaCV takes the opposite approach. There&apos;s no account and no subscription, the AI
+            runs locally in your browser, and your resume, saved versions, and edit history stay on
+            your own device. You can export a print-ready PDF, an editable Word file, plain text,
+            Markdown, or a JSON backup — all free.
           </p>
           <p className="mt-3">
-            It&apos;s a fair trade-off, not a clean sweep: the paid tools ship larger template libraries, cloud sync, and
-            broader AI-assisted career workflows. PrivaCV instead combines private resume editing with a local job
-            application tracker and Sankey export. If team collaboration or a large cloud template gallery matters
-            most, those tools may fit better. If price, portability, and privacy matter most, PrivaCV is built for that.
+            It&apos;s a fair trade-off, not a clean sweep: the paid tools ship larger template
+            libraries, cloud sync, and broader AI-assisted career workflows. PrivaCV instead
+            combines private resume editing with a local job application tracker and Sankey export.
+            If team collaboration or a large cloud template gallery matters most, those tools may
+            fit better. If price, portability, and privacy matter most, PrivaCV is built for that.
           </p>
         </section>
 
@@ -108,24 +124,41 @@ export default function ResumeBuilderComparisonPage() {
             {faqItems.map((item) => (
               <div key={item.question}>
                 <dt className="font-medium">{item.question}</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.answer}</dd>
+                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {item.answer}
+                </dd>
               </div>
             ))}
           </dl>
         </section>
 
         <nav className="mt-12 flex flex-wrap gap-5 text-sm font-medium" aria-label="Related pages">
-          <Link className="underline underline-offset-4" href="/" prefetch={false}>Open the editor</Link>
-          <Link className="underline underline-offset-4" href="/free-resume-builder">Free resume builder</Link>
-          <Link className="underline underline-offset-4" href="/ats-resume-checker">ATS resume checker</Link>
-          <Link className="underline underline-offset-4" href="/resume-templates">Resume templates</Link>
-          <Link className="underline underline-offset-4" href="/job-application-tracker">Job application tracker</Link>
+          <Link className="underline underline-offset-4" href="/" prefetch={false}>
+            Open the editor
+          </Link>
+          <Link className="underline underline-offset-4" href="/free-resume-builder">
+            Free resume builder
+          </Link>
+          <Link className="underline underline-offset-4" href="/ats-resume-checker">
+            ATS resume checker
+          </Link>
+          <Link className="underline underline-offset-4" href="/resume-templates">
+            Resume templates
+          </Link>
+          <Link className="underline underline-offset-4" href="/job-application-tracker">
+            Job application tracker
+          </Link>
         </nav>
 
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }} />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(title, "/resume-builder-comparison")) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(breadcrumbJsonLd(title, "/resume-builder-comparison")),
+          }}
         />
       </main>
       <SiteFooter />

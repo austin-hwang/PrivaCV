@@ -11,7 +11,10 @@ import { ResumePreviewPane } from "@/features/resume/components/resume-preview-p
 import { ResumeWorkspaceDialogs } from "@/features/resume/components/resume-workspace-dialogs";
 import { ResumeEditorPane } from "@/features/resume/components/resume-editor-pane";
 import { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
-import { useResumeWorkspaceUI, type LocalAIInlineTarget } from "@/features/resume/hooks/use-resume-workspace-ui";
+import {
+  useResumeWorkspaceUI,
+  type LocalAIInlineTarget,
+} from "@/features/resume/hooks/use-resume-workspace-ui";
 import {
   buildCheckTourSteps,
   buildImportTourSteps,
@@ -34,11 +37,17 @@ import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-works
 import { cn } from "@/lib/utils";
 
 const LocalAIInlineEdit = dynamic(
-  () => import("@/features/resume/components/local-ai-inline-edit").then((module) => module.LocalAIInlineEdit),
+  () =>
+    import("@/features/resume/components/local-ai-inline-edit").then(
+      (module) => module.LocalAIInlineEdit,
+    ),
   { ssr: false },
 );
 const LocalAIBackgroundLoader = dynamic(
-  () => import("@/features/resume/components/local-ai-background-loader").then((module) => module.LocalAIBackgroundLoader),
+  () =>
+    import("@/features/resume/components/local-ai-background-loader").then(
+      (module) => module.LocalAIBackgroundLoader,
+    ),
   { ssr: false },
 );
 
@@ -46,9 +55,17 @@ const LocalAIBackgroundLoader = dynamic(
 // Keep the implementation available, but hide its entry points until quality improves.
 const LOCAL_AI_IMPORT_FIX_ENABLED = false;
 
-const HEADER_FIELD_IDS = ["field-name", "field-title", "field-email", "field-phone", "field-location"];
+const HEADER_FIELD_IDS = [
+  "field-name",
+  "field-title",
+  "field-email",
+  "field-phone",
+  "field-location",
+];
 const isHeaderTarget = (targetId: string) =>
-  HEADER_FIELD_IDS.includes(targetId) || targetId.startsWith("field-header-link-") || targetId === "add-header-link";
+  HEADER_FIELD_IDS.includes(targetId) ||
+  targetId.startsWith("field-header-link-") ||
+  targetId === "add-header-link";
 
 export function ResumeEditor() {
   const editor = useResumeEditor();
@@ -81,37 +98,67 @@ export function ResumeEditor() {
     resumeRef,
   });
   const {
-    blankTemplatePreview, blankWorkspaceOpen, designAdvancedOpen,
-    editorCollapsed, editorPanePercent, historyPreviewItem, isDarkTheme,
-    localAIEnabled, localAIInlineTarget,
+    blankTemplatePreview,
+    blankWorkspaceOpen,
+    designAdvancedOpen,
+    editorCollapsed,
+    editorPanePercent,
+    historyPreviewItem,
+    isDarkTheme,
+    localAIEnabled,
+    localAIInlineTarget,
     mobileWorkspaceView,
-    printing, reviewTour, startWorkspaceResize, toolsOpen, workspaceHasStarted, workspaceRef,
-    setActiveTarget, setBlankTemplatePreview, setBlankWorkspaceOpen, setChecksReviewOpen,
-    setCollapsedGroups, setDesignAdvancedOpen, setDestructiveAction, setEditorPanePercent,
-    setIsDarkTheme, setLibraryOpen, setLocalAIImportOpen,
-    setLocalAIInlineTarget, setLocalAIOpen, setMobileWorkspaceView, setNavigatorOpen,
-    setReviewTour, setToolsOpen,
+    printing,
+    reviewTour,
+    startWorkspaceResize,
+    toolsOpen,
+    workspaceHasStarted,
+    workspaceRef,
+    setActiveTarget,
+    setBlankTemplatePreview,
+    setBlankWorkspaceOpen,
+    setChecksReviewOpen,
+    setCollapsedGroups,
+    setDesignAdvancedOpen,
+    setDestructiveAction,
+    setEditorPanePercent,
+    setIsDarkTheme,
+    setLibraryOpen,
+    setLocalAIImportOpen,
+    setLocalAIInlineTarget,
+    setLocalAIOpen,
+    setMobileWorkspaceView,
+    setNavigatorOpen,
+    setReviewTour,
+    setToolsOpen,
   } = workspaceUI;
-  const currentImportSourceText = importReview?.sourceText?.trim() || (importReview ? resumePlainText(state).trim() : "");
-  const usingCurrentDraftForAIImport = Boolean(importReview && !importReview.sourceText?.trim() && currentImportSourceText);
-  const autosaveCopy: VersionHistoryItem | null = editor.autosavedAt && editor.autosavedState
-    ? {
-        id: "autosave-copy",
-        savedAt: editor.autosavedAt,
-        label: "Autosave copy",
-        fingerprint: resumeExportFingerprint(editor.autosavedState),
-        state: editor.autosavedState,
-        importReview,
-      }
-    : null;
-  const currentHistoryPoint = useMemo<VersionHistoryItem>(() => ({
-    id: "current-draft",
-    savedAt: editor.autosavedAt ?? new Date().toISOString(),
-    label: "Current draft",
-    fingerprint: editor.exportFingerprint,
-    state,
-    importReview,
-  }), [editor.autosavedAt, editor.exportFingerprint, importReview, state]);
+  const currentImportSourceText =
+    importReview?.sourceText?.trim() || (importReview ? resumePlainText(state).trim() : "");
+  const usingCurrentDraftForAIImport = Boolean(
+    importReview && !importReview.sourceText?.trim() && currentImportSourceText,
+  );
+  const autosaveCopy: VersionHistoryItem | null =
+    editor.autosavedAt && editor.autosavedState
+      ? {
+          id: "autosave-copy",
+          savedAt: editor.autosavedAt,
+          label: "Autosave copy",
+          fingerprint: resumeExportFingerprint(editor.autosavedState),
+          state: editor.autosavedState,
+          importReview,
+        }
+      : null;
+  const currentHistoryPoint = useMemo<VersionHistoryItem>(
+    () => ({
+      id: "current-draft",
+      savedAt: editor.autosavedAt ?? new Date().toISOString(),
+      label: "Current draft",
+      fingerprint: editor.exportFingerprint,
+      state,
+      importReview,
+    }),
+    [editor.autosavedAt, editor.exportFingerprint, importReview, state],
+  );
   const deleteSavedBrowserData = async () => {
     setLocalAIInlineTarget(null);
     setLocalAIImportOpen(false);
@@ -121,7 +168,7 @@ export function ResumeEditor() {
     await clearSavedBrowserData();
   };
   const toggleLocalAIInlineEdit = (target: LocalAIInlineTarget) => {
-    setLocalAIInlineTarget((current) => current?.id === target.id ? null : target);
+    setLocalAIInlineTarget((current) => (current?.id === target.id ? null : target));
   };
   const localAIInlinePanel = localAIInlineTarget ? (
     <LocalAIInlineEdit
@@ -132,7 +179,10 @@ export function ResumeEditor() {
       onOpenSetup={() => setLocalAIOpen(true)}
       onApply={(value) => {
         if (localAIInlineTarget.field) updateField(localAIInlineTarget.field, value);
-        else if (localAIInlineTarget.section !== undefined && localAIInlineTarget.index !== undefined) {
+        else if (
+          localAIInlineTarget.section !== undefined &&
+          localAIInlineTarget.index !== undefined
+        ) {
           updateEntry(localAIInlineTarget.section, localAIInlineTarget.index, "details", value);
         } else if (localAIInlineTarget.section !== undefined) {
           updateSectionText(localAIInlineTarget.section, value);
@@ -143,10 +193,14 @@ export function ResumeEditor() {
   ) : null;
   const timelinePreviewState = historyPreviewItem && !printing ? historyPreviewItem.state : state;
   const previewState = blankTemplatePreview
-    ? { ...timelinePreviewState, template: blankTemplatePreview, theme: TEMPLATE_THEMES[blankTemplatePreview] }
+    ? {
+        ...timelinePreviewState,
+        template: blankTemplatePreview,
+        theme: TEMPLATE_THEMES[blankTemplatePreview],
+      }
     : timelinePreviewState;
   const externalDraftChanges = useMemo(
-    () => externalDraft ? exportChangeSummary(state, externalDraft) : [],
+    () => (externalDraft ? exportChangeSummary(state, externalDraft) : []),
     [externalDraft, state],
   );
 
@@ -158,18 +212,29 @@ export function ResumeEditor() {
     window.setTimeout(() => document.getElementById("field-name")?.focus(), 120);
   };
 
-  const updateTheme = (patch: Partial<ResumeTheme>) => updateField("theme", { ...state.theme, ...patch });
-  const updateHeaderLink = (id: string, patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>) =>
-    updateField("headerLinks", state.headerLinks.map((link) => {
-      if (link.id !== id) return link;
-      const wasInferred = link.icon === inferHeaderLinkIcon(`${link.label} ${link.url}`);
-      const next = { ...link, ...patch };
-      if (patch.url !== undefined) next.label = inferHeaderLinkLabel(patch.url);
-      if (patch.icon === undefined && wasInferred && (patch.url !== undefined || patch.label !== undefined)) {
-        next.icon = inferHeaderLinkIcon(`${next.label} ${next.url}`);
-      }
-      return next;
-    }));
+  const updateTheme = (patch: Partial<ResumeTheme>) =>
+    updateField("theme", { ...state.theme, ...patch });
+  const updateHeaderLink = (
+    id: string,
+    patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>,
+  ) =>
+    updateField(
+      "headerLinks",
+      state.headerLinks.map((link) => {
+        if (link.id !== id) return link;
+        const wasInferred = link.icon === inferHeaderLinkIcon(`${link.label} ${link.url}`);
+        const next = { ...link, ...patch };
+        if (patch.url !== undefined) next.label = inferHeaderLinkLabel(patch.url);
+        if (
+          patch.icon === undefined &&
+          wasInferred &&
+          (patch.url !== undefined || patch.label !== undefined)
+        ) {
+          next.icon = inferHeaderLinkIcon(`${next.label} ${next.url}`);
+        }
+        return next;
+      }),
+    );
   const addHeaderLink = () => {
     const id = `header-link-${Date.now().toString(36)}`;
     updateField("headerLinks", [...state.headerLinks, { id, label: "", url: "", icon: "website" }]);
@@ -177,7 +242,10 @@ export function ResumeEditor() {
     window.setTimeout(() => document.getElementById(`field-header-link-${id}-url`)?.focus(), 0);
   };
   const removeHeaderLink = (id: string) =>
-    updateField("headerLinks", state.headerLinks.filter((link) => link.id !== id));
+    updateField(
+      "headerLinks",
+      state.headerLinks.filter((link) => link.id !== id),
+    );
   const moveHeaderLink = (index: number, direction: -1 | 1) => {
     const nextIndex = index + direction;
     if (nextIndex < 0 || nextIndex >= state.headerLinks.length) return;
@@ -195,28 +263,42 @@ export function ResumeEditor() {
     clearResume();
   };
 
-  const expandGroup = useCallback((groupId: string) =>
-    setCollapsedGroups((prev) => {
-      if (!prev.has(groupId)) return prev;
-      const next = new Set(prev);
-      next.delete(groupId);
-      return next;
-    }), [setCollapsedGroups]);
+  const expandGroup = useCallback(
+    (groupId: string) =>
+      setCollapsedGroups((prev) => {
+        if (!prev.has(groupId)) return prev;
+        const next = new Set(prev);
+        next.delete(groupId);
+        return next;
+      }),
+    [setCollapsedGroups],
+  );
   // Expand whichever collapsed group holds a jump target before focusing it.
-  const revealTarget = useCallback((targetId: string) => {
-    const target = document.getElementById(targetId);
-    const inferredGroup = targetId === "field-summary"
-      ? "summary"
-      : isHeaderTarget(targetId)
-        ? "header"
-        : state.sectionOrder.find((section) => targetId === `field-${section}` || targetId.startsWith(`field-${section}-`));
-    const group = target?.closest("[data-field-group]")?.getAttribute("data-field-group") ?? inferredGroup;
-    if (group) expandGroup(group);
-  }, [expandGroup, state.sectionOrder]);
-  const focusTourTarget = useCallback((targetId: string) => {
-    setActiveTarget(targetId);
-    revealTarget(targetId);
-  }, [revealTarget, setActiveTarget]);
+  const revealTarget = useCallback(
+    (targetId: string) => {
+      const target = document.getElementById(targetId);
+      const inferredGroup =
+        targetId === "field-summary"
+          ? "summary"
+          : isHeaderTarget(targetId)
+            ? "header"
+            : state.sectionOrder.find(
+                (section) =>
+                  targetId === `field-${section}` || targetId.startsWith(`field-${section}-`),
+              );
+      const group =
+        target?.closest("[data-field-group]")?.getAttribute("data-field-group") ?? inferredGroup;
+      if (group) expandGroup(group);
+    },
+    [expandGroup, state.sectionOrder],
+  );
+  const focusTourTarget = useCallback(
+    (targetId: string) => {
+      setActiveTarget(targetId);
+      revealTarget(targetId);
+    },
+    [revealTarget, setActiveTarget],
+  );
 
   // Appearance controls live behind the preview toolbar's "Design" button so
   // the left pane stays purely about content. Preset, font, and accent are the
@@ -231,20 +313,26 @@ export function ResumeEditor() {
     />
   );
 
-  const focusEditorTarget = useCallback((targetId: string) => {
-    setActiveTarget(targetId);
-    setMobileWorkspaceView("editor");
-    setToolsOpen(false);
-    revealTarget(targetId);
-    window.setTimeout(() => focusCheckTarget(targetId), 120);
-  }, [revealTarget, focusCheckTarget, setActiveTarget, setMobileWorkspaceView, setToolsOpen]);
+  const focusEditorTarget = useCallback(
+    (targetId: string) => {
+      setActiveTarget(targetId);
+      setMobileWorkspaceView("editor");
+      setToolsOpen(false);
+      revealTarget(targetId);
+      window.setTimeout(() => focusCheckTarget(targetId), 120);
+    },
+    [revealTarget, focusCheckTarget, setActiveTarget, setMobileWorkspaceView, setToolsOpen],
+  );
   const focusEditorFromExportCheck = (targetId: string) => {
     setMobileWorkspaceView("editor");
     setToolsOpen(false);
     revealTarget(targetId);
     window.setTimeout(() => focusFromExportCheck(targetId), 0);
   };
-  const toggleNavigator = useCallback(() => setNavigatorOpen((current) => !current), [setNavigatorOpen]);
+  const toggleNavigator = useCallback(
+    () => setNavigatorOpen((current) => !current),
+    [setNavigatorOpen],
+  );
 
   useEffect(() => {
     const handleNavigateShortcut = (event: KeyboardEvent) => {
@@ -266,8 +354,12 @@ export function ResumeEditor() {
     return () => window.removeEventListener("keydown", handleNavigateShortcut);
   }, [toggleNavigator, workspaceHasStarted]);
 
-  const importCoverage = importReview?.coverage ?? (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
-  const importSkippedCoverage = importCoverage.filter((item) => item.sourceDetected && !item.detected);
+  const importCoverage =
+    importReview?.coverage ??
+    (importReview ? buildImportCoverage(state, importReview.sourceText) : []);
+  const importSkippedCoverage = importCoverage.filter(
+    (item) => item.sourceDetected && !item.detected,
+  );
 
   const importTourSteps = buildImportTourSteps({
     importReview,
@@ -285,7 +377,9 @@ export function ResumeEditor() {
 
   const startImportTour = () => {
     if (!importReview) return;
-    const firstUnconfirmed = importReview.items.findIndex((item) => !importReview.reviewedItemIds?.includes(item.id));
+    const firstUnconfirmed = importReview.items.findIndex(
+      (item) => !importReview.reviewedItemIds?.includes(item.id),
+    );
     setToolsOpen(false);
     setMobileWorkspaceView("editor");
     setReviewTour({ kind: "import", index: firstUnconfirmed >= 0 ? firstUnconfirmed : 0 });
@@ -300,7 +394,12 @@ export function ResumeEditor() {
     setToolsOpen(false);
     setChecksReviewOpen(true);
   };
-  const tourSteps = reviewTour?.kind === "import" ? importTourSteps : reviewTour?.kind === "checks" ? checksTourSteps : [];
+  const tourSteps =
+    reviewTour?.kind === "import"
+      ? importTourSteps
+      : reviewTour?.kind === "checks"
+        ? checksTourSteps
+        : [];
 
   const checksReady = passedChecks === checks.length;
   const navItems = buildSectionNavItems(state, workspaceHasStarted);
@@ -309,13 +408,17 @@ export function ResumeEditor() {
     [state, workspaceHasStarted],
   );
 
-  const activeResumeLabel = editor.resumeLibrary.find((item) => item.id === editor.activeResumeId)?.label
-    || state.name.trim()
-    || "Untitled resume";
+  const activeResumeLabel =
+    editor.resumeLibrary.find((item) => item.id === editor.activeResumeId)?.label ||
+    state.name.trim() ||
+    "Untitled resume";
 
   if (!loaded) {
     return (
-      <div className="flex min-h-36 items-center justify-center gap-2 border-b bg-card text-sm text-muted-foreground" role="status">
+      <div
+        className="flex min-h-36 items-center justify-center gap-2 border-b bg-card text-sm text-muted-foreground"
+        role="status"
+      >
         <Loader2 className="animate-spin" /> Loading your private workspace
       </div>
     );
@@ -346,7 +449,9 @@ export function ResumeEditor() {
         ref={workspaceRef}
         className={cn(
           "app-shell grid min-h-[calc(100vh-73px)] grid-cols-1",
-          editorCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[minmax(340px,var(--editor-pane-width))_8px_minmax(440px,1fr)]",
+          editorCollapsed
+            ? "lg:grid-cols-1"
+            : "lg:grid-cols-[minmax(340px,var(--editor-pane-width))_8px_minmax(440px,1fr)]",
         )}
         style={{ "--editor-pane-width": `${editorPanePercent}%` } as CSSProperties}
       >
@@ -380,7 +485,7 @@ export function ResumeEditor() {
             aria-valuemax={57}
             aria-valuenow={Math.round(editorPanePercent)}
             tabIndex={0}
-            className="group relative hidden cursor-col-resize touch-none items-center justify-center border-x bg-border/50 outline-none transition-colors hover:bg-primary/15 focus-visible:bg-primary/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:flex"
+            className="group relative hidden cursor-col-resize touch-none items-center justify-center border-x bg-border/50 outline-hidden transition-colors hover:bg-primary/15 focus-visible:bg-primary/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:flex"
             onPointerDown={(event) => {
               event.preventDefault();
               startWorkspaceResize(event.clientX);
@@ -388,10 +493,15 @@ export function ResumeEditor() {
             onKeyDown={(event) => {
               if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
               event.preventDefault();
-              setEditorPanePercent((value) => Math.min(57, Math.max(34, value + (event.key === "ArrowLeft" ? -2 : 2))));
+              setEditorPanePercent((value) =>
+                Math.min(57, Math.max(34, value + (event.key === "ArrowLeft" ? -2 : 2))),
+              );
             }}
           >
-            <GripVertical className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+            <GripVertical
+              className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              aria-hidden="true"
+            />
           </div>
         ) : null}
 

@@ -66,7 +66,8 @@ import {
 describe("resume helpers", () => {
   it("drops the legacy excludedBulletIndexes field from older saved resumes and shows every bullet", () => {
     const base = sampleState();
-    const bullet = "Launched a weekly KPI dashboard used by 12 leaders to track adoption, risk, and delivery.";
+    const bullet =
+      "Launched a weekly KPI dashboard used by 12 leaders to track adoption, risk, and delivery.";
     // A resume saved while the removed "Tailor this version" control excluded a
     // bullet still carries the field; normalizing must strip it and keep every
     // bullet visible everywhere.
@@ -80,9 +81,13 @@ describe("resume helpers", () => {
     expect((state.experience[0] as Record<string, unknown>).excludedBulletIndexes).toBeUndefined();
     expect(includedBulletsFrom(state.experience[0])).toContain(bullet);
     expect(resumePlainText(state)).toContain(bullet);
-    expect(applicationCopyGroups(state).find((group) => group.id === "experience-0")?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Achievements", text: expect.stringContaining(bullet) }),
-    ]));
+    expect(
+      applicationCopyGroups(state).find((group) => group.id === "experience-0")?.fields,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Achievements", text: expect.stringContaining(bullet) }),
+      ]),
+    );
     expect(strFromU8(unzipSync(resumeDocx(state))["word/document.xml"])).toContain(bullet);
   });
 
@@ -122,12 +127,14 @@ describe("resume helpers", () => {
     const state = normalizeResume({
       sectionOrder: ["skills"],
       sectionFormats: { skills: "entries" },
-      skillEntries: [{
-        title: "Cloud platforms",
-        subtitle: "AWS and Azure",
-        meta: "",
-        details: "Architecture and operations",
-      }],
+      skillEntries: [
+        {
+          title: "Cloud platforms",
+          subtitle: "AWS and Azure",
+          meta: "",
+          details: "Architecture and operations",
+        },
+      ],
     });
 
     expect(state.sectionFormats.skills).toBe("entries");
@@ -141,10 +148,14 @@ describe("resume helpers", () => {
       sectionOrder: ["custom-certifications"],
       customSections: [{ id: "custom-certifications", title: "Certifications", entries: [] }],
       sectionFormats: { "custom-certifications": "text" },
-      sectionText: { "custom-certifications": "AWS Certified Developer\nCertified Kubernetes Administrator" },
+      sectionText: {
+        "custom-certifications": "AWS Certified Developer\nCertified Kubernetes Administrator",
+      },
     });
 
-    expect(resumePlainText(state)).toContain("Certifications\n- AWS Certified Developer\n- Certified Kubernetes Administrator");
+    expect(resumePlainText(state)).toContain(
+      "Certifications\n- AWS Certified Developer\n- Certified Kubernetes Administrator",
+    );
     const document = strFromU8(unzipSync(resumeDocx(state))["word/document.xml"]);
     expect(document).toContain("AWS Certified Developer");
     expect(document).toContain("Certified Kubernetes Administrator");
@@ -158,15 +169,19 @@ describe("resume helpers", () => {
       headerLinks: [{ label: "GitHub", url: "https://github.com/ada" }],
       summary: "Systems engineer.",
       sectionOrder: ["experience", "custom-skills", "education"],
-      experience: [{
-        title: "Senior Engineer",
-        subtitle: "Acme",
-        meta: "2022 - Present",
-        details: "Shipped the billing rewrite\nCut latency by 40%",
-      }],
+      experience: [
+        {
+          title: "Senior Engineer",
+          subtitle: "Acme",
+          meta: "2022 - Present",
+          details: "Shipped the billing rewrite\nCut latency by 40%",
+        },
+      ],
       customSections: [{ id: "custom-skills", title: "Skills", entries: [] }],
       sectionFormats: { "custom-skills": "tag-groups" },
-      sectionTagGroups: { "custom-skills": [{ id: "g1", label: "Languages", tags: ["TypeScript", "Rust"] }] },
+      sectionTagGroups: {
+        "custom-skills": [{ id: "g1", label: "Languages", tags: ["TypeScript", "Rust"] }],
+      },
       hiddenSections: ["education"],
     });
 
@@ -190,51 +205,80 @@ describe("resume helpers", () => {
   it("lets an entry use paragraph details without treating the text as bullets", () => {
     const state = normalizeResume({
       sectionOrder: ["education"],
-      education: [{
-        title: "B.S. Computer Science",
-        subtitle: "State University",
-        meta: "2024",
-        details: "<p>Relevant coursework included distributed systems, compilers, and database design.</p>",
-      }],
+      education: [
+        {
+          title: "B.S. Computer Science",
+          subtitle: "State University",
+          meta: "2024",
+          details:
+            "<p>Relevant coursework included distributed systems, compilers, and database design.</p>",
+        },
+      ],
     });
 
     expect(includedBulletsFrom(state.education[0])).toEqual([]);
-    expect(resumePlainText(state)).toContain("\nRelevant coursework included distributed systems, compilers, and database design.");
+    expect(resumePlainText(state)).toContain(
+      "\nRelevant coursework included distributed systems, compilers, and database design.",
+    );
     expect(resumePlainText(state)).not.toContain("- Relevant coursework");
     const document = strFromU8(unzipSync(resumeDocx(state))["word/document.xml"]);
-    expect(document).toContain("Relevant coursework included distributed systems, compilers, and database design.");
+    expect(document).toContain(
+      "Relevant coursework included distributed systems, compilers, and database design.",
+    );
     expect(document).not.toContain('w:hanging="180"');
   });
 
   it("creates granular, portal-friendly copy fields without adding empty values", () => {
     const state = sampleState();
-    state.customSections = [{
-      id: "custom-certifications",
-      title: "Certifications",
-      entries: [{ title: "AWS Certified Developer", subtitle: "Amazon", meta: "", details: "Renewed through 2028" }],
-    }];
+    state.customSections = [
+      {
+        id: "custom-certifications",
+        title: "Certifications",
+        entries: [
+          {
+            title: "AWS Certified Developer",
+            subtitle: "Amazon",
+            meta: "",
+            details: "Renewed through 2028",
+          },
+        ],
+      },
+    ];
     state.sectionOrder = ["experience", "skills", "custom-certifications"];
 
     const groups = applicationCopyGroups(state);
     const experience = groups.find((group) => group.id === "experience-0");
     const certification = groups.find((group) => group.id === "custom-certifications-0");
 
-    expect(groups.find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Full name", text: "John Doe" }),
-      expect.objectContaining({ label: "Email", text: "john.doe@example.com" }),
-    ]));
-    expect(experience?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Job title" }),
-      expect.objectContaining({ label: "Employer" }),
-      expect.objectContaining({ label: "Achievements", text: expect.stringContaining("•") }),
-    ]));
-    expect(certification).toMatchObject({ label: "Certifications 1", detail: "AWS Certified Developer · Amazon" });
-    expect(certification?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "License / certification" }),
-      expect.objectContaining({ label: "Issuing organization" }),
-      expect.objectContaining({ label: "Credential ID / verification link / details (optional)" }),
-    ]));
-    expect(certification?.fields.map((field) => field.label)).not.toContain("Earned / expiration dates");
+    expect(groups.find((group) => group.id === "profile")?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Full name", text: "John Doe" }),
+        expect.objectContaining({ label: "Email", text: "john.doe@example.com" }),
+      ]),
+    );
+    expect(experience?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Job title" }),
+        expect.objectContaining({ label: "Employer" }),
+        expect.objectContaining({ label: "Achievements", text: expect.stringContaining("•") }),
+      ]),
+    );
+    expect(certification).toMatchObject({
+      label: "Certifications 1",
+      detail: "AWS Certified Developer · Amazon",
+    });
+    expect(certification?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "License / certification" }),
+        expect.objectContaining({ label: "Issuing organization" }),
+        expect.objectContaining({
+          label: "Credential ID / verification link / details (optional)",
+        }),
+      ]),
+    );
+    expect(certification?.fields.map((field) => field.label)).not.toContain(
+      "Earned / expiration dates",
+    );
   });
 
   it("creates a local, editable Word document with simple resume structure", () => {
@@ -242,11 +286,13 @@ describe("resume helpers", () => {
     const document = strFromU8(files["word/document.xml"]);
     const relationships = strFromU8(files["word/_rels/document.xml.rels"]);
 
-    expect(Object.keys(files)).toEqual(expect.arrayContaining([
-      "[Content_Types].xml",
-      "word/document.xml",
-      "word/_rels/document.xml.rels",
-    ]));
+    expect(Object.keys(files)).toEqual(
+      expect.arrayContaining([
+        "[Content_Types].xml",
+        "word/document.xml",
+        "word/_rels/document.xml.rels",
+      ]),
+    );
     expect(document).toContain("John Doe");
     expect(document).toContain("EXPERIENCE");
     expect(document).toContain("•");
@@ -261,20 +307,23 @@ describe("resume helpers", () => {
     const document = strFromU8(files["word/document.xml"]);
     const text = extractDocxText(resumeDocx(state).buffer);
 
-    expect(docxParagraphsFromXml(document)).toEqual(expect.arrayContaining([
-      "John Doe",
-      "Senior Product Engineer",
-      "EXPERIENCE",
-    ]));
+    expect(docxParagraphsFromXml(document)).toEqual(
+      expect.arrayContaining(["John Doe", "Senior Product Engineer", "EXPERIENCE"]),
+    );
     expect(text).toContain("John Doe");
     const imported = importResumeText(text);
     expect(imported).toMatchObject({
       name: "John Doe",
       title: "Senior Product Engineer",
     });
-    expect(imported.experience).toEqual(expect.arrayContaining([
-      expect.objectContaining({ title: "Product Operations Manager", subtitle: "Northstar Health - Chicago, IL" }),
-    ]));
+    expect(imported.experience).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Product Operations Manager",
+          subtitle: "Northstar Health - Chicago, IL",
+        }),
+      ]),
+    );
   });
 
   it("checks a Word archive's expanded size before decompressing it", () => {
@@ -296,7 +345,8 @@ describe("resume helpers", () => {
   });
 
   it("keeps simple Word table cell text in document order", () => {
-    const document = '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>ada@example.com</w:t></w:r></w:p></w:tc></w:tr></w:tbl>';
+    const document =
+      "<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>ada@example.com</w:t></w:r></w:p></w:tc></w:tr></w:tbl>";
 
     expect(docxParagraphsFromXml(document)).toEqual(["Ada Lovelace", "ada@example.com"]);
   });
@@ -304,22 +354,23 @@ describe("resume helpers", () => {
   it("recovers label-only external Word contact links without duplicating visible URLs", () => {
     const document = [
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>',
-      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+      "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
       '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdLinkedIn"><w:r><w:t>LinkedIn</w:t></w:r></w:hyperlink></w:p>',
-      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-      '</w:body></w:document>',
+      "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+      "</w:body></w:document>",
     ].join("");
-    const relationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdLinkedIn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://www.linkedin.com/in/ada?trk=resume&amp;source=word" TargetMode="External"/><Relationship Id="rIdUnsafe" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="javascript:alert(1)" TargetMode="External"/></Relationships>';
+    const relationships =
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdLinkedIn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://www.linkedin.com/in/ada?trk=resume&amp;source=word" TargetMode="External"/><Relationship Id="rIdUnsafe" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="javascript:alert(1)" TargetMode="External"/></Relationships>';
     const archive = zipSync({
       "word/document.xml": strToU8(document),
       "word/_rels/document.xml.rels": strToU8(relationships),
     });
 
-    expect(docxHyperlinkTargetsFromXml(relationships)).toEqual(new Map([
-      ["rIdLinkedIn", "https://www.linkedin.com/in/ada?trk=resume&source=word"],
-    ]));
+    expect(docxHyperlinkTargetsFromXml(relationships)).toEqual(
+      new Map([["rIdLinkedIn", "https://www.linkedin.com/in/ada?trk=resume&source=word"]]),
+    );
     expect(docxParagraphsFromXml(document, docxHyperlinkTargetsFromXml(relationships))).toContain(
       "ada@example.com | LinkedIn — https://www.linkedin.com/in/ada?trk=resume&source=word",
     );
@@ -336,14 +387,14 @@ describe("resume helpers", () => {
   it("recovers label-only Word field hyperlinks while ignoring unsafe field targets", () => {
     const document = [
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
-      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+      "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
       '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:fldSimple w:instr=" HYPERLINK &quot;https://ada.example.com/portfolio&quot; "><w:r><w:t>Portfolio</w:t></w:r></w:fldSimple></w:p>',
       '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> HYPERLINK "https://github.com/ada" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>GitHub</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>',
       '<w:p><w:fldSimple w:instr=" HYPERLINK &quot;javascript:alert(1)&quot; "><w:r><w:t>Unsafe link</w:t></w:r></w:fldSimple></w:p>',
-      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-      '</w:body></w:document>',
+      "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+      "</w:body></w:document>",
     ].join("");
     const archive = zipSync({ "word/document.xml": strToU8(document) });
     const text = extractDocxText(archive.buffer);
@@ -362,19 +413,21 @@ describe("resume helpers", () => {
   it("recovers referenced Word header contact details before parsing the body", () => {
     const header = [
       '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
-      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+      "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
       '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdPortfolio"><w:r><w:t>Portfolio</w:t></w:r></w:hyperlink></w:p>',
-      '</w:hdr>',
+      "</w:hdr>",
     ].join("");
     const document = [
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
-      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-      '</w:body></w:document>',
+      "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+      "</w:body></w:document>",
     ].join("");
-    const documentRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>';
-    const headerRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
+    const documentRelationships =
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>';
+    const headerRelationships =
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
     const archive = zipSync({
       "word/document.xml": strToU8(document),
       "word/_rels/document.xml.rels": strToU8(documentRelationships),
@@ -383,7 +436,9 @@ describe("resume helpers", () => {
     });
 
     expect(docxHeaderPartPathsFromXml(documentRelationships)).toEqual(["word/header1.xml"]);
-    expect(extractDocxText(archive.buffer)).toMatch(/^Ada Lovelace\nPlatform Engineer\nada@example.com/);
+    expect(extractDocxText(archive.buffer)).toMatch(
+      /^Ada Lovelace\nPlatform Engineer\nada@example.com/,
+    );
     expect(importResumeText(extractDocxText(archive.buffer))).toMatchObject({
       name: "Ada Lovelace",
       title: "Platform Engineer",
@@ -397,19 +452,21 @@ describe("resume helpers", () => {
     const footer = [
       '<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
       '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdPortfolio"><w:r><w:t>Portfolio</w:t></w:r></w:hyperlink></w:p>',
-      '<w:p><w:r><w:t>Page 1</w:t></w:r></w:p>',
-      '</w:ftr>',
+      "<w:p><w:r><w:t>Page 1</w:t></w:r></w:p>",
+      "</w:ftr>",
     ].join("");
     const document = [
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
-      '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-      '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-      '</w:body></w:document>',
+      "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+      "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+      "</w:body></w:document>",
     ].join("");
-    const documentRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>';
-    const footerRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
+    const documentRelationships =
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>';
+    const footerRelationships =
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
     const archive = zipSync({
       "word/document.xml": strToU8(document),
       "word/_rels/document.xml.rels": strToU8(documentRelationships),
@@ -435,7 +492,9 @@ describe("resume helpers", () => {
   });
 
   it("rejects oversized PDF imports before loading the local parser", async () => {
-    const file = new File([new Uint8Array(MAX_PDF_BYTES + 1)], "large-resume.pdf", { type: "application/pdf" });
+    const file = new File([new Uint8Array(MAX_PDF_BYTES + 1)], "large-resume.pdf", {
+      type: "application/pdf",
+    });
 
     await expect(importResumePdfWithSource(file)).rejects.toThrow(/too large to import locally/i);
   });
@@ -453,9 +512,11 @@ describe("resume helpers", () => {
     expect(migrated.headerLinks).toEqual([
       { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "linkedin" },
     ]);
-    expect(normalizeResume({
-      headerLinks: [{ id: "legacy", label: "GitHub", url: "github.com/ada", icon: "auto" }],
-    }).headerLinks[0].icon).toBe("github");
+    expect(
+      normalizeResume({
+        headerLinks: [{ id: "legacy", label: "GitHub", url: "github.com/ada", icon: "auto" }],
+      }).headerLinks[0].icon,
+    ).toBe("github");
 
     const state = normalizeResume({
       ...sampleState(),
@@ -467,10 +528,12 @@ describe("resume helpers", () => {
     const relationships = strFromU8(unzipSync(resumeDocx(state))["word/_rels/document.xml.rels"]);
     expect(relationships).toContain("https://linkedin.com/in/johndoe");
     expect(relationships).toContain("https://github.com/johndoe");
-    expect(applicationCopyGroups(state).find((group) => group.id === "profile")?.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "LinkedIn", text: "linkedin.com/in/johndoe" }),
-      expect.objectContaining({ label: "GitHub", text: "github.com/johndoe" }),
-    ]));
+    expect(applicationCopyGroups(state).find((group) => group.id === "profile")?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "LinkedIn", text: "linkedin.com/in/johndoe" }),
+        expect.objectContaining({ label: "GitHub", text: "github.com/johndoe" }),
+      ]),
+    );
     expect(resolveHeaderLinkIcon(state.headerLinks[0])).toBe("linkedin");
     expect(resolveHeaderLinkIcon({ ...state.headerLinks[0], icon: "portfolio" })).toBe("portfolio");
     expect(inferHeaderLinkIcon("GitLab gitlab.com/ada")).toBe("gitlab");
@@ -504,7 +567,9 @@ describe("resume helpers", () => {
     });
     expect(entryFieldSchema("custom-languages", "Languages").subtitle).toBe("Proficiency");
     expect(entryFieldSchema("custom-publications", "Publications").meta).toBe("Date / DOI / link");
-    expect(entryFieldSchema("custom-renamed", "Professional Memberships").subtitle).toBe("Membership / role");
+    expect(entryFieldSchema("custom-renamed", "Professional Memberships").subtitle).toBe(
+      "Membership / role",
+    );
   });
 
   it("offers multiple clean, ATS-readable visual templates", () => {
@@ -516,12 +581,30 @@ describe("resume helpers", () => {
       "executive",
       "technical",
     ]);
-    expect(new Set(Object.values(TEMPLATE_THEMES).map((theme) => JSON.stringify(theme))).size).toBe(RESUME_TEMPLATES.length);
+    expect(new Set(Object.values(TEMPLATE_THEMES).map((theme) => JSON.stringify(theme))).size).toBe(
+      RESUME_TEMPLATES.length,
+    );
     expect(TEMPLATE_THEMES.minimal).toMatchObject({ headingStyle: "plain", bulletStyle: "dash" });
-    expect(TEMPLATE_THEMES.modern).toMatchObject({ headerAlign: "center", headingStyle: "bar", density: "cozy" });
-    expect(TEMPLATE_THEMES.compact).toMatchObject({ font: "calibri", headingStyle: "underline", density: "compact" });
-    expect(TEMPLATE_THEMES.executive).toMatchObject({ font: "georgia", accent: "#7f1d3a", headerAlign: "center" });
-    expect(TEMPLATE_THEMES.technical).toMatchObject({ font: "arial", accent: "#0f5f5c", density: "cozy" });
+    expect(TEMPLATE_THEMES.modern).toMatchObject({
+      headerAlign: "center",
+      headingStyle: "bar",
+      density: "cozy",
+    });
+    expect(TEMPLATE_THEMES.compact).toMatchObject({
+      font: "calibri",
+      headingStyle: "underline",
+      density: "compact",
+    });
+    expect(TEMPLATE_THEMES.executive).toMatchObject({
+      font: "georgia",
+      accent: "#7f1d3a",
+      headerAlign: "center",
+    });
+    expect(TEMPLATE_THEMES.technical).toMatchObject({
+      font: "arial",
+      accent: "#0f5f5c",
+      density: "cozy",
+    });
   });
 
   it("imports pasted resume text with line-ending cleanup", () => {
@@ -535,19 +618,24 @@ describe("resume helpers", () => {
       email: "ada@example.com",
       location: "San Francisco, CA",
     });
-    expect(state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Analytical Engines" });
+    expect(state.experience[0]).toMatchObject({
+      title: "Engineer",
+      subtitle: "Analytical Engines",
+    });
   });
 
   it("imports every distinct profile link from the resume header", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "Platform Engineer",
-      "ada@example.com | linkedin.com/in/ada | github.com/ada | ada.dev",
-      "San Francisco, CA",
-      "",
-      "Experience",
-      "Engineer | Analytical Engines | 2022–Present",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "Platform Engineer",
+        "ada@example.com | linkedin.com/in/ada | github.com/ada | ada.dev",
+        "San Francisco, CA",
+        "",
+        "Experience",
+        "Engineer | Analytical Engines | 2022–Present",
+      ].join("\n"),
+    );
 
     expect(state.headerLinks).toEqual([
       { id: "header-link-1", label: "LinkedIn", url: "linkedin.com/in/ada", icon: "linkedin" },
@@ -558,15 +646,17 @@ describe("resume helpers", () => {
   });
 
   it("recovers a role-before-name preamble, full state name, and bare portfolio domain", () => {
-    const state = importResumeText([
-      "Data Analyst / Business Analyst",
-      "Alex Sample",
-      "alex@example.com | (333) 222-1111 | alexsample.dev/portfolio",
-      "Seattle, Washington",
-      "",
-      "Experience",
-      "Analyst | Example Co. | 2023 - Present",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Data Analyst / Business Analyst",
+        "Alex Sample",
+        "alex@example.com | (333) 222-1111 | alexsample.dev/portfolio",
+        "Seattle, Washington",
+        "",
+        "Experience",
+        "Analyst | Example Co. | 2023 - Present",
+      ].join("\n"),
+    );
 
     expect(state).toMatchObject({
       name: "Alex Sample",
@@ -579,15 +669,17 @@ describe("resume helpers", () => {
   });
 
   it("joins a name split across all-caps PDF lines without joining later headings", () => {
-    const state = importResumeText([
-      "ANDREY",
-      "VOLKOV",
-      "Senior Software Developer",
-      "andrey@example.com",
-      "",
-      "PROFESSIONAL EXPIRIENCE",
-      "Developer | Example Co. | 2023 - Present",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "ANDREY",
+        "VOLKOV",
+        "Senior Software Developer",
+        "andrey@example.com",
+        "",
+        "PROFESSIONAL EXPIRIENCE",
+        "Developer | Example Co. | 2023 - Present",
+      ].join("\n"),
+    );
 
     expect(state).toMatchObject({
       name: "ANDREY VOLKOV",
@@ -597,13 +689,15 @@ describe("resume helpers", () => {
   });
 
   it("recovers a name merged onto a compact contact line", () => {
-    const state = importResumeText([
-      "Sourabh Bajaj Email: sourabh@example.com",
-      "sourabh.example.com Mobile: +1-123-456-7890",
-      "",
-      "Experience",
-      "Engineer | Example Co. | 2023 - Present",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Sourabh Bajaj Email: sourabh@example.com",
+        "sourabh.example.com Mobile: +1-123-456-7890",
+        "",
+        "Experience",
+        "Engineer | Example Co. | 2023 - Present",
+      ].join("\n"),
+    );
 
     expect(state).toMatchObject({
       name: "Sourabh Bajaj",
@@ -614,25 +708,32 @@ describe("resume helpers", () => {
   });
 
   it("prefers a line-local phone and city/state over an adjacent street address and ZIP", () => {
-    const state = importResumeText([
-      "Nicholas DeSteffen",
-      "2032 W Estes Ave., Chicago, IL 60645",
-      "(312) 914-2345",
-      "nick@example.com",
-      "",
-      "Experience",
-      "Director | Example Co. | 2020 - Present",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Nicholas DeSteffen",
+        "2032 W Estes Ave., Chicago, IL 60645",
+        "(312) 914-2345",
+        "nick@example.com",
+        "",
+        "Experience",
+        "Director | Example Co. | 2020 - Present",
+      ].join("\n"),
+    );
 
     expect(state.phone).toBe("(312) 914-2345");
     expect(state.location).toBe("Chicago, IL");
   });
 
   it("keeps the normalized source text available during import review", () => {
-    const imported = importResumeTextWithSource("Ada Lovelace\r\n\r\nExperience\r\nEngineer | Example Co.");
+    const imported = importResumeTextWithSource(
+      "Ada Lovelace\r\n\r\nExperience\r\nEngineer | Example Co.",
+    );
 
     expect(imported.sourceText).toBe("Ada Lovelace\n\nExperience\nEngineer | Example Co.");
-    expect(imported.state.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Example Co." });
+    expect(imported.state.experience[0]).toMatchObject({
+      title: "Engineer",
+      subtitle: "Example Co.",
+    });
   });
 
   it("keeps PDF text fragments with tiny baseline offsets on one readable line", () => {
@@ -680,170 +781,211 @@ describe("resume helpers", () => {
   });
 
   it("imports content beneath styled headings without treating the decorations as resume text", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "— CAREER HIGHLIGHTS —",
-      "Platform engineer building dependable developer tools.",
-      "",
-      "• PROFESSIONAL ROLES •",
-      "Staff Engineer | Analytical Engines | 2022–Present",
-      "• Built reliable systems.",
-      "",
-      "| TECHNICAL EXPERTISE |",
-      "TypeScript, React, systems design",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "— CAREER HIGHLIGHTS —",
+        "Platform engineer building dependable developer tools.",
+        "",
+        "• PROFESSIONAL ROLES •",
+        "Staff Engineer | Analytical Engines | 2022–Present",
+        "• Built reliable systems.",
+        "",
+        "| TECHNICAL EXPERTISE |",
+        "TypeScript, React, systems design",
+      ].join("\n"),
+    );
 
     expect(state).toMatchObject({
       summary: "Platform engineer building dependable developer tools.",
       skills: "TypeScript, React, systems design",
     });
-    expect(state.experience[0]).toMatchObject({ title: "Staff Engineer", subtitle: "Analytical Engines" });
+    expect(state.experience[0]).toMatchObject({
+      title: "Staff Engineer",
+      subtitle: "Analytical Engines",
+    });
   });
 
   it("imports content under common alternate resume section headings", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "Career Profile",
-      "Platform engineer building dependable developer tools.",
-      "",
-      "Relevant Experience",
-      "Staff Engineer | Analytical Engines | 2022–Present",
-      "• Built reliable systems.",
-      "",
-      "Education & Training",
-      "M.S. Computer Science | Example University | 2018–2020",
-      "",
-      "Academic Projects",
-      "Compiler | TypeScript | 2020",
-      "• Built a teaching compiler.",
-      "",
-      "Key Skills",
-      "TypeScript, React, systems design",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "Career Profile",
+        "Platform engineer building dependable developer tools.",
+        "",
+        "Relevant Experience",
+        "Staff Engineer | Analytical Engines | 2022–Present",
+        "• Built reliable systems.",
+        "",
+        "Education & Training",
+        "M.S. Computer Science | Example University | 2018–2020",
+        "",
+        "Academic Projects",
+        "Compiler | TypeScript | 2020",
+        "• Built a teaching compiler.",
+        "",
+        "Key Skills",
+        "TypeScript, React, systems design",
+      ].join("\n"),
+    );
 
     expect(state).toMatchObject({
       summary: "Platform engineer building dependable developer tools.",
       skills: "TypeScript, React, systems design",
     });
-    expect(state.experience[0]).toMatchObject({ title: "Staff Engineer", subtitle: "Analytical Engines" });
-    expect(state.education[0]).toMatchObject({ title: "M.S. Computer Science", subtitle: "Example University" });
+    expect(state.experience[0]).toMatchObject({
+      title: "Staff Engineer",
+      subtitle: "Analytical Engines",
+    });
+    expect(state.education[0]).toMatchObject({
+      title: "M.S. Computer Science",
+      subtitle: "Example University",
+    });
     expect(state.projects[0]).toMatchObject({ title: "Compiler", subtitle: "TypeScript" });
   });
 
   it("keeps skills and overview content under common concise headings", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "Professional Overview",
-      "Platform engineer building dependable developer tools.",
-      "",
-      "Skills & Tools",
-      "TypeScript, React, systems design",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "Professional Overview",
+        "Platform engineer building dependable developer tools.",
+        "",
+        "Skills & Tools",
+        "TypeScript, React, systems design",
+      ].join("\n"),
+    );
 
     expect(state.summary).toBe("Platform engineer building dependable developer tools.");
     expect(state.skills).toBe("TypeScript, React, systems design");
   });
 
   it("keeps short technology acronyms inside skills instead of inventing sections", () => {
-    const state = importResumeText([
-      "Alex Sample",
-      "alex@example.com",
-      "",
-      "Skills",
-      "Python",
-      "SQL",
-      "Software: SQLite, MySQL",
-      "AWS",
-      "Tools: Lambda, S3",
-      "",
-      "Projects",
-      "Analytics Dashboard - Personal Project - April 2020",
-      "Analyzed customer trends and visualized the results.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Alex Sample",
+        "alex@example.com",
+        "",
+        "Skills",
+        "Python",
+        "SQL",
+        "Software: SQLite, MySQL",
+        "AWS",
+        "Tools: Lambda, S3",
+        "",
+        "Projects",
+        "Analytics Dashboard - Personal Project - April 2020",
+        "Analyzed customer trends and visualized the results.",
+      ].join("\n"),
+    );
 
     expect(state.skills).toContain("SQL\nSoftware: SQLite, MySQL\nAWS");
     expect(state.customSections).toEqual([]);
   });
 
   it("keeps recognized custom PDF headings out of experience", () => {
-    const state = importResumeText([
-      "Karan Pratap Singh",
-      "San Francisco, CA | contact@example.com",
-      "",
-      "EXPERIENCE",
-      "Software Engineer | Example Co. | 2024 - Present",
-      "• Built reliable systems.",
-      "",
-      "PUBLICATIONS",
-      "• Learn Go - Published Jan 2023.",
-      "",
-      "ACHIEVEMENTS",
-      "• Published 50+ technical articles.",
-      "",
-      "PROJECTS",
-      "• ScaleETL - High-performance CLI for large CSV datasets.",
-      "",
-      "EDUCATION",
-      "Bachelors of Technology | SRM Institute | 2017 - 2021",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Karan Pratap Singh",
+        "San Francisco, CA | contact@example.com",
+        "",
+        "EXPERIENCE",
+        "Software Engineer | Example Co. | 2024 - Present",
+        "• Built reliable systems.",
+        "",
+        "PUBLICATIONS",
+        "• Learn Go - Published Jan 2023.",
+        "",
+        "ACHIEVEMENTS",
+        "• Published 50+ technical articles.",
+        "",
+        "PROJECTS",
+        "• ScaleETL - High-performance CLI for large CSV datasets.",
+        "",
+        "EDUCATION",
+        "Bachelors of Technology | SRM Institute | 2017 - 2021",
+      ].join("\n"),
+    );
 
     expect(state.experience).toHaveLength(1);
-    expect(state.experience[0]).toMatchObject({ title: "Software Engineer", subtitle: "Example Co." });
-    expect(state.projects).toEqual([expect.objectContaining({ title: "ScaleETL", details: "High-performance CLI for large CSV datasets." })]);
-    expect(state.customSections).toEqual(expect.arrayContaining([
-      expect.objectContaining({ title: "Publications", entries: [expect.objectContaining({ title: "Learn Go" })] }),
-      expect.objectContaining({ title: "Achievements", entries: [expect.objectContaining({ title: "Published 50+ technical articles." })] }),
-    ]));
+    expect(state.experience[0]).toMatchObject({
+      title: "Software Engineer",
+      subtitle: "Example Co.",
+    });
+    expect(state.projects).toEqual([
+      expect.objectContaining({
+        title: "ScaleETL",
+        details: "High-performance CLI for large CSV datasets.",
+      }),
+    ]);
+    expect(state.customSections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Publications",
+          entries: [expect.objectContaining({ title: "Learn Go" })],
+        }),
+        expect.objectContaining({
+          title: "Achievements",
+          entries: [expect.objectContaining({ title: "Published 50+ technical articles." })],
+        }),
+      ]),
+    );
   });
 
   it("preserves common specialty sections and unfamiliar all-caps headings", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "QUALIFICATIONS SUMMARY",
-      "Engineering leader with distributed-systems experience.",
-      "",
-      "TECHNICAL PROFICIENCIES",
-      "TypeScript, Go, PostgreSQL",
-      "",
-      "RESEARCH EXPERIENCE",
-      "Research Assistant | Example Lab | 2024 - Present",
-      "• Presented findings to 50 attendees.",
-      "",
-      "LEADERSHIP EXPERIENCE",
-      "President | Engineering Society | 2023 - 2024",
-      "• Organized mentorship events.",
-      "",
-      "SELECTED HIGHLIGHTS",
-      "• Coordinated a local technology workshop.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "QUALIFICATIONS SUMMARY",
+        "Engineering leader with distributed-systems experience.",
+        "",
+        "TECHNICAL PROFICIENCIES",
+        "TypeScript, Go, PostgreSQL",
+        "",
+        "RESEARCH EXPERIENCE",
+        "Research Assistant | Example Lab | 2024 - Present",
+        "• Presented findings to 50 attendees.",
+        "",
+        "LEADERSHIP EXPERIENCE",
+        "President | Engineering Society | 2023 - 2024",
+        "• Organized mentorship events.",
+        "",
+        "SELECTED HIGHLIGHTS",
+        "• Coordinated a local technology workshop.",
+      ].join("\n"),
+    );
 
     expect(state.summary).toBe("Engineering leader with distributed-systems experience.");
     expect(state.skills).toBe("TypeScript, Go, PostgreSQL");
-    expect(state.customSections).toEqual(expect.arrayContaining([
-      expect.objectContaining({ title: "Research Experience" }),
-      expect.objectContaining({ title: "Leadership & Activities" }),
-      expect.objectContaining({ title: "Selected Highlights" }),
-    ]));
+    expect(state.customSections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Research Experience" }),
+        expect.objectContaining({ title: "Leadership & Activities" }),
+        expect.objectContaining({ title: "Selected Highlights" }),
+      ]),
+    );
   });
 
   it("preserves content written inline with common resume section headings", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "Professional Summary: Platform engineer building dependable developer tools.",
-      "Skills: TypeScript, React, systems design",
-      "Experience: Staff Engineer | Analytical Engines | 2022–Present",
-      "• Built reliable systems.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "Professional Summary: Platform engineer building dependable developer tools.",
+        "Skills: TypeScript, React, systems design",
+        "Experience: Staff Engineer | Analytical Engines | 2022–Present",
+        "• Built reliable systems.",
+      ].join("\n"),
+    );
 
     expect(state).toMatchObject({
       summary: "Platform engineer building dependable developer tools.",
@@ -858,20 +1000,22 @@ describe("resume helpers", () => {
   });
 
   it("keeps adjacent dated roles separate when exported resumes put dates on their own line", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "Experience",
-      "Staff Engineer",
-      "Analytical Engines",
-      "Jan 2022 – Present",
-      "• Built reliable systems.",
-      "Software Engineer",
-      "Example Company",
-      "Jun 2018 – Dec 2021",
-      "• Improved deployment tooling.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "Experience",
+        "Staff Engineer",
+        "Analytical Engines",
+        "Jan 2022 – Present",
+        "• Built reliable systems.",
+        "Software Engineer",
+        "Example Company",
+        "Jun 2018 – Dec 2021",
+        "• Improved deployment tooling.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({
@@ -890,17 +1034,19 @@ describe("resume helpers", () => {
   });
 
   it("recognizes full numeric date ranges common in exported PDFs", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "",
-      "Experience",
-      "Software Engineer 02/05/2024 - Present",
-      "Example Co. San Francisco, CA",
-      "• Built reliable systems.",
-      "Senior Engineer 05/03/2023 - 01/26/2024",
-      "Previous Co. New York, NY",
-      "• Improved deployment tooling.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "",
+        "Experience",
+        "Software Engineer 02/05/2024 - Present",
+        "Example Co. San Francisco, CA",
+        "• Built reliable systems.",
+        "Senior Engineer 05/03/2023 - 01/26/2024",
+        "Previous Co. New York, NY",
+        "• Improved deployment tooling.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({ title: "Software Engineer", meta: "02/05/2024 - Present" }),
@@ -909,14 +1055,16 @@ describe("resume helpers", () => {
   });
 
   it("keeps a dated role when an employer-first PDF header puts the job title on its second line", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "",
-      "Experience",
-      "Northstar Labs | Seattle, WA",
-      "Senior Product Engineer | Feb 2022 – Present",
-      "• Led dependable platform work.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "",
+        "Experience",
+        "Northstar Labs | Seattle, WA",
+        "Senior Product Engineer | Feb 2022 – Present",
+        "• Led dependable platform work.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({
@@ -929,17 +1077,19 @@ describe("resume helpers", () => {
   });
 
   it("keeps adjacent employer-first headers separate when a PDF omits blank lines", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "",
-      "Experience",
-      "Northstar Labs | Seattle, WA",
-      "Senior Product Engineer | Feb 2022 – Present",
-      "• Led dependable platform work.",
-      "Example Co. | Remote",
-      "Software Engineer | Jun 2018 – Jan 2022",
-      "• Improved deployment tooling.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "",
+        "Experience",
+        "Northstar Labs | Seattle, WA",
+        "Senior Product Engineer | Feb 2022 – Present",
+        "• Led dependable platform work.",
+        "Example Co. | Remote",
+        "Software Engineer | Jun 2018 – Jan 2022",
+        "• Improved deployment tooling.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({
@@ -958,18 +1108,20 @@ describe("resume helpers", () => {
   });
 
   it("keeps adjacent role-first headers separate when organizations carry the dates", () => {
-    const state = importResumeText([
-      "Ankush Singh Gandhi",
-      "ankush@example.com",
-      "",
-      "Experience",
-      "Software Developer",
-      "Desi Diaries Pvt. Ltd. | Jaipur May 2023 – Present",
-      "• Built reliable mobile features.",
-      "Flutter Developer Intern",
-      "Desi Diaries Pvt. Ltd. | Jaipur Dec 2022 – May 2023",
-      "• Improved application performance.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ankush Singh Gandhi",
+        "ankush@example.com",
+        "",
+        "Experience",
+        "Software Developer",
+        "Desi Diaries Pvt. Ltd. | Jaipur May 2023 – Present",
+        "• Built reliable mobile features.",
+        "Flutter Developer Intern",
+        "Desi Diaries Pvt. Ltd. | Jaipur Dec 2022 – May 2023",
+        "• Improved application performance.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({
@@ -986,36 +1138,43 @@ describe("resume helpers", () => {
   });
 
   it("uses role words to normalize company-first headers and keeps wrapped metrics in their bullet", () => {
-    const state = importResumeText([
-      "Manish Example",
-      "manish@example.com",
-      "",
-      "Experience",
-      "ByteCraft Technologies | Software Wizard-1 August 2023 – Present",
-      "• Reduced production issues and assisted the debug team over",
-      "100 coffee breaks per month",
-      "• Crafted reusable services.",
-      "ByteCraft Technologies | Code Apprentice January 2023 – July 2023",
-      "• Automated releases.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Manish Example",
+        "manish@example.com",
+        "",
+        "Experience",
+        "ByteCraft Technologies | Software Wizard-1 August 2023 – Present",
+        "• Reduced production issues and assisted the debug team over",
+        "100 coffee breaks per month",
+        "• Crafted reusable services.",
+        "ByteCraft Technologies | Code Apprentice January 2023 – July 2023",
+        "• Automated releases.",
+      ].join("\n"),
+    );
 
-    expect(state.experience.map((entry) => entry.title)).toEqual(["Software Wizard-1", "Code Apprentice"]);
+    expect(state.experience.map((entry) => entry.title)).toEqual([
+      "Software Wizard-1",
+      "Code Apprentice",
+    ]);
     expect(state.experience[0].subtitle).toBe("ByteCraft Technologies");
     expect(state.experience[0].details).toContain("100 coffee breaks per month");
   });
 
   it("keeps inline language labels within a skills section", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "Skills",
-      "Languages: Python, C",
-      "Frameworks: React, Flutter",
-      "",
-      "Achievements",
-      "Awarded first place.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "Skills",
+        "Languages: Python, C",
+        "Frameworks: React, Flutter",
+        "",
+        "Achievements",
+        "Awarded first place.",
+      ].join("\n"),
+    );
 
     expect(state.skills).toContain("Languages: Python, C");
     expect(state.skills).toContain("Frameworks: React, Flutter");
@@ -1023,30 +1182,32 @@ describe("resume helpers", () => {
   });
 
   it("handles comma-style month dates, related projects, page counters, and DOI-like numbers", () => {
-    const state = importResumeText([
-      "Tesla Zhang",
-      "tesla@example.com | tesla.dev",
-      "",
-      "Education",
-      "B.S. in Computer Science at Example University Aug, 2018 – Dec, 2022",
-      "",
-      "Work Experience",
-      "JetBrains Research, Remote Jan, 2020 – Dec, 2020",
-      "Implemented language tooling.",
-      "PLCT Lab, Remote Dec, 2020 – Present",
-      "Built compiler infrastructure.",
-      "",
-      "Related Projects",
-      "Aya – A programming language",
-      "• Developed the type checker.",
-      "",
-      "Misc",
-      "Open-source contributor.",
-      "",
-      "Publications",
-      "A paper. doi:10.1145/3471875.3472991.",
-      "1 / 1",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Tesla Zhang",
+        "tesla@example.com | tesla.dev",
+        "",
+        "Education",
+        "B.S. in Computer Science at Example University Aug, 2018 – Dec, 2022",
+        "",
+        "Work Experience",
+        "JetBrains Research, Remote Jan, 2020 – Dec, 2020",
+        "Implemented language tooling.",
+        "PLCT Lab, Remote Dec, 2020 – Present",
+        "Built compiler infrastructure.",
+        "",
+        "Related Projects",
+        "Aya – A programming language",
+        "• Developed the type checker.",
+        "",
+        "Misc",
+        "Open-source contributor.",
+        "",
+        "Publications",
+        "A paper. doi:10.1145/3471875.3472991.",
+        "1 / 1",
+      ].join("\n"),
+    );
 
     expect(state.phone).toBe("");
     expect(state.education[0]).toMatchObject({
@@ -1054,27 +1215,35 @@ describe("resume helpers", () => {
       subtitle: "Example University",
       meta: "Aug, 2018 – Dec, 2022",
     });
-    expect(state.experience.map((entry) => entry.title)).toEqual(["JetBrains Research", "PLCT Lab"]);
+    expect(state.experience.map((entry) => entry.title)).toEqual([
+      "JetBrains Research",
+      "PLCT Lab",
+    ]);
     expect(state.projects[0].title).toBe("Aya");
-    expect(state.customSections.map((section) => section.title)).toEqual(["Additional Information", "Publications"]);
+    expect(state.customSections.map((section) => section.title)).toEqual([
+      "Additional Information",
+      "Publications",
+    ]);
     expect(state.customSections[1].entries[0].details).not.toContain("1 / 1");
   });
 
   it("handles Unicode date hyphens and wrapped bullets in repeated employer-first entries", () => {
-    const state = importResumeText([
-      "Matthew Cha",
-      "matthew@example.com",
-      "",
-      "Work Experience",
-      "Car Media Group Irvine, California",
-      "Web Developer November 2023 ‑ Present",
-      "• Rebuilt a responsive interface with reusable components and",
-      "Figma mockups in an Agile work environment",
-      "• Increased conversion by 30%.",
-      "Alpine IT Remote",
-      "Software Engineer Contractor June 2023 ‑ August 2023",
-      "• Implemented authentication and role management.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Matthew Cha",
+        "matthew@example.com",
+        "",
+        "Work Experience",
+        "Car Media Group Irvine, California",
+        "Web Developer November 2023 ‑ Present",
+        "• Rebuilt a responsive interface with reusable components and",
+        "Figma mockups in an Agile work environment",
+        "• Increased conversion by 30%.",
+        "Alpine IT Remote",
+        "Software Engineer Contractor June 2023 ‑ August 2023",
+        "• Implemented authentication and role management.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({
@@ -1092,18 +1261,20 @@ describe("resume helpers", () => {
   });
 
   it("splits repeated single-date entries even when Word list markers are not literal text", () => {
-    const state = importResumeText([
-      "Alex Sample",
-      "alex@example.com",
-      "",
-      "Projects",
-      "Market Analysis - Personal Project - April 2020",
-      "Analyzed 7,000 job listings.",
-      "Benefits Dashboard - Client Project - February 2020",
-      "Created a comparison dashboard.",
-      "sentiment analysis - Research Project - December 2019",
-      "Applied regression to airline reviews.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Alex Sample",
+        "alex@example.com",
+        "",
+        "Projects",
+        "Market Analysis - Personal Project - April 2020",
+        "Analyzed 7,000 job listings.",
+        "Benefits Dashboard - Client Project - February 2020",
+        "Created a comparison dashboard.",
+        "sentiment analysis - Research Project - December 2019",
+        "Applied regression to airline reviews.",
+      ].join("\n"),
+    );
 
     expect(state.projects.map((project) => project.title)).toEqual([
       "Market Analysis",
@@ -1113,22 +1284,24 @@ describe("resume helpers", () => {
   });
 
   it("preserves nested bullet details without turning them into experience entries or sections", () => {
-    const state = importResumeText([
-      "Sourabh Bajaj",
-      "sourabh@example.com",
-      "",
-      "Experience",
-      "• Google Mountain View, CA",
-      "Software Engineer Oct 2016 – Present",
-      "◦ TensorFlow : Built numerical-computing APIs.",
-      "◦ Course Dashboards : Built instructor surveying tools.",
-      "• Lucena Research Atlanta, GA",
-      "Data Scientist Summer 2012 and 2013",
-      "◦ QuantDesk : Built portfolio-management services.",
-      "",
-      "Projects",
-      "• QuantSoftware Toolkit : Open source financial-analysis library.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Sourabh Bajaj",
+        "sourabh@example.com",
+        "",
+        "Experience",
+        "• Google Mountain View, CA",
+        "Software Engineer Oct 2016 – Present",
+        "◦ TensorFlow : Built numerical-computing APIs.",
+        "◦ Course Dashboards : Built instructor surveying tools.",
+        "• Lucena Research Atlanta, GA",
+        "Data Scientist Summer 2012 and 2013",
+        "◦ QuantDesk : Built portfolio-management services.",
+        "",
+        "Projects",
+        "• QuantSoftware Toolkit : Open source financial-analysis library.",
+      ].join("\n"),
+    );
 
     expect(state.experience).toEqual([
       expect.objectContaining({
@@ -1144,25 +1317,30 @@ describe("resume helpers", () => {
       }),
     ]);
     expect(state.projects).toEqual([
-      expect.objectContaining({ title: "QuantSoftware Toolkit", details: "Open source financial-analysis library." }),
+      expect.objectContaining({
+        title: "QuantSoftware Toolkit",
+        details: "Open source financial-analysis library.",
+      }),
     ]);
     expect(state.customSections).toEqual([]);
   });
 
   it("inherits an employer printed once above consecutive dated roles", () => {
-    const state = importResumeText([
-      "Nicholas DeSteffen",
-      "nick@example.com",
-      "",
-      "Professional Experience",
-      "BenchPrep Chicago, IL",
-      "Director of Engineering Jan 2020 – Present",
-      "• Directed the engineering department.",
-      "Lead Software Engineer Jan 2016 – Jan 2020",
-      "• Led the engineering team.",
-      "Senior Software Engineer Jan 2012 – Jan 2016",
-      "• Built the platform.",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Nicholas DeSteffen",
+        "nick@example.com",
+        "",
+        "Professional Experience",
+        "BenchPrep Chicago, IL",
+        "Director of Engineering Jan 2020 – Present",
+        "• Directed the engineering department.",
+        "Lead Software Engineer Jan 2016 – Jan 2020",
+        "• Led the engineering team.",
+        "Senior Software Engineer Jan 2012 – Jan 2016",
+        "• Built the platform.",
+      ].join("\n"),
+    );
 
     expect(state.experience.map(({ title, subtitle }) => ({ title, subtitle }))).toEqual([
       { title: "Director of Engineering", subtitle: "BenchPrep Chicago, IL" },
@@ -1172,35 +1350,45 @@ describe("resume helpers", () => {
   });
 
   it("attaches a shared school to consecutive dated degrees", () => {
-    const state = importResumeText([
-      "Daniel Phang",
-      "daniel@example.com",
-      "",
-      "Education",
-      "Lehigh University Bethlehem, PA",
-      "M.S. Computer Science August 2013 – May 2014",
-      "B.S. Computer Engineering August 2009 – May 2013",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Daniel Phang",
+        "daniel@example.com",
+        "",
+        "Education",
+        "Lehigh University Bethlehem, PA",
+        "M.S. Computer Science August 2013 – May 2014",
+        "B.S. Computer Engineering August 2009 – May 2013",
+      ].join("\n"),
+    );
 
     expect(state.education).toEqual([
-      expect.objectContaining({ title: "M.S. Computer Science", subtitle: "Lehigh University Bethlehem, PA" }),
-      expect.objectContaining({ title: "B.S. Computer Engineering", subtitle: "Lehigh University Bethlehem, PA" }),
+      expect.objectContaining({
+        title: "M.S. Computer Science",
+        subtitle: "Lehigh University Bethlehem, PA",
+      }),
+      expect.objectContaining({
+        title: "B.S. Computer Engineering",
+        subtitle: "Lehigh University Bethlehem, PA",
+      }),
     ]);
   });
 
   it("keeps compact education entries separate when their standalone dates have no bullets", () => {
-    const state = importResumeText([
-      "Ada Lovelace",
-      "ada@example.com",
-      "",
-      "Education",
-      "Master of Science in Computer Science",
-      "University of Example",
-      "2016 – 2018",
-      "Bachelor of Science in Mathematics",
-      "Example College",
-      "2012 – 2016",
-    ].join("\n"));
+    const state = importResumeText(
+      [
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "Education",
+        "Master of Science in Computer Science",
+        "University of Example",
+        "2016 – 2018",
+        "Bachelor of Science in Mathematics",
+        "Example College",
+        "2012 – 2016",
+      ].join("\n"),
+    );
 
     expect(state.education).toEqual([
       expect.objectContaining({
@@ -1229,9 +1417,15 @@ describe("resume helpers", () => {
     const state = importResumeText(sourceText);
     const review = buildImportReview(state, "pasted resume text", sourceText);
 
-    expect(importSourceExcerpt(sourceText, ["Engineer", "Analytical Engines"])).toContain("Engineer | Analytical Engines | 2022–Present");
-    expect(review.items.find((item) => item.id === "contact")?.sourceExcerpt).toContain("Ada Lovelace");
-    expect(review.items.find((item) => item.id === "experience-0")?.sourceExcerpt).toContain("Built reliable systems.");
+    expect(importSourceExcerpt(sourceText, ["Engineer", "Analytical Engines"])).toContain(
+      "Engineer | Analytical Engines | 2022–Present",
+    );
+    expect(review.items.find((item) => item.id === "contact")?.sourceExcerpt).toContain(
+      "Ada Lovelace",
+    );
+    expect(review.items.find((item) => item.id === "experience-0")?.sourceExcerpt).toContain(
+      "Built reliable systems.",
+    );
   });
 
   it("rejects an empty pasted resume", () => {
@@ -1246,7 +1440,9 @@ describe("resume helpers", () => {
       remainingCount: review.items.length,
       isComplete: false,
     });
-    expect(importReviewProgress({ ...review, reviewedItemIds: review.items.map((item) => item.id) })).toMatchObject({
+    expect(
+      importReviewProgress({ ...review, reviewedItemIds: review.items.map((item) => item.id) }),
+    ).toMatchObject({
       reviewedCount: review.items.length,
       remainingCount: 0,
       isComplete: true,
@@ -1269,13 +1465,19 @@ describe("resume helpers", () => {
     expect(stored.sourceText).toBe(sourceText);
     expect(stored.draftFingerprint).toMatch(/^.+-.+-.+$/);
     expect(restored).toMatchObject({ fileName: "ada-resume.txt", reviewedItemIds: ["contact"] });
-    expect(restored?.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: "contact" })]));
+    expect(restored?.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "contact" })]),
+    );
     expect(restored?.sourceText).toBe(sourceText);
-    expect(restored?.coverage?.find((item) => item.id === "experience")?.sourceExcerpt).toContain("Built reliable systems.");
+    expect(restored?.coverage?.find((item) => item.id === "experience")?.sourceExcerpt).toContain(
+      "Built reliable systems.",
+    );
   });
 
   it("rejects malformed persisted import-review metadata", () => {
-    expect(parseStoredImportReview('{"fileName":"resume.pdf","items":[{"id":"contact"}]}')).toBeNull();
+    expect(
+      parseStoredImportReview('{"fileName":"resume.pdf","items":[{"id":"contact"}]}'),
+    ).toBeNull();
     expect(parseStoredImportReview("not json")).toBeNull();
   });
 
@@ -1293,31 +1495,53 @@ describe("resume helpers", () => {
       meta: "2014 - 2018",
       details: "",
     });
-    state.customSections = [{
-      id: "custom-certifications",
-      title: "Certifications",
-      entries: [{
-        title: "Certified Kubernetes Administrator",
-        subtitle: "Cloud Native Computing Foundation",
-        meta: "2026",
-        details: "Validated Kubernetes administration skills.",
-      }],
-    }];
+    state.customSections = [
+      {
+        id: "custom-certifications",
+        title: "Certifications",
+        entries: [
+          {
+            title: "Certified Kubernetes Administrator",
+            subtitle: "Cloud Native Computing Foundation",
+            meta: "2026",
+            details: "Validated Kubernetes administration skills.",
+          },
+        ],
+      },
+    ];
     state.sectionOrder.push("custom-certifications");
 
     const review = buildImportReview(state, "resume.pdf");
 
-    expect(review.items).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: "experience-0", label: "Experience entry 1", targetId: "field-experience-0-title" }),
-      expect.objectContaining({ id: "experience-1", label: "Experience entry 2", targetId: "field-experience-1-title" }),
-      expect.objectContaining({ id: "education-0", label: "Education entry 1", targetId: "field-education-0-title" }),
-      expect.objectContaining({ id: "education-1", label: "Education entry 2", targetId: "field-education-1-title" }),
-      expect.objectContaining({
-        id: "custom-certifications-0",
-        label: "Certifications entry 1",
-        targetId: "field-custom-certifications-0-title",
-      }),
-    ]));
+    expect(review.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "experience-0",
+          label: "Experience entry 1",
+          targetId: "field-experience-0-title",
+        }),
+        expect.objectContaining({
+          id: "experience-1",
+          label: "Experience entry 2",
+          targetId: "field-experience-1-title",
+        }),
+        expect.objectContaining({
+          id: "education-0",
+          label: "Education entry 1",
+          targetId: "field-education-0-title",
+        }),
+        expect.objectContaining({
+          id: "education-1",
+          label: "Education entry 2",
+          targetId: "field-education-1-title",
+        }),
+        expect.objectContaining({
+          id: "custom-certifications-0",
+          label: "Certifications entry 1",
+          targetId: "field-custom-certifications-0-title",
+        }),
+      ]),
+    );
     expect(importReviewProgress({ ...review, reviewedItemIds: ["experience-0"] })).toMatchObject({
       reviewedCount: 1,
       remainingCount: review.items.length - 1,
@@ -1328,30 +1552,68 @@ describe("resume helpers", () => {
     const state = emptyState();
     state.name = "Ada Lovelace";
     state.email = "ada@example.com";
-    state.experience = [{ title: "Engineer", subtitle: "Example Co.", meta: "2022 - Present", details: "Built reliable systems." }];
+    state.experience = [
+      {
+        title: "Engineer",
+        subtitle: "Example Co.",
+        meta: "2022 - Present",
+        details: "Built reliable systems.",
+      },
+    ];
 
     const coverage = buildImportCoverage(state);
 
-    expect(coverage).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: "header", detected: true, detail: "Name and 1 contact detail detected" }),
-      expect.objectContaining({ id: "experience", detected: true, detail: "1 entry detected", targetId: "field-experience-0-title" }),
-      expect.objectContaining({ id: "education", detected: false, detail: "No education entries detected", targetId: "add-education-entry" }),
-      expect.objectContaining({ id: "skills", detected: false, detail: "No skills detected", targetId: "review-region-skills" }),
-    ]));
+    expect(coverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "header",
+          detected: true,
+          detail: "Name and 1 contact detail detected",
+        }),
+        expect.objectContaining({
+          id: "experience",
+          detected: true,
+          detail: "1 entry detected",
+          targetId: "field-experience-0-title",
+        }),
+        expect.objectContaining({
+          id: "education",
+          detected: false,
+          detail: "No education entries detected",
+          targetId: "add-education-entry",
+        }),
+        expect.objectContaining({
+          id: "skills",
+          detected: false,
+          detail: "No skills detected",
+          targetId: "review-region-skills",
+        }),
+      ]),
+    );
   });
 
   it("calls out recognizable core and specialty source sections that produced no draft content", () => {
     const state = emptyState();
     state.name = "Ada Lovelace";
-    state.experience = [{ title: "Engineer", subtitle: "Example Co.", meta: "2022 - Present", details: "Built reliable systems." }];
+    state.experience = [
+      {
+        title: "Engineer",
+        subtitle: "Example Co.",
+        meta: "2022 - Present",
+        details: "Built reliable systems.",
+      },
+    ];
 
-    const coverage = buildImportCoverage(state, [
-      "Ada Lovelace",
-      "Experience",
-      "Engineer | Example Co. | 2022 - Present",
-      "Education",
-      "Certifications",
-    ].join("\n"));
+    const coverage = buildImportCoverage(
+      state,
+      [
+        "Ada Lovelace",
+        "Experience",
+        "Engineer | Example Co. | 2022 - Present",
+        "Education",
+        "Certifications",
+      ].join("\n"),
+    );
 
     expect(coverage.find((item) => item.id === "education")).toMatchObject({
       detected: false,
@@ -1390,15 +1652,23 @@ describe("resume helpers", () => {
     const state = importResumeText(sourceText);
     const coverage = buildImportCoverage(state, sourceText);
 
-    expect(importSectionExcerpt(sourceText, "experience")).toBe([
-      "Experience",
-      "Engineer | Example Co. | 2022 - Present",
-      "• Built reliable systems.",
-      "• Improved incident response.",
-    ].join("\n"));
-    expect(coverage.find((item) => item.id === "education")?.sourceExcerpt).toContain("Example University");
-    expect(coverage.find((item) => item.id === "skills")?.sourceExcerpt).toBe("Skills\nTypeScript, React, accessibility");
-    expect(coverage.find((item) => item.id === "custom-certifications")?.sourceExcerpt).toBe("Certifications\nAWS Certified Developer");
+    expect(importSectionExcerpt(sourceText, "experience")).toBe(
+      [
+        "Experience",
+        "Engineer | Example Co. | 2022 - Present",
+        "• Built reliable systems.",
+        "• Improved incident response.",
+      ].join("\n"),
+    );
+    expect(coverage.find((item) => item.id === "education")?.sourceExcerpt).toContain(
+      "Example University",
+    );
+    expect(coverage.find((item) => item.id === "skills")?.sourceExcerpt).toBe(
+      "Skills\nTypeScript, React, accessibility",
+    );
+    expect(coverage.find((item) => item.id === "custom-certifications")?.sourceExcerpt).toBe(
+      "Certifications\nAWS Certified Developer",
+    );
   });
 
   it("preserves intentionally removed default sections while normalizing legacy JSON", () => {
@@ -1413,11 +1683,20 @@ describe("resume helpers", () => {
   it("preserves editable headings and custom sections while normalizing", () => {
     const state = normalizeResume({
       sectionTitles: { experience: "Selected Experience" },
-      customSections: [{
-        id: "custom-publications",
-        title: "Publications",
-        entries: [{ title: "Reliable Interfaces", subtitle: "ACM", meta: "2025", details: "Published with 3 collaborators." }],
-      }],
+      customSections: [
+        {
+          id: "custom-publications",
+          title: "Publications",
+          entries: [
+            {
+              title: "Reliable Interfaces",
+              subtitle: "ACM",
+              meta: "2025",
+              details: "Published with 3 collaborators.",
+            },
+          ],
+        },
+      ],
       sectionOrder: ["experience", "custom-publications", "skills"],
     });
 
@@ -1440,7 +1719,14 @@ describe("resume helpers", () => {
   it("keeps intentionally blank section titles blank in saved resumes and plain text", () => {
     const state = normalizeResume({
       sectionTitles: { experience: "" },
-      experience: [{ title: "Engineer", subtitle: "Example Co.", meta: "2025", details: "Built reliable systems." }],
+      experience: [
+        {
+          title: "Engineer",
+          subtitle: "Example Co.",
+          meta: "2025",
+          details: "Built reliable systems.",
+        },
+      ],
       sectionOrder: ["experience"],
     });
 
@@ -1455,7 +1741,9 @@ describe("resume helpers", () => {
 
     expect(text).toContain("John Doe");
     expect(text.indexOf("Education")).toBeLessThan(text.indexOf("Experience"));
-    expect(text).toContain("- Rebuilt intake and prioritization across four teams, reducing request turnaround by 35%.");
+    expect(text).toContain(
+      "- Rebuilt intake and prioritization across four teams, reducing request turnaround by 35%.",
+    );
   });
 
   it("builds useful export-readiness checks", () => {
@@ -1467,8 +1755,12 @@ describe("resume helpers", () => {
   });
 
   it("keeps a two-page resume as an advisory instead of an export failure", () => {
-    const twoPageLength = buildResumeChecks(sampleState(), 2).find((check) => check.id === "length");
-    const threePageLength = buildResumeChecks(sampleState(), 3).find((check) => check.id === "length");
+    const twoPageLength = buildResumeChecks(sampleState(), 2).find(
+      (check) => check.id === "length",
+    );
+    const threePageLength = buildResumeChecks(sampleState(), 3).find(
+      (check) => check.id === "length",
+    );
 
     expect(twoPageLength).toMatchObject({
       ok: true,
@@ -1518,7 +1810,8 @@ describe("resume helpers", () => {
 
   it("flags experience and project bullets that lack enough measurable evidence", () => {
     const state = sampleState();
-    state.experience[0].details = "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.";
+    state.experience[0].details =
+      "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.";
     const evidence = buildResumeChecks(state, 1).find((check) => check.id === "evidence");
 
     expect(evidence).toMatchObject({
@@ -1532,7 +1825,9 @@ describe("resume helpers", () => {
 
   it("summarizes the specific bullets that could use stronger evidence", () => {
     expect(
-      summarizeEvidence("Migrated the payment flow for 2 teams.\nMentored engineers through a release.\nReduced support tickets by 30%."),
+      summarizeEvidence(
+        "Migrated the payment flow for 2 teams.\nMentored engineers through a release.\nReduced support tickets by 30%.",
+      ),
     ).toEqual({
       bulletCount: 3,
       measuredCount: 2,
@@ -1542,7 +1837,9 @@ describe("resume helpers", () => {
 
   it("flags only clearly vague bullet openings without judging the achievement", () => {
     expect(
-      summarizeBulletOpenings("Responsible for release planning.\nWorked on a migration for 3 teams.\nBuilt a new billing flow.\nAssisted in customer interviews."),
+      summarizeBulletOpenings(
+        "Responsible for release planning.\nWorked on a migration for 3 teams.\nBuilt a new billing flow.\nAssisted in customer interviews.",
+      ),
     ).toEqual({
       bulletCount: 4,
       vagueOpeningIndexes: [0, 1, 3],
@@ -1583,7 +1880,9 @@ describe("resume helpers", () => {
   it("targets an invalid optional header link after required contact details are complete", () => {
     const state = {
       ...sampleState(),
-      headerLinks: [{ id: "linkedin", label: "LinkedIn", url: "linkedin profile", icon: "linkedin" as const }],
+      headerLinks: [
+        { id: "linkedin", label: "LinkedIn", url: "linkedin profile", icon: "linkedin" as const },
+      ],
     };
     const contact = buildResumeChecks(state, 1).find((check) => check.id === "contact");
 
@@ -1599,7 +1898,9 @@ describe("resume helpers", () => {
     const edited = { ...exported, summary: `${exported.summary} Edited.` };
     const resized = { ...exported, textScale: 0.9 };
 
-    expect(resumeExportFingerprint(exported)).toBe(resumeExportFingerprint(normalizeResume(exported)));
+    expect(resumeExportFingerprint(exported)).toBe(
+      resumeExportFingerprint(normalizeResume(exported)),
+    );
     expect(resumeExportFingerprint(edited)).not.toBe(resumeExportFingerprint(exported));
     expect(resumeExportFingerprint(resized)).not.toBe(resumeExportFingerprint(exported));
   });
@@ -1615,9 +1916,21 @@ describe("resume helpers", () => {
 
     expect(exportChangeSummary(exported, edited)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "contact", label: "Header changed", targetId: "field-phone" }),
-        expect.objectContaining({ id: "summary", label: "Summary changed", targetId: "field-summary" }),
-        expect.objectContaining({ id: "text-size", label: "Text size changed", targetId: "resume-text-scale" }),
+        expect.objectContaining({
+          id: "contact",
+          label: "Header changed",
+          targetId: "field-phone",
+        }),
+        expect.objectContaining({
+          id: "summary",
+          label: "Summary changed",
+          targetId: "field-summary",
+        }),
+        expect.objectContaining({
+          id: "text-size",
+          label: "Text size changed",
+          targetId: "resume-text-scale",
+        }),
       ]),
     );
   });
@@ -1695,7 +2008,9 @@ describe("resume helpers", () => {
       ),
     };
 
-    expect(exportChangeSummary(exported, edited).find((change) => change.id === "experience")).toMatchObject({
+    expect(
+      exportChangeSummary(exported, edited).find((change) => change.id === "experience"),
+    ).toMatchObject({
       detail: "2 fields edited",
       targetId: "field-experience-0-title",
       fieldLabels: ["Entry 1 Job title", "Entry 1 Achievements"],
@@ -1709,14 +2024,17 @@ describe("resume helpers", () => {
   });
 
   it("parses every checkpoint in a version-history backup", () => {
-    const checkpoints = Array.from({ length: 7 }, (_, index): VersionHistoryItem => ({
-      id: `${index}`,
-      savedAt: `2026-07-0${index + 1}T12:00:00.000Z`,
-      label: `Draft ${index}`,
-      fingerprint: `fingerprint-${index}`,
-      state: sampleState(),
-      importReview: null,
-    }));
+    const checkpoints = Array.from(
+      { length: 7 },
+      (_, index): VersionHistoryItem => ({
+        id: `${index}`,
+        savedAt: `2026-07-0${index + 1}T12:00:00.000Z`,
+        label: `Draft ${index}`,
+        fingerprint: `fingerprint-${index}`,
+        state: sampleState(),
+        importReview: null,
+      }),
+    );
 
     expect(
       parseVersionHistoryBackup({
@@ -1730,17 +2048,19 @@ describe("resume helpers", () => {
 
   it("keeps separate resume-library documents and checkpoint timelines well formed", () => {
     const resume = sampleState();
-    const library = parseResumeLibrary(JSON.stringify([
-      {
-        id: "resume-product",
-        label: "Product roles",
-        createdAt: "2026-07-10T12:00:00.000Z",
-        updatedAt: "2026-07-11T12:00:00.000Z",
-        state: resume,
-        importReview: null,
-      },
-      { id: "resume-product", label: "Duplicate id" },
-    ]));
+    const library = parseResumeLibrary(
+      JSON.stringify([
+        {
+          id: "resume-product",
+          label: "Product roles",
+          createdAt: "2026-07-10T12:00:00.000Z",
+          updatedAt: "2026-07-11T12:00:00.000Z",
+          state: resume,
+          importReview: null,
+        },
+        { id: "resume-product", label: "Duplicate id" },
+      ]),
+    );
     expect(library).toHaveLength(1);
     expect(library[0]).toMatchObject({ id: "resume-product", label: "Product roles" });
 
@@ -1752,29 +2072,39 @@ describe("resume helpers", () => {
       state: resume,
       importReview: null,
     };
-    expect(parseCheckpointHistory(JSON.stringify({ "resume-product": [checkpoint] }))).toMatchObject({
-      "resume-product": [expect.objectContaining({ id: "checkpoint-1", label: "Before tailoring" })],
+    expect(
+      parseCheckpointHistory(JSON.stringify({ "resume-product": [checkpoint] })),
+    ).toMatchObject({
+      "resume-product": [
+        expect.objectContaining({ id: "checkpoint-1", label: "Before tailoring" }),
+      ],
     });
   });
 
   it("limits automatic checkpoints without removing manual checkpoints", () => {
     const resume = sampleState();
-    const manual = Array.from({ length: 25 }, (_, index): VersionHistoryItem => ({
-      id: `manual-${index}`,
-      savedAt: `2026-07-11T12:${String(index).padStart(2, "0")}:00.000Z`,
-      label: `Manual ${index}`,
-      fingerprint: `manual-${index}`,
-      state: resume,
-      importReview: null,
-    }));
-    const automatic = Array.from({ length: 24 }, (_, index): VersionHistoryItem => ({
-      id: `${index % 2 ? "autosave-slot" : "auto-checkpoint"}-${index}`,
-      savedAt: `2026-07-11T11:${String(index).padStart(2, "0")}:00.000Z`,
-      label: `Automatic ${index}`,
-      fingerprint: `automatic-${index}`,
-      state: resume,
-      importReview: null,
-    }));
+    const manual = Array.from(
+      { length: 25 },
+      (_, index): VersionHistoryItem => ({
+        id: `manual-${index}`,
+        savedAt: `2026-07-11T12:${String(index).padStart(2, "0")}:00.000Z`,
+        label: `Manual ${index}`,
+        fingerprint: `manual-${index}`,
+        state: resume,
+        importReview: null,
+      }),
+    );
+    const automatic = Array.from(
+      { length: 24 },
+      (_, index): VersionHistoryItem => ({
+        id: `${index % 2 ? "autosave-slot" : "auto-checkpoint"}-${index}`,
+        savedAt: `2026-07-11T11:${String(index).padStart(2, "0")}:00.000Z`,
+        label: `Automatic ${index}`,
+        fingerprint: `automatic-${index}`,
+        state: resume,
+        importReview: null,
+      }),
+    );
 
     const limited = limitAutomaticCheckpoints([...automatic, ...manual]);
 
@@ -1821,7 +2151,16 @@ describe("resume helpers", () => {
     const review = buildImportReview(state, "resume.pdf");
 
     expect(review.fileName).toBe("resume.pdf");
-    expect(review.sections).toEqual(expect.arrayContaining(["Header", "Summary", "Experience", "Education", "Projects", "Skills"]));
+    expect(review.sections).toEqual(
+      expect.arrayContaining([
+        "Header",
+        "Summary",
+        "Experience",
+        "Education",
+        "Projects",
+        "Skills",
+      ]),
+    );
     expect(review.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "contact", targetId: "field-name" }),

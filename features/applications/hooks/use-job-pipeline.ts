@@ -11,7 +11,13 @@ import {
   type JobApplicationUpdate,
   type JobPipelineBackup,
 } from "@/lib/job-application-db";
-import type { ApplicationEvent, JobApplicationDraft, JobApplicationStatus, JobPipelineData } from "@/lib/job-applications";
+import { trackJobApplicationCreated } from "@/lib/job-application-metrics";
+import type {
+  ApplicationEvent,
+  JobApplicationDraft,
+  JobApplicationStatus,
+  JobPipelineData,
+} from "@/lib/job-applications";
 
 const EMPTY_PIPELINE: JobPipelineData = {
   applications: [],
@@ -66,33 +72,43 @@ export function useJobPipeline() {
     channelRef.current?.postMessage({ type: "changed" });
   }, [refresh]);
 
-  const mutate = useCallback(async <T,>(operation: () => Promise<T>) => {
-    setSaving(true);
-    setStorageError(null);
-    try {
-      const result = await operation();
-      await finishMutation();
-      return result;
-    } catch (error) {
-      setStorageError(errorMessage(error));
-      throw error;
-    } finally {
-      setSaving(false);
-    }
-  }, [finishMutation]);
+  const mutate = useCallback(
+    async <T>(operation: () => Promise<T>) => {
+      setSaving(true);
+      setStorageError(null);
+      try {
+        const result = await operation();
+        await finishMutation();
+        return result;
+      } catch (error) {
+        setStorageError(errorMessage(error));
+        throw error;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [finishMutation],
+  );
 
   const createApplication = useCallback(
-    (draft: JobApplicationDraft) => mutate(() => createStoredJobApplication(draft)),
+    (draft: JobApplicationDraft) =>
+      mutate(async () => {
+        const application = await createStoredJobApplication(draft);
+        trackJobApplicationCreated();
+        return application;
+      }),
     [mutate],
   );
 
   const updateApplication = useCallback(
-    (applicationId: string, update: JobApplicationUpdate) => mutate(() => updateStoredJobApplication(applicationId, update)),
+    (applicationId: string, update: JobApplicationUpdate) =>
+      mutate(() => updateStoredJobApplication(applicationId, update)),
     [mutate],
   );
 
   const moveApplication = useCallback(
-    (applicationId: string, status: JobApplicationStatus) => updateApplication(applicationId, { status }),
+    (applicationId: string, status: JobApplicationStatus) =>
+      updateApplication(applicationId, { status }),
     [updateApplication],
   );
 
@@ -106,10 +122,7 @@ export function useJobPipeline() {
     [mutate],
   );
 
-  const clearPipeline = useCallback(
-    () => mutate(clearStoredJobPipelineData),
-    [mutate],
-  );
+  const clearPipeline = useCallback(() => mutate(clearStoredJobPipelineData), [mutate]);
 
   const jobSnapshotsByApplication = useMemo(
     () => new Map(data.jobSnapshots.map((snapshot) => [snapshot.applicationId, snapshot])),
@@ -123,7 +136,9 @@ export function useJobPipeline() {
       events.push(event);
       byApplication.set(event.applicationId, events);
     });
-    byApplication.forEach((events) => events.sort((left, right) => right.occurredAt.localeCompare(left.occurredAt)));
+    byApplication.forEach((events) =>
+      events.sort((left, right) => right.occurredAt.localeCompare(left.occurredAt)),
+    );
     return byApplication;
   }, [data.events]);
 

@@ -113,7 +113,7 @@ export function useResumePersistence({
         const { workspace, migrated } = await loadOrMigrateResumeWorkspace(legacy);
         if (cancelled) return;
         const activeHistory = workspace.activeResumeId
-          ? workspace.checkpointHistoryByResume[workspace.activeResumeId] ?? []
+          ? (workspace.checkpointHistoryByResume[workspace.activeResumeId] ?? [])
           : [];
         setResumeLibrary(workspace.resumeLibrary);
         setActiveResumeId(workspace.activeResumeId);
@@ -125,13 +125,21 @@ export function useResumePersistence({
         setImportReview(workspace.activeReview);
         try {
           localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(workspace.resumeLibrary));
-          if (workspace.activeResumeId) localStorage.setItem(ACTIVE_RESUME_KEY, workspace.activeResumeId);
+          if (workspace.activeResumeId)
+            localStorage.setItem(ACTIVE_RESUME_KEY, workspace.activeResumeId);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace.activeState));
           localStorage.setItem(AUTOSAVE_TIME_KEY, workspace.activeUpdatedAt);
-          if (workspace.activeReview) localStorage.setItem(IMPORT_REVIEW_KEY, JSON.stringify(storedImportReview(workspace.activeReview)));
+          if (workspace.activeReview)
+            localStorage.setItem(
+              IMPORT_REVIEW_KEY,
+              JSON.stringify(storedImportReview(workspace.activeReview)),
+            );
           else localStorage.removeItem(IMPORT_REVIEW_KEY);
           if (Object.keys(workspace.checkpointHistoryByResume).length) {
-            localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(workspace.checkpointHistoryByResume));
+            localStorage.setItem(
+              CHECKPOINT_HISTORY_KEY,
+              JSON.stringify(workspace.checkpointHistoryByResume),
+            );
           } else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
           mirrorLegacyActiveHistory(activeHistory);
           if (migrated) localStorage.removeItem(VERSION_HISTORY_KEY);
@@ -147,7 +155,7 @@ export function useResumePersistence({
           try {
             const workspace = buildLegacyResumeWorkspace(legacy);
             const activeHistory = workspace.activeResumeId
-              ? workspace.checkpointHistoryByResume[workspace.activeResumeId] ?? []
+              ? (workspace.checkpointHistoryByResume[workspace.activeResumeId] ?? [])
               : [];
             setResumeLibrary(workspace.resumeLibrary);
             setActiveResumeId(workspace.activeResumeId);
@@ -173,15 +181,33 @@ export function useResumePersistence({
       }
     };
     void hydrate();
-    return () => { cancelled = true; };
-  }, [confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue, setActiveResumeId, setAutosavedAt, setAutosavedState, setCheckpointHistoryByResume, setImportReview, setLoaded, setResumeLibrary, setState, setVersionHistory, skipNextAutosaveRef]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    confirmStorageAvailable,
+    mirrorLegacyActiveHistory,
+    reportStorageIssue,
+    setActiveResumeId,
+    setAutosavedAt,
+    setAutosavedState,
+    setCheckpointHistoryByResume,
+    setImportReview,
+    setLoaded,
+    setResumeLibrary,
+    setState,
+    setVersionHistory,
+    skipNextAutosaveRef,
+  ]);
 
   useEffect(() => {
     const handleExternalDraft = (event: StorageEvent) => {
-      if (event.storageArea !== localStorage || event.key !== STORAGE_KEY || !event.newValue) return;
+      if (event.storageArea !== localStorage || event.key !== STORAGE_KEY || !event.newValue)
+        return;
       try {
         const nextDraft = normalizeResume(JSON.parse(event.newValue));
-        if (resumeExportFingerprint(nextDraft) !== resumeExportFingerprint(state)) setExternalDraft(nextDraft);
+        if (resumeExportFingerprint(nextDraft) !== resumeExportFingerprint(state))
+          setExternalDraft(nextDraft);
       } catch {
         // Never replace the open draft with a malformed external value.
       }
@@ -212,25 +238,32 @@ export function useResumePersistence({
       let nextActiveId = activeResumeId;
       let nextLibrary = resumeLibraryRef.current;
       if (activeResumeId) {
-        nextLibrary = nextLibrary.map((item) => item.id === activeResumeId
-          ? {
-              ...item,
-              label: item.label === "Untitled resume" && hasAnyContent(state) ? versionLabel(state) : item.label,
-              updatedAt: savedAt,
-              state: normalizedState,
-              importReview,
-            }
-          : item);
+        nextLibrary = nextLibrary.map((item) =>
+          item.id === activeResumeId
+            ? {
+                ...item,
+                label:
+                  item.label === "Untitled resume" && hasAnyContent(state)
+                    ? versionLabel(state)
+                    : item.label,
+                updatedAt: savedAt,
+                state: normalizedState,
+                importReview,
+              }
+            : item,
+        );
       } else {
         nextActiveId = `resume-${Date.now().toString(36)}`;
-        nextLibrary = [{
-          id: nextActiveId,
-          label: versionLabel(state),
-          createdAt: savedAt,
-          updatedAt: savedAt,
-          state: normalizedState,
-          importReview,
-        }];
+        nextLibrary = [
+          {
+            id: nextActiveId,
+            label: versionLabel(state),
+            createdAt: savedAt,
+            updatedAt: savedAt,
+            state: normalizedState,
+            importReview,
+          },
+        ];
         setActiveResumeId(nextActiveId);
       }
       setResumeLibrary(nextLibrary);
@@ -242,34 +275,54 @@ export function useResumePersistence({
       } catch {
         // IndexedDB below remains authoritative when a compatibility mirror exceeds quota.
       }
-      void saveResumeLibrary(nextLibrary, nextActiveId, savedAt).then(() => {
-        confirmStorageAvailable();
-        setAutosavedState(normalizedState);
-        setAutosavedAt(savedAt);
-        setAutosaveStatus("saved");
-        if (
-          nextActiveId &&
-          hasAnyContent(state) &&
-          Date.now() - lastAutomaticCheckpointAtRef.current >= PERIODIC_CHECKPOINT_INTERVAL_MS
-        ) {
-          automaticCheckpointRef.current({
-            idPrefix: "auto-checkpoint",
-            label: `Auto · ${versionLabel(state)}`,
-            note: "Saved automatically after 10 minutes of continued editing.",
-          });
-        }
-      }).catch(() => {
-        reportStorageIssue();
-        setAutosaveStatus("conflict");
-      });
+      void saveResumeLibrary(nextLibrary, nextActiveId, savedAt)
+        .then(() => {
+          confirmStorageAvailable();
+          setAutosavedState(normalizedState);
+          setAutosavedAt(savedAt);
+          setAutosaveStatus("saved");
+          if (
+            nextActiveId &&
+            hasAnyContent(state) &&
+            Date.now() - lastAutomaticCheckpointAtRef.current >= PERIODIC_CHECKPOINT_INTERVAL_MS
+          ) {
+            automaticCheckpointRef.current({
+              idPrefix: "auto-checkpoint",
+              label: `Auto · ${versionLabel(state)}`,
+              note: "Saved automatically after 10 minutes of continued editing.",
+            });
+          }
+        })
+        .catch(() => {
+          reportStorageIssue();
+          setAutosaveStatus("conflict");
+        });
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [activeResumeId, automaticCheckpointRef, confirmStorageAvailable, externalDraft, importReview, lastAutomaticCheckpointAtRef, loaded, reportStorageIssue, resumeLibraryRef, setActiveResumeId, setAutosaveStatus, setAutosavedAt, setAutosavedState, setResumeLibrary, skipNextAutosaveRef, state]);
+  }, [
+    activeResumeId,
+    automaticCheckpointRef,
+    confirmStorageAvailable,
+    externalDraft,
+    importReview,
+    lastAutomaticCheckpointAtRef,
+    loaded,
+    reportStorageIssue,
+    resumeLibraryRef,
+    setActiveResumeId,
+    setAutosaveStatus,
+    setAutosavedAt,
+    setAutosavedState,
+    setResumeLibrary,
+    skipNextAutosaveRef,
+    state,
+  ]);
 
   useEffect(() => {
     if (!loaded) return;
     try {
-      if (importReview) localStorage.setItem(IMPORT_REVIEW_KEY, JSON.stringify(storedImportReview(importReview)));
+      if (importReview)
+        localStorage.setItem(IMPORT_REVIEW_KEY, JSON.stringify(storedImportReview(importReview)));
       else localStorage.removeItem(IMPORT_REVIEW_KEY);
     } catch {
       reportStorageIssue();
@@ -280,7 +333,7 @@ export function useResumePersistence({
     if (!importReview) return;
     const draftFingerprint = importReviewDraftFingerprint(state);
     if (importReview.draftFingerprint === draftFingerprint) return;
-    setImportReview((current) => current ? { ...current, draftFingerprint } : null);
+    setImportReview((current) => (current ? { ...current, draftFingerprint } : null));
   }, [importReview, setImportReview, state]);
 
   const useExternalDraft = () => {
@@ -295,7 +348,11 @@ export function useResumePersistence({
     setState(externalDraft);
     setImportReview(matchingExternalReview);
     setExternalDraft(null);
-    flash(matchingExternalReview ? "Loaded the draft and its import review" : "Loaded the draft saved in another tab");
+    flash(
+      matchingExternalReview
+        ? "Loaded the draft and its import review"
+        : "Loaded the draft saved in another tab",
+    );
   };
 
   const keepCurrentDraft = () => {

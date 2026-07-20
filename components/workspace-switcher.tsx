@@ -10,9 +10,18 @@ const WORKSPACES = [
 ] as const;
 
 /** Primary product navigation shared by both local-first workspaces. */
-export function WorkspaceSwitcher({ active, className }: { active: Workspace; className?: string }) {
+export function WorkspaceSwitcher({
+  active,
+  className,
+}: {
+  active: Workspace;
+  className?: string;
+}) {
   return (
-    <nav className={cn("inline-flex items-center rounded-lg border bg-background/60 p-0.5", className)} aria-label="Workspace">
+    <nav
+      className={cn("inline-flex items-center rounded-lg border bg-background/60 p-0.5", className)}
+      aria-label="Workspace"
+    >
       {WORKSPACES.map((workspace) => {
         const selected = workspace.id === active;
         return (
@@ -22,9 +31,9 @@ export function WorkspaceSwitcher({ active, className }: { active: Workspace; cl
             prefetch={false}
             aria-current={selected ? "page" : undefined}
             className={cn(
-              "inline-flex h-7 items-center gap-2 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "inline-flex h-7 items-center gap-2 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
               selected
-                ? "bg-secondary text-secondary-foreground shadow-sm"
+                ? "bg-secondary text-secondary-foreground shadow-xs"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >

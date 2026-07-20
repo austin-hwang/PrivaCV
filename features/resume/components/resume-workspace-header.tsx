@@ -90,22 +90,24 @@ export function ResumeWorkspaceHeader({
     <ApplicationHeader
       active="resume"
       saveState={storageIssue || autosaveStatus === "conflict" ? "conflict" : autosaveStatus}
-      context={resumeLibrary.length ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setLibraryOpen(true)}
-          aria-label={`Open resume library: ${activeResumeLabel}`}
-          title="Open resume library"
-          className="hidden max-w-52 gap-1.5 px-2 lg:inline-flex"
-        >
-          <Library aria-hidden="true" />
-          <span className="truncate">{activeResumeLabel}</span>
-          <ChevronDown className="size-3.5" aria-hidden="true" />
-        </Button>
-      ) : null}
-      actions={(
+      context={
+        resumeLibrary.length ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setLibraryOpen(true)}
+            aria-label={`Open resume library: ${activeResumeLabel}`}
+            title="Open resume library"
+            className="hidden max-w-52 gap-1.5 px-2 lg:inline-flex"
+          >
+            <Library aria-hidden="true" />
+            <span className="truncate">{activeResumeLabel}</span>
+            <ChevronDown className="size-3.5" aria-hidden="true" />
+          </Button>
+        ) : null
+      }
+      actions={
         <>
           <Button
             type="button"
@@ -119,10 +121,12 @@ export function ResumeWorkspaceHeader({
             <SlidersHorizontal />
             <span className="hidden sm:inline">Tools</span>
             {hasContent ? (
-              <span className={cn(
-                "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
-                checksReady ? "bg-success/15 text-success" : "bg-warning/15 text-foreground",
-              )}>
+              <span
+                className={cn(
+                  "hidden h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums sm:inline-flex",
+                  checksReady ? "bg-success/15 text-success" : "bg-warning/15 text-foreground",
+                )}
+              >
                 {editor.passedChecks}/{checksLength}
               </span>
             ) : null}
@@ -136,10 +140,18 @@ export function ResumeWorkspaceHeader({
             </MenuTrigger>
             <MenuContent>
               <MenuLabel>Export resume</MenuLabel>
-              <MenuItem onSelect={requestExport}><Printer /> Export PDF</MenuItem>
-              <MenuItem onSelect={requestDocxExport} disabled={!hasContent}><FileText /> Export Word (.docx)</MenuItem>
-              <MenuItem onSelect={saveMarkdown} disabled={!hasContent}><FileCode /> Export Markdown (.md)</MenuItem>
-              <MenuItem onSelect={saveJson}><FileJson /> Export JSON</MenuItem>
+              <MenuItem onSelect={requestExport}>
+                <Printer /> Export PDF
+              </MenuItem>
+              <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
+                <FileText /> Export Word (.docx)
+              </MenuItem>
+              <MenuItem onSelect={saveMarkdown} disabled={!hasContent}>
+                <FileCode /> Export Markdown (.md)
+              </MenuItem>
+              <MenuItem onSelect={saveJson}>
+                <FileJson /> Export JSON
+              </MenuItem>
               <MenuItem onSelect={() => setTextReviewOpen(true)} disabled={!hasContent}>
                 <ClipboardCopy /> Copy resume text
               </MenuItem>
@@ -154,16 +166,21 @@ export function ResumeWorkspaceHeader({
             <MenuContent>
               <MenuLabel>Appearance</MenuLabel>
               <MenuItem onSelect={() => setIsDarkTheme(toggleTheme())}>
-                {isDarkTheme ? <Sun /> : <Moon />} {isDarkTheme ? "Use light mode" : "Use dark mode"}
+                {isDarkTheme ? <Sun /> : <Moon />}{" "}
+                {isDarkTheme ? "Use light mode" : "Use dark mode"}
               </MenuItem>
               <MenuSeparator />
               <MenuLabel>Resume</MenuLabel>
               {resumeLibrary.length ? (
                 <MenuItem onSelect={() => setLibraryOpen(true)}>
-                  <Library /> Resume library{resumeLibrary.length > 1 ? ` (${resumeLibrary.length})` : ""}
+                  <Library /> Resume library
+                  {resumeLibrary.length > 1 ? ` (${resumeLibrary.length})` : ""}
                 </MenuItem>
               ) : null}
-              <MenuItem className="lg:hidden" onSelect={() => window.location.assign("/applications")}>
+              <MenuItem
+                className="lg:hidden"
+                onSelect={() => window.location.assign("/applications")}
+              >
                 <BriefcaseBusiness /> Applications
               </MenuItem>
               <MenuSeparator />
@@ -171,20 +188,33 @@ export function ResumeWorkspaceHeader({
               <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
                 <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
               </MenuItem>
-              <MenuItem onSelect={() => setTextImportOpen(true)}><ClipboardPaste /> Paste resume text</MenuItem>
-              <MenuItem onSelect={() => jsonInputRef.current?.click()}><FileJson /> Open saved JSON</MenuItem>
+              <MenuItem onSelect={() => setTextImportOpen(true)}>
+                <ClipboardPaste /> Paste resume text
+              </MenuItem>
+              <MenuItem onSelect={() => jsonInputRef.current?.click()}>
+                <FileJson /> Open saved JSON
+              </MenuItem>
               <MenuSeparator />
               <MenuLabel>Workspace data</MenuLabel>
-              <MenuItem onSelect={loadSample}><FileText /> Sample</MenuItem>
-              <MenuItem destructive onSelect={() => setDestructiveAction("clear")}><RotateCcw /> Clear resume</MenuItem>
-              <MenuItem destructive onSelect={() => setDestructiveAction("delete-all")}><Trash2 /> Delete all data</MenuItem>
+              <MenuItem onSelect={loadSample}>
+                <FileText /> Sample
+              </MenuItem>
+              <MenuItem destructive onSelect={() => setDestructiveAction("clear")}>
+                <RotateCcw /> Clear resume
+              </MenuItem>
+              <MenuItem destructive onSelect={() => setDestructiveAction("delete-all")}>
+                <Trash2 /> Delete all data
+              </MenuItem>
             </MenuContent>
           </Menu>
         </>
-      )}
-      secondary={(
+      }
+      secondary={
         <div className="border-t px-4 py-2 lg:hidden">
-          <div className="grid grid-cols-2 rounded-md border bg-muted/30 p-1" aria-label="Resume workspace view">
+          <div
+            className="grid grid-cols-2 rounded-md border bg-muted/30 p-1"
+            aria-label="Resume workspace view"
+          >
             <Button
               id="mobile-editor-tab"
               type="button"
@@ -209,7 +239,7 @@ export function ResumeWorkspaceHeader({
             </Button>
           </div>
         </div>
-      )}
+      }
     />
   );
 }

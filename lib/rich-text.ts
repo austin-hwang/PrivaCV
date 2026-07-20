@@ -46,14 +46,21 @@ function stripBlockTags(value: string) {
 function decodeEntities(value: string) {
   return value.replace(/&(amp|lt|gt|quot|apos|#39|nbsp);/g, (_, entity) => {
     switch (entity) {
-      case "amp": return "&";
-      case "lt": return "<";
-      case "gt": return ">";
-      case "quot": return "\"";
+      case "amp":
+        return "&";
+      case "lt":
+        return "<";
+      case "gt":
+        return ">";
+      case "quot":
+        return '"';
       case "apos":
-      case "#39": return "'";
-      case "nbsp": return " ";
-      default: return _;
+      case "#39":
+        return "'";
+      case "nbsp":
+        return " ";
+      default:
+        return _;
     }
   });
 }
@@ -111,7 +118,12 @@ function tokenizeToRuns(value: string): InlineRun[] {
     }
     const closing = match[1] === "/";
     const tag = match[2].toLowerCase();
-    const key = tag === "strong" || tag === "b" ? "bold" : tag === "em" || tag === "i" ? "italic" : "underline";
+    const key =
+      tag === "strong" || tag === "b"
+        ? "bold"
+        : tag === "em" || tag === "i"
+          ? "italic"
+          : "underline";
     marks[key] = Math.max(0, marks[key] + (closing ? -1 : 1));
   }
   pushText(value.slice(lastIndex));
@@ -149,7 +161,12 @@ function domToRuns(html: string): InlineRun[] {
       const style = el.style;
       if (style) {
         const weight = style.fontWeight;
-        if (weight === "bold" || weight === "bolder" || (/^\d+$/.test(weight) && Number(weight) >= 600)) next.bold = true;
+        if (
+          weight === "bold" ||
+          weight === "bolder" ||
+          (/^\d+$/.test(weight) && Number(weight) >= 600)
+        )
+          next.bold = true;
         if (style.fontStyle === "italic") next.italic = true;
         const decoration = `${style.textDecoration} ${style.textDecorationLine}`;
         if (decoration.includes("underline")) next.underline = true;
@@ -209,7 +226,9 @@ export function stripRichMarks(value: string) {
   if (!value) return "";
   if (!hasRichMarks(value) && !hasBlockTags(value) && !value.includes("&")) return value;
   const source = hasBlockTags(value) ? stripBlockTags(value).replace(/<br\s*\/?>/gi, " ") : value;
-  return tokenizeToRuns(source).map((run) => run.text).join("");
+  return tokenizeToRuns(source)
+    .map((run) => run.text)
+    .join("");
 }
 
 /**
@@ -270,7 +289,8 @@ export function parseRichBlocksHtml(html: string): RichBlock[] {
 export function parseRichContent(value: string, legacyFormat?: string): RichBlock[] {
   if (!value) return [];
   if (hasBlockTags(value)) return parseRichBlocksHtml(value);
-  const type: RichBlockType = legacyFormat === "numbered" ? "number" : legacyFormat === "bullets" ? "bullet" : "paragraph";
+  const type: RichBlockType =
+    legacyFormat === "numbered" ? "number" : legacyFormat === "bullets" ? "bullet" : "paragraph";
   const parts = legacyFormat === "paragraph" ? value.split(/\n\s*\n/) : value.split("\n");
   return parts
     .map((part) => part.replace(/\s+/g, " ").trim())
@@ -286,7 +306,7 @@ export function parseRichContent(value: string, legacyFormat?: string): RichBloc
  */
 export function serializeRichBlocks(blocks: RichBlock[], paragraphTag: "p" | "div" = "p"): string {
   let out = "";
-  for (let i = 0; i < blocks.length; ) {
+  for (let i = 0; i < blocks.length;) {
     const block = blocks[i];
     if (block.type === "paragraph") {
       out += `<${paragraphTag}>${block.html}</${paragraphTag}>`;
@@ -305,7 +325,11 @@ export function serializeRichBlocks(blocks: RichBlock[], paragraphTag: "p" | "di
 }
 
 /** Deterministic canonical block HTML for rendering (SSR-safe, DOM-free). */
-export function renderRichContent(value: string, legacyFormat?: string, paragraphTag: "p" | "div" = "p"): string {
+export function renderRichContent(
+  value: string,
+  legacyFormat?: string,
+  paragraphTag: "p" | "div" = "p",
+): string {
   return serializeRichBlocks(parseRichContent(value, legacyFormat), paragraphTag);
 }
 
@@ -334,7 +358,9 @@ export function commitRichContent(element: HTMLElement): string {
         if (tag === "ul" || tag === "ol") {
           flushPending();
           const type: RichBlockType = tag === "ol" ? "number" : "bullet";
-          el.querySelectorAll(":scope > li").forEach((li) => pushBlock(type, (li as HTMLElement).innerHTML));
+          el.querySelectorAll(":scope > li").forEach((li) =>
+            pushBlock(type, (li as HTMLElement).innerHTML),
+          );
           return;
         }
         if (tag === "p" || tag === "div") {
@@ -401,14 +427,23 @@ export function sanitizeRichContent(value: string): string {
   const withEmphasis = markdownEmphasisToHtml(value);
   if (hasBlockTags(withEmphasis)) return renderRichContent(withEmphasis);
   const blocks: RichBlock[] = [];
-  withEmphasis.replace(/\r\n?/g, "\n").split("\n").forEach((line) => {
-    const text = line.trim();
-    if (!text) return;
-    let match = text.match(/^[-*•◦–—]\s+(.*)$/);
-    if (match) { blocks.push({ type: "bullet", html: sanitizeInlineHtml(match[1]) }); return; }
-    match = text.match(/^\d+[.)]\s+(.*)$/);
-    if (match) { blocks.push({ type: "number", html: sanitizeInlineHtml(match[1]) }); return; }
-    blocks.push({ type: "paragraph", html: sanitizeInlineHtml(text) });
-  });
+  withEmphasis
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .forEach((line) => {
+      const text = line.trim();
+      if (!text) return;
+      let match = text.match(/^[-*•◦–—]\s+(.*)$/);
+      if (match) {
+        blocks.push({ type: "bullet", html: sanitizeInlineHtml(match[1]) });
+        return;
+      }
+      match = text.match(/^\d+[.)]\s+(.*)$/);
+      if (match) {
+        blocks.push({ type: "number", html: sanitizeInlineHtml(match[1]) });
+        return;
+      }
+      blocks.push({ type: "paragraph", html: sanitizeInlineHtml(text) });
+    });
   return serializeRichBlocks(blocks);
 }

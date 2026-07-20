@@ -34,7 +34,9 @@ function ThemeSegment<T extends string>({
 }) {
   return (
     <div className="grid gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </span>
       <div className="flex flex-wrap gap-1 rounded-md border bg-muted/40 p-1">
         {options.map((option) => (
           <button
@@ -43,8 +45,10 @@ function ThemeSegment<T extends string>({
             aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
             className={cn(
-              "flex-1 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              value === option.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              "flex-1 whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
+              value === option.value
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {option.label}
@@ -72,7 +76,9 @@ export function ResumeDesignControls({
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Preset</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Preset
+          </span>
           <Select
             value={state.template}
             onChange={(event) => onTemplateChange(event.target.value as ResumeTemplateId)}
@@ -86,7 +92,9 @@ export function ResumeDesignControls({
           </Select>
         </label>
         <label className="grid gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Font</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Font
+          </span>
           <Select
             value={state.theme.font}
             onChange={(event) => onThemeChange({ font: event.target.value })}
@@ -103,10 +111,13 @@ export function ResumeDesignControls({
       </div>
 
       <div className="grid gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Accent color</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Accent color
+        </span>
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Accent color">
           {ACCENT_PRESETS.map((accent) => {
-            const selected = normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
+            const selected =
+              normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
             return (
               <button
                 key={accent.id}
@@ -116,7 +127,7 @@ export function ResumeDesignControls({
                 title={accent.label}
                 onClick={() => onThemeChange({ accent: accent.value })}
                 className={cn(
-                  "size-7 rounded-full border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                  "size-7 rounded-full border transition-transform focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                   selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
                 )}
                 style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
@@ -129,7 +140,7 @@ export function ResumeDesignControls({
               type="color"
               value={normalizeAccent(state.theme.accent)}
               onChange={(event) => onThemeChange({ accent: event.target.value })}
-              className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
+              className="size-5 cursor-pointer rounded-sm border-0 bg-transparent p-0"
               aria-label="Custom accent color"
             />
           </label>
@@ -140,9 +151,11 @@ export function ResumeDesignControls({
         type="button"
         aria-expanded={advancedOpen}
         onClick={() => onAdvancedOpenChange(!advancedOpen)}
-        className="flex w-full items-center gap-1.5 rounded-md text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full items-center gap-1.5 rounded-md text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <ChevronRight className={cn("size-3.5 transition-transform", advancedOpen && "rotate-90")} />
+        <ChevronRight
+          className={cn("size-3.5 transition-transform", advancedOpen && "rotate-90")}
+        />
         Advanced
         <span className="font-normal">header, density, headings, bullets, divider</span>
       </button>
@@ -162,7 +175,10 @@ export function ResumeDesignControls({
             <ThemeSegment
               label="Density"
               value={state.theme.density}
-              options={DENSITIES.map((density) => ({ value: density as Density, label: DENSITY_LABELS[density] }))}
+              options={DENSITIES.map((density) => ({
+                value: density as Density,
+                label: DENSITY_LABELS[density],
+              }))}
               onChange={(density) => onThemeChange({ density })}
             />
           </div>
@@ -170,14 +186,20 @@ export function ResumeDesignControls({
           <ThemeSegment
             label="Section headings"
             value={state.theme.headingStyle}
-            options={HEADING_STYLES.map((style) => ({ value: style as HeadingStyle, label: HEADING_STYLE_LABELS[style] }))}
+            options={HEADING_STYLES.map((style) => ({
+              value: style as HeadingStyle,
+              label: HEADING_STYLE_LABELS[style],
+            }))}
             onChange={(headingStyle) => onThemeChange({ headingStyle })}
           />
 
           <ThemeSegment
             label="Bullet style"
             value={state.theme.bulletStyle}
-            options={BULLET_STYLES.map((style) => ({ value: style as BulletStyle, label: BULLET_STYLE_LABELS[style] }))}
+            options={BULLET_STYLES.map((style) => ({
+              value: style as BulletStyle,
+              label: BULLET_STYLE_LABELS[style],
+            }))}
             onChange={(bulletStyle) => onThemeChange({ bulletStyle })}
           />
 

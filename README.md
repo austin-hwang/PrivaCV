@@ -36,7 +36,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 ## Privacy
 
-PrivaCV is local-first. Resume and job-search information is processed and stored in browser IndexedDB databases, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Exports and inline-AI request/acceptance actions record anonymous aggregate events without resume content, application data, prompts, generated text, or identity or device identifiers.
+PrivaCV is local-first. Resume and job-search information is processed and stored in browser IndexedDB databases, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Exports, inline-AI request/acceptance actions, and successful application creations record anonymous aggregate events without resume content, application data, prompts, generated text, or identity or device identifiers.
 
 See the live [privacy page](https://privacv.app/privacy) or its [source](app/privacy/page.tsx) for the plain-language explanation. Please read the privacy requirements in [CONTRIBUTING.md](CONTRIBUTING.md) before adding storage, network requests, fixtures, or telemetry.
 
@@ -57,6 +57,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 ```sh
 pnpm typecheck
 pnpm lint
+pnpm format:check
 pnpm test
 pnpm test:e2e
 pnpm build
@@ -91,11 +92,11 @@ Use [.env.example](.env.example) as the starting point.
 Production deploys include a Cloudflare Analytics Engine dataset named `privacv_exports`. It records only `resume_export` and the format. To inspect the total and format breakdown through the Analytics Engine SQL API:
 
 ```sql
-SELECT COUNT(*) AS exports
+SELECT SUM(_sample_interval) AS exports
 FROM privacv_exports
 WHERE blob1 = 'resume_export';
 
-SELECT blob2 AS format, COUNT(*) AS exports
+SELECT blob2 AS format, SUM(_sample_interval) AS exports
 FROM privacv_exports
 WHERE blob1 = 'resume_export'
 GROUP BY blob2
@@ -105,22 +106,30 @@ ORDER BY exports DESC;
 Inline local-AI milestones use a separate `privacv_inline_ai` dataset. It records only `inline_ai_used` and `inline_ai_accepted`:
 
 ```sql
-SELECT blob1 AS event, COUNT(*) AS events
+SELECT blob1 AS event, SUM(_sample_interval) AS events
 FROM privacv_inline_ai
 GROUP BY blob1
 ORDER BY events DESC;
 ```
 
+Successful, manually created application records use `privacv_job_applications`. Imports, edits, status changes, reloads, and migrations do not increment this metric:
+
+```sql
+SELECT SUM(_sample_interval) AS applications_tracked
+FROM privacv_job_applications
+WHERE blob1 = 'job_application_created';
+```
+
 ## Project structure
 
-| Path | Purpose |
-| --- | --- |
-| `app/` | Next.js routes, metadata, public pages, and global styles |
-| `components/` | Resume editor, application pipeline, shared product shell, and UI primitives |
-| `hooks/` | Client-side workflow coordination and persistence |
-| `lib/` | Resume/application domains, IndexedDB adapters, imports, exports, checks, and Sankey layout |
-| `tests/` | Playwright browser coverage and opt-in integration fixture metadata |
-| `docs/` | Architecture and maintainer documentation |
+| Path          | Purpose                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `app/`        | Next.js routes, metadata, public pages, and global styles                                   |
+| `components/` | Resume editor, application pipeline, shared product shell, and UI primitives                |
+| `hooks/`      | Client-side workflow coordination and persistence                                           |
+| `lib/`        | Resume/application domains, IndexedDB adapters, imports, exports, checks, and Sankey layout |
+| `tests/`      | Playwright browser coverage and opt-in integration fixture metadata                         |
+| `docs/`       | Architecture and maintainer documentation                                                   |
 
 Read [docs/architecture.md](docs/architecture.md) before changing persistence, privacy boundaries, metrics, or cross-feature module ownership.
 

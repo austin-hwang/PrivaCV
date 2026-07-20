@@ -16,7 +16,10 @@ const allowedEvents = new Set<string>(INLINE_AI_EVENTS);
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
 /** Handle anonymous, same-origin inline-AI milestone events. */
-export async function handleInlineAIMetric(request: Request, env: InlineAIMetricsEnv): Promise<Response | null> {
+export async function handleInlineAIMetric(
+  request: Request,
+  env: InlineAIMetricsEnv,
+): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== INLINE_AI_METRIC_PATH) return null;
 
@@ -40,8 +43,9 @@ export async function handleInlineAIMetric(request: Request, env: InlineAIMetric
 
   let event: InlineAIEvent;
   try {
-    const body = await request.json() as { event?: unknown };
-    if (typeof body.event !== "string" || !allowedEvents.has(body.event)) throw new Error("Invalid event");
+    const body = (await request.json()) as { event?: unknown };
+    if (typeof body.event !== "string" || !allowedEvents.has(body.event))
+      throw new Error("Invalid event");
     event = body.event as InlineAIEvent;
   } catch {
     return new Response("Invalid metric.", { status: 400, headers: noStoreHeaders });

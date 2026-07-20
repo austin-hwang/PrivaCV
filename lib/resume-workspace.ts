@@ -158,16 +158,19 @@ export function parseResumeLibrary(value: string | null): ResumeLibraryItem[] {
         typeof candidate.label !== "string" ||
         typeof candidate.createdAt !== "string" ||
         typeof candidate.updatedAt !== "string"
-      ) return [];
+      )
+        return [];
       usedIds.add(candidate.id);
-      return [{
-        id: candidate.id,
-        label: candidate.label.trim() || "Untitled resume",
-        createdAt: candidate.createdAt,
-        updatedAt: candidate.updatedAt,
-        state: normalizeResume(candidate.state),
-        importReview: candidate.importReview ?? null,
-      }];
+      return [
+        {
+          id: candidate.id,
+          label: candidate.label.trim() || "Untitled resume",
+          createdAt: candidate.createdAt,
+          updatedAt: candidate.updatedAt,
+          state: normalizeResume(candidate.state),
+          importReview: candidate.importReview ?? null,
+        },
+      ];
     });
   } catch {
     return [];
@@ -220,21 +223,32 @@ export function importSourceExcerpt(sourceText: string | undefined, values: stri
   const lines = sourceText.split("\n").map((line) => line.trim());
   const candidates = values
     .flatMap((value) => value.split("\n"))
-    .map((value) => value.replace(/^[•*-]\s*/, "").replace(/\s+/g, " ").trim())
+    .map((value) =>
+      value
+        .replace(/^[•*-]\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
     .filter((value) => value.length >= 4);
   const matches = candidates
     .map((candidate) => {
       const normalizedCandidate = candidate.toLocaleLowerCase();
       const indexes = lines.flatMap((line, index) => {
         const normalizedLine = line.toLocaleLowerCase();
-        return normalizedLine && (normalizedLine.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedLine))
+        return normalizedLine &&
+          (normalizedLine.includes(normalizedCandidate) ||
+            normalizedCandidate.includes(normalizedLine))
           ? [index]
           : [];
       });
       return { candidate, indexes };
     })
     .filter((match) => match.indexes.length)
-    .sort((first, second) => first.indexes.length - second.indexes.length || second.candidate.length - first.candidate.length);
+    .sort(
+      (first, second) =>
+        first.indexes.length - second.indexes.length ||
+        second.candidate.length - first.candidate.length,
+    );
   const matchingLineIndex = matches[0]?.indexes[0];
   if (matchingLineIndex === undefined) return undefined;
   const excerpt = lines
@@ -257,7 +271,8 @@ export function importSectionExcerpt(sourceText: string | undefined, section: st
   const lines = sourceText.split("\n").map((line) => line.trim());
   const isMatchingHeading = (line: string) =>
     detectSection(line) === section || detectSpecialtySection(line) === section;
-  const isRecognizedHeading = (line: string) => Boolean(detectSection(line) || detectSpecialtySection(line));
+  const isRecognizedHeading = (line: string) =>
+    Boolean(detectSection(line) || detectSpecialtySection(line));
   const headingIndex = lines.findIndex(isMatchingHeading);
   if (headingIndex < 0) return undefined;
 
@@ -308,23 +323,26 @@ export function parseStoredImportReview(value: string | null): ImportReviewState
 
   try {
     const parsed = JSON.parse(value) as Partial<StoredImportReview>;
-    if (!parsed || typeof parsed !== "object" || typeof parsed.fileName !== "string" || !Array.isArray(parsed.items)) {
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      typeof parsed.fileName !== "string" ||
+      !Array.isArray(parsed.items)
+    ) {
       return null;
     }
 
-    const items = parsed.items
-      .slice(0, 250)
-      .flatMap((item): ImportReviewItem[] => {
-        if (!item || typeof item !== "object") return [];
-        const candidate = item as Partial<ImportReviewItem>;
-        const id = limitedString(candidate.id, 160);
-        const label = limitedString(candidate.label, 240);
-        const targetId = limitedString(candidate.targetId, 240);
-        const detail = limitedString(candidate.detail);
-        if (!id || !label || !targetId || !detail) return [];
-        const sourceExcerpt = limitedString(candidate.sourceExcerpt, 4_000);
-        return [{ id, label, targetId, detail, ...(sourceExcerpt ? { sourceExcerpt } : {}) }];
-      });
+    const items = parsed.items.slice(0, 250).flatMap((item): ImportReviewItem[] => {
+      if (!item || typeof item !== "object") return [];
+      const candidate = item as Partial<ImportReviewItem>;
+      const id = limitedString(candidate.id, 160);
+      const label = limitedString(candidate.label, 240);
+      const targetId = limitedString(candidate.targetId, 240);
+      const detail = limitedString(candidate.detail);
+      if (!id || !label || !targetId || !detail) return [];
+      const sourceExcerpt = limitedString(candidate.sourceExcerpt, 4_000);
+      return [{ id, label, targetId, detail, ...(sourceExcerpt ? { sourceExcerpt } : {}) }];
+    });
 
     if (!items.length) return null;
     const itemIds = new Set(items.map((item) => item.id));
@@ -336,25 +354,35 @@ export function parseStoredImportReview(value: string | null): ImportReviewState
           const label = limitedString(candidate.label, 240);
           const detail = limitedString(candidate.detail);
           const targetId = limitedString(candidate.targetId, 240);
-          if (!id || !label || !detail || !targetId || typeof candidate.detected !== "boolean") return [];
+          if (!id || !label || !detail || !targetId || typeof candidate.detected !== "boolean")
+            return [];
           const sourceExcerpt = limitedString(candidate.sourceExcerpt, 4_000);
-          return [{
-            id,
-            label,
-            detail,
-            targetId,
-            detected: candidate.detected,
-            ...(typeof candidate.sourceDetected === "boolean" ? { sourceDetected: candidate.sourceDetected } : {}),
-            ...(sourceExcerpt ? { sourceExcerpt } : {}),
-          }];
+          return [
+            {
+              id,
+              label,
+              detail,
+              targetId,
+              detected: candidate.detected,
+              ...(typeof candidate.sourceDetected === "boolean"
+                ? { sourceDetected: candidate.sourceDetected }
+                : {}),
+              ...(sourceExcerpt ? { sourceExcerpt } : {}),
+            },
+          ];
         })
       : undefined;
 
     return {
       fileName: limitedString(parsed.fileName, 500) ?? "imported resume",
-      ...(limitedString(parsed.draftFingerprint, 120) ? { draftFingerprint: limitedString(parsed.draftFingerprint, 120) } : {}),
+      ...(limitedString(parsed.draftFingerprint, 120)
+        ? { draftFingerprint: limitedString(parsed.draftFingerprint, 120) }
+        : {}),
       sections: Array.isArray(parsed.sections)
-        ? parsed.sections.map((section) => limitedString(section, 240)).filter((section): section is string => Boolean(section)).slice(0, 40)
+        ? parsed.sections
+            .map((section) => limitedString(section, 240))
+            .filter((section): section is string => Boolean(section))
+            .slice(0, 40)
         : [],
       items,
       reviewedItemIds: Array.isArray(parsed.reviewedItemIds)
@@ -378,7 +406,10 @@ export function storedImportReview(importReview: ImportReviewState): StoredImpor
   return { ...importReview, ...(sourceText ? { sourceText } : {}) };
 }
 
-export function parseVersionHistory(value: string | null, limit = Number.POSITIVE_INFINITY): VersionHistoryItem[] {
+export function parseVersionHistory(
+  value: string | null,
+  limit = Number.POSITIVE_INFINITY,
+): VersionHistoryItem[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
@@ -400,7 +431,8 @@ export function parseVersionHistory(value: string | null, limit = Number.POSITIV
           label: item.label,
           note: typeof item.note === "string" ? item.note : undefined,
           derivedFromId: typeof item.derivedFromId === "string" ? item.derivedFromId : undefined,
-          derivedFromLabel: typeof item.derivedFromLabel === "string" ? item.derivedFromLabel : undefined,
+          derivedFromLabel:
+            typeof item.derivedFromLabel === "string" ? item.derivedFromLabel : undefined,
           fingerprint: item.fingerprint,
           state: normalizeResume(item.state),
           importReview: item.importReview ?? null,
@@ -427,13 +459,19 @@ export function parseVersionHistoryBackup(value: unknown): VersionHistoryItem[] 
   return parseVersionHistory(JSON.stringify(backup.checkpoints), Number.POSITIVE_INFINITY);
 }
 
-export function mergeVersionHistory(existing: VersionHistoryItem[], incoming: VersionHistoryItem[]): VersionHistoryMerge {
+export function mergeVersionHistory(
+  existing: VersionHistoryItem[],
+  incoming: VersionHistoryItem[],
+): VersionHistoryMerge {
   const existingFingerprints = new Set(existing.map(versionHistoryFingerprint));
   const seenIncomingFingerprints = new Set<string>();
-  const matchingCheckpoints = incoming.filter((item) => existingFingerprints.has(versionHistoryFingerprint(item)));
+  const matchingCheckpoints = incoming.filter((item) =>
+    existingFingerprints.has(versionHistoryFingerprint(item)),
+  );
   const incomingUnique = incoming.filter((item) => {
     const fingerprint = versionHistoryFingerprint(item);
-    if (existingFingerprints.has(fingerprint) || seenIncomingFingerprints.has(fingerprint)) return false;
+    if (existingFingerprints.has(fingerprint) || seenIncomingFingerprints.has(fingerprint))
+      return false;
     seenIncomingFingerprints.add(fingerprint);
     return true;
   });
@@ -496,7 +534,8 @@ export function versionContentBadges(state: ResumeState) {
   const skillCount = state.skills.split("\n").filter((line) => line.trim()).length;
   const badges: string[] = [];
 
-  if (experienceCount) badges.push(`${experienceCount} ${experienceCount === 1 ? "role" : "roles"}`);
+  if (experienceCount)
+    badges.push(`${experienceCount} ${experienceCount === 1 ? "role" : "roles"}`);
   if (educationCount) badges.push(`${educationCount} education`);
   if (projectCount) badges.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
   if (skillCount) badges.push(`${skillCount} ${skillCount === 1 ? "skill line" : "skill lines"}`);
@@ -505,7 +544,13 @@ export function versionContentBadges(state: ResumeState) {
 }
 
 export function entryTargetId(section: string, entry: ResumeEntry, index: number) {
-  const field = entry.title ? "title" : entry.subtitle ? "subtitle" : entry.meta ? "meta" : "details";
+  const field = entry.title
+    ? "title"
+    : entry.subtitle
+      ? "subtitle"
+      : entry.meta
+        ? "meta"
+        : "details";
   return `field-${section}-${index}-${field}`;
 }
 
@@ -533,16 +578,22 @@ function entryCoverage(
       : sourceSections.has(section)
         ? `${label} heading found in source, but no entries detected`
         : `No ${label.toLocaleLowerCase()} entries detected`,
-    targetId: firstEntry && firstEntryIndex >= 0
-      ? entryTargetId(section, firstEntry, firstEntryIndex)
-      : `add-${section}-entry`,
+    targetId:
+      firstEntry && firstEntryIndex >= 0
+        ? entryTargetId(section, firstEntry, firstEntryIndex)
+        : `add-${section}-entry`,
     sourceDetected: sourceSections.has(section),
     sourceExcerpt: importSectionExcerpt(sourceText, section),
   };
 }
 
 function customCoverageId(title: string) {
-  return `custom-${title.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "section"}`;
+  return `custom-${
+    title
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "section"
+  }`;
 }
 
 function specialtyCoverage(
@@ -551,7 +602,9 @@ function specialtyCoverage(
   sourceDetected: boolean,
   sourceText?: string,
 ): ImportCoverageItem {
-  const section = state.customSections.find((candidate) => candidate.title.toLocaleLowerCase() === title.toLocaleLowerCase());
+  const section = state.customSections.find(
+    (candidate) => candidate.title.toLocaleLowerCase() === title.toLocaleLowerCase(),
+  );
   const entries = section?.entries.filter(entryHasContent) ?? [];
   const firstEntry = entries[0];
   const firstEntryIndex = firstEntry && section ? section.entries.indexOf(firstEntry) : -1;
@@ -565,9 +618,10 @@ function specialtyCoverage(
       : sourceDetected
         ? `${title} heading found in source, but no entries detected`
         : `No ${title.toLocaleLowerCase()} entries detected`,
-    targetId: section && firstEntry && firstEntryIndex >= 0
-      ? entryTargetId(section.id, firstEntry, firstEntryIndex)
-      : "add-custom-section",
+    targetId:
+      section && firstEntry && firstEntryIndex >= 0
+        ? entryTargetId(section.id, firstEntry, firstEntryIndex)
+        : "add-custom-section",
     sourceDetected,
     sourceExcerpt: sourceDetected ? importSectionExcerpt(sourceText, title) : undefined,
   };
@@ -581,13 +635,20 @@ function specialtyCoverage(
  * appear in the resume.
  */
 export function buildImportCoverage(state: ResumeState, sourceText?: string): ImportCoverageItem[] {
-  const contactCount = [state.email, state.phone, state.location, ...resumeHeaderLinks(state).map((link) => link.url)].filter((value) => value.trim()).length;
+  const contactCount = [
+    state.email,
+    state.phone,
+    state.location,
+    ...resumeHeaderLinks(state).map((link) => link.url),
+  ].filter((value) => value.trim()).length;
   const skillLineCount = state.skills.split("\n").filter((line) => line.trim()).length;
   const sourceSections = new Set(
     (sourceText ?? "")
       .split(/\r?\n/)
       .map((line) => detectSection(line))
-      .filter((section): section is Exclude<ReturnType<typeof detectSection>, null> => Boolean(section)),
+      .filter((section): section is Exclude<ReturnType<typeof detectSection>, null> =>
+        Boolean(section),
+      ),
   );
   const sourceSpecialtySections = new Set(
     (sourceText ?? "")
@@ -601,7 +662,11 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
   });
   const specialtySections = [...sourceSpecialtySections];
   importedSpecialtySections.forEach((title) => {
-    if (!specialtySections.some((candidate) => candidate.toLocaleLowerCase() === title.toLocaleLowerCase())) {
+    if (
+      !specialtySections.some(
+        (candidate) => candidate.toLocaleLowerCase() === title.toLocaleLowerCase(),
+      )
+    ) {
       specialtySections.push(title);
     }
   });
@@ -651,13 +716,25 @@ export function buildImportCoverage(state: ResumeState, sourceText?: string): Im
 
   return [
     ...coverage,
-    ...specialtySections.map((title) => specialtyCoverage(title, state, sourceSpecialtySections.has(title), sourceText)),
+    ...specialtySections.map((title) =>
+      specialtyCoverage(title, state, sourceSpecialtySections.has(title), sourceText),
+    ),
   ];
 }
 
-export function buildImportReview(state: ResumeState, fileName: string, sourceText?: string): ImportReviewState {
+export function buildImportReview(
+  state: ResumeState,
+  fileName: string,
+  sourceText?: string,
+): ImportReviewState {
   const items: ImportReviewItem[] = [];
-  const contactValues = [state.name, state.email, state.phone, state.location, ...resumeHeaderLinks(state).map((link) => link.url)];
+  const contactValues = [
+    state.name,
+    state.email,
+    state.phone,
+    state.location,
+    ...resumeHeaderLinks(state).map((link) => link.url),
+  ];
   const sections = new Set<string>();
   const addItem = (item: ImportReviewItem, section: string) => {
     items.push(item);
@@ -698,8 +775,17 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
           id: `${section}-${index}`,
           label: `${SECTION_LABELS[section]} entry ${index + 1}`,
           targetId: entryTargetId(section, entry, index),
-          detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
-          sourceExcerpt: importSourceExcerpt(sourceText, [entry.title, entry.subtitle, entry.meta, entry.details]),
+          detail: compactDetail(
+            [entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]]
+              .filter(Boolean)
+              .join(" | "),
+          ),
+          sourceExcerpt: importSourceExcerpt(sourceText, [
+            entry.title,
+            entry.subtitle,
+            entry.meta,
+            entry.details,
+          ]),
         },
         SECTION_LABELS[section],
       );
@@ -718,8 +804,17 @@ export function buildImportReview(state: ResumeState, fileName: string, sourceTe
           id: `${custom.id}-${index}`,
           label: `${custom.title || "Custom section"} entry ${index + 1}`,
           targetId: entryTargetId(custom.id, entry, index),
-          detail: compactDetail([entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]].filter(Boolean).join(" | ")),
-          sourceExcerpt: importSourceExcerpt(sourceText, [entry.title, entry.subtitle, entry.meta, entry.details]),
+          detail: compactDetail(
+            [entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]]
+              .filter(Boolean)
+              .join(" | "),
+          ),
+          sourceExcerpt: importSourceExcerpt(sourceText, [
+            entry.title,
+            entry.subtitle,
+            entry.meta,
+            entry.details,
+          ]),
         },
         custom.title || "Custom section",
       );

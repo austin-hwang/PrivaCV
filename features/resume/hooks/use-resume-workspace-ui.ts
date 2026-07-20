@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 import type { ResumeTemplateId } from "@/lib/resume";
 import type { VersionHistoryItem } from "@/lib/resume-workspace";
 import type { DestructiveResumeAction } from "@/features/resume/components/review-dialogs";
@@ -85,7 +92,9 @@ export function useResumeWorkspaceUI({
 
   useEffect(() => {
     document.documentElement.dataset.resumeWorkspace = workspaceHasStarted ? "active" : "";
-    return () => { delete document.documentElement.dataset.resumeWorkspace; };
+    return () => {
+      delete document.documentElement.dataset.resumeWorkspace;
+    };
   }, [workspaceHasStarted]);
 
   useEffect(() => {
@@ -157,17 +166,62 @@ export function useResumeWorkspaceUI({
   } as CSSProperties;
 
   return {
-    activeTarget, blankTemplatePreview, blankWorkspaceOpen, checksReviewOpen, collapsedGroups,
-    designAdvancedOpen, designOpen, destructiveAction, draggedSection, dropTargetSection,
-    editorCollapsed, editorPanePercent, historyOpen, historyPreviewItem, inlineEdit, isDarkTheme,
-    libraryOpen, localAIEnabled, localAIImportOpen, localAIInlineTarget, localAIOpen,
-    mobileWorkspaceView, navigatorOpen, navigatorQuery, previewFrameStyle, previewWrapRef,
-    printing, reviewTour, startWorkspaceResize, toolsOpen, workspaceHasStarted, workspaceRef,
-    setActiveTarget, setBlankTemplatePreview, setBlankWorkspaceOpen, setChecksReviewOpen,
-    setCollapsedGroups, setDesignAdvancedOpen, setDesignOpen, setDestructiveAction,
-    setDraggedSection, setDropTargetSection, setEditorCollapsed, setEditorPanePercent,
-    setHistoryOpen, setHistoryPreviewItem, setInlineEdit, setIsDarkTheme, setLibraryOpen,
-    setLocalAIImportOpen, setLocalAIInlineTarget, setLocalAIOpen, setMobileWorkspaceView,
-    setNavigatorOpen, setNavigatorQuery, setReviewTour, setToolsOpen,
+    activeTarget,
+    blankTemplatePreview,
+    blankWorkspaceOpen,
+    checksReviewOpen,
+    collapsedGroups,
+    designAdvancedOpen,
+    designOpen,
+    destructiveAction,
+    draggedSection,
+    dropTargetSection,
+    editorCollapsed,
+    editorPanePercent,
+    historyOpen,
+    historyPreviewItem,
+    inlineEdit,
+    isDarkTheme,
+    libraryOpen,
+    localAIEnabled,
+    localAIImportOpen,
+    localAIInlineTarget,
+    localAIOpen,
+    mobileWorkspaceView,
+    navigatorOpen,
+    navigatorQuery,
+    previewFrameStyle,
+    previewWrapRef,
+    printing,
+    reviewTour,
+    startWorkspaceResize,
+    toolsOpen,
+    workspaceHasStarted,
+    workspaceRef,
+    setActiveTarget,
+    setBlankTemplatePreview,
+    setBlankWorkspaceOpen,
+    setChecksReviewOpen,
+    setCollapsedGroups,
+    setDesignAdvancedOpen,
+    setDesignOpen,
+    setDestructiveAction,
+    setDraggedSection,
+    setDropTargetSection,
+    setEditorCollapsed,
+    setEditorPanePercent,
+    setHistoryOpen,
+    setHistoryPreviewItem,
+    setInlineEdit,
+    setIsDarkTheme,
+    setLibraryOpen,
+    setLocalAIImportOpen,
+    setLocalAIInlineTarget,
+    setLocalAIOpen,
+    setMobileWorkspaceView,
+    setNavigatorOpen,
+    setNavigatorQuery,
+    setReviewTour,
+    setToolsOpen,
   };
 }

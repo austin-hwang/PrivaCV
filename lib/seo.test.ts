@@ -22,7 +22,9 @@ describe("createPageMetadata", () => {
         title: "Free Resume Builder | PrivaCV",
         description: "Build a resume free.",
         url: "https://privacv.app/free-resume-builder",
-        images: [{ url: "https://privacv.app/social/free-resume-builder", width: 1200, height: 630 }],
+        images: [
+          { url: "https://privacv.app/social/free-resume-builder", width: 1200, height: 630 },
+        ],
       },
       twitter: {
         card: "summary_large_image",
@@ -76,12 +78,18 @@ describe("sitemap", () => {
     const second = sitemap();
 
     expect(first).toEqual(second);
-    expect(new Set(first.map((entry) => new Date(entry.lastModified!).toISOString()))).toEqual(new Set(["2026-07-19T00:00:00.000Z"]));
-    expect(first.every((entry) => entry.changeFrequency === undefined && entry.priority === undefined)).toBe(true);
-    expect(first.map((entry) => entry.url)).toEqual(expect.arrayContaining([
-      "https://privacv.app/job-application-tracker",
-      "https://privacv.app/job-search-sankey",
-    ]));
+    expect(new Set(first.map((entry) => new Date(entry.lastModified!).toISOString()))).toEqual(
+      new Set(["2026-07-19T00:00:00.000Z"]),
+    );
+    expect(
+      first.every((entry) => entry.changeFrequency === undefined && entry.priority === undefined),
+    ).toBe(true);
+    expect(first.map((entry) => entry.url)).toEqual(
+      expect.arrayContaining([
+        "https://privacv.app/job-application-tracker",
+        "https://privacv.app/job-search-sankey",
+      ]),
+    );
     expect(first.map((entry) => entry.url)).not.toContain("https://privacv.app/applications");
   });
 });

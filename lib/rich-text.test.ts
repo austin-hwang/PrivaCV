@@ -11,7 +11,9 @@ describe("AI edit markdown round-trip", () => {
   it("shows the model bold/italic as markdown and drops underline (not carried through AI)", () => {
     const stored =
       "<ul><li>Led <strong>growth</strong> team</li><li>Cut <em>costs</em> now</li></ul><p>Shipped <u>v2</u>.</p>";
-    expect(richContentToPlainMarkdown(stored)).toBe("- Led **growth** team\n- Cut *costs* now\nShipped v2.");
+    expect(richContentToPlainMarkdown(stored)).toBe(
+      "- Led **growth** team\n- Cut *costs* now\nShipped v2.",
+    );
   });
 
   it("round-trips bold/italic losslessly through apply", () => {

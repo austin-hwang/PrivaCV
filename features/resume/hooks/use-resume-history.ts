@@ -88,27 +88,38 @@ export function useResumeHistory({
   reportStorageIssue,
   flash,
 }: Options) {
-  const persistVersionHistory = useCallback(async (nextHistory: VersionHistoryItem[]) => {
-    if (!activeResumeId) return false;
-    const nextByResume = { ...checkpointHistoryByResume, [activeResumeId]: nextHistory };
-    if (!nextHistory.length) delete nextByResume[activeResumeId];
-    try {
-      if (Object.keys(nextByResume).length) localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(nextByResume));
-      else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
-      mirrorLegacyActiveHistory(nextHistory);
-    } catch {
-      // IndexedDB remains authoritative when the compatibility mirror fails.
-    }
-    setCheckpointHistoryByResume(nextByResume);
-    try {
-      await saveCheckpointHistories(nextByResume);
-      confirmStorageAvailable();
-      return true;
-    } catch {
-      reportStorageIssue();
-      return false;
-    }
-  }, [activeResumeId, checkpointHistoryByResume, confirmStorageAvailable, mirrorLegacyActiveHistory, reportStorageIssue, setCheckpointHistoryByResume]);
+  const persistVersionHistory = useCallback(
+    async (nextHistory: VersionHistoryItem[]) => {
+      if (!activeResumeId) return false;
+      const nextByResume = { ...checkpointHistoryByResume, [activeResumeId]: nextHistory };
+      if (!nextHistory.length) delete nextByResume[activeResumeId];
+      try {
+        if (Object.keys(nextByResume).length)
+          localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(nextByResume));
+        else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
+        mirrorLegacyActiveHistory(nextHistory);
+      } catch {
+        // IndexedDB remains authoritative when the compatibility mirror fails.
+      }
+      setCheckpointHistoryByResume(nextByResume);
+      try {
+        await saveCheckpointHistories(nextByResume);
+        confirmStorageAvailable();
+        return true;
+      } catch {
+        reportStorageIssue();
+        return false;
+      }
+    },
+    [
+      activeResumeId,
+      checkpointHistoryByResume,
+      confirmStorageAvailable,
+      mirrorLegacyActiveHistory,
+      reportStorageIssue,
+      setCheckpointHistoryByResume,
+    ],
+  );
 
   const saveAutomaticCheckpoint: AutomaticCheckpoint = ({
     idPrefix,
@@ -150,17 +161,16 @@ export function useResumeHistory({
   };
   automaticCheckpointRef.current = saveAutomaticCheckpoint;
 
-  const saveRecoveryPoint = useCallback((
-    label: string,
-    previousState = state,
-    previousImportReview = importReview,
-  ) => {
-    if (!hasAnyContent(previousState) && !previousImportReview) {
-      setRecoveryPoint(null);
-      return;
-    }
-    setRecoveryPoint({ label, state: previousState, importReview: previousImportReview });
-  }, [importReview, setRecoveryPoint, state]);
+  const saveRecoveryPoint = useCallback(
+    (label: string, previousState = state, previousImportReview = importReview) => {
+      if (!hasAnyContent(previousState) && !previousImportReview) {
+        setRecoveryPoint(null);
+        return;
+      }
+      setRecoveryPoint({ label, state: previousState, importReview: previousImportReview });
+    },
+    [importReview, setRecoveryPoint, state],
+  );
 
   const restoreRecoveryPoint = () => {
     if (!recoveryPoint) return;
@@ -209,12 +219,15 @@ export function useResumeHistory({
     setVersionSaveOpen(false);
     if (saved) flash("Checkpoint saved locally");
     else {
-      downloadJsonFile({
-        format: VERSION_HISTORY_BACKUP_FORMAT,
-        version: VERSION_HISTORY_BACKUP_VERSION,
-        exportedAt: new Date().toISOString(),
-        checkpoints: nextHistory,
-      } satisfies VersionHistoryBackup, `${safeResumeFilename(state.name || "resume")}-checkpoints.json`);
+      downloadJsonFile(
+        {
+          format: VERSION_HISTORY_BACKUP_FORMAT,
+          version: VERSION_HISTORY_BACKUP_VERSION,
+          exportedAt: new Date().toISOString(),
+          checkpoints: nextHistory,
+        } satisfies VersionHistoryBackup,
+        `${safeResumeFilename(state.name || "resume")}-checkpoints.json`,
+      );
       flash("Browser storage unavailable — checkpoint backup downloaded");
     }
   };
@@ -253,7 +266,11 @@ export function useResumeHistory({
     setVersionHistory(nextHistory);
     setDeletedVersion(deleted);
     if (draftSourceVersionId === id) setDraftSourceVersionId(null);
-    flash(deletedLocally ? "Deleted checkpoint" : "Could not remove the checkpoint from browser storage");
+    flash(
+      deletedLocally
+        ? "Deleted checkpoint"
+        : "Could not remove the checkpoint from browser storage",
+    );
   };
 
   const clearVersionHistory = async () => {
@@ -261,17 +278,25 @@ export function useResumeHistory({
     setVersionHistory([]);
     setDeletedVersion(null);
     setDraftSourceVersionId(null);
-    flash(clearedLocally ? "Cleared checkpoints" : "Could not clear checkpoints from browser storage");
+    flash(
+      clearedLocally ? "Cleared checkpoints" : "Could not clear checkpoints from browser storage",
+    );
   };
 
   const undoDeleteVersion = async () => {
     if (!deletedVersion) return;
-    const nextHistory = [deletedVersion, ...versionHistory.filter((item) => item.id !== deletedVersion.id)]
-      .sort((first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime());
+    const nextHistory = [
+      deletedVersion,
+      ...versionHistory.filter((item) => item.id !== deletedVersion.id),
+    ].sort(
+      (first, second) => new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime(),
+    );
     const restoredLocally = await persistVersionHistory(nextHistory);
     setVersionHistory(nextHistory);
     setDeletedVersion(null);
-    flash(restoredLocally ? "Restored deleted checkpoint" : "Checkpoint restored for this session only");
+    flash(
+      restoredLocally ? "Restored deleted checkpoint" : "Checkpoint restored for this session only",
+    );
   };
 
   return {

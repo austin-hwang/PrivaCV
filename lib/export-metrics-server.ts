@@ -16,7 +16,10 @@ const allowedFormats = new Set<string>(EXPORT_FORMATS);
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
 /** Handle the Worker's tiny same-origin export metric endpoint. */
-export async function handleExportMetric(request: Request, env: ExportMetricsEnv): Promise<Response | null> {
+export async function handleExportMetric(
+  request: Request,
+  env: ExportMetricsEnv,
+): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== EXPORT_METRIC_PATH) return null;
 
@@ -40,8 +43,9 @@ export async function handleExportMetric(request: Request, env: ExportMetricsEnv
 
   let format: ResumeExportFormat;
   try {
-    const body = await request.json() as { format?: unknown };
-    if (typeof body.format !== "string" || !allowedFormats.has(body.format)) throw new Error("Invalid format");
+    const body = (await request.json()) as { format?: unknown };
+    if (typeof body.format !== "string" || !allowedFormats.has(body.format))
+      throw new Error("Invalid format");
     format = body.format as ResumeExportFormat;
   } catch {
     return new Response("Invalid metric.", { status: 400, headers: noStoreHeaders });

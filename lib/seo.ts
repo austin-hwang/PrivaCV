@@ -20,7 +20,12 @@ type WebApplicationJsonLdOptions = {
 
 /** Schema.org product facts for public feature pages. This deliberately avoids
  * ratings or reviews until PrivaCV has genuine user-review data to publish. */
-export function webApplicationJsonLd({ name, description, path, featureList }: WebApplicationJsonLdOptions) {
+export function webApplicationJsonLd({
+  name,
+  description,
+  path,
+  featureList,
+}: WebApplicationJsonLdOptions) {
   return {
     "@context": "https://schema.org",
     "@type": "WebApplication",

@@ -7,20 +7,19 @@ import {
   ArrowUp,
   BriefcaseBusiness,
   Calendar,
+  Camera,
   Code,
-  Dribbble,
-  Figma,
-  Github,
-  Gitlab,
+  Code2,
+  GitFork,
   Globe2,
-  Instagram,
-  Linkedin,
   Link as LinkIcon,
+  MessageCircle,
   Newspaper,
+  Palette,
   Plus,
+  Shapes,
   Trash2,
-  Twitter,
-  Youtube,
+  Video,
 } from "lucide-react";
 import { FieldGroup, TextField } from "@/features/resume/components/editor-fields";
 import { Button } from "@/components/ui/button";
@@ -35,14 +34,14 @@ import { cn } from "@/lib/utils";
 
 const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
   website: Globe2,
-  linkedin: Linkedin,
-  github: Github,
-  gitlab: Gitlab,
-  twitter: Twitter,
-  instagram: Instagram,
-  youtube: Youtube,
-  dribbble: Dribbble,
-  figma: Figma,
+  linkedin: BriefcaseBusiness,
+  github: Code2,
+  gitlab: GitFork,
+  twitter: MessageCircle,
+  instagram: Camera,
+  youtube: Video,
+  dribbble: Palette,
+  figma: Shapes,
   portfolio: BriefcaseBusiness,
   blog: Newspaper,
   calendar: Calendar,
@@ -52,7 +51,7 @@ const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
 
 function HeaderLinkIcon({ icon }: { icon: HeaderLinkIconId }) {
   const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
-  return <Icon aria-hidden="true" className="size-4" />;
+  return <Icon aria-hidden="true" className={cn("size-4", `lucide-${icon}`)} />;
 }
 
 function HeaderLinkIconPicker({
@@ -98,7 +97,8 @@ function HeaderLinkIconPicker({
     };
   }, [open]);
 
-  const currentLabel = HEADER_LINK_ICON_OPTIONS.find((option) => option.id === value)?.label ?? "Website";
+  const currentLabel =
+    HEADER_LINK_ICON_OPTIONS.find((option) => option.id === value)?.label ?? "Website";
 
   return (
     <div ref={rootRef} className="relative shrink-0">
@@ -110,7 +110,7 @@ function HeaderLinkIconPicker({
         aria-expanded={open}
         aria-label={`${label} icon — ${currentLabel}`}
         title="Choose an icon"
-        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <HeaderLinkIcon icon={value} />
       </button>
@@ -185,20 +185,73 @@ export function ResumeHeaderFields({
       collapsed={collapsed}
       onToggleCollapsed={onToggleCollapsed}
     >
-      <TextField id="field-name" label="Full Name" value={state.name} placeholder="Jane Doe" autoComplete="name" spellCheck={false} onChange={(value) => onUpdateField("name", value)} />
-      <TextField id="field-title" label="Title / Role" value={state.title} placeholder="Senior Software Engineer" autoComplete="organization-title" spellCheck onChange={(value) => onUpdateField("title", value)} />
+      <TextField
+        id="field-name"
+        label="Full Name"
+        value={state.name}
+        placeholder="Jane Doe"
+        autoComplete="name"
+        spellCheck={false}
+        onChange={(value) => onUpdateField("name", value)}
+      />
+      <TextField
+        id="field-title"
+        label="Title / Role"
+        value={state.title}
+        placeholder="Senior Software Engineer"
+        autoComplete="organization-title"
+        spellCheck
+        onChange={(value) => onUpdateField("title", value)}
+      />
       <div className="editor-pane-grid grid gap-3">
-        <TextField id="field-email" label="Email" value={state.email} placeholder="jane@example.com" type="email" autoComplete="email" inputMode="email" spellCheck={false} onChange={(value) => onUpdateField("email", value)} />
-        <TextField id="field-phone" label="Phone" value={state.phone} placeholder="(555) 123-4567" type="tel" autoComplete="tel" inputMode="tel" spellCheck={false} onChange={(value) => onUpdateField("phone", value)} />
+        <TextField
+          id="field-email"
+          label="Email"
+          value={state.email}
+          placeholder="jane@example.com"
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          spellCheck={false}
+          onChange={(value) => onUpdateField("email", value)}
+        />
+        <TextField
+          id="field-phone"
+          label="Phone"
+          value={state.phone}
+          placeholder="(555) 123-4567"
+          type="tel"
+          autoComplete="tel"
+          inputMode="tel"
+          spellCheck={false}
+          onChange={(value) => onUpdateField("phone", value)}
+        />
       </div>
-      <TextField id="field-location" label="Location" value={state.location} placeholder="San Francisco, CA" autoComplete="address-level2" spellCheck={false} onChange={(value) => onUpdateField("location", value)} />
+      <TextField
+        id="field-location"
+        label="Location"
+        value={state.location}
+        placeholder="San Francisco, CA"
+        autoComplete="address-level2"
+        spellCheck={false}
+        onChange={(value) => onUpdateField("location", value)}
+      />
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Links</p>
-            <p className="text-[11px] text-muted-foreground">Website, LinkedIn, GitHub, portfolio, or another profile.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Website, LinkedIn, GitHub, portfolio, or another profile.
+            </p>
           </div>
-          <Button id="add-header-link" type="button" variant="outline" size="sm" className="h-8" onClick={onAddLink}>
+          <Button
+            id="add-header-link"
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={onAddLink}
+          >
             <Plus /> Add link
           </Button>
         </div>
@@ -207,23 +260,75 @@ export function ResumeHeaderFields({
             {state.headerLinks.map((link, index) => {
               const fieldLabel = link.label.trim() || `Link ${index + 1}`;
               return (
-                <div key={link.id} data-header-link={link.id} className="flex items-center gap-2 border-b p-2 last:border-b-0">
-                  <HeaderLinkIconPicker id={`field-header-link-${link.id}-icon`} value={link.icon} label={fieldLabel} onChange={(icon) => onUpdateLink(link.id, { icon })} />
+                <div
+                  key={link.id}
+                  data-header-link={link.id}
+                  className="flex items-center gap-2 border-b p-2 last:border-b-0"
+                >
+                  <HeaderLinkIconPicker
+                    id={`field-header-link-${link.id}-icon`}
+                    value={link.icon}
+                    label={fieldLabel}
+                    onChange={(icon) => onUpdateLink(link.id, { icon })}
+                  />
                   <div className="min-w-0 flex-1">
-                    <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>{fieldLabel} URL</label>
-                    <Input id={`field-header-link-${link.id}-url`} type="url" inputMode="url" autoComplete="url" spellCheck={false} value={link.url} placeholder="github.com/janedoe" aria-label={`${fieldLabel} URL`} onChange={(event) => onUpdateLink(link.id, { url: event.target.value })} />
+                    <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>
+                      {fieldLabel} URL
+                    </label>
+                    <Input
+                      id={`field-header-link-${link.id}-url`}
+                      type="url"
+                      inputMode="url"
+                      autoComplete="url"
+                      spellCheck={false}
+                      value={link.url}
+                      placeholder="github.com/janedoe"
+                      aria-label={`${fieldLabel} URL`}
+                      onChange={(event) => onUpdateLink(link.id, { url: event.target.value })}
+                    />
                   </div>
                   <div className="flex shrink-0 items-center">
-                    <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} aria-label={`Move ${fieldLabel} up`} onClick={() => onMoveLink(index, -1)}><ArrowUp /></Button>
-                    <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === state.headerLinks.length - 1} aria-label={`Move ${fieldLabel} down`} onClick={() => onMoveLink(index, 1)}><ArrowDown /></Button>
-                    <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${fieldLabel}`} onClick={() => onRemoveLink(link.id)}><Trash2 /></Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      disabled={index === 0}
+                      aria-label={`Move ${fieldLabel} up`}
+                      onClick={() => onMoveLink(index, -1)}
+                    >
+                      <ArrowUp />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      disabled={index === state.headerLinks.length - 1}
+                      aria-label={`Move ${fieldLabel} down`}
+                      onClick={() => onMoveLink(index, 1)}
+                    >
+                      <ArrowDown />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={`Remove ${fieldLabel}`}
+                      onClick={() => onRemoveLink(link.id)}
+                    >
+                      <Trash2 />
+                    </Button>
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">No profile links added.</p>
+          <p className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            No profile links added.
+          </p>
         )}
       </div>
     </FieldGroup>

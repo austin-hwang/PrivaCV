@@ -1,17 +1,24 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { DestructiveResumeDialog, ResumeChecksDialog } from "@/features/resume/components/review-dialogs";
+import {
+  DestructiveResumeDialog,
+  ResumeChecksDialog,
+} from "@/features/resume/components/review-dialogs";
 import { ResumeEditorOverlays } from "@/features/resume/components/resume-editor-overlays";
 import { ReviewDrawer } from "@/features/resume/components/review-drawer";
 import { ResumeLibraryCard } from "@/features/resume/components/resume-library-card";
 import { GuidedReview, type GuidedReviewStep } from "@/features/resume/components/guided-review";
-import { ResumeNavigator, type ResumeNavigatorItem } from "@/features/resume/components/resume-navigator";
+import {
+  ResumeNavigator,
+  type ResumeNavigatorItem,
+} from "@/features/resume/components/resume-navigator";
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import type { useResumeWorkspaceUI } from "@/features/resume/hooks/use-resume-workspace-ui";
 
 const LocalAIDialog = dynamic(
-  () => import("@/features/resume/components/local-ai-dialog").then((module) => module.LocalAIDialog),
+  () =>
+    import("@/features/resume/components/local-ai-dialog").then((module) => module.LocalAIDialog),
   { ssr: false },
 );
 
@@ -46,13 +53,33 @@ export function ResumeWorkspaceDialogs({
   openChecksReview: () => void;
 }) {
   const {
-    checks, completeImportReview, importReviewStatus, passedChecks, setApplicationCopyOpen, state,
+    checks,
+    completeImportReview,
+    importReviewStatus,
+    passedChecks,
+    setApplicationCopyOpen,
+    state,
   } = editor;
   const {
-    checksReviewOpen, destructiveAction, libraryOpen, localAIEnabled, localAIOpen, navigatorOpen,
-    navigatorQuery, reviewTour, toolsOpen, setBlankWorkspaceOpen, setChecksReviewOpen,
-    setDestructiveAction, setHistoryPreviewItem, setLibraryOpen, setLocalAIOpen, setNavigatorOpen,
-    setNavigatorQuery, setReviewTour, setToolsOpen,
+    checksReviewOpen,
+    destructiveAction,
+    libraryOpen,
+    localAIEnabled,
+    localAIOpen,
+    navigatorOpen,
+    navigatorQuery,
+    reviewTour,
+    toolsOpen,
+    setBlankWorkspaceOpen,
+    setChecksReviewOpen,
+    setDestructiveAction,
+    setHistoryPreviewItem,
+    setLibraryOpen,
+    setLocalAIOpen,
+    setNavigatorOpen,
+    setNavigatorQuery,
+    setReviewTour,
+    setToolsOpen,
   } = ui;
 
   return (
@@ -117,7 +144,9 @@ export function ResumeWorkspaceDialogs({
       <ResumeLibraryCard
         open={libraryOpen}
         onOpenChange={setLibraryOpen}
-        items={editor.resumeLibrary.map((item) => item.id === editor.activeResumeId ? { ...item, state } : item)}
+        items={editor.resumeLibrary.map((item) =>
+          item.id === editor.activeResumeId ? { ...item, state } : item,
+        )}
         activeResumeId={editor.activeResumeId}
         onCreate={editor.createResume}
         onOpen={editor.switchResume}
@@ -131,7 +160,9 @@ export function ResumeWorkspaceDialogs({
         title={reviewTour?.kind === "import" ? "Import review" : "Resume review"}
         steps={tourSteps}
         index={reviewTour?.index ?? 0}
-        onIndexChange={(nextIndex) => setReviewTour((current) => (current ? { ...current, index: nextIndex } : current))}
+        onIndexChange={(nextIndex) =>
+          setReviewTour((current) => (current ? { ...current, index: nextIndex } : current))
+        }
         onClose={() => setReviewTour(null)}
         onFocusStep={focusTourTarget}
         onFinish={() => {

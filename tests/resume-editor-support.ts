@@ -19,24 +19,34 @@ async function exportPdf(page: Page) {
 async function expectGuidedHighlightToFrame(page: Page, target: Locator) {
   const highlight = page.locator("[data-guided-review-highlight]");
   await expect(highlight).toBeVisible();
-  await expect.poll(async () => {
-    const highlightBox = await highlight.boundingBox();
-    const targetBox = await target.boundingBox();
-    if (!highlightBox || !targetBox) return false;
-    return highlightBox.x <= targetBox.x
-      && highlightBox.y <= targetBox.y
-      && highlightBox.x + highlightBox.width >= targetBox.x + targetBox.width
-      && highlightBox.y + highlightBox.height >= targetBox.y + targetBox.height;
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const highlightBox = await highlight.boundingBox();
+      const targetBox = await target.boundingBox();
+      if (!highlightBox || !targetBox) return false;
+      return (
+        highlightBox.x <= targetBox.x &&
+        highlightBox.y <= targetBox.y &&
+        highlightBox.x + highlightBox.width >= targetBox.x + targetBox.width &&
+        highlightBox.y + highlightBox.height >= targetBox.y + targetBox.height
+      );
+    })
+    .toBe(true);
 }
 
 // Entries render as collapsed one-line summaries by default. Open every
 // collapsed entry so its fields are present for interaction/assertions.
 async function expandAllEntries(page: Page) {
   // Wait for entries to render (e.g. just after an import) before expanding.
-  await page.locator("[data-editor-entry]").first().waitFor({ state: "attached", timeout: 3000 }).catch(() => {});
+  await page
+    .locator("[data-editor-entry]")
+    .first()
+    .waitFor({ state: "attached", timeout: 3000 })
+    .catch(() => {});
   for (let i = 0; i < 40; i += 1) {
-    const collapsed = page.locator('[data-editor-entry] [data-entry-toggle][aria-expanded="false"]');
+    const collapsed = page.locator(
+      '[data-editor-entry] [data-entry-toggle][aria-expanded="false"]',
+    );
     if ((await collapsed.count()) === 0) break;
     await collapsed.first().click();
   }
@@ -93,7 +103,11 @@ async function setRichText(
 ) {
   await setRichTextBlocks(
     editor,
-    text.split("\n").map((line) => line.replace(/^\s*[•*-]\s*/, "").trim()).filter(Boolean).map((line) => ({ type, text: line })),
+    text
+      .split("\n")
+      .map((line) => line.replace(/^\s*[•*-]\s*/, "").trim())
+      .filter(Boolean)
+      .map((line) => ({ type, text: line })),
   );
 }
 
@@ -123,7 +137,12 @@ async function openResumeReview(page: Page) {
 async function advanceReviewTo(tour: Locator, text: string | RegExp) {
   const match = () => tour.getByText(text, { exact: typeof text === "string" }).first();
   for (let step = 0; step < 12; step += 1) {
-    if (await match().isVisible().catch(() => false)) return;
+    if (
+      await match()
+        .isVisible()
+        .catch(() => false)
+    )
+      return;
     const next = tour.getByRole("button", { name: /^next/i });
     if (!(await next.isVisible().catch(() => false))) break;
     await next.click();
@@ -132,7 +151,9 @@ async function advanceReviewTo(tour: Locator, text: string | RegExp) {
 }
 
 async function removeSection(page: Page, title: string) {
-  const section = page.locator("[data-editor-section]").filter({ has: page.getByLabel(`${title} section title`) });
+  const section = page
+    .locator("[data-editor-section]")
+    .filter({ has: page.getByLabel(`${title} section title`) });
   await section.getByRole("button", { name: `More actions for ${title}` }).click();
   await page.getByRole("menuitem", { name: "Remove section" }).click();
 }
@@ -202,29 +223,32 @@ function makeTextPdf(text: string) {
 function makeDocxWithLabelOnlyLink() {
   const document = [
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>',
-    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+    "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
     '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdLinkedIn"><w:r><w:t>LinkedIn</w:t></w:r></w:hyperlink></w:p>',
-    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-    '</w:body></w:document>',
+    "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+    "</w:body></w:document>",
   ].join("");
-  const relationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdLinkedIn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://www.linkedin.com/in/ada" TargetMode="External"/></Relationships>';
-  return Buffer.from(zipSync({
-    "word/document.xml": strToU8(document),
-    "word/_rels/document.xml.rels": strToU8(relationships),
-  }));
+  const relationships =
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdLinkedIn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://www.linkedin.com/in/ada" TargetMode="External"/></Relationships>';
+  return Buffer.from(
+    zipSync({
+      "word/document.xml": strToU8(document),
+      "word/_rels/document.xml.rels": strToU8(relationships),
+    }),
+  );
 }
 
 function makeDocxWithFieldLink() {
   const document = [
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
-    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+    "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
     '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:fldSimple w:instr=" HYPERLINK &quot;https://ada.example.com&quot; "><w:r><w:t>Portfolio</w:t></w:r></w:fldSimple></w:p>',
-    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-    '</w:body></w:document>',
+    "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+    "</w:body></w:document>",
   ].join("");
   return Buffer.from(zipSync({ "word/document.xml": strToU8(document) }));
 }
@@ -232,52 +256,59 @@ function makeDocxWithFieldLink() {
 function makeDocxWithHeaderContact() {
   const header = [
     '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
-    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
+    "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
     '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdPortfolio"><w:r><w:t>Portfolio</w:t></w:r></w:hyperlink></w:p>',
-    '</w:hdr>',
+    "</w:hdr>",
   ].join("");
   const document = [
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
-    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-    '</w:body></w:document>',
+    "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+    "</w:body></w:document>",
   ].join("");
-  const documentRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>';
-  const headerRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
-  return Buffer.from(zipSync({
-    "word/document.xml": strToU8(document),
-    "word/_rels/document.xml.rels": strToU8(documentRelationships),
-    "word/header1.xml": strToU8(header),
-    "word/_rels/header1.xml.rels": strToU8(headerRelationships),
-  }));
+  const documentRelationships =
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>';
+  const headerRelationships =
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
+  return Buffer.from(
+    zipSync({
+      "word/document.xml": strToU8(document),
+      "word/_rels/document.xml.rels": strToU8(documentRelationships),
+      "word/header1.xml": strToU8(header),
+      "word/_rels/header1.xml.rels": strToU8(headerRelationships),
+    }),
+  );
 }
 
 function makeDocxWithFooterContact() {
   const footer = [
     '<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
     '<w:p><w:r><w:t>ada@example.com | </w:t></w:r><w:hyperlink r:id="rIdPortfolio"><w:r><w:t>Portfolio</w:t></w:r></w:hyperlink></w:p>',
-    '<w:p><w:r><w:t>Page 1</w:t></w:r></w:p>',
-    '</w:ftr>',
+    "<w:p><w:r><w:t>Page 1</w:t></w:r></w:p>",
+    "</w:ftr>",
   ].join("");
   const document = [
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>',
-    '<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>',
-    '<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>',
-    '</w:body></w:document>',
+    "<w:p><w:r><w:t>Ada Lovelace</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Platform Engineer</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p>",
+    "<w:p><w:r><w:t>Engineer | Analytical Engines | 2022–Present</w:t></w:r></w:p>",
+    "</w:body></w:document>",
   ].join("");
-  const documentRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>';
-  const footerRelationships = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
-  return Buffer.from(zipSync({
-    "word/document.xml": strToU8(document),
-    "word/_rels/document.xml.rels": strToU8(documentRelationships),
-    "word/footer1.xml": strToU8(footer),
-    "word/_rels/footer1.xml.rels": strToU8(footerRelationships),
-  }));
+  const documentRelationships =
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>';
+  const footerRelationships =
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPortfolio" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://ada.example.com" TargetMode="External"/></Relationships>';
+  return Buffer.from(
+    zipSync({
+      "word/document.xml": strToU8(document),
+      "word/_rels/document.xml.rels": strToU8(documentRelationships),
+      "word/footer1.xml": strToU8(footer),
+      "word/_rels/footer1.xml.rels": strToU8(footerRelationships),
+    }),
+  );
 }
-
 
 export {
   MAX_PDF_BYTES,

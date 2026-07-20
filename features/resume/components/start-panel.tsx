@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardPaste, FileJson, FileText, History, Upload } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ClipboardPaste,
+  FileJson,
+  FileText,
+  History,
+  Upload,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,9 +62,17 @@ export function StartPanel({
                 onClick={onImportFile}
                 disabled={isImporting}
               >
-                <Upload /> <span className="min-w-0">{isImporting ? "Importing…" : "Import a file (PDF or Word)"}</span>
+                <Upload />{" "}
+                <span className="min-w-0">
+                  {isImporting ? "Importing…" : "Import a file (PDF or Word)"}
+                </span>
               </Button>
-              <Button type="button" variant="outline" className="h-auto min-h-9 w-full justify-start whitespace-normal text-left" onClick={onImportText}>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto min-h-9 w-full justify-start whitespace-normal text-left"
+                onClick={onImportText}
+              >
                 <ClipboardPaste /> <span className="min-w-0">Paste resume text</span>
               </Button>
             </div>
@@ -70,10 +86,20 @@ export function StartPanel({
                 Begin from a blank, ATS-ready draft.
               </p>
             </div>
-            <Menu className="mt-auto" onOpenChange={(open) => { if (!open) onPreviewBlank(null); }}>
+            <Menu
+              className="mt-auto"
+              onOpenChange={(open) => {
+                if (!open) onPreviewBlank(null);
+              }}
+            >
               <MenuTrigger>
-                <Button type="button" variant="secondary" className="h-auto min-h-9 w-full justify-start border border-input whitespace-normal text-left">
-                  <FileText /> <span className="min-w-0">Start a blank resume</span> <ChevronDown className="ml-auto shrink-0" />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-auto min-h-9 w-full justify-start border border-input whitespace-normal text-left"
+                >
+                  <FileText /> <span className="min-w-0">Start a blank resume</span>{" "}
+                  <ChevronDown className="ml-auto shrink-0" />
                 </Button>
               </MenuTrigger>
               <MenuContent align="start" className="w-full min-w-64">
@@ -106,12 +132,19 @@ export function StartPanel({
             type="button"
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((open) => !open)}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", moreOpen && "rotate-90")} />
+            <ChevronRight
+              className={cn(
+                "size-4 text-muted-foreground transition-transform",
+                moreOpen && "rotate-90",
+              )}
+            />
             <span className="editor-pane-more-copy">
               <span>More options</span>
-              <span className="text-xs font-normal text-muted-foreground">Sample, saved JSON, backup</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                Sample, saved JSON, backup
+              </span>
             </span>
           </button>
 
@@ -128,14 +161,16 @@ export function StartPanel({
                   <History /> Open checkpoint backup
                 </Button>
               </div>
-
             </div>
           ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2" aria-label="Privacy and export benefits">
           <Badge variant="secondary">No account</Badge>
-          <Badge variant={storageIssue ? "outline" : "secondary"} className={storageIssue ? "border-warning/40 bg-warning/10 text-foreground" : undefined}>
+          <Badge
+            variant={storageIssue ? "outline" : "secondary"}
+            className={storageIssue ? "border-warning/40 bg-warning/10 text-foreground" : undefined}
+          >
             {storageIssue ? "Autosave unavailable" : "Local autosave"}
           </Badge>
           <Badge variant="secondary">Free PDF export</Badge>

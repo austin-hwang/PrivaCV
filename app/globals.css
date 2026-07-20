@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../tailwind.config.ts";
+@import "tailwindcss";
 
 @layer base {
   /* Light parity */
@@ -83,6 +82,11 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
@@ -656,11 +660,12 @@ html[data-resume-workspace="active"] .public-explainer {
   margin-bottom: 2px;
 }
 
-
 .resume-preview-target {
   cursor: pointer;
   border-radius: 2px;
-  transition: background-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .resume-preview-target:hover {
@@ -683,7 +688,9 @@ html[data-resume-workspace="active"] .public-explainer {
   cursor: text;
   border-radius: 3px;
   outline: none;
-  transition: background-color 120ms ease, box-shadow 120ms ease;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .resume-editable:hover {

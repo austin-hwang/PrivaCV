@@ -39,19 +39,25 @@ test("focuses the field behind a failed resume check", async ({ page }) => {
 
   await page.getByLabel("Phone").fill("");
   const review = await openResumeReview(page);
-  await advanceReviewTo(review, /Missing contact details can make a strong resume impossible to follow up on/);
+  await advanceReviewTo(
+    review,
+    /Missing contact details can make a strong resume impossible to follow up on/,
+  );
   await review.getByRole("button", { name: /fix contact/i }).click();
 
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
-test("guides users to add measurable evidence without requiring every bullet to have a number", async ({ page }) => {
+test("guides users to add measurable evidence without requiring every bullet to have a number", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
 
-  await setRichText(page.locator("#field-experience-0-details"),
+  await setRichText(
+    page.locator("#field-experience-0-details"),
     "Led a migration to improve deployment reliability.\nMentored engineers and established review standards.\nDesigned a billing service for enterprise customers.",
     "bullet",
   );
@@ -81,7 +87,9 @@ test("exits resume review and focuses the entry that needs a shorter bullet", as
   await expect(details).toBeFocused();
 });
 
-test("keeps mobile editing focused while keeping utilities in the tools drawer", async ({ browser }) => {
+test("keeps mobile editing focused while keeping utilities in the tools drawer", async ({
+  browser,
+}) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -99,8 +107,13 @@ test("keeps mobile editing focused while keeping utilities in the tools drawer",
   const tools = page.getByRole("dialog", { name: /^tools$/i });
   await expect(tools).toBeVisible();
   await expect(tools).toHaveCSS("overflow-y", "auto");
-  await expect(tools.getByRole("heading", { name: "Tools" }).locator("..").locator("..")).toHaveCSS("position", "static");
-  await expect(tools.getByRole("button", { name: /resume review/i })).toContainText("Ready to export");
+  await expect(tools.getByRole("heading", { name: "Tools" }).locator("..").locator("..")).toHaveCSS(
+    "position",
+    "static",
+  );
+  await expect(tools.getByRole("button", { name: /resume review/i })).toContainText(
+    "Ready to export",
+  );
   await expect(tools.getByRole("button", { name: /copy for applications/i })).toBeVisible();
   await expect(tools.getByRole("button", { name: /local ai/i })).toHaveCount(0);
   await expect(tools.getByText("Resume checks run in this browser.")).toHaveCount(0);
@@ -115,7 +128,9 @@ test("keeps mobile editing focused while keeping utilities in the tools drawer",
   await openMenu(page);
   await expect(page.getByRole("menuitem", { name: /local ai/i })).toHaveCount(0);
   await expect(page.getByRole("menuitem", { name: /feedback/i })).toHaveCount(0);
-  await expect(page.getByRole("menuitem", { name: /switch to (?:light|night) mode/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /switch to (?:light|night) mode/i })).toHaveCount(
+    0,
+  );
 
   await context.close();
 });
@@ -144,7 +159,9 @@ test("keeps the phone preview faithful to the printed Letter layout", async ({ b
   await context.close();
 });
 
-test("keeps the resume sheet to true Letter dimensions on screen and in print", async ({ page }) => {
+test("keeps the resume sheet to true Letter dimensions on screen and in print", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -214,12 +231,19 @@ test("shows page boundaries in the preview without printing those guides", async
 
   const details = Array.from(
     { length: 70 },
-    (_, index) => `• Delivered a concrete, measurable outcome for initiative ${index + 1} across a complex program.`,
+    (_, index) =>
+      `• Delivered a concrete, measurable outcome for initiative ${index + 1} across a complex program.`,
   ).join("\n");
-  await setRichText(page.locator("[data-editor-entry] [data-rich-text-editor]").first(), details, "bullet");
+  await setRichText(
+    page.locator("[data-editor-entry] [data-rich-text-editor]").first(),
+    details,
+    "bullet",
+  );
 
   await expect(page.getByText("Page 2 begins")).toBeVisible();
-  await expect(page.locator(".resume-page-guide span").filter({ hasText: "Page 2 begins" }).first()).toContainText("Next:");
+  await expect(
+    page.locator(".resume-page-guide span").filter({ hasText: "Page 2 begins" }).first(),
+  ).toContainText("Next:");
 
   await page.emulateMedia({ media: "print" });
   await expect(page.getByText("Page 2 begins")).toBeHidden();
@@ -241,14 +265,18 @@ test("matches preview page count when print keeps a long role intact", async ({ 
   // Chromium moves this complete role to a fresh Letter page. The live sheet
   // should reserve that whitespace too, rather than understating the export.
   await expect(page.getByText("3 pages in preview", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-resume-print-section="experience"]')).toHaveClass(/resume-print-break-before/);
+  await expect(page.locator('[data-resume-print-section="experience"]')).toHaveClass(
+    /resume-print-break-before/,
+  );
 
   await page.emulateMedia({ media: "print" });
   const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
   expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
 });
 
-test("keeps the Skills section whole on the exported page the preview shows it on", async ({ page }) => {
+test("keeps the Skills section whole on the exported page the preview shows it on", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -259,7 +287,8 @@ test("keeps the Skills section whole on the exported page the preview shows it o
   // in the preview while the print engine split it at the page margin.
   const details = Array.from(
     { length: 14 },
-    (_, index) => `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design and delivery.`,
+    (_, index) =>
+      `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design and delivery.`,
   ).join("\n");
   await setRichText(page.locator("#field-experience-0-details"), details, "bullet");
 
@@ -268,11 +297,16 @@ test("keeps the Skills section whole on the exported page the preview shows it o
   // correct as long as the visible and exported page placement agree.
   await expect(page.getByText("2 pages in preview", { exact: true })).toBeVisible();
   const skillsSection = page.locator('[data-resume-print-section="skills"]');
-  await expect.poll(() => skillsSection.evaluate((element) => {
-    const section = element as HTMLElement;
-    const contentTop = section.offsetTop + Number.parseFloat(getComputedStyle(section).paddingTop);
-    return Math.floor(contentTop / (11 * 96)) + 1;
-  })).toBe(2);
+  await expect
+    .poll(() =>
+      skillsSection.evaluate((element) => {
+        const section = element as HTMLElement;
+        const contentTop =
+          section.offsetTop + Number.parseFloat(getComputedStyle(section).paddingTop);
+        return Math.floor(contentTop / (11 * 96)) + 1;
+      }),
+    )
+    .toBe(2);
 
   await page.emulateMedia({ media: "print" });
   const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
@@ -309,8 +343,13 @@ test("recomputes the preview page count when the resume shrinks", async ({ page 
   await loadSample(page);
 
   const roleDetails = page.locator("#field-experience-0-details");
-  await setRichText(roleDetails,
-    Array.from({ length: 22 }, (_, index) => `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`).join("\n"),
+  await setRichText(
+    roleDetails,
+    Array.from(
+      { length: 22 },
+      (_, index) =>
+        `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
+    ).join("\n"),
     "bullet",
   );
   // The compact-spacing helper only appears once the preview is multi-page.
@@ -330,7 +369,8 @@ test("offers reversible page-fit adjustments without changing resume content", a
 
   const details = Array.from(
     { length: 22 },
-    (_, index) => `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
+    (_, index) =>
+      `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
   ).join("\n");
   const roleDetails = page.locator("#field-experience-0-details");
   await setRichText(roleDetails, details, "bullet");
@@ -374,7 +414,11 @@ test("shows an export review before printing an unresolved resume", async ({ pag
   await exportPdf(page);
   const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
   await expect(exportDialog).toBeVisible();
-  await expect(exportDialog.getByText("Missing contact details can make a strong resume impossible to follow up on.")).toBeVisible();
+  await expect(
+    exportDialog.getByText(
+      "Missing contact details can make a strong resume impossible to follow up on.",
+    ),
+  ).toBeVisible();
 
   await exportDialog.getByRole("button", { name: /fix contact/i }).click();
   await expect(page.locator("#field-phone")).toBeFocused();
@@ -385,7 +429,9 @@ test("shows an export review before printing an unresolved resume", async ({ pag
   await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
 });
 
-test("adds, customizes, reorders, and persists header links with contact icons", async ({ page }) => {
+test("adds, customizes, reorders, and persists header links with contact icons", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -393,19 +439,31 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await page.getByRole("button", { name: /editing mode/i }).click();
 
   const preview = page.locator(".resume-sheet");
-  await expect(preview.getByRole("link", { name: "john.doe@example.com" }).locator(".lucide-mail")).toBeVisible();
-  await expect(preview.getByText("Chicago, IL", { exact: true }).locator(".lucide-map-pin")).toBeVisible();
-  await expect(preview.getByRole("link", { name: "linkedin.com/in/johndoe" }).locator(".lucide-linkedin")).toBeVisible();
-  const contactGeometry = await preview.locator(".resume-contact-item").evaluateAll((items) => items.map((item) => {
-    const icon = item.querySelector("svg");
-    const itemBox = item.getBoundingClientRect();
-    const iconBox = icon?.getBoundingClientRect();
-    return {
-      iconCenterOffset: iconBox ? (iconBox.top + iconBox.height / 2) - (itemBox.top + itemBox.height / 2) : 999,
-      separatorSpace: Number.parseFloat(getComputedStyle(item).marginRight),
-    };
-  }));
-  expect(contactGeometry.every(({ iconCenterOffset }) => Math.abs(iconCenterOffset) < 2)).toBe(true);
+  await expect(
+    preview.getByRole("link", { name: "john.doe@example.com" }).locator(".lucide-mail"),
+  ).toBeVisible();
+  await expect(
+    preview.getByText("Chicago, IL", { exact: true }).locator(".lucide-map-pin"),
+  ).toBeVisible();
+  await expect(
+    preview.getByRole("link", { name: "linkedin.com/in/johndoe" }).locator(".lucide-linkedin"),
+  ).toBeVisible();
+  const contactGeometry = await preview.locator(".resume-contact-item").evaluateAll((items) =>
+    items.map((item) => {
+      const icon = item.querySelector("svg");
+      const itemBox = item.getBoundingClientRect();
+      const iconBox = icon?.getBoundingClientRect();
+      return {
+        iconCenterOffset: iconBox
+          ? iconBox.top + iconBox.height / 2 - (itemBox.top + itemBox.height / 2)
+          : 999,
+        separatorSpace: Number.parseFloat(getComputedStyle(item).marginRight),
+      };
+    }),
+  );
+  expect(contactGeometry.every(({ iconCenterOffset }) => Math.abs(iconCenterOffset) < 2)).toBe(
+    true,
+  );
   expect(contactGeometry.slice(0, -1).every(({ separatorSpace }) => separatorSpace > 8)).toBe(true);
 
   await page.getByRole("button", { name: /add link/i }).click();
@@ -425,16 +483,27 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await iconMenu.getByRole("menuitem", { name: "Portfolio / work" }).click();
   await expect(github.locator(".lucide-briefcase-business")).toBeVisible();
   await newLink.getByRole("button", { name: /move github up/i }).click();
-  await expect(page.locator("[data-header-link]").first().locator('input[type="url"]')).toHaveValue("github.com/johndoe");
+  await expect(page.locator("[data-header-link]").first().locator('input[type="url"]')).toHaveValue(
+    "github.com/johndoe",
+  );
 
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain('"icon":"portfolio"');
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2")))
+    .toContain('"icon":"portfolio"');
   await page.reload();
   await expect(page.getByLabel("GitHub URL")).toHaveValue("github.com/johndoe");
   await expect(page.getByLabel(/GitHub icon/i).locator(".lucide-briefcase-business")).toBeVisible();
-  await expect(page.locator(".resume-sheet .resume-contact-item").filter({ hasText: "github.com/johndoe" }).locator(".lucide-briefcase-business")).toBeVisible();
+  await expect(
+    page
+      .locator(".resume-sheet .resume-contact-item")
+      .filter({ hasText: "github.com/johndoe" })
+      .locator(".lucide-briefcase-business"),
+  ).toBeVisible();
 });
 
-test("catches unusable contact details before export and uses contact-friendly inputs", async ({ page }) => {
+test("catches unusable contact details before export and uses contact-friendly inputs", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -461,14 +530,18 @@ test("keeps import confirmation explicit in the export review", async ({ page })
 
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
-  await importDialog.getByLabel("Resume text").fill([
-    "Ada Lovelace",
-    "ada@example.com | San Francisco, CA",
-    "",
-    "Experience",
-    "Platform Engineer | Analytical Engines | 2022–Present",
-    "• Built reliable systems.",
-  ].join("\n"));
+  await importDialog
+    .getByLabel("Resume text")
+    .fill(
+      [
+        "Ada Lovelace",
+        "ada@example.com | San Francisco, CA",
+        "",
+        "Experience",
+        "Platform Engineer | Analytical Engines | 2022–Present",
+        "• Built reliable systems.",
+      ].join("\n"),
+    );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
 
@@ -490,15 +563,19 @@ test("checks an imported resume before downloading Word", async ({ page }) => {
 
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
-  await importDialog.getByLabel("Resume text").fill([
-    "Ada Lovelace",
-    "Platform Engineer",
-    "ada@example.com | San Francisco, CA",
-    "",
-    "Experience",
-    "Platform Engineer | Analytical Engines | 2022–Present",
-    "• Built reliable systems.",
-  ].join("\n"));
+  await importDialog
+    .getByLabel("Resume text")
+    .fill(
+      [
+        "Ada Lovelace",
+        "Platform Engineer",
+        "ada@example.com | San Francisco, CA",
+        "",
+        "Experience",
+        "Platform Engineer | Analytical Engines | 2022–Present",
+        "• Built reliable systems.",
+      ].join("\n"),
+    );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
 

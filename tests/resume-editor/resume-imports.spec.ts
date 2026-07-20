@@ -46,10 +46,15 @@ test("helps first-time users choose the right private import route", async ({ pa
   await expect(importFile).toBeVisible();
   await expect(importFile).toHaveClass(/bg-primary/);
   await expect(pasteText).toHaveClass(/border-input/);
-  await expect.poll(async () => {
-    const [fileBox, pasteBox] = await Promise.all([importFile.boundingBox(), pasteText.boundingBox()]);
-    return Boolean(fileBox && pasteBox && fileBox.y < pasteBox.y);
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const [fileBox, pasteBox] = await Promise.all([
+        importFile.boundingBox(),
+        pasteText.boundingBox(),
+      ]);
+      return Boolean(fileBox && pasteBox && fileBox.y < pasteBox.y);
+    })
+    .toBe(true);
   await expect(page.getByRole("button", { name: /^start a blank resume$/i })).toBeVisible();
 
   // Secondary routes stay tucked away until asked for.
@@ -94,11 +99,15 @@ test("keeps an oversized PDF import local and gives a clear recovery path", asyn
     buffer: Buffer.alloc(MAX_PDF_BYTES + 1),
   });
 
-  await expect(page.getByText("This PDF is too large to import locally. Try copying the resume text instead.")).toBeVisible();
+  await expect(
+    page.getByText("This PDF is too large to import locally. Try copying the resume text instead."),
+  ).toBeVisible();
   await expect(page.getByText("I have a resume")).toBeVisible();
 });
 
-test("imports an editable Word resume locally and keeps its review deliberate", async ({ page }) => {
+test("imports an editable Word resume locally and keeps its review deliberate", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -193,10 +202,16 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
   await loadSample(page);
 
   await expect(page.getByText("John Doe").first()).toBeVisible();
-  await expect(page.locator('[data-editor-section="experience"] [data-editor-entry]')).toHaveCount(3);
-  await expect(page.locator('[data-editor-section="education"] [data-editor-entry]')).toHaveCount(2);
+  await expect(page.locator('[data-editor-section="experience"] [data-editor-entry]')).toHaveCount(
+    3,
+  );
+  await expect(page.locator('[data-editor-section="education"] [data-editor-entry]')).toHaveCount(
+    2,
+  );
   await expect(page.locator('[data-editor-section="projects"] [data-editor-entry]')).toHaveCount(2);
-  await expect(page.locator('[data-editor-section="skills"] [data-editor-tag-group]')).toHaveCount(4);
+  await expect(page.locator('[data-editor-section="skills"] [data-editor-tag-group]')).toHaveCount(
+    4,
+  );
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
   const editingMode = page.getByRole("button", { name: /editing mode — switch to view only/i });
   await expect(editingMode).toBeVisible();
@@ -238,7 +253,9 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   // Autosave state is surfaced beside the editing controls: a spinning loader
   // while saving that settles to a check, mirrored on data-autosave-status + aria.
   const autosave = page.locator("[data-autosave-status]");
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("John Doe");
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2")))
+    .toContain("John Doe");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
   await expect(autosave.getByText("Saved", { exact: true })).toBeVisible();
@@ -253,7 +270,9 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(libraryButton.locator(".animate-spin")).toHaveCount(0);
 
   const versions = await openVersions(page);
-  await expect(versions.getByRole("listitem").getByText("Autosave copy", { exact: true })).toBeVisible();
+  await expect(
+    versions.getByRole("listitem").getByText("Autosave copy", { exact: true }),
+  ).toBeVisible();
   await expect(versions.getByText("Autosaved", { exact: true })).toBeVisible();
 });
 
@@ -262,59 +281,107 @@ test("creates a deduplicated periodic checkpoint after sustained editing", async
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "saved",
+  );
 
   await page.evaluate(() => {
     const tenMinutesLater = Date.now() + 10 * 60 * 1000;
     Date.now = () => tenMinutesLater;
   });
-  await setRichText(summaryEditor(page), "A sustained editing session with a durable automatic history point.");
-  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await setRichText(
+    summaryEditor(page),
+    "A sustained editing session with a durable automatic history point.",
+  );
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "saved",
+  );
 
-  await expect.poll(() => page.evaluate(() => {
-    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
-    return history.filter((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-")).length;
-  })).toBe(1);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const history = JSON.parse(
+          localStorage.getItem("resume-editor-version-history-v1") ?? "[]",
+        );
+        return history.filter((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-"))
+          .length;
+      }),
+    )
+    .toBe(1);
 
-  await setRichText(summaryEditor(page), "A second edit should stay within the same automatic checkpoint window.");
-  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
-  await expect.poll(() => page.evaluate(() => {
-    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
-    return history.filter((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-")).length;
-  })).toBe(1);
+  await setRichText(
+    summaryEditor(page),
+    "A second edit should stay within the same automatic checkpoint window.",
+  );
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "saved",
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const history = JSON.parse(
+          localStorage.getItem("resume-editor-version-history-v1") ?? "[]",
+        );
+        return history.filter((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-"))
+          .length;
+      }),
+    )
+    .toBe(1);
 
   const versions = await openVersions(page);
   const automatic = versions.locator("li", { hasText: "Auto · John Doe" });
   await expect(automatic.getByText("Automatic", { exact: true })).toBeVisible();
-  await expect(automatic).toContainText("Saved automatically after 10 minutes of continued editing.");
+  await expect(automatic).toContainText(
+    "Saved automatically after 10 minutes of continued editing.",
+  );
 });
 
-test("keeps a second tab from silently overwriting a newer local draft", async ({ page, context }) => {
+test("keeps a second tab from silently overwriting a newer local draft", async ({
+  page,
+  context,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "saved",
+  );
 
   const otherTab = await context.newPage();
   await otherTab.goto("/");
   await expect(otherTab.getByLabel("Full Name")).toHaveValue("John Doe");
   await otherTab.getByLabel("Full Name").fill("Alex Morgan");
-  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "saved",
+  );
 
-  const conflict = page.getByText("A different resume was saved in another tab", { exact: true }).locator("..");
+  const conflict = page
+    .getByText("A different resume was saved in another tab", { exact: true })
+    .locator("..");
   await expect(conflict).toContainText("Autosave is paused here");
   await expect(conflict.getByText("Header changed", { exact: true })).toBeVisible();
   await expect(conflict.getByText("This tab", { exact: true })).toBeVisible();
   await expect(conflict.getByText("Saved tab", { exact: true })).toBeVisible();
-  await expect(page.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "conflict");
+  await expect(page.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "conflict",
+  );
   await page.getByRole("button", { name: /use saved draft/i }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Alex Morgan");
   await expect(conflict).toBeHidden();
   await otherTab.close();
 });
 
-test("keeps required import review when using an imported draft from another tab", async ({ page, context }) => {
+test("keeps required import review when using an imported draft from another tab", async ({
+  page,
+  context,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -323,61 +390,88 @@ test("keeps required import review when using an imported draft from another tab
   await otherTab.goto("/");
   await otherTab.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = otherTab.getByRole("dialog", { name: /paste the resume you already have/i });
-  await importDialog.getByLabel("Resume text").fill([
-    "Ada Lovelace",
-    "ada@example.com | San Francisco, CA",
-    "",
-    "Experience",
-    "Platform Engineer | Analytical Engines | 2022-Present",
-    "• Built reliable systems.",
-  ].join("\n"));
+  await importDialog
+    .getByLabel("Resume text")
+    .fill(
+      [
+        "Ada Lovelace",
+        "ada@example.com | San Francisco, CA",
+        "",
+        "Experience",
+        "Platform Engineer | Analytical Engines | 2022-Present",
+        "• Built reliable systems.",
+      ].join("\n"),
+    );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(otherTab);
   await expect(otherTab.locator("#import-review-panel")).toBeVisible();
-  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute("data-autosave-status", "saved");
+  await expect(otherTab.locator("[data-autosave-status]")).toHaveAttribute(
+    "data-autosave-status",
+    "saved",
+  );
 
-  await expect(page.getByText("A different resume was saved in another tab", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("A different resume was saved in another tab", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: /use saved draft/i }).click();
 
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
   await expect(page.locator("#import-review-panel")).toBeVisible();
   await expect(page.getByText("Loaded the draft and its import review")).toBeVisible();
   await exportPdf(page);
-  await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText("Imported fields still need review");
+  await expect(page.getByRole("dialog", { name: /review before exporting/i })).toContainText(
+    "Imported fields still need review",
+  );
   await otherTab.close();
 });
 
-test("offers copy-ready application fields without making users retype resume details", async ({ page }) => {
+test("offers copy-ready application fields without making users retype resume details", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
 
   await openTools(page);
-  await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /copy for applications/i }).click();
+  await page
+    .getByRole("dialog", { name: /^tools$/i })
+    .getByRole("button", { name: /copy for applications/i })
+    .click();
 
   const dialog = page.getByRole("dialog", { name: /copy for applications/i });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("Copy exactly what each portal asks for", { exact: true })).toHaveCount(0);
+  await expect(
+    dialog.getByText("Copy exactly what each portal asks for", { exact: true }),
+  ).toHaveCount(0);
   await expect(dialog).toHaveCSS("overflow-y", "hidden");
   await expect(dialog.locator("[data-application-copy-list]")).toHaveCSS("overflow-y", "auto");
   await expect(dialog.getByRole("button", { name: /copy full name/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy achievements/i }).first()).toBeVisible();
-  await expect(dialog.getByText("Product Operations Manager · Northstar Health - Chicago, IL")).toBeVisible();
+  await expect(
+    dialog.getByText("Product Operations Manager · Northstar Health - Chicago, IL"),
+  ).toBeVisible();
 
   const firstExperience = dialog.locator('section[aria-label="Experience 1"]');
   const achievements = firstExperience.locator("#application-copy-experience-0-details");
-  const expand = firstExperience.locator('button[aria-controls="application-copy-experience-0-details"]');
+  const expand = firstExperience.locator(
+    'button[aria-controls="application-copy-experience-0-details"]',
+  );
   await expect(achievements).toHaveClass(/max-h-12/);
   await expect(expand).toHaveAttribute("aria-expanded", "false");
   await expand.click();
   await expect(achievements).not.toHaveClass(/max-h-12/);
-  await expect(firstExperience.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
+  await expect(firstExperience.getByRole("button", { name: "Show less" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
 });
 
-test("copies application fields when the browser rejects async clipboard access", async ({ page }) => {
+test("copies application fields when the browser rejects async clipboard access", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -386,13 +480,16 @@ test("copies application fields when the browser rejects async clipboard access"
   await page.evaluate(() => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
-      value: { writeText: () => Promise.reject(new DOMException("Permission denied", "NotAllowedError")) },
+      value: {
+        writeText: () => Promise.reject(new DOMException("Permission denied", "NotAllowedError")),
+      },
     });
     Object.defineProperty(document, "execCommand", {
       configurable: true,
       value: (command: string) => {
         if (command !== "copy") return false;
-        const copied = document.activeElement instanceof HTMLTextAreaElement ? document.activeElement.value : "";
+        const copied =
+          document.activeElement instanceof HTMLTextAreaElement ? document.activeElement.value : "";
         document.documentElement.dataset.fallbackCopy = copied;
         return true;
       },
@@ -400,11 +497,20 @@ test("copies application fields when the browser rejects async clipboard access"
   });
 
   await openTools(page);
-  await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /copy for applications/i }).click();
+  await page
+    .getByRole("dialog", { name: /^tools$/i })
+    .getByRole("button", { name: /copy for applications/i })
+    .click();
   const dialog = page.getByRole("dialog", { name: /copy for applications/i });
-  await dialog.getByRole("button", { name: /copy job title/i }).first().click();
+  await dialog
+    .getByRole("button", { name: /copy job title/i })
+    .first()
+    .click();
 
-  await expect(page.locator("html")).toHaveAttribute("data-fallback-copy", "Product Operations Manager");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-fallback-copy",
+    "Product Operations Manager",
+  );
   await expect(page.getByText("Copied job title")).toBeVisible();
 });
 
@@ -437,13 +543,23 @@ test("makes validated contact details actionable in the preview", async ({ page 
   await page.getByRole("button", { name: /editing mode/i }).click();
 
   const preview = page.locator(".resume-sheet");
-  await expect(preview.getByRole("link", { name: "john.doe@example.com" })).toHaveAttribute("href", "mailto:john.doe@example.com");
-  await expect(preview.getByRole("link", { name: "(555) 014-7823" })).toHaveAttribute("href", "tel:(555) 014-7823");
-  await expect(preview.getByRole("link", { name: "linkedin.com/in/johndoe" })).toHaveAttribute("href", "https://linkedin.com/in/johndoe");
+  await expect(preview.getByRole("link", { name: "john.doe@example.com" })).toHaveAttribute(
+    "href",
+    "mailto:john.doe@example.com",
+  );
+  await expect(preview.getByRole("link", { name: "(555) 014-7823" })).toHaveAttribute(
+    "href",
+    "tel:(555) 014-7823",
+  );
+  await expect(preview.getByRole("link", { name: "linkedin.com/in/johndoe" })).toHaveAttribute(
+    "href",
+    "https://linkedin.com/in/johndoe",
+  );
   expect(
-    await preview.locator(".resume-contact > *").first().evaluate(
-      (element) => getComputedStyle(element, "::after").content.includes("•"),
-    ),
+    await preview
+      .locator(".resume-contact > *")
+      .first()
+      .evaluate((element) => getComputedStyle(element, "::after").content.includes("•")),
   ).toBeTruthy();
 });
 
@@ -455,7 +571,9 @@ test("routes the browser print shortcut through the export review", async ({ pag
   await page.getByRole("button", { name: /start a blank resume/i }).click();
   await page.getByRole("menuitem", { name: /classic/i }).click();
   await page.getByLabel("Full Name").fill("Ada Lovelace");
-  await expect(page.getByRole("button", { name: "Export", exact: true })).not.toContainText(/Cmd|Ctrl/);
+  await expect(page.getByRole("button", { name: "Export", exact: true })).not.toContainText(
+    /Cmd|Ctrl/,
+  );
 
   await page.keyboard.press(process.platform === "darwin" ? "Meta+P" : "Control+P");
 
@@ -487,18 +605,26 @@ test("connects editor focus with the preview and supports custom sections", asyn
   await customTitle.fill("Publications");
   await page.locator('[id^="field-custom-"][id$="-0-title"]').fill("Reliable Interfaces");
 
-  const previewEntry = page.locator(".resume-sheet").getByText("Reliable Interfaces", { exact: true });
-  await expect(page.locator(".resume-sheet").getByText("Publications", { exact: true })).toBeVisible();
+  const previewEntry = page
+    .locator(".resume-sheet")
+    .getByText("Reliable Interfaces", { exact: true });
+  await expect(
+    page.locator(".resume-sheet").getByText("Publications", { exact: true }),
+  ).toBeVisible();
   // Custom-section content renders on the sheet and is inline-editable.
   await expect(previewEntry).toHaveAttribute("contenteditable", "true");
 
   await page.waitForTimeout(450);
   await page.reload();
-  await expect(page.getByLabel("Selected Experience section title")).toHaveValue("Selected Experience");
+  await expect(page.getByLabel("Selected Experience section title")).toHaveValue(
+    "Selected Experience",
+  );
   await expect(page.getByLabel("Publications section title")).toBeVisible();
 });
 
-test("connects grouped preview lines to their editor groups in view-only mode", async ({ page }) => {
+test("connects grouped preview lines to their editor groups in view-only mode", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -506,7 +632,9 @@ test("connects grouped preview lines to their editor groups in view-only mode", 
 
   const skillsEditor = page.locator('[data-editor-section="skills"]');
   const skillsCard = skillsEditor.locator("#review-region-skills");
-  const analysisRow = skillsEditor.locator('[data-editor-tag-group]').filter({ hasText: "Analysis" });
+  const analysisRow = skillsEditor
+    .locator("[data-editor-tag-group]")
+    .filter({ hasText: "Analysis" });
   const analysisToggle = skillsEditor.getByRole("button", { name: "Expand Analysis tag group" });
   const previewGroup = page.locator('.resume-sheet [aria-label="Edit Analysis group in Skills"]');
 
@@ -524,20 +652,26 @@ test("connects grouped preview lines to their editor groups in view-only mode", 
   await skillsEditor.getByRole("button", { name: "Collapse Skills" }).click();
   await page.getByRole("button", { name: /editing mode — switch to view only/i }).click();
   const editorPane = page.locator("#resume-editor-pane");
-  await editorPane.evaluate((element) => { element.scrollTop = 0; });
+  await editorPane.evaluate((element) => {
+    element.scrollTop = 0;
+  });
   await previewGroup.click();
 
   await expect(analysisRow).toBeFocused();
   await expect(skillsEditor.getByRole("button", { name: "Collapse Skills" })).toBeVisible();
   await expect(page.getByLabel("Add tag to Analysis")).toBeVisible();
-  await expect.poll(async () => analysisRow.evaluate((row) => {
-    const pane = document.getElementById("resume-editor-pane");
-    if (!pane) return false;
-    const rowBox = row.getBoundingClientRect();
-    const paneBox = pane.getBoundingClientRect();
-    const rowCenter = rowBox.top + rowBox.height / 2;
-    return rowCenter >= paneBox.top && rowCenter <= paneBox.bottom;
-  })).toBe(true);
+  await expect
+    .poll(async () =>
+      analysisRow.evaluate((row) => {
+        const pane = document.getElementById("resume-editor-pane");
+        if (!pane) return false;
+        const rowBox = row.getBoundingClientRect();
+        const paneBox = pane.getBoundingClientRect();
+        const rowCenter = rowBox.top + rowBox.height / 2;
+        return rowCenter >= paneBox.top && rowCenter <= paneBox.bottom;
+      }),
+    )
+    .toBe(true);
 });
 
 test("lets each section choose an ATS-readable content format", async ({ page }) => {
@@ -548,11 +682,16 @@ test("lets each section choose an ATS-readable content format", async ({ page })
 
   const skillsSection = page.locator('[data-editor-section="skills"]');
   const skillsFormatPicker = skillsSection.getByRole("group", { name: "Content format" });
-  await expect(skillsFormatPicker.getByRole("button", { name: "Tags format" })).toHaveAttribute("aria-pressed", "true");
+  await expect(skillsFormatPicker.getByRole("button", { name: "Tags format" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expect(skillsFormatPicker.getByRole("button", { name: "Entries format" })).toBeVisible();
   const addSkillsGroup = skillsSection.getByRole("button", { name: "Add group to Skills" });
   await expect(addSkillsGroup).toBeVisible();
-  await expect(skillsSection.getByRole("button", { name: "Add group", exact: true })).toHaveCount(0);
+  await expect(skillsSection.getByRole("button", { name: "Add group", exact: true })).toHaveCount(
+    0,
+  );
   await addSkillsGroup.click();
   const newGroupLabel = skillsSection.getByLabel("Tag group label").last();
   await expect(newGroupLabel).toBeFocused();
@@ -564,7 +703,9 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await skillsSection.locator("#add-skills-entry").click();
   await page.locator("#field-skills-0-title").fill("Cloud platforms");
   await page.locator("#field-skills-0-subtitle").fill("AWS and Azure");
-  await expect(page.locator(".resume-sheet").getByText("Cloud platforms", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".resume-sheet").getByText("Cloud platforms", { exact: true }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   await page.getByLabel("New Section section title").fill("Certifications");
@@ -572,17 +713,27 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   const formatPicker = customSection.getByRole("group", { name: "Content format" });
   await formatPicker.getByRole("button", { name: "Text format" }).click();
   const certificationBody = customSection.getByRole("textbox", { name: "Certifications content" });
-  await setRichText(certificationBody, "AWS Certified Developer\nCertified Kubernetes Administrator", "bullet");
-  await expect(customSection.getByRole("button", { name: "Open local AI text editor" })).toBeVisible();
+  await setRichText(
+    certificationBody,
+    "AWS Certified Developer\nCertified Kubernetes Administrator",
+    "bullet",
+  );
+  await expect(
+    customSection.getByRole("button", { name: "Open local AI text editor" }),
+  ).toBeVisible();
 
   const preview = page.locator(".resume-sheet");
   await expect(preview.getByText("Certifications", { exact: true })).toBeVisible();
-  await expect(preview.getByRole("list").filter({ hasText: "AWS Certified Developer" })).toContainText("Certified Kubernetes Administrator");
+  await expect(
+    preview.getByRole("list").filter({ hasText: "AWS Certified Developer" }),
+  ).toContainText("Certified Kubernetes Administrator");
 
   await customSection.getByRole("button", { name: "Open local AI text editor" }).click();
   await expect(customSection.getByLabel(/Edit Certifications .* with local AI/i)).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(customSection.getByRole("button", { name: "Open local AI text editor" })).toHaveCount(0);
+  await expect(
+    customSection.getByRole("button", { name: "Open local AI text editor" }),
+  ).toHaveCount(0);
   await expect(customSection.getByLabel(/Edit Certifications .* with local AI/i)).toHaveCount(0);
 });
 
@@ -596,9 +747,15 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   const name = page.locator(".resume-name");
   await expect(name).toHaveAttribute("contenteditable", "true");
   await expect(name).toHaveJSProperty("spellcheck", true);
-  await expect(page.locator(".resume-entry .resume-entry-body").first()).toHaveJSProperty("spellcheck", true);
+  await expect(page.locator(".resume-entry .resume-entry-body").first()).toHaveJSProperty(
+    "spellcheck",
+    true,
+  );
   // Structured contact values should not be treated as ordinary prose.
-  await expect(page.locator(".resume-contact [contenteditable]").first()).toHaveJSProperty("spellcheck", false);
+  await expect(page.locator(".resume-contact [contenteditable]").first()).toHaveJSProperty(
+    "spellcheck",
+    false,
+  );
   await name.selectText();
   await page.keyboard.type("Ada Lovelace");
   await page.keyboard.press("Enter");
@@ -609,10 +766,14 @@ test("edits resume text inline on the sheet and toggles the mode", async ({ page
   const firstBullet = firstEntryBody.locator("li").first();
   await firstEntryBody.focus();
   await firstBullet.selectText();
-  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("Rebuilt intake and prioritization");
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ""))
+    .toContain("Rebuilt intake and prioritization");
   await page.keyboard.insertText("Rewrote the deploy pipeline, cutting release time in half.");
   await page.locator(".resume-name").click();
-  await expect(page.locator("#field-experience-0-details")).toContainText("Rewrote the deploy pipeline");
+  await expect(page.locator("#field-experience-0-details")).toContainText(
+    "Rewrote the deploy pipeline",
+  );
 
   // Grouped skills are editable directly on the sheet as a category and a
   // separator-delimited tag list, with changes synced to the structured editor.
@@ -664,7 +825,10 @@ test("collapses editor sections to shorten a long resume", async ({ page }) => {
   await experience.getByRole("button", { name: "Collapse Experience" }).click();
   await expect(experience.getByLabel("Experience section title")).toBeVisible();
   await expect(experience.getByLabel("Job Title").first()).toBeHidden();
-  await page.getByRole("navigation", { name: /jump to a resume section/i }).getByRole("button", { name: "Experience", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: /jump to a resume section/i })
+    .getByRole("button", { name: "Experience", exact: true })
+    .click();
   await expect(experience.getByLabel("Job Title").first()).toBeVisible();
   await expect(page.getByText("Manage sections", { exact: true })).toBeHidden();
 
@@ -676,7 +840,9 @@ test("collapses editor sections to shorten a long resume", async ({ page }) => {
   await expect(page.getByLabel("Full Name")).toBeVisible();
 });
 
-test("collapses an expanded resume entry even when one of its fields was active", async ({ page }) => {
+test("collapses an expanded resume entry even when one of its fields was active", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -701,25 +867,39 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
   await page.getByRole("button", { name: /start a blank resume/i }).click();
   await page.getByRole("menuitem", { name: /classic/i }).click();
 
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("light");
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe(
+    "light",
+  );
   const inputColors = await page.getByLabel("Full Name").evaluate((element) => ({
     text: getComputedStyle(element).color,
     placeholder: getComputedStyle(element, "::placeholder").color,
   }));
   expect(inputColors.placeholder).not.toBe(inputColors.text);
-  expect(await page.locator("[data-brand-surface]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(241, 245, 249)");
-  expect(await page.locator("[data-brand-document]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(15, 23, 42)");
+  expect(
+    await page
+      .locator("[data-brand-surface]")
+      .evaluate((element) => getComputedStyle(element).fill),
+  ).toBe("rgb(241, 245, 249)");
+  expect(
+    await page
+      .locator("[data-brand-document]")
+      .evaluate((element) => getComputedStyle(element).fill),
+  ).toBe("rgb(15, 23, 42)");
 
   const toolsToggle = page.locator('button[aria-controls="tools-panel"]');
   const toolsPanel = page.getByRole("dialog", { name: /^tools$/i });
   await toolsToggle.click();
   await expect(toolsToggle).toHaveAttribute("aria-expanded", "true");
   await expect(toolsPanel).toBeVisible();
-  await expect.poll(async () => page.evaluate(() => {
-    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
-    const panelTop = document.getElementById("tools-panel")?.getBoundingClientRect().top ?? 0;
-    return Math.abs(panelTop - headerBottom);
-  })).toBeLessThanOrEqual(1);
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const panelTop = document.getElementById("tools-panel")?.getBoundingClientRect().top ?? 0;
+        return Math.abs(panelTop - headerBottom);
+      }),
+    )
+    .toBeLessThanOrEqual(1);
 
   await toolsToggle.click();
   await expect(toolsToggle).toHaveAttribute("aria-expanded", "false");
@@ -727,10 +907,24 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
 
   await page.getByRole("button", { name: "More actions", exact: true }).click();
   await page.getByRole("menuitem", { name: /use dark mode/i }).click();
-  expect(await page.getByRole("button", { name: "Export", exact: true }).evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 255)");
-  expect(await page.locator("[data-brand-surface]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(21, 27, 39)");
-  expect(await page.locator("[data-brand-document]").evaluate((element) => getComputedStyle(element).fill)).toBe("rgb(248, 250, 252)");
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");
+  expect(
+    await page
+      .getByRole("button", { name: "Export", exact: true })
+      .evaluate((element) => getComputedStyle(element).color),
+  ).toBe("rgb(255, 255, 255)");
+  expect(
+    await page
+      .locator("[data-brand-surface]")
+      .evaluate((element) => getComputedStyle(element).fill),
+  ).toBe("rgb(21, 27, 39)");
+  expect(
+    await page
+      .locator("[data-brand-document]")
+      .evaluate((element) => getComputedStyle(element).fill),
+  ).toBe("rgb(248, 250, 252)");
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe(
+    "dark",
+  );
 });
 
 test("resizes the editor and preview with the middle divider", async ({ page }) => {
@@ -764,9 +958,10 @@ test("adapts editor cards when the divider narrows the pane", async ({ page }) =
   const editorPane = page.locator("#resume-editor-pane");
   const startPaths = page.locator("[data-start-primary-paths]");
   const recoveryHeader = page.locator("[data-recovery-header]");
-  const columnCount = () => startPaths.evaluate((element) => (
-    getComputedStyle(element).gridTemplateColumns.split(" ").length
-  ));
+  const columnCount = () =>
+    startPaths.evaluate(
+      (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
+    );
 
   await expect.poll(columnCount).toBe(2);
 
@@ -776,7 +971,9 @@ test("adapts editor cards when the divider narrows the pane", async ({ page }) =
 
   await expect.poll(columnCount).toBe(1);
   await expect(recoveryHeader).toHaveCSS("flex-direction", "column");
-  await expect.poll(() => editorPane.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect
+    .poll(() => editorPane.evaluate((element) => element.scrollWidth <= element.clientWidth))
+    .toBe(true);
 });
 
 test("keeps preview scaling stable at the vertical scrollbar threshold", async ({ page }) => {
@@ -813,10 +1010,12 @@ test("expands a collapsed section when a jump targets a field inside it", async 
 
   // The containing group re-expands and its field is focused.
   await expect
-    .poll(() => page.evaluate(() => {
-      const el = document.activeElement as HTMLElement | null;
-      return Boolean(el?.id === "field-email" && el.offsetParent !== null);
-    }))
+    .poll(() =>
+      page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        return Boolean(el?.id === "field-email" && el.offsetParent !== null);
+      }),
+    )
     .toBe(true);
 });
 
@@ -827,29 +1026,48 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
   await loadSample(page);
 
   const experience = page.locator('[data-editor-section="experience"]');
-  await experience.getByRole("button", { name: /remove entry/i }).first().click();
-  await expect(page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" })).toBeVisible();
-  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Business Operations Analyst");
-  await expect.poll(() => page.evaluate(() => {
-    const history = JSON.parse(localStorage.getItem("resume-editor-version-history-v1") ?? "[]");
-    const checkpoint = history.find((item: { id?: string }) => item.id?.startsWith("auto-checkpoint-"));
-    return {
-      title: checkpoint?.state?.experience?.[0]?.title,
-      note: checkpoint?.note,
-    };
-  })).toEqual({
-    title: "Product Operations Manager",
-    note: "Saved automatically before removing an entry from Experience.",
-  });
+  await experience
+    .getByRole("button", { name: /remove entry/i })
+    .first()
+    .click();
+  await expect(
+    page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" }),
+  ).toBeVisible();
+  await expect(experience.getByLabel("Job Title").first()).toHaveValue(
+    "Business Operations Analyst",
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const history = JSON.parse(
+          localStorage.getItem("resume-editor-version-history-v1") ?? "[]",
+        );
+        const checkpoint = history.find((item: { id?: string }) =>
+          item.id?.startsWith("auto-checkpoint-"),
+        );
+        return {
+          title: checkpoint?.state?.experience?.[0]?.title,
+          note: checkpoint?.note,
+        };
+      }),
+    )
+    .toEqual({
+      title: "Product Operations Manager",
+      note: "Saved automatically before removing an entry from Experience.",
+    });
   await page.getByRole("button", { name: /^undo$/i }).click();
-  await expect(experience.getByLabel("Job Title").first()).toHaveValue("Product Operations Manager");
+  await expect(experience.getByLabel("Job Title").first()).toHaveValue(
+    "Product Operations Manager",
+  );
 
   await page.getByRole("button", { name: /add custom section/i }).click();
   const sectionTitle = page.getByLabel("New Section section title");
   await sectionTitle.fill("Publications");
   await removeSection(page, "Publications");
   await expect(sectionTitle).toBeHidden();
-  await expect(page.locator('[role="status"]').filter({ hasText: "Removed Publications section" })).toBeVisible();
+  await expect(
+    page.locator('[role="status"]').filter({ hasText: "Removed Publications section" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expect(page.getByLabel("Publications section title")).toBeVisible();
 });
@@ -862,16 +1080,26 @@ test("adds a common section with its useful heading already in place", async ({ 
 
   await page.getByRole("button", { name: /licenses & certifications/i }).click();
 
-  await expect(page.getByLabel("Licenses & Certifications section title")).toHaveValue("Licenses & Certifications");
+  await expect(page.getByLabel("Licenses & Certifications section title")).toHaveValue(
+    "Licenses & Certifications",
+  );
   await expect(page.getByLabel("License / certification", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Issuing organization", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Earned / expiration dates", { exact: true })).toBeVisible();
-  await expect(page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true })).toBeHidden();
-  await page.getByLabel("License / certification", { exact: true }).fill("AWS Certified Developer – Associate");
-  await expect(page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true }),
+  ).toBeHidden();
+  await page
+    .getByLabel("License / certification", { exact: true })
+    .fill("AWS Certified Developer – Associate");
+  await expect(
+    page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true }),
+  ).toBeVisible();
 });
 
-test("starts relevant coursework as grouped tags and languages with proficiency fields", async ({ page }) => {
+test("starts relevant coursework as grouped tags and languages with proficiency fields", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -894,23 +1122,37 @@ test("lets each structured entry mix paragraphs and bullets", async ({ page }) =
   await loadSample(page);
   await expandAllEntries(page);
 
-  const educationEntry = page.locator('[data-editor-section="education"] [data-editor-entry]').first();
-  const detailsEditor = educationEntry.getByRole("textbox", { name: "Honors / relevant coursework / details (one per line, optional)" });
+  const educationEntry = page
+    .locator('[data-editor-section="education"] [data-editor-entry]')
+    .first();
+  const detailsEditor = educationEntry.getByRole("textbox", {
+    name: "Honors / relevant coursework / details (one per line, optional)",
+  });
   await setRichTextBlocks(detailsEditor, [
     { type: "paragraph", text: "Relevant coursework included:" },
     { type: "bullet", text: "Econometrics and forecasting" },
     { type: "bullet", text: "Experimental design" },
   ]);
 
-  const previewEntry = page.locator('[data-resume-entry-section="education"][data-resume-entry-index="0"]');
-  await expect(previewEntry.locator(".resume-entry-body p")).toHaveText("Relevant coursework included:");
+  const previewEntry = page.locator(
+    '[data-resume-entry-section="education"][data-resume-entry-index="0"]',
+  );
+  await expect(previewEntry.locator(".resume-entry-body p")).toHaveText(
+    "Relevant coursework included:",
+  );
   await expect(previewEntry.locator(".resume-entry-body li")).toHaveCount(2);
 
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2"))).toContain("<p>Relevant coursework included:</p><ul>");
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("resume-editor-data-v2")))
+    .toContain("<p>Relevant coursework included:</p><ul>");
   await page.reload();
   await expandAllEntries(page);
-  const restoredEntry = page.locator('[data-resume-entry-section="education"][data-resume-entry-index="0"]');
-  await expect(restoredEntry.locator(".resume-entry-body p")).toHaveText("Relevant coursework included:");
+  const restoredEntry = page.locator(
+    '[data-resume-entry-section="education"][data-resume-entry-index="0"]',
+  );
+  await expect(restoredEntry.locator(".resume-entry-body p")).toHaveText(
+    "Relevant coursework included:",
+  );
   await expect(restoredEntry.locator(".resume-entry-body li")).toHaveCount(2);
 });
 
@@ -923,15 +1165,17 @@ test("reorders resume sections by dragging their handles", async ({ page }) => {
   // Compact the unified cards so both source and destination stay in view
   // during the pointer gesture.
   await page.getByRole("button", { name: /collapse all/i }).click();
-  await page.locator('[data-arrange-section="skills"] [draggable="true"]').dragTo(page.locator('[data-arrange-section="education"]'));
+  await page
+    .locator('[data-arrange-section="skills"] [draggable="true"]')
+    .dragTo(page.locator('[data-arrange-section="education"]'));
 
   const headings = page.locator(".resume-sheet .resume-section-title");
   await expect(headings.nth(0)).toHaveText("Skills");
   await expect(headings.nth(1)).toHaveText("Education");
 
-  const rowPositions = await page.locator("[data-arrange-section]").evaluateAll((rows) =>
-    rows.map((row) => Math.round(row.getBoundingClientRect().top)),
-  );
+  const rowPositions = await page
+    .locator("[data-arrange-section]")
+    .evaluateAll((rows) => rows.map((row) => Math.round(row.getBoundingClientRect().top)));
   expect(rowPositions).toEqual([...rowPositions].sort((first, second) => first - second));
 });
 
@@ -942,7 +1186,7 @@ test("navigates to any resume field with Cmd or Ctrl K", async ({ page }) => {
   await loadSample(page);
 
   const experience = page.locator('[data-editor-section="experience"]');
-  await experience.locator('#field-experience-0-title').focus();
+  await experience.locator("#field-experience-0-title").focus();
   await page.keyboard.press("Alt+Shift+N");
   await expect(experience.locator("[data-editor-entry]")).toHaveCount(3);
 
@@ -954,8 +1198,10 @@ test("navigates to any resume field with Cmd or Ctrl K", async ({ page }) => {
   await expect(dialog).toHaveCSS("z-index", "80");
   await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
   await search.fill("Business Operations Analyst company");
-  await dialog.getByRole("option", { name: /Company Experience · Business Operations Analyst/i }).click();
-  await expect(experience.locator('#field-experience-1-subtitle')).toBeFocused();
+  await dialog
+    .getByRole("option", { name: /Company Experience · Business Operations Analyst/i })
+    .click();
+  await expect(experience.locator("#field-experience-1-subtitle")).toBeFocused();
 
   await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
   await expect(dialog).toBeVisible();
@@ -1013,7 +1259,9 @@ test("makes the active subsection drag and destination visible", async ({ page }
   await expect(targetRow).not.toHaveAttribute("data-drop-target", "true");
 });
 
-test("keeps blank titles blank and lets users remove and restore default sections", async ({ page }) => {
+test("keeps blank titles blank and lets users remove and restore default sections", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1025,19 +1273,27 @@ test("keeps blank titles blank and lets users remove and restore default section
   await page.waitForTimeout(450);
   await page.reload();
   await expect(page.getByLabel("Untitled section title")).toHaveValue("");
-  await expect(page.locator(".resume-sheet .resume-section-title").filter({ hasText: "Experience" })).toBeHidden();
+  await expect(
+    page.locator(".resume-sheet .resume-section-title").filter({ hasText: "Experience" }),
+  ).toBeHidden();
 
   await removeSection(page, "Education");
   await expect(page.locator('[data-editor-section="education"]')).toBeHidden();
   await expect(page.getByRole("button", { name: "Education", exact: true })).toBeVisible();
-  await expect(page.locator('[role="status"]').filter({ hasText: "Removed Education section" })).toBeVisible();
+  await expect(
+    page.locator('[role="status"]').filter({ hasText: "Removed Education section" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expandAllEntries(page);
-  await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("B.A. in Economics");
+  await expect(
+    page.locator('[data-editor-section="education"]').getByLabel("Degree").first(),
+  ).toHaveValue("B.A. in Economics");
 
   await removeSection(page, "Education");
   await page.getByRole("button", { name: "Education", exact: true }).click();
-  await expect(page.locator('[data-editor-section="education"]').getByLabel("Degree").first()).toHaveValue("");
+  await expect(
+    page.locator('[data-editor-section="education"]').getByLabel("Degree").first(),
+  ).toHaveValue("");
 });
 
 test("keeps a summary optional when the resume already has experience detail", async ({ page }) => {
@@ -1070,7 +1326,13 @@ test("walks resume checks with a guided highlight tour from the tools drawer", a
 
   // Step to the failing contact check and jump to the field it flags.
   for (let step = 0; step < 8; step += 1) {
-    if (await tour.getByText("Contact", { exact: true }).isVisible().catch(() => false)) break;
+    if (
+      await tour
+        .getByText("Contact", { exact: true })
+        .isVisible()
+        .catch(() => false)
+    )
+      break;
     await tour.getByRole("button", { name: /^next/i }).click();
   }
   await expect(tour.getByText("Contact", { exact: true })).toBeVisible();
@@ -1078,17 +1340,24 @@ test("walks resume checks with a guided highlight tour from the tools drawer", a
   await expect(page.locator("#field-phone")).toBeFocused();
 });
 
-test("locks the editor behind a modal import review so the highlight can't scroll away", async ({ page }) => {
+test("locks the editor behind a modal import review so the highlight can't scroll away", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
-  const experienceBullets = Array.from({ length: 12 }, (_, index) => `• Delivered measurable outcome number ${index + 1}.`).join("\n");
-  await importDialog.getByLabel("Resume text").fill(
-    `Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n${experienceBullets}\n\nEducation\nB.S. Mathematics | Cambridge | 2018`,
-  );
+  const experienceBullets = Array.from(
+    { length: 12 },
+    (_, index) => `• Delivered measurable outcome number ${index + 1}.`,
+  ).join("\n");
+  await importDialog
+    .getByLabel("Resume text")
+    .fill(
+      `Ada Lovelace\nPlatform Engineer\nada@example.com | San Francisco, CA\n\nExperience\nEngineer | Analytical Engines | 2022–Present\n${experienceBullets}\n\nEducation\nB.S. Mathematics | Cambridge | 2018`,
+    );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
   await expandAllEntries(page);
   await page.getByRole("button", { name: /start walkthrough/i }).click();

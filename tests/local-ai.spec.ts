@@ -34,7 +34,10 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   }, LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY);
   await page.reload();
   await page.getByRole("button", { name: /open tools/i }).click();
-  await page.getByRole("dialog", { name: /^tools$/i }).getByRole("button", { name: /local ai/i }).click();
+  await page
+    .getByRole("dialog", { name: /^tools$/i })
+    .getByRole("button", { name: /local ai/i })
+    .click();
 
   const dialog = page.getByRole("dialog");
   const modelSelect = dialog.getByRole("combobox", { name: /model/i });
@@ -58,7 +61,9 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog.getByText(/Llama 3\.2 3B:/)).toBeVisible();
   await expect(dialog).toContainText("Recommended for stronger rewrites");
   await expect(dialog.getByRole("option", { name: /Phi-4 Mini.*3\.4 GB/i })).toHaveCount(1);
-  await expect(dialog.getByRole("option", { name: /DeepSeek R1 Llama 8B.*5\.0 GB/i })).toHaveCount(1);
+  await expect(dialog.getByRole("option", { name: /DeepSeek R1 Llama 8B.*5\.0 GB/i })).toHaveCount(
+    1,
+  );
   await expect(dialog.getByRole("option", { name: /SmolLM2|Qwen 3 0\.6B/i })).toHaveCount(0);
 
   await page.waitForTimeout(250);
@@ -87,15 +92,19 @@ test("offers a small local AI prompt beside resume body text", async ({ page }) 
   await expect(page.getByRole("dialog", { name: /local ai setup/i })).toBeHidden();
 });
 
-test("temporarily hides local AI import repair while small-model quality is inconsistent", async ({ page }) => {
+test("temporarily hides local AI import repair while small-model quality is inconsistent", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /paste resume text/i }).click();
   const importDialog = page.getByRole("dialog", { name: /paste the resume you already have/i });
-  await importDialog.getByLabel("Resume text").fill(
-    "Ada Lovelace\nPlatform Engineer\nada@example.com\n\nExperience\nEngineer | Analytical Engines | 2022-Present\nBuilt reliable systems.",
-  );
+  await importDialog
+    .getByLabel("Resume text")
+    .fill(
+      "Ada Lovelace\nPlatform Engineer\nada@example.com\n\nExperience\nEngineer | Analytical Engines | 2022-Present\nBuilt reliable systems.",
+    );
   await importDialog.getByRole("button", { name: /^import text$/i }).click();
 
   await expect(page.getByRole("button", { name: /fix import with ai/i })).toHaveCount(0);

@@ -9,7 +9,8 @@ function getScrollParent(el: HTMLElement): HTMLElement | null {
   let node = el.parentElement;
   while (node) {
     const overflowY = getComputedStyle(node).overflowY;
-    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) return node;
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight)
+      return node;
     node = node.parentElement;
   }
   return null;
@@ -101,11 +102,14 @@ export function SectionNav({
       ref={navRef}
       aria-label="Jump to a resume section"
       className={cn(
-        "app-chrome sticky top-[118px] z-40 -mx-4 mb-5 border-b bg-background/85 px-4 py-2 backdrop-blur lg:top-0 lg:z-20 lg:-mx-6 lg:px-6",
+        "app-chrome sticky top-[118px] z-40 -mx-4 mb-5 border-b bg-background/85 px-4 py-2 backdrop-blur-sm lg:top-0 lg:z-20 lg:-mx-6 lg:px-6",
         className,
       )}
     >
-      <div data-nav-strip className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        data-nav-strip
+        className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden"
+      >
         {items.map((item) => {
           const active = item.id === activeId;
           return (
@@ -116,7 +120,7 @@ export function SectionNav({
               aria-current={active ? "true" : undefined}
               onClick={() => jump(item.id)}
               className={cn(
-                "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                 active
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-transparent bg-muted text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground",

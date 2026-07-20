@@ -19,7 +19,9 @@ describe("ErrorRetryButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(reset).toHaveBeenCalledOnce();
-    expect((screen.getByRole("button", { name: "Refreshing…" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (screen.getByRole("button", { name: "Refreshing…" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
     expect(reload).not.toHaveBeenCalled();
 
     act(() => vi.advanceTimersByTime(250));

@@ -21,7 +21,7 @@ const SheetContent = React.forwardRef<
       onInteractOutside={(event) => event.preventDefault()}
       onOpenAutoFocus={(event) => event.preventDefault()}
       className={cn(
-        "app-chrome fixed bottom-0 right-0 z-40 flex w-full max-w-lg flex-col border-l bg-card shadow-2xl focus:outline-none",
+        "app-chrome fixed bottom-0 right-0 z-40 flex w-full max-w-lg flex-col border-l bg-card shadow-2xl focus:outline-hidden",
         className,
       )}
       {...props}
@@ -33,9 +33,12 @@ const SheetContent = React.forwardRef<
 SheetContent.displayName = DialogPrimitive.Content.displayName;
 
 const SheetHeader = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex items-start justify-between gap-3 border-b px-5 py-4", className)} {...props}>
+  <div
+    className={cn("flex items-start justify-between gap-3 border-b px-5 py-4", className)}
+    {...props}
+  >
     <div className="min-w-0 flex-1">{children}</div>
-    <DialogPrimitive.Close className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <DialogPrimitive.Close className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
       <X className="size-4" />
       <span className="sr-only">Close tools</span>
     </DialogPrimitive.Close>
@@ -47,7 +50,11 @@ const SheetTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title ref={ref} className={cn("text-base font-semibold tracking-normal", className)} {...props} />
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn("text-base font-semibold tracking-normal", className)}
+    {...props}
+  />
 ));
 SheetTitle.displayName = DialogPrimitive.Title.displayName;
 
@@ -55,7 +62,11 @@ const SheetDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description ref={ref} className={cn("text-xs leading-snug text-muted-foreground", className)} {...props} />
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-xs leading-snug text-muted-foreground", className)}
+    {...props}
+  />
 ));
 SheetDescription.displayName = DialogPrimitive.Description.displayName;
 

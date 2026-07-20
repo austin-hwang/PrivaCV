@@ -9,23 +9,28 @@ const description =
 const faqItems: FaqItem[] = [
   {
     question: "Is the PrivaCV job application tracker free?",
-    answer: "Yes. The board, list, follow-up dates, resume links, backups, CSV export, and Sankey image export are free, with no account or trial.",
+    answer:
+      "Yes. The board, list, follow-up dates, resume links, backups, CSV export, and Sankey image export are free, with no account or trial.",
   },
   {
     question: "Where is my job-search data stored?",
-    answer: "Applications, notes, job descriptions, timeline events, and submitted-resume snapshots are stored in IndexedDB in your browser. PrivaCV does not upload them to a PrivaCV account or server.",
+    answer:
+      "Applications, notes, job descriptions, timeline events, and submitted-resume snapshots are stored in IndexedDB in your browser. PrivaCV does not upload them to a PrivaCV account or server.",
   },
   {
     question: "Can I track which resume I used for each application?",
-    answer: "Yes. Attach a current resume or saved checkpoint. When an application reaches Applied, PrivaCV captures an immutable local snapshot of that submitted version.",
+    answer:
+      "Yes. Attach a current resume or saved checkpoint. When an application reaches Applied, PrivaCV captures an immutable local snapshot of that submitted version.",
   },
   {
     question: "Can I export or back up my applications?",
-    answer: "Yes. Download a CSV for a spreadsheet or a complete JSON backup containing applications, events, job descriptions, and resume snapshots.",
+    answer:
+      "Yes. Download a CSV for a spreadsheet or a complete JSON backup containing applications, events, job descriptions, and resume snapshots.",
   },
   {
     question: "Does the tracker apply to jobs automatically?",
-    answer: "No. PrivaCV is a private organizer, not an auto-apply service. You add opportunities and update their stages yourself, keeping you in control of every application.",
+    answer:
+      "No. PrivaCV is a private organizer, not an auto-apply service. You add opportunities and update their stages yourself, keeping you in control of every application.",
   },
 ];
 
@@ -60,7 +65,10 @@ export default function JobApplicationTrackerPage() {
         lede={description}
         ctaLabel="Track your applications"
         ctaHref="/applications"
-        heroImage={{ src: "/social/job-application-tracker", alt: "Private job application tracker with a Kanban pipeline and application cards" }}
+        heroImage={{
+          src: "/social/job-application-tracker",
+          alt: "Private job application tracker with a Kanban pipeline and application cards",
+        }}
         breadcrumb={{ name: title, path: "/job-application-tracker" }}
         cards={[
           {
@@ -111,7 +119,10 @@ export default function JobApplicationTrackerPage() {
           { href: "/ats-resume-checker", label: "ATS resume checker" },
         ]}
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
     </>
   );
 }

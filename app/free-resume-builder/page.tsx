@@ -14,7 +14,8 @@ const faqItems: FaqItem[] = [
   },
   {
     question: "Do I have to sign up or give an email?",
-    answer: "No. You can open the editor and start building right away without signing up for anything.",
+    answer:
+      "No. You can open the editor and start building right away without signing up for anything.",
   },
   {
     question: "Can I download my resume as a PDF or Word file?",
@@ -36,7 +37,10 @@ export default function FreeResumeBuilderPage() {
       h1="A free resume builder that works in your browser"
       lede={description}
       ctaLabel="Build your resume free"
-      heroImage={{ src: "/social/free-resume-builder", alt: "PrivaCV editor beside an ATS-friendly resume preview" }}
+      heroImage={{
+        src: "/social/free-resume-builder",
+        alt: "PrivaCV editor beside an ATS-friendly resume preview",
+      }}
       breadcrumb={{ name: title, path: "/free-resume-builder" }}
       cards={[
         {

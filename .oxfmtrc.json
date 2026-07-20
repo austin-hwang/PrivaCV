@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    ".next/**",
+    ".next-codex-build/**",
+    ".open-next/**",
+    ".wrangler/**",
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    "tests/fixtures/public-resumes/downloads/**",
+    "next-env.d.ts"
+  ]
+}

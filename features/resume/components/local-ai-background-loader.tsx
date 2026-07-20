@@ -47,9 +47,10 @@ export function LocalAIBackgroundLoader() {
       }
     };
 
-    const start = () => void run().catch(() => {
-      // Background loading is opportunistic. Setup remains the visible recovery path.
-    });
+    const start = () =>
+      void run().catch(() => {
+        // Background loading is opportunistic. Setup remains the visible recovery path.
+      });
     const idleWindow = window as Window & {
       requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
       cancelIdleCallback?: (handle: number) => void;

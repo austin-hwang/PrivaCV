@@ -36,12 +36,15 @@ function application(overrides: Partial<JobApplication> = {}): JobApplication {
 
 describe("job application lifecycle", () => {
   it("normalizes a new application and records applied lifecycle dates", () => {
-    const result = createJobApplicationRecord({
-      company: "  Acme  ",
-      role: " Product Designer ",
-      status: "applied",
-      sourceUrl: " https://example.com/job ",
-    }, NOW);
+    const result = createJobApplicationRecord(
+      {
+        company: "  Acme  ",
+        role: " Product Designer ",
+        status: "applied",
+        sourceUrl: " https://example.com/job ",
+      },
+      NOW,
+    );
 
     expect(result).toMatchObject({
       company: "Acme",
@@ -55,7 +58,11 @@ describe("job application lifecycle", () => {
   });
 
   it("timestamps closing and clears the closed date when an application is reopened", () => {
-    const rejected = transitionJobApplication(application({ status: "interviewing", appliedAt: NOW }), "rejected", "2026-07-20T18:00:00.000Z");
+    const rejected = transitionJobApplication(
+      application({ status: "interviewing", appliedAt: NOW }),
+      "rejected",
+      "2026-07-20T18:00:00.000Z",
+    );
     expect(rejected.closedAt).toBe("2026-07-20T18:00:00.000Z");
     expect(rejected.appliedAt).toBe(NOW);
 
@@ -87,15 +94,23 @@ describe("job application lifecycle", () => {
 describe("job application views and portability", () => {
   it("searches useful application fields and sorts next actions first", () => {
     const later = application({ id: "later", company: "Beta", nextActionAt: "2026-07-25" });
-    const sooner = application({ id: "sooner", company: "Acme", nextActionAt: "2026-07-20", notes: "Referred by Sam" });
+    const sooner = application({
+      id: "sooner",
+      company: "Acme",
+      nextActionAt: "2026-07-20",
+      notes: "Referred by Sam",
+    });
 
-    expect(sortJobApplications([later, sooner]).map((item) => item.id)).toEqual(["sooner", "later"]);
+    expect(sortJobApplications([later, sooner]).map((item) => item.id)).toEqual([
+      "sooner",
+      "later",
+    ]);
     expect(jobApplicationMatches(sooner, "sam")).toBe(true);
     expect(jobApplicationMatches(later, "sam")).toBe(false);
   });
 
   it("exports CSV safely and round-trips a versioned JSON backup", () => {
-    const item = application({ company: "Acme, Inc.", notes: "Asked: \"Why us?\"" });
+    const item = application({ company: "Acme, Inc.", notes: 'Asked: "Why us?"' });
     const csv = jobApplicationsCsv([item]);
     expect(csv).toContain('"Acme, Inc."');
     expect(csv).toContain('"Asked: ""Why us?"""');

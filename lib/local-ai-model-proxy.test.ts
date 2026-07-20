@@ -53,9 +53,11 @@ describe("local AI model proxy", () => {
   });
 
   test("proxies Llama 3B while keeping the cache version out of the Hugging Face path", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }),
+      );
     await GET(
       new Request(
         "https://resume.test/api/local-ai/models/Llama-3.2-3B-Instruct-q4f16_1-MLC/resolve/main/webllm-cache-v2/tensor-cache.json",

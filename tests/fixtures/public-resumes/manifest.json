@@ -11,8 +11,16 @@
       "phone": "(000) 000-0000",
       "location": "Seattle, Washington",
       "website": "github.com/example-profile",
-      "experienceTitles": ["Software Engineer II", "Software Development Engineer II", "Software Development Engineer I", "Engineering Intern"],
-      "educationTitles": ["M.S. Computer Science ( GPA: 3.96/4.00)", "B.S. Computer Engineering (Minor in Economics) ( GPA: 3.77/4.00)"]
+      "experienceTitles": [
+        "Software Engineer II",
+        "Software Development Engineer II",
+        "Software Development Engineer I",
+        "Engineering Intern"
+      ],
+      "educationTitles": [
+        "M.S. Computer Science ( GPA: 3.96/4.00)",
+        "B.S. Computer Engineering (Minor in Economics) ( GPA: 3.77/4.00)"
+      ]
     }
   },
   {
@@ -24,11 +32,28 @@
     "expected": {
       "name": "Sourabh Bajaj",
       "contactFieldsPresent": ["email", "phone", "website"],
-      "experienceTitles": ["Software Engineer", "Senior Software Engineer", "Data Scientist", "Research and Teaching Assistant"],
-      "educationTitles": ["Master of Science in Computer Science; GPA: 4.00", "Bachelor of Engineering in Electrical and Electronics; GPA: 3.66 (9.15/10.0)"],
-      "projectTitles": ["QuantSoftware Toolkit", "GitHub Visualization", "Recommendation System", "Mac Setup"],
+      "experienceTitles": [
+        "Software Engineer",
+        "Senior Software Engineer",
+        "Data Scientist",
+        "Research and Teaching Assistant"
+      ],
+      "educationTitles": [
+        "Master of Science in Computer Science; GPA: 4.00",
+        "Bachelor of Engineering in Electrical and Electronics; GPA: 3.66 (9.15/10.0)"
+      ],
+      "projectTitles": [
+        "QuantSoftware Toolkit",
+        "GitHub Visualization",
+        "Recommendation System",
+        "Mac Setup"
+      ],
       "experienceDetailsInclude": ["TensorFlow", "Course Dashboards", "QuantDesk"],
-      "projectDetailsInclude": ["financial data analysis", "Git log data", "collaborative filtering"]
+      "projectDetailsInclude": [
+        "financial data analysis",
+        "Git log data",
+        "collaborative filtering"
+      ]
     }
   },
   {
@@ -42,8 +67,16 @@
       "contactFieldsPresent": ["email", "phone", "website"],
       "experienceTitles": ["Software Developer", "Flutter Developer Intern"],
       "educationTitles": ["Bachelor of Technology (B.Tech)"],
-      "projectTitles": ["Budi Travel (App)", "Happy Paws (App)", "Real-time Scheduler (Python GUI)"],
-      "skillsInclude": ["Languages: Python, C", "Frameworks: Flask, Django", "DevOps & Cloud: Docker"],
+      "projectTitles": [
+        "Budi Travel (App)",
+        "Happy Paws (App)",
+        "Real-time Scheduler (Python GUI)"
+      ],
+      "skillsInclude": [
+        "Languages: Python, C",
+        "Frameworks: Flask, Django",
+        "DevOps & Cloud: Docker"
+      ],
       "experienceDetailsInclude": ["Global Data Feeds APIs", "video reels streaming"],
       "customSectionTitles": ["Achievements"]
     }

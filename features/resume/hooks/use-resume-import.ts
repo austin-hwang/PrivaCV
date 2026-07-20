@@ -148,7 +148,11 @@ export function useResumeImport({
     }
     const nextState = normalizeResume(proposal);
     forkAutosaveBeforeLoading(nextState, `the repaired ${importReview.fileName} import`);
-    saveRecoveryPoint(`Before fixing the ${importReview.fileName} import with local AI`, state, importReview);
+    saveRecoveryPoint(
+      `Before fixing the ${importReview.fileName} import with local AI`,
+      state,
+      importReview,
+    );
     setState(nextState);
     setImportReview(buildImportReview(nextState, importReview.fileName, importReview.sourceText));
     setDraftSourceVersionId(null);

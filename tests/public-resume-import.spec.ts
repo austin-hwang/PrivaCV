@@ -51,7 +51,10 @@ async function readStoredResumeState(page: Page) {
 for (const fixture of manifest) {
   test(`imports public resume fixture: ${fixture.filename}`, async ({ page }) => {
     const fixturePath = path.join(fixtureDirectory, fixture.filename);
-    test.skip(!existsSync(fixturePath), "Run pnpm test:public-resumes to download public fixtures first.");
+    test.skip(
+      !existsSync(fixturePath),
+      "Run pnpm test:public-resumes to download public fixtures first.",
+    );
 
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
@@ -63,9 +66,11 @@ for (const fixture of manifest) {
       buffer: readFileSync(fixturePath),
     });
     await expect(page.getByText(/Imported (PDF|Word document) - please review/)).toBeVisible();
-    await expect.poll(async () => (await readStoredResumeState(page))?.name).toBe(fixture.expected.name);
+    await expect
+      .poll(async () => (await readStoredResumeState(page))?.name)
+      .toBe(fixture.expected.name);
 
-    const state = await readStoredResumeState(page) as ImportedState;
+    const state = (await readStoredResumeState(page)) as ImportedState;
     const expected = fixture.expected as FixtureExpected;
     for (const field of ["name", "title", "email", "phone", "location", "website"] as const) {
       if (expected[field] !== undefined) expect(state[field]).toBe(expected[field]);
@@ -73,22 +78,28 @@ for (const fixture of manifest) {
     if (expected.contactFieldsPresent) {
       for (const field of expected.contactFieldsPresent) expect(state[field]).toBeTruthy();
     }
-    if (expected.experienceTitles) expect(state.experience.map((entry) => entry.title)).toEqual(expected.experienceTitles);
-    if (expected.educationTitles) expect(state.education.map((entry) => entry.title)).toEqual(expected.educationTitles);
-    if (expected.projectTitles) expect(state.projects.map((entry) => entry.title)).toEqual(expected.projectTitles);
+    if (expected.experienceTitles)
+      expect(state.experience.map((entry) => entry.title)).toEqual(expected.experienceTitles);
+    if (expected.educationTitles)
+      expect(state.education.map((entry) => entry.title)).toEqual(expected.educationTitles);
+    if (expected.projectTitles)
+      expect(state.projects.map((entry) => entry.title)).toEqual(expected.projectTitles);
     if (expected.skillsInclude) {
       for (const value of expected.skillsInclude) expect(state.skills).toContain(value);
     }
     if (expected.experienceDetailsInclude) {
       const experienceDetails = state.experience.map((entry) => entry.details).join("\n");
-      for (const value of expected.experienceDetailsInclude) expect(experienceDetails).toContain(value);
+      for (const value of expected.experienceDetailsInclude)
+        expect(experienceDetails).toContain(value);
     }
     if (expected.projectDetailsInclude) {
       const projectDetails = state.projects.map((entry) => entry.details).join("\n");
       for (const value of expected.projectDetailsInclude) expect(projectDetails).toContain(value);
     }
     if (expected.customSectionTitles) {
-      expect(state.customSections.map((section) => section.title)).toEqual(expect.arrayContaining(expected.customSectionTitles));
+      expect(state.customSections.map((section) => section.title)).toEqual(
+        expect.arrayContaining(expected.customSectionTitles),
+      );
     }
   });
 }

@@ -20,63 +20,83 @@ export function useResumePagination(state: ResumeState) {
       const roundingTolerancePx = 2;
       const contentHeight = Array.from(sheet.children).reduce((max, child) => {
         const element = child as HTMLElement;
-        if (element.classList.contains("resume-page-frame") || element.classList.contains("resume-page-guide")) return max;
+        if (
+          element.classList.contains("resume-page-frame") ||
+          element.classList.contains("resume-page-guide")
+        )
+          return max;
         return Math.max(max, element.offsetTop + element.offsetHeight);
       }, 0);
-      const nextPageCount = Math.max(1, Math.ceil((contentHeight - roundingTolerancePx) / pageHeightPx));
+      const nextPageCount = Math.max(
+        1,
+        Math.ceil((contentHeight - roundingTolerancePx) / pageHeightPx),
+      );
       setPageCount(nextPageCount);
 
-      const guideTargets = Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-guide-label]"));
+      const guideTargets = Array.from(
+        sheet.querySelectorAll<HTMLElement>("[data-resume-guide-label]"),
+      );
       const nextPageGuides = Array.from({ length: Math.max(0, nextPageCount - 1) }, (_, index) => {
         const page = index + 2;
         const boundary = (page - 1) * pageHeightPx;
-        const nextTarget = guideTargets.find((target) => target.offsetTop + target.offsetHeight > boundary + roundingTolerancePx);
+        const nextTarget = guideTargets.find(
+          (target) => target.offsetTop + target.offsetHeight > boundary + roundingTolerancePx,
+        );
         return { page, label: nextTarget?.dataset.resumeGuideLabel };
       });
       setPageGuides((current) =>
-        current.length === nextPageGuides.length && current.every((guide, index) =>
-          guide.page === nextPageGuides[index].page && guide.label === nextPageGuides[index].label,
-        ) ? current : nextPageGuides,
+        current.length === nextPageGuides.length &&
+        current.every(
+          (guide, index) =>
+            guide.page === nextPageGuides[index].page &&
+            guide.label === nextPageGuides[index].label,
+        )
+          ? current
+          : nextPageGuides,
       );
 
       const sheetStyle = window.getComputedStyle(sheet);
       const existingBreaks = new Map(printBreaks.map((item) => [item.targetId, item.spacer]));
       const printableUnits: Array<{ targetId: string; element: HTMLElement; end: number }> = [];
-      Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-print-section]")).forEach((section) => {
-        const sectionId = section.dataset.resumePrintSection;
-        if (!sectionId) return;
-        const entries = Array.from(section.querySelectorAll<HTMLElement>("[data-resume-print-entry]"));
-        if (!entries.length) {
-          printableUnits.push({
-            targetId: `section:${sectionId}`,
-            element: section,
-            end: section.offsetTop + section.offsetHeight,
-          });
-          return;
-        }
+      Array.from(sheet.querySelectorAll<HTMLElement>("[data-resume-print-section]")).forEach(
+        (section) => {
+          const sectionId = section.dataset.resumePrintSection;
+          if (!sectionId) return;
+          const entries = Array.from(
+            section.querySelectorAll<HTMLElement>("[data-resume-print-entry]"),
+          );
+          if (!entries.length) {
+            printableUnits.push({
+              targetId: `section:${sectionId}`,
+              element: section,
+              end: section.offsetTop + section.offsetHeight,
+            });
+            return;
+          }
 
-        const firstEntry = entries[0];
-        if (section.dataset.resumeSectionHasHeading === "true") {
-          printableUnits.push({
-            targetId: `section:${sectionId}`,
-            element: section,
-            end: firstEntry.offsetTop + firstEntry.offsetHeight,
+          const firstEntry = entries[0];
+          if (section.dataset.resumeSectionHasHeading === "true") {
+            printableUnits.push({
+              targetId: `section:${sectionId}`,
+              element: section,
+              end: firstEntry.offsetTop + firstEntry.offsetHeight,
+            });
+          } else {
+            printableUnits.push({
+              targetId: `entry:${firstEntry.dataset.resumePrintEntry}`,
+              element: firstEntry,
+              end: firstEntry.offsetTop + firstEntry.offsetHeight,
+            });
+          }
+          entries.slice(1).forEach((entry) => {
+            printableUnits.push({
+              targetId: `entry:${entry.dataset.resumePrintEntry}`,
+              element: entry,
+              end: entry.offsetTop + entry.offsetHeight,
+            });
           });
-        } else {
-          printableUnits.push({
-            targetId: `entry:${firstEntry.dataset.resumePrintEntry}`,
-            element: firstEntry,
-            end: firstEntry.offsetTop + firstEntry.offsetHeight,
-          });
-        }
-        entries.slice(1).forEach((entry) => {
-          printableUnits.push({
-            targetId: `entry:${entry.dataset.resumePrintEntry}`,
-            element: entry,
-            end: entry.offsetTop + entry.offsetHeight,
-          });
-        });
-      });
+        },
+      );
 
       const desiredBreaks: ResumePrintBreak[] = [];
       let existingSpacerBeforeUnit = 0;
@@ -88,18 +108,25 @@ export function useResumePagination(state: ResumeState) {
         const start = baseStart + simulatedSpacer;
         const end = baseEnd + simulatedSpacer;
         const currentPage = Math.max(0, Math.floor(start / pageHeightPx));
-        const pageContentEnd = (currentPage + 1) * pageHeightPx - Number.parseFloat(sheetStyle.paddingBottom);
+        const pageContentEnd =
+          (currentPage + 1) * pageHeightPx - Number.parseFloat(sheetStyle.paddingBottom);
         if (end > pageContentEnd + roundingTolerancePx) {
-          const spacer = (currentPage + 1) * pageHeightPx + Number.parseFloat(sheetStyle.paddingTop) - start;
+          const spacer =
+            (currentPage + 1) * pageHeightPx + Number.parseFloat(sheetStyle.paddingTop) - start;
           desiredBreaks.push({ targetId: unit.targetId, spacer });
           simulatedSpacer += spacer;
         }
         existingSpacerBeforeUnit += existingSpacerAtUnit;
       });
       setPrintBreaks((current) =>
-        current.length === desiredBreaks.length && current.every((item, index) =>
-          item.targetId === desiredBreaks[index].targetId && Math.abs(item.spacer - desiredBreaks[index].spacer) < 0.5,
-        ) ? current : desiredBreaks,
+        current.length === desiredBreaks.length &&
+        current.every(
+          (item, index) =>
+            item.targetId === desiredBreaks[index].targetId &&
+            Math.abs(item.spacer - desiredBreaks[index].spacer) < 0.5,
+        )
+          ? current
+          : desiredBreaks,
       );
     };
 

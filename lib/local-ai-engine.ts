@@ -1,4 +1,8 @@
-import type { ChatCompletionMessageParam, InitProgressReport, MLCEngineInterface } from "@mlc-ai/web-llm";
+import type {
+  ChatCompletionMessageParam,
+  InitProgressReport,
+  MLCEngineInterface,
+} from "@mlc-ai/web-llm";
 import { isLocalAIModelId, LOCAL_AI_MODEL_STORAGE_KEY, type LocalAIModelId } from "@/lib/local-ai";
 
 type LocalAIRuntime = {
@@ -8,7 +12,12 @@ type LocalAIRuntime = {
 };
 
 let runtime: LocalAIRuntime | null = null;
-let loadingRuntime: { modelId: LocalAIModelId; worker: Worker; token: object; promise: Promise<LocalAIRuntime> } | null = null;
+let loadingRuntime: {
+  modelId: LocalAIModelId;
+  worker: Worker;
+  token: object;
+  promise: Promise<LocalAIRuntime>;
+} | null = null;
 let generating = false;
 const LOCAL_AI_CACHE_PATH_VERSION = "webllm-cache-v2";
 export const LOCAL_AI_CACHE_MIGRATION_STORAGE_KEY = "resume-editor-local-ai-cache-v2-migrated";
@@ -148,7 +157,7 @@ export async function isLocalAIModelFullyCached(
 
   let tokenizerFile: string | undefined;
   try {
-    const config = await configResponse.clone().json() as { tokenizer_files?: unknown };
+    const config = (await configResponse.clone().json()) as { tokenizer_files?: unknown };
     if (Array.isArray(config.tokenizer_files)) {
       tokenizerFile = config.tokenizer_files.includes("tokenizer.json")
         ? "tokenizer.json"
@@ -159,7 +168,8 @@ export async function isLocalAIModelFullyCached(
   } catch {
     return false;
   }
-  if (!tokenizerFile || !(await modelCache.match(new URL(tokenizerFile, modelUrl).href))) return false;
+  if (!tokenizerFile || !(await modelCache.match(new URL(tokenizerFile, modelUrl).href)))
+    return false;
   return Boolean(await wasmCache.match(modelRecord.model_lib));
 }
 
@@ -242,17 +252,30 @@ export function hasObviousLocalAIRepetition(value: string) {
     if (start < 0) return false;
     const phrase = tokens.slice(start, start + phraseLength).join("\u0000");
     for (let offset = 1; offset < repetitions; offset += 1) {
-      if (tokens.slice(start + phraseLength * offset, start + phraseLength * (offset + 1)).join("\u0000") !== phrase) return false;
+      if (
+        tokens
+          .slice(start + phraseLength * offset, start + phraseLength * (offset + 1))
+          .join("\u0000") !== phrase
+      )
+        return false;
     }
     return true;
   };
 
   // Two long repeated clauses or three shorter ones are very unlikely to be
   // intentional in a resume, but common when a small model starts looping.
-  for (let phraseLength = 12; phraseLength <= Math.min(48, Math.floor(tokens.length / 2)); phraseLength += 1) {
+  for (
+    let phraseLength = 12;
+    phraseLength <= Math.min(48, Math.floor(tokens.length / 2));
+    phraseLength += 1
+  ) {
     if (matchesAtEnd(phraseLength, 2)) return true;
   }
-  for (let phraseLength = 6; phraseLength <= Math.min(24, Math.floor(tokens.length / 3)); phraseLength += 1) {
+  for (
+    let phraseLength = 6;
+    phraseLength <= Math.min(24, Math.floor(tokens.length / 3));
+    phraseLength += 1
+  ) {
     if (matchesAtEnd(phraseLength, 3)) return true;
   }
   return false;
@@ -283,7 +306,9 @@ export async function generateLocalAIText({
       messages: localAIMessagesForModel(current.modelId, messages),
       stream: true,
       ...sampling,
-      ...(jsonSchema || current.modelId.startsWith("DeepSeek-R1") ? {} : { repetition_penalty: 1.1 }),
+      ...(jsonSchema || current.modelId.startsWith("DeepSeek-R1")
+        ? {}
+        : { repetition_penalty: 1.1 }),
       ...(completionMaxTokens === undefined ? {} : { max_tokens: completionMaxTokens }),
       response_format: jsonSchema ? { type: "json_object", schema: jsonSchema } : undefined,
       extra_body: localAIChatExtraBody(current.modelId),
@@ -303,10 +328,14 @@ export async function generateLocalAIText({
       onToken?.(result);
     }
     if (repetitionStopped) {
-      throw new Error("The local model started repeating itself, so its draft was stopped. Try again, shorten the edit, or use a larger model.");
+      throw new Error(
+        "The local model started repeating itself, so its draft was stopped. Try again, shorten the edit, or use a larger model.",
+      );
     }
     if (finishReason === "length") {
-      throw new Error("The model response was cut off before it finished. Try a smaller edit or a larger model.");
+      throw new Error(
+        "The model response was cut off before it finished. Try a smaller edit or a larger model.",
+      );
     }
     return result;
   } finally {

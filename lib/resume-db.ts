@@ -60,15 +60,18 @@ let writeQueue: Promise<unknown> = Promise.resolve();
 function requestResult<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("The resume database request failed."));
+    request.onerror = () =>
+      reject(request.error ?? new Error("The resume database request failed."));
   });
 }
 
 function transactionComplete(transaction: IDBTransaction) {
   return new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("The resume database transaction failed."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("The resume database transaction was cancelled."));
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error("The resume database transaction failed."));
+    transaction.onabort = () =>
+      reject(transaction.error ?? new Error("The resume database transaction was cancelled."));
   });
 }
 
@@ -80,7 +83,8 @@ function enqueueWrite<T>(operation: () => Promise<T>) {
 
 export function openResumeDatabase() {
   if (databasePromise) return databasePromise;
-  if (typeof indexedDB === "undefined") return Promise.reject(new Error("IndexedDB is unavailable in this browser."));
+  if (typeof indexedDB === "undefined")
+    return Promise.reject(new Error("IndexedDB is unavailable in this browser."));
 
   databasePromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(RESUME_DATABASE_NAME, RESUME_DATABASE_VERSION);
@@ -121,8 +125,12 @@ function checkpointStorageId(resumeId: string, checkpointId: string) {
   return `${resumeId}\u0000${checkpointId}`;
 }
 
-function hydratedWorkspace(data: ResumeWorkspaceData, fallbackTime = new Date().toISOString()): HydratedResumeWorkspace {
-  const activeItem = data.resumeLibrary.find((item) => item.id === data.activeResumeId) ?? data.resumeLibrary[0];
+function hydratedWorkspace(
+  data: ResumeWorkspaceData,
+  fallbackTime = new Date().toISOString(),
+): HydratedResumeWorkspace {
+  const activeItem =
+    data.resumeLibrary.find((item) => item.id === data.activeResumeId) ?? data.resumeLibrary[0];
   return {
     ...data,
     activeResumeId: activeItem?.id ?? null,
@@ -132,7 +140,10 @@ function hydratedWorkspace(data: ResumeWorkspaceData, fallbackTime = new Date().
   };
 }
 
-export function buildLegacyResumeWorkspace(values: LegacyResumeStorageValues, now = new Date().toISOString()): HydratedResumeWorkspace {
+export function buildLegacyResumeWorkspace(
+  values: LegacyResumeStorageValues,
+  now = new Date().toISOString(),
+): HydratedResumeWorkspace {
   const saved = values.savedDraft ?? values.legacyDraft;
   const savedState = saved ? normalizeResume(JSON.parse(saved)) : emptyState();
   const savedReview = parseStoredImportReview(values.importReview);
@@ -165,20 +176,32 @@ export function buildLegacyResumeWorkspace(values: LegacyResumeStorageValues, no
     activeId = currentId;
   }
 
-  return hydratedWorkspace({
-    resumeLibrary: library,
-    activeResumeId: activeId,
-    checkpointHistoryByResume: storedCheckpoints,
-  }, values.autosaveTime ?? now);
+  return hydratedWorkspace(
+    {
+      resumeLibrary: library,
+      activeResumeId: activeId,
+      checkpointHistoryByResume: storedCheckpoints,
+    },
+    values.autosaveTime ?? now,
+  );
 }
 
 export async function loadResumeWorkspace(): Promise<HydratedResumeWorkspace | null> {
   await writeQueue.catch(() => undefined);
   const database = await openResumeDatabase();
-  const transaction = database.transaction([RESUMES_STORE, CHECKPOINTS_STORE, META_STORE], "readonly");
-  const resumesRequest = transaction.objectStore(RESUMES_STORE).getAll() as IDBRequest<StoredResume[]>;
-  const checkpointsRequest = transaction.objectStore(CHECKPOINTS_STORE).getAll() as IDBRequest<StoredCheckpoint[]>;
-  const metaRequest = transaction.objectStore(META_STORE).get(WORKSPACE_META_KEY) as IDBRequest<WorkspaceMeta | undefined>;
+  const transaction = database.transaction(
+    [RESUMES_STORE, CHECKPOINTS_STORE, META_STORE],
+    "readonly",
+  );
+  const resumesRequest = transaction.objectStore(RESUMES_STORE).getAll() as IDBRequest<
+    StoredResume[]
+  >;
+  const checkpointsRequest = transaction.objectStore(CHECKPOINTS_STORE).getAll() as IDBRequest<
+    StoredCheckpoint[]
+  >;
+  const metaRequest = transaction.objectStore(META_STORE).get(WORKSPACE_META_KEY) as IDBRequest<
+    WorkspaceMeta | undefined
+  >;
   const [storedResumes, storedCheckpoints, meta] = await Promise.all([
     requestResult(resumesRequest),
     requestResult(checkpointsRequest),
@@ -189,36 +212,52 @@ export async function loadResumeWorkspace(): Promise<HydratedResumeWorkspace | n
 
   const resumeLibrary = storedResumes
     .sort((left, right) => left.storageOrder - right.storageOrder)
-    .map(({ storageOrder: _storageOrder, ...item }) => ({ ...item, state: normalizeResume(item.state) }));
+    .map(({ storageOrder: _storageOrder, ...item }) => ({
+      ...item,
+      state: normalizeResume(item.state),
+    }));
   const checkpointHistoryByResume: CheckpointHistoryByResume = {};
   storedCheckpoints
     .sort((left, right) => left.storageOrder - right.storageOrder)
     .forEach(({ resumeId, checkpoint }) => {
-      (checkpointHistoryByResume[resumeId] ??= []).push({ ...checkpoint, state: normalizeResume(checkpoint.state) });
+      (checkpointHistoryByResume[resumeId] ??= []).push({
+        ...checkpoint,
+        state: normalizeResume(checkpoint.state),
+      });
     });
 
-  return hydratedWorkspace({
-    resumeLibrary,
-    activeResumeId: meta?.activeResumeId ?? null,
-    checkpointHistoryByResume,
-  }, meta?.updatedAt);
+  return hydratedWorkspace(
+    {
+      resumeLibrary,
+      activeResumeId: meta?.activeResumeId ?? null,
+      checkpointHistoryByResume,
+    },
+    meta?.updatedAt,
+  );
 }
 
 async function writeWorkspace(data: ResumeWorkspaceData, updatedAt = new Date().toISOString()) {
   const database = await openResumeDatabase();
-  const transaction = database.transaction([RESUMES_STORE, CHECKPOINTS_STORE, META_STORE], "readwrite");
+  const transaction = database.transaction(
+    [RESUMES_STORE, CHECKPOINTS_STORE, META_STORE],
+    "readwrite",
+  );
   const resumes = transaction.objectStore(RESUMES_STORE);
   const checkpoints = transaction.objectStore(CHECKPOINTS_STORE);
   resumes.clear();
   checkpoints.clear();
-  data.resumeLibrary.forEach((item, storageOrder) => resumes.put({ ...item, storageOrder } satisfies StoredResume));
+  data.resumeLibrary.forEach((item, storageOrder) =>
+    resumes.put({ ...item, storageOrder } satisfies StoredResume),
+  );
   Object.entries(data.checkpointHistoryByResume).forEach(([resumeId, history]) => {
-    history.forEach((checkpoint, storageOrder) => checkpoints.put({
-      storageId: checkpointStorageId(resumeId, checkpoint.id),
-      resumeId,
-      storageOrder,
-      checkpoint,
-    } satisfies StoredCheckpoint));
+    history.forEach((checkpoint, storageOrder) =>
+      checkpoints.put({
+        storageId: checkpointStorageId(resumeId, checkpoint.id),
+        resumeId,
+        storageOrder,
+        checkpoint,
+      } satisfies StoredCheckpoint),
+    );
   });
   transaction.objectStore(META_STORE).put({
     key: WORKSPACE_META_KEY,
@@ -232,14 +271,22 @@ export function saveResumeWorkspace(data: ResumeWorkspaceData, updatedAt?: strin
   return enqueueWrite(() => writeWorkspace(data, updatedAt));
 }
 
-export function saveResumeLibrary(resumeLibrary: ResumeLibraryItem[], activeResumeId: string | null, updatedAt = new Date().toISOString()) {
+export function saveResumeLibrary(
+  resumeLibrary: ResumeLibraryItem[],
+  activeResumeId: string | null,
+  updatedAt = new Date().toISOString(),
+) {
   return enqueueWrite(async () => {
     const database = await openResumeDatabase();
     const transaction = database.transaction([RESUMES_STORE, META_STORE], "readwrite");
     const resumes = transaction.objectStore(RESUMES_STORE);
     resumes.clear();
-    resumeLibrary.forEach((item, storageOrder) => resumes.put({ ...item, storageOrder } satisfies StoredResume));
-    transaction.objectStore(META_STORE).put({ key: WORKSPACE_META_KEY, activeResumeId, updatedAt } satisfies WorkspaceMeta);
+    resumeLibrary.forEach((item, storageOrder) =>
+      resumes.put({ ...item, storageOrder } satisfies StoredResume),
+    );
+    transaction
+      .objectStore(META_STORE)
+      .put({ key: WORKSPACE_META_KEY, activeResumeId, updatedAt } satisfies WorkspaceMeta);
     await transactionComplete(transaction);
   });
 }
@@ -251,12 +298,14 @@ export function saveCheckpointHistories(checkpointHistoryByResume: CheckpointHis
     const checkpoints = transaction.objectStore(CHECKPOINTS_STORE);
     checkpoints.clear();
     Object.entries(checkpointHistoryByResume).forEach(([resumeId, history]) => {
-      history.forEach((checkpoint, storageOrder) => checkpoints.put({
-        storageId: checkpointStorageId(resumeId, checkpoint.id),
-        resumeId,
-        storageOrder,
-        checkpoint,
-      } satisfies StoredCheckpoint));
+      history.forEach((checkpoint, storageOrder) =>
+        checkpoints.put({
+          storageId: checkpointStorageId(resumeId, checkpoint.id),
+          resumeId,
+          storageOrder,
+          checkpoint,
+        } satisfies StoredCheckpoint),
+      );
     });
     await transactionComplete(transaction);
   });
@@ -265,7 +314,10 @@ export function saveCheckpointHistories(checkpointHistoryByResume: CheckpointHis
 export function clearResumeWorkspace() {
   return enqueueWrite(async () => {
     const database = await openResumeDatabase();
-    const transaction = database.transaction([RESUMES_STORE, CHECKPOINTS_STORE, META_STORE], "readwrite");
+    const transaction = database.transaction(
+      [RESUMES_STORE, CHECKPOINTS_STORE, META_STORE],
+      "readwrite",
+    );
     transaction.objectStore(RESUMES_STORE).clear();
     transaction.objectStore(CHECKPOINTS_STORE).clear();
     transaction.objectStore(META_STORE).clear();
@@ -275,11 +327,12 @@ export function clearResumeWorkspace() {
 
 export async function loadOrMigrateResumeWorkspace(legacy: LegacyResumeStorageValues) {
   const stored = await loadResumeWorkspace();
-  const hasMeaningfulData = (candidate: HydratedResumeWorkspace) => (
-    candidate.resumeLibrary.length > 1
-    || candidate.resumeLibrary.some((resume) => hasAnyContent(resume.state) || Boolean(resume.importReview))
-    || Object.values(candidate.checkpointHistoryByResume).some((history) => history.length > 0)
-  );
+  const hasMeaningfulData = (candidate: HydratedResumeWorkspace) =>
+    candidate.resumeLibrary.length > 1 ||
+    candidate.resumeLibrary.some(
+      (resume) => hasAnyContent(resume.state) || Boolean(resume.importReview),
+    ) ||
+    Object.values(candidate.checkpointHistoryByResume).some((history) => history.length > 0);
   if (stored && hasMeaningfulData(stored)) return { workspace: stored, migrated: false };
   const workspace = buildLegacyResumeWorkspace(legacy);
   if (stored && !hasMeaningfulData(workspace)) return { workspace: stored, migrated: false };

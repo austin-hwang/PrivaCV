@@ -10,10 +10,7 @@ import {
   type ResumeState,
 } from "@/lib/resume";
 import { stripRichMarks } from "@/lib/rich-text";
-import {
-  buildImportCoverage,
-  type ImportReviewState,
-} from "@/lib/resume-workspace";
+import { buildImportCoverage, type ImportReviewState } from "@/lib/resume-workspace";
 import type { GuidedReviewStep } from "@/features/resume/components/guided-review";
 import type { ResumeNavigatorItem } from "@/features/resume/components/resume-navigator";
 import type { SectionNavItem } from "@/features/resume/components/section-nav";
@@ -22,7 +19,10 @@ export function reviewTourTargetId(targetId: string) {
   return targetId === "field-skills" ? "review-region-skills" : targetId;
 }
 
-export function buildSectionNavItems(state: ResumeState, workspaceHasStarted: boolean): SectionNavItem[] {
+export function buildSectionNavItems(
+  state: ResumeState,
+  workspaceHasStarted: boolean,
+): SectionNavItem[] {
   if (!workspaceHasStarted) return [];
   return [
     { id: "edit-header", label: "Header" },
@@ -34,7 +34,10 @@ export function buildSectionNavItems(state: ResumeState, workspaceHasStarted: bo
   ];
 }
 
-export function buildNavigatorItems(state: ResumeState, workspaceHasStarted: boolean): ResumeNavigatorItem[] {
+export function buildNavigatorItems(
+  state: ResumeState,
+  workspaceHasStarted: boolean,
+): ResumeNavigatorItem[] {
   if (!workspaceHasStarted) return [];
   const items: ResumeNavigatorItem[] = [
     { id: "field-name", label: "Full name", context: "Header", keywords: state.name },
@@ -48,13 +51,22 @@ export function buildNavigatorItems(state: ResumeState, workspaceHasStarted: boo
       context: "Header link",
       keywords: link.url,
     })),
-    { id: "field-summary", label: "Professional summary", context: "Summary", keywords: stripRichMarks(state.summary) },
+    {
+      id: "field-summary",
+      label: "Professional summary",
+      context: "Summary",
+      keywords: stripRichMarks(state.summary),
+    },
   ];
 
   for (const section of state.sectionOrder) {
     const sectionTitle = getSectionTitle(state, section).trim() || "Untitled section";
     const format = getSectionFormat(state, section);
-    items.push({ id: `section-title-${section}`, label: `${sectionTitle} section title`, context: "Section heading" });
+    items.push({
+      id: `section-title-${section}`,
+      label: `${sectionTitle} section title`,
+      context: "Section heading",
+    });
     if (format === "tag-groups") {
       getSectionTagGroups(state, section).forEach((group, index) => {
         items.push({
@@ -81,7 +93,12 @@ export function buildNavigatorItems(state: ResumeState, workspaceHasStarted: boo
       const context = `${sectionTitle} · ${entryLabel}`;
       const keywords = `${entry.title} ${entry.subtitle} ${entry.meta} ${stripRichMarks(entry.details)}`;
       (Object.keys(schema) as (keyof typeof schema)[]).forEach((field) => {
-        items.push({ id: `field-${section}-${index}-${field}`, label: schema[field], context, keywords });
+        items.push({
+          id: `field-${section}-${index}-${field}`,
+          label: schema[field],
+          context,
+          keywords,
+        });
       });
     });
   }
@@ -114,34 +131,53 @@ export function buildImportTourSteps({
         excerpt: item.sourceExcerpt,
         tone: confirmed ? "ok" : "warn",
         done: confirmed,
-        action: { label: confirmed ? "Confirmed" : "Confirm this field", run: () => onToggleItem(item.id) },
+        action: {
+          label: confirmed ? "Confirmed" : "Confirm this field",
+          run: () => onToggleItem(item.id),
+        },
       } satisfies GuidedReviewStep;
     }),
-    ...skippedCoverage.map((item) => ({
-      id: `coverage-${item.id}`,
-      targetId: reviewTourTargetId(item.targetId),
-      eyebrow: "Possible skipped section",
-      title: item.label,
-      description: item.detail,
-      excerpt: item.sourceExcerpt,
-      tone: "warn",
-      action: { label: "Go to this section", run: () => onFocusTarget(reviewTourTargetId(item.targetId)) },
-    } satisfies GuidedReviewStep)),
+    ...skippedCoverage.map(
+      (item) =>
+        ({
+          id: `coverage-${item.id}`,
+          targetId: reviewTourTargetId(item.targetId),
+          eyebrow: "Possible skipped section",
+          title: item.label,
+          description: item.detail,
+          excerpt: item.sourceExcerpt,
+          tone: "warn",
+          action: {
+            label: "Go to this section",
+            run: () => onFocusTarget(reviewTourTargetId(item.targetId)),
+          },
+        }) satisfies GuidedReviewStep,
+    ),
   ];
 }
 
-export function buildCheckTourSteps(checks: ResumeCheck[], onFocusTarget: (targetId: string) => void): GuidedReviewStep[] {
-  return checks.map((check) => ({
-    id: check.id,
-    targetId: check.targetId,
-    eyebrow: "Resume review",
-    title: check.label,
-    description: check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
-    tone: check.advisory ? "info" : check.ok ? "ok" : "warn",
-    done: check.ok && !check.advisory,
-    action: check.ok && !check.advisory ? undefined : {
-      label: check.actionLabel,
-      run: () => onFocusTarget(check.targetId),
-    },
-  } satisfies GuidedReviewStep));
+export function buildCheckTourSteps(
+  checks: ResumeCheck[],
+  onFocusTarget: (targetId: string) => void,
+): GuidedReviewStep[] {
+  return checks.map(
+    (check) =>
+      ({
+        id: check.id,
+        targetId: check.targetId,
+        eyebrow: "Resume review",
+        title: check.label,
+        description:
+          check.ok && !check.advisory ? check.detail : `${check.detail} ${check.guidance}`,
+        tone: check.advisory ? "info" : check.ok ? "ok" : "warn",
+        done: check.ok && !check.advisory,
+        action:
+          check.ok && !check.advisory
+            ? undefined
+            : {
+                label: check.actionLabel,
+                run: () => onFocusTarget(check.targetId),
+              },
+      }) satisfies GuidedReviewStep,
+  );
 }

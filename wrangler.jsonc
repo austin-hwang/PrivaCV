@@ -5,37 +5,39 @@
   "routes": [
     {
       "pattern": "privacv.app",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
   "compatibility_date": "2026-07-09",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "resume-editor"
-    }
+      "service": "resume-editor",
+    },
   ],
   "images": {
-    "binding": "IMAGES"
+    "binding": "IMAGES",
   },
   "analytics_engine_datasets": [
     {
       "binding": "EXPORT_METRICS",
-      "dataset": "privacv_exports"
+      "dataset": "privacv_exports",
     },
     {
       "binding": "INLINE_AI_METRICS",
-      "dataset": "privacv_inline_ai"
-    }
+      "dataset": "privacv_inline_ai",
+    },
+    {
+      "binding": "JOB_APPLICATION_METRICS",
+      "dataset": "privacv_job_applications",
+    },
   ],
   "observability": {
-    "enabled": true
-  }
+    "enabled": true,
+  },
 }

@@ -12,15 +12,21 @@ const TEXT_TOKEN_PATTERN = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:(tab|br|cr)\b[
 
 function decodeXmlText(value: string) {
   return value
-    .replace(/&#x([\da-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#x([\da-f]+);/gi, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 16)),
+    )
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
-    .replace(/&(amp|lt|gt|quot|apos);/g, (_, entity: string) => ({
-      amp: "&",
-      lt: "<",
-      gt: ">",
-      quot: '"',
-      apos: "'",
-    })[entity] ?? "");
+    .replace(
+      /&(amp|lt|gt|quot|apos);/g,
+      (_, entity: string) =>
+        ({
+          amp: "&",
+          lt: "<",
+          gt: ">",
+          quot: '"',
+          apos: "'",
+        })[entity] ?? "",
+    );
 }
 
 function escapeXmlText(value: string) {
@@ -46,7 +52,11 @@ export function docxArchiveUncompressedSize(buffer: ArrayBuffer) {
   const firstPossibleEndRecord = Math.max(0, bytes.length - minimumEndRecordLength - 0xffff);
   let endRecordOffset = -1;
 
-  for (let offset = bytes.length - minimumEndRecordLength; offset >= firstPossibleEndRecord; offset -= 1) {
+  for (
+    let offset = bytes.length - minimumEndRecordLength;
+    offset >= firstPossibleEndRecord;
+    offset -= 1
+  ) {
     if (view.getUint32(offset, true) === ZIP_END_OF_CENTRAL_DIRECTORY) {
       endRecordOffset = offset;
       break;
@@ -70,7 +80,9 @@ export function docxArchiveUncompressedSize(buffer: ArrayBuffer) {
     centralDirectorySize === 0xffffffff ||
     centralDirectoryOffset === 0xffffffff
   ) {
-    throw new Error("This Word file is too complex to import locally. Try copying its resume text instead.");
+    throw new Error(
+      "This Word file is too complex to import locally. Try copying its resume text instead.",
+    );
   }
 
   const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
@@ -82,7 +94,10 @@ export function docxArchiveUncompressedSize(buffer: ArrayBuffer) {
   let expandedSize = 0;
   for (let entryIndex = 0; entryIndex < entryCount; entryIndex += 1) {
     const fixedHeaderLength = 46;
-    if (cursor + fixedHeaderLength > centralDirectoryEnd || view.getUint32(cursor, true) !== ZIP_CENTRAL_DIRECTORY_FILE) {
+    if (
+      cursor + fixedHeaderLength > centralDirectoryEnd ||
+      view.getUint32(cursor, true) !== ZIP_CENTRAL_DIRECTORY_FILE
+    ) {
       throw new Error("This file is not a readable Word (.docx) document.");
     }
 
@@ -92,18 +107,27 @@ export function docxArchiveUncompressedSize(buffer: ArrayBuffer) {
     const fileCommentLength = view.getUint16(cursor + 32, true);
     const entryLength = fixedHeaderLength + fileNameLength + extraFieldLength + fileCommentLength;
 
-    if (uncompressedSize === 0xffffffff || cursor + entryLength > centralDirectoryEnd || cursor + entryLength < cursor) {
-      throw new Error("This Word file is too complex to import locally. Try copying its resume text instead.");
+    if (
+      uncompressedSize === 0xffffffff ||
+      cursor + entryLength > centralDirectoryEnd ||
+      cursor + entryLength < cursor
+    ) {
+      throw new Error(
+        "This Word file is too complex to import locally. Try copying its resume text instead.",
+      );
     }
 
     expandedSize += uncompressedSize;
     if (expandedSize > MAX_DOCX_EXPANDED_BYTES || !Number.isSafeInteger(expandedSize)) {
-      throw new Error("This Word file would expand to too much data to import locally. Try copying its resume text instead.");
+      throw new Error(
+        "This Word file would expand to too much data to import locally. Try copying its resume text instead.",
+      );
     }
     cursor += entryLength;
   }
 
-  if (cursor !== centralDirectoryEnd) throw new Error("This file is not a readable Word (.docx) document.");
+  if (cursor !== centralDirectoryEnd)
+    throw new Error("This file is not a readable Word (.docx) document.");
   return expandedSize;
 }
 
@@ -145,7 +169,13 @@ export function docxHyperlinkTargetsFromXml(xml: string) {
     const target = relationshipAttribute(attributes, "Target");
     const targetMode = relationshipAttribute(attributes, "TargetMode");
     const type = relationshipAttribute(attributes, "Type");
-    if (!id || !target || targetMode?.toLowerCase() !== "external" || !/\/hyperlink$/i.test(type ?? "")) continue;
+    if (
+      !id ||
+      !target ||
+      targetMode?.toLowerCase() !== "external" ||
+      !/\/hyperlink$/i.test(type ?? "")
+    )
+      continue;
     const safeTarget = safeHyperlinkTarget(target);
     if (safeTarget) targets.set(id, safeTarget);
   }
@@ -169,7 +199,8 @@ export function docxHeaderPartPathsFromXml(xml: string) {
     const type = relationshipAttribute(attributes, "Type");
     const target = relationshipAttribute(attributes, "Target");
     const targetMode = relationshipAttribute(attributes, "TargetMode");
-    if (!target || targetMode?.toLowerCase() === "external" || !/\/header$/i.test(type ?? "")) continue;
+    if (!target || targetMode?.toLowerCase() === "external" || !/\/header$/i.test(type ?? ""))
+      continue;
 
     // Word's main-document relationships point to sibling header files. Keep
     // the accepted path intentionally narrow so an archive cannot cause this
@@ -198,7 +229,8 @@ export function docxFooterPartPathsFromXml(xml: string) {
     const type = relationshipAttribute(attributes, "Type");
     const target = relationshipAttribute(attributes, "Target");
     const targetMode = relationshipAttribute(attributes, "TargetMode");
-    if (!target || targetMode?.toLowerCase() === "external" || !/\/footer$/i.test(type ?? "")) continue;
+    if (!target || targetMode?.toLowerCase() === "external" || !/\/footer$/i.test(type ?? ""))
+      continue;
 
     // As with headers, accept only ordinary sibling footer parts so this
     // browser-only importer cannot follow arbitrary paths inside the archive.
@@ -244,18 +276,27 @@ function addHiddenHyperlinkTargets(xml: string, relationshipTargets: Map<string,
   // begin marker, instruction text, visible result, and end marker. Keep this
   // deliberately scoped to a complete begin/end pair; other field types (page
   // numbers, merge fields, dates) remain ordinary visible text.
-  const complexFieldPattern = /<w:r(?:\s[^>]*)?>[\s\S]*?<w:fldChar\b(?=[^>]*\bw:fldCharType\s*=\s*["']begin["'])[^>]*\/?\s*>[\s\S]*?<\/w:r>([\s\S]*?)<w:r(?:\s[^>]*)?>[\s\S]*?<w:fldChar\b(?=[^>]*\bw:fldCharType\s*=\s*["']end["'])[^>]*\/?\s*>[\s\S]*?<\/w:r>/g;
+  const complexFieldPattern =
+    /<w:r(?:\s[^>]*)?>[\s\S]*?<w:fldChar\b(?=[^>]*\bw:fldCharType\s*=\s*["']begin["'])[^>]*\/?\s*>[\s\S]*?<\/w:r>([\s\S]*?)<w:r(?:\s[^>]*)?>[\s\S]*?<w:fldChar\b(?=[^>]*\bw:fldCharType\s*=\s*["']end["'])[^>]*\/?\s*>[\s\S]*?<\/w:r>/g;
 
-  const relationshipLinks = xml.replace(hyperlinkPattern, (match, attributes: string, contents: string) => {
-    const relationshipId = relationshipAttribute(attributes, "r:id");
-    const target = relationshipId ? relationshipTargets.get(relationshipId) : undefined;
-    return target ? appendHiddenHyperlinkTarget(contents, target) : match;
-  });
+  const relationshipLinks = xml.replace(
+    hyperlinkPattern,
+    (match, attributes: string, contents: string) => {
+      const relationshipId = relationshipAttribute(attributes, "r:id");
+      const target = relationshipId ? relationshipTargets.get(relationshipId) : undefined;
+      return target ? appendHiddenHyperlinkTarget(contents, target) : match;
+    },
+  );
 
-  const simpleFieldLinks = relationshipLinks.replace(simpleFieldPattern, (match, attributes: string, contents: string) => {
-    const target = hyperlinkTargetFromInstruction(relationshipAttribute(attributes, "w:instr") ?? "");
-    return target ? appendHiddenHyperlinkTarget(contents, target) : match;
-  });
+  const simpleFieldLinks = relationshipLinks.replace(
+    simpleFieldPattern,
+    (match, attributes: string, contents: string) => {
+      const target = hyperlinkTargetFromInstruction(
+        relationshipAttribute(attributes, "w:instr") ?? "",
+      );
+      return target ? appendHiddenHyperlinkTarget(contents, target) : match;
+    },
+  );
 
   return simpleFieldLinks.replace(complexFieldPattern, (match) => {
     // The surrounding begin/end runs are part of the match. Reading the
@@ -273,7 +314,10 @@ function addHiddenHyperlinkTargets(xml: string, relationshipTargets: Map<string,
  * review is a safer route than pretending Word layout is semantic resume data.
  * It also keeps the import entirely in the browser.
  */
-export function docxParagraphsFromXml(xml: string, relationshipTargets = new Map<string, string>()) {
+export function docxParagraphsFromXml(
+  xml: string,
+  relationshipTargets = new Map<string, string>(),
+) {
   const paragraphs: string[] = [];
   const paragraphPattern = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
 
@@ -289,12 +333,16 @@ function paragraphsFromDocxPart(files: Record<string, Uint8Array>, path: string)
   const part = files[path];
   if (!part) return [];
   if (part.byteLength > MAX_DOCUMENT_XML_BYTES) {
-    throw new Error("This Word file has a text section that is too large to import locally. Try copying its resume text instead.");
+    throw new Error(
+      "This Word file has a text section that is too large to import locally. Try copying its resume text instead.",
+    );
   }
 
   const relationshipsPath = `word/_rels/${path.slice("word/".length)}.rels`;
   const relationships = files[relationshipsPath];
-  const relationshipTargets = relationships ? docxHyperlinkTargetsFromXml(strFromU8(relationships)) : new Map<string, string>();
+  const relationshipTargets = relationships
+    ? docxHyperlinkTargetsFromXml(strFromU8(relationships))
+    : new Map<string, string>();
   return docxParagraphsFromXml(strFromU8(part), relationshipTargets);
 }
 
@@ -307,15 +355,19 @@ function isFooterContactLine(value: string) {
   // email, web/link target, or city/state line belongs in the resume's
   // contact block. This also recognizes safe targets added for label-only
   // Word hyperlinks above.
-  return /[\w.+-]+@[\w-]+\.[\w.-]+/.test(line) ||
+  return (
+    /[\w.+-]+@[\w-]+\.[\w.-]+/.test(line) ||
     /(?:https?:\/\/|mailto:|tel:|www\.)/i.test(line) ||
     /(?:\+?\d[\d().\s-]{6,}\d)/.test(line) ||
-    /\b[A-Z][a-zA-Z.]+(?:\s[A-Z][a-zA-Z.]+)*,\s*[A-Z]{2}\b/.test(line);
+    /\b[A-Z][a-zA-Z.]+(?:\s[A-Z][a-zA-Z.]+)*,\s*[A-Z]{2}\b/.test(line)
+  );
 }
 
 export function extractDocxText(buffer: ArrayBuffer) {
   if (buffer.byteLength > MAX_DOCX_BYTES) {
-    throw new Error("This Word file is too large to import locally. Try copying its resume text instead.");
+    throw new Error(
+      "This Word file is too large to import locally. Try copying its resume text instead.",
+    );
   }
 
   docxArchiveUncompressedSize(buffer);
@@ -333,8 +385,12 @@ export function extractDocxText(buffer: ArrayBuffer) {
 
   const relationships = files["word/_rels/document.xml.rels"];
   const documentRelationships = relationships ? strFromU8(relationships) : "";
-  const headerPaths = documentRelationships ? docxHeaderPartPathsFromXml(documentRelationships) : [];
-  const footerPaths = documentRelationships ? docxFooterPartPathsFromXml(documentRelationships) : [];
+  const headerPaths = documentRelationships
+    ? docxHeaderPartPathsFromXml(documentRelationships)
+    : [];
+  const footerPaths = documentRelationships
+    ? docxFooterPartPathsFromXml(documentRelationships)
+    : [];
   const headerParagraphs = headerPaths.flatMap((path) => paragraphsFromDocxPart(files, path));
   const footerContactParagraphs = footerPaths
     .flatMap((path) => paragraphsFromDocxPart(files, path))
@@ -351,7 +407,10 @@ export function extractDocxText(buffer: ArrayBuffer) {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-  if (!text) throw new Error("No readable text was found in this Word document. Try copying its resume text instead.");
+  if (!text)
+    throw new Error(
+      "No readable text was found in this Word document. Try copying its resume text instead.",
+    );
   return text;
 }
 

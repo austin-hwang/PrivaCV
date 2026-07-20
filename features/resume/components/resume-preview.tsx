@@ -1,5 +1,28 @@
-import { forwardRef, type ClipboardEvent, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react";
-import { BriefcaseBusiness, Calendar, Code, Dribbble, Figma, Github, Gitlab, Globe2, Instagram, Linkedin, Link as LinkIcon, Mail, MapPin, Newspaper, Phone, Twitter, Youtube } from "lucide-react";
+import {
+  forwardRef,
+  type ClipboardEvent,
+  type CSSProperties,
+  type FocusEvent,
+  type KeyboardEvent,
+} from "react";
+import {
+  BriefcaseBusiness,
+  Calendar,
+  Camera,
+  Code,
+  Code2,
+  GitFork,
+  Globe2,
+  Link as LinkIcon,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Newspaper,
+  Palette,
+  Phone,
+  Shapes,
+  Video,
+} from "lucide-react";
 import {
   contactHref,
   entryHasContent,
@@ -26,10 +49,22 @@ type InlineEditHandlers = {
   /** When true, resume text is edited in place on the sheet. */
   editable?: boolean;
   onEditField?: (field: string, value: string) => void;
-  onEditHeaderLink?: (id: string, patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>) => void;
+  onEditHeaderLink?: (
+    id: string,
+    patch: Partial<Pick<HeaderLink, "label" | "url" | "icon">>,
+  ) => void;
   onEditSectionTitle?: (section: string, value: string) => void;
-  onEditEntry?: (section: string, index: number, key: "title" | "subtitle" | "meta" | "details", value: string) => void;
-  onEditTagGroup?: (section: string, groupId: string, patch: Pick<TagGroup, "label" | "tags">) => void;
+  onEditEntry?: (
+    section: string,
+    index: number,
+    key: "title" | "subtitle" | "meta" | "details",
+    value: string,
+  ) => void;
+  onEditTagGroup?: (
+    section: string,
+    groupId: string,
+    patch: Pick<TagGroup, "label" | "tags">,
+  ) => void;
 };
 
 type ResumePreviewProps = {
@@ -105,7 +140,9 @@ function InlineText({
       suppressContentEditableWarning
       data-placeholder={placeholder}
       spellCheck={spellCheck}
-      onBlur={(event: FocusEvent<HTMLElement>) => onCommit((event.currentTarget.textContent ?? "").trim())}
+      onBlur={(event: FocusEvent<HTMLElement>) =>
+        onCommit((event.currentTarget.textContent ?? "").trim())
+      }
       onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
         if (!multiline && event.key === "Enter") {
           event.preventDefault();
@@ -156,7 +193,14 @@ function RichBody({
 
   if (!editable) {
     if (!html) return null;
-    return <div className={cn("resume-rich", className)} {...guideProps} {...readOnlyProps} dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div
+        className={cn("resume-rich", className)}
+        {...guideProps}
+        {...readOnlyProps}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
   }
 
   return (
@@ -167,7 +211,9 @@ function RichBody({
       suppressContentEditableWarning
       spellCheck={spellCheck}
       {...guideProps}
-      onBlur={(event: FocusEvent<HTMLElement>) => onCommit?.(commitRichContent(event.currentTarget))}
+      onBlur={(event: FocusEvent<HTMLElement>) =>
+        onCommit?.(commitRichContent(event.currentTarget))
+      }
       dangerouslySetInnerHTML={{ __html: html || "<p><br></p>" }}
     />
   );
@@ -175,7 +221,7 @@ function RichBody({
 
 function printBreakStyle(targetId: string, printBreaks: ResumePreviewProps["printBreaks"]) {
   const spacer = printBreaks?.find((item) => item.targetId === targetId)?.spacer;
-  return spacer ? { "--resume-print-break-space": `${spacer}px` } as CSSProperties : undefined;
+  return spacer ? ({ "--resume-print-break-space": `${spacer}px` } as CSSProperties) : undefined;
 }
 
 function hasPrintBreak(targetId: string, printBreaks: ResumePreviewProps["printBreaks"]) {
@@ -196,10 +242,29 @@ function previewTargetProps(targetId: string, onTargetSelect?: (targetId: string
 }
 
 export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(function ResumePreview(
-  { state, pageCount = 1, pageGuides = [], printBreaks = [], activeTarget, onTargetSelect, editable, onEditField, onEditHeaderLink, onEditSectionTitle, onEditEntry, onEditTagGroup },
+  {
+    state,
+    pageCount = 1,
+    pageGuides = [],
+    printBreaks = [],
+    activeTarget,
+    onTargetSelect,
+    editable,
+    onEditField,
+    onEditHeaderLink,
+    onEditSectionTitle,
+    onEditEntry,
+    onEditTagGroup,
+  },
   ref,
 ) {
-  const edit: InlineEditHandlers = { editable, onEditField, onEditHeaderLink, onEditSectionTitle, onEditEntry };
+  const edit: InlineEditHandlers = {
+    editable,
+    onEditField,
+    onEditHeaderLink,
+    onEditSectionTitle,
+    onEditEntry,
+  };
   const hasContent = hasAnyContent(state);
   const pageBreaks: Array<{ page: number; label?: string }> = pageGuides.length
     ? pageGuides
@@ -214,13 +279,19 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
   return (
     <div
       ref={ref}
-      className={cn("resume-sheet", `resume-template-${state.template}`, !hasContent && "resume-empty")}
-      style={{
-        "--resume-scale": state.textScale,
-        "--resume-font-family": resolveFontStack(state.theme.font),
-        "--resume-accent": normalizeAccent(state.theme.accent),
-        "--resume-page-count": pages,
-      } as CSSProperties}
+      className={cn(
+        "resume-sheet",
+        `resume-template-${state.template}`,
+        !hasContent && "resume-empty",
+      )}
+      style={
+        {
+          "--resume-scale": state.textScale,
+          "--resume-font-family": resolveFontStack(state.theme.font),
+          "--resume-accent": normalizeAccent(state.theme.accent),
+          "--resume-page-count": pages,
+        } as CSSProperties
+      }
       data-heading={state.theme.headingStyle}
       data-header-align={state.theme.headerAlign}
       data-divider={state.theme.headerDivider ? "on" : "off"}
@@ -237,7 +308,18 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
           style={{ top: `${index * 11}in` }}
         />
       ))}
-      {!hasContent ? <EmptyResumePreview /> : <FilledResumePreview state={state} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} onEditTagGroup={onEditTagGroup} {...edit} />}
+      {!hasContent ? (
+        <EmptyResumePreview />
+      ) : (
+        <FilledResumePreview
+          state={state}
+          printBreaks={printBreaks}
+          activeTarget={activeTarget}
+          onTargetSelect={onTargetSelect}
+          onEditTagGroup={onEditTagGroup}
+          {...edit}
+        />
+      )}
       {pageBreaks.map(({ page, label }) => (
         <div
           key={page}
@@ -257,13 +339,29 @@ export const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(func
 function EmptyResumePreview() {
   return (
     <div aria-label="Empty resume preview">
-      <p className="mb-2 font-sans text-[0.78em] font-bold uppercase tracking-[1px] text-[#666]">Clean one-page structure</p>
-      <p className="resume-name" aria-hidden="true">Your Name</p>
+      <p className="mb-2 font-sans text-[0.78em] font-bold uppercase tracking-[1px] text-[#666]">
+        Clean one-page structure
+      </p>
+      <p className="resume-name" aria-hidden="true">
+        Your Name
+      </p>
       <div className="resume-contact">
-        <span className="resume-contact-item"><Mail aria-hidden="true" />email@example.com</span>
-        <span className="resume-contact-item"><Phone aria-hidden="true" />(555) 123-4567</span>
-        <span className="resume-contact-item"><MapPin aria-hidden="true" />City, ST</span>
-        <span className="resume-contact-item"><Linkedin aria-hidden="true" />linkedin.com/in/you</span>
+        <span className="resume-contact-item">
+          <Mail aria-hidden="true" />
+          email@example.com
+        </span>
+        <span className="resume-contact-item">
+          <Phone aria-hidden="true" />
+          (555) 123-4567
+        </span>
+        <span className="resume-contact-item">
+          <MapPin aria-hidden="true" />
+          City, ST
+        </span>
+        <span className="resume-contact-item">
+          <BriefcaseBusiness aria-hidden="true" />
+          linkedin.com/in/you
+        </span>
       </div>
       <div className="resume-empty-line resume-empty-line-wide" />
       <div className="resume-empty-line" />
@@ -283,7 +381,18 @@ function EmptyResumePreview() {
   );
 }
 
-function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditHeaderLink, onEditSectionTitle, onEditEntry, onEditTagGroup }: ResumePreviewProps) {
+function FilledResumePreview({
+  state,
+  printBreaks,
+  activeTarget,
+  onTargetSelect,
+  editable,
+  onEditField,
+  onEditHeaderLink,
+  onEditSectionTitle,
+  onEditEntry,
+  onEditTagGroup,
+}: ResumePreviewProps) {
   const contactParts = [
     ["email", state.email],
     ["phone", state.phone],
@@ -300,7 +409,10 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
         value={state.name || (editable ? "" : "Your Name")}
         placeholder="Your Name"
         onCommit={(value) => onEditField?.("name", value)}
-        className={cn("resume-name resume-preview-target", activeTarget === "field-name" && "resume-preview-active")}
+        className={cn(
+          "resume-name resume-preview-target",
+          activeTarget === "field-name" && "resume-preview-active",
+        )}
         {...(editable ? {} : previewTargetProps("field-name", onTargetSelect))}
       />
       {state.title ? (
@@ -310,7 +422,10 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
           value={state.title}
           placeholder="Title / role"
           onCommit={(value) => onEditField?.("title", value)}
-          className={cn("resume-title resume-preview-target", activeTarget === "field-title" && "resume-preview-active")}
+          className={cn(
+            "resume-title resume-preview-target",
+            activeTarget === "field-title" && "resume-preview-active",
+          )}
           {...(editable ? {} : previewTargetProps("field-title", onTargetSelect))}
         />
       ) : null}
@@ -346,12 +461,28 @@ function FilledResumePreview({ state, printBreaks, activeTarget, onTargetSelect,
           legacyFormat="paragraph"
           onCommit={(value) => onEditField?.("summary", value)}
           guideLabel="Summary"
-          className={cn("resume-lead", "resume-preview-target", activeTarget === "field-summary" && "resume-preview-active")}
+          className={cn(
+            "resume-lead",
+            "resume-preview-target",
+            activeTarget === "field-summary" && "resume-preview-active",
+          )}
           readOnlyProps={previewTargetProps("field-summary", onTargetSelect)}
         />
       ) : null}
       {visibleSectionOrder(state).map((section) => (
-        <ResumeSection key={section} state={state} section={section} printBreaks={printBreaks} activeTarget={activeTarget} onTargetSelect={onTargetSelect} editable={editable} onEditField={onEditField} onEditSectionTitle={onEditSectionTitle} onEditEntry={onEditEntry} onEditTagGroup={onEditTagGroup} />
+        <ResumeSection
+          key={section}
+          state={state}
+          section={section}
+          printBreaks={printBreaks}
+          activeTarget={activeTarget}
+          onTargetSelect={onTargetSelect}
+          editable={editable}
+          onEditField={onEditField}
+          onEditSectionTitle={onEditSectionTitle}
+          onEditEntry={onEditEntry}
+          onEditTagGroup={onEditTagGroup}
+        />
       ))}
     </>
   );
@@ -370,14 +501,14 @@ function ContactIcon({ field }: { field: "email" | "phone" | "location" }) {
 
 const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
   website: Globe2,
-  linkedin: Linkedin,
-  github: Github,
-  gitlab: Gitlab,
-  twitter: Twitter,
-  instagram: Instagram,
-  youtube: Youtube,
-  dribbble: Dribbble,
-  figma: Figma,
+  linkedin: BriefcaseBusiness,
+  github: Code2,
+  gitlab: GitFork,
+  twitter: MessageCircle,
+  instagram: Camera,
+  youtube: Video,
+  dribbble: Palette,
+  figma: Shapes,
   portfolio: BriefcaseBusiness,
   blog: Newspaper,
   calendar: Calendar,
@@ -388,7 +519,7 @@ const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
 function HeaderLinkIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
   const icon = resolveHeaderLinkIcon(link);
   const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
-  return <Icon aria-hidden="true" className="resume-contact-icon" />;
+  return <Icon aria-hidden="true" className={cn("resume-contact-icon", `lucide-${icon}`)} />;
 }
 
 function ContactPart({
@@ -415,9 +546,10 @@ function ContactPart({
   // While editing, an existing contact detail is a plain editable span (a link
   // would swallow the click). Adding a missing detail happens in the form.
   if (editable) {
-    return <span className="resume-contact-item">
-      <ContactIcon field={field} />
-      <InlineText
+    return (
+      <span className="resume-contact-item">
+        <ContactIcon field={field} />
+        <InlineText
           as="span"
           editable
           value={value}
@@ -426,11 +558,20 @@ function ContactPart({
           className={className}
           onCommit={(next) => onEditField?.(field, next)}
         />
-    </span>;
+      </span>
+    );
   }
 
   if (!href) {
-    return <span className={cn("resume-contact-item", className)} {...previewTargetProps(targetId, onTargetSelect)}><ContactIcon field={field} />{value}</span>;
+    return (
+      <span
+        className={cn("resume-contact-item", className)}
+        {...previewTargetProps(targetId, onTargetSelect)}
+      >
+        <ContactIcon field={field} />
+        {value}
+      </span>
+    );
   }
 
   return (
@@ -441,7 +582,8 @@ function ContactPart({
       rel="noreferrer"
       title={`Open ${field} in a new tab`}
     >
-      <ContactIcon field={field} />{value}
+      <ContactIcon field={field} />
+      {value}
     </a>
   );
 }
@@ -464,32 +606,60 @@ function HeaderLinkPart({
   const href = contactHref("website", link.url);
 
   if (editable) {
-    return <span className="resume-contact-item">
-      <HeaderLinkIcon link={link} />
-      <InlineText
-        as="span"
-        editable
-        value={link.url}
-        placeholder="your-site.com"
-        spellCheck={false}
-        className={className}
-        onCommit={(url) => onEditHeaderLink?.(link.id, { url })}
-      />
-    </span>;
+    return (
+      <span className="resume-contact-item">
+        <HeaderLinkIcon link={link} />
+        <InlineText
+          as="span"
+          editable
+          value={link.url}
+          placeholder="your-site.com"
+          spellCheck={false}
+          className={className}
+          onCommit={(url) => onEditHeaderLink?.(link.id, { url })}
+        />
+      </span>
+    );
   }
 
   if (!href) {
-    return <span className={cn("resume-contact-item", className)} {...previewTargetProps(targetId, onTargetSelect)}><HeaderLinkIcon link={link} />{link.url}</span>;
+    return (
+      <span
+        className={cn("resume-contact-item", className)}
+        {...previewTargetProps(targetId, onTargetSelect)}
+      >
+        <HeaderLinkIcon link={link} />
+        {link.url}
+      </span>
+    );
   }
 
   return (
-    <a className={cn("resume-contact-item", className)} href={href} target="_blank" rel="noreferrer" title={`Open ${link.label || "website"} in a new tab`}>
-      <HeaderLinkIcon link={link} />{link.url}
+    <a
+      className={cn("resume-contact-item", className)}
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={`Open ${link.label || "website"} in a new tab`}
+    >
+      <HeaderLinkIcon link={link} />
+      {link.url}
     </a>
   );
 }
 
-function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSelect, editable, onEditField, onEditSectionTitle, onEditEntry, onEditTagGroup }: ResumePreviewProps & { section: string }) {
+function ResumeSection({
+  state,
+  section,
+  printBreaks,
+  activeTarget,
+  onTargetSelect,
+  editable,
+  onEditField,
+  onEditSectionTitle,
+  onEditEntry,
+  onEditTagGroup,
+}: ResumePreviewProps & { section: string }) {
   const sectionActive =
     activeTarget === `section-title-${section}` ||
     activeTarget === `field-${section}` ||
@@ -503,18 +673,27 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
       placeholder="Section heading"
       onCommit={(value) => onEditSectionTitle?.(section, value)}
       data-resume-guide-label={title}
-      className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")}
+      className={cn(
+        "resume-section-title resume-preview-target",
+        activeTarget === `section-title-${section}` && "resume-preview-active",
+      )}
       {...(editable ? {} : previewTargetProps(`section-title-${section}`, onTargetSelect))}
     />
   ) : null;
   const sectionFormat = getSectionFormat(state, section);
   if (sectionFormat === "tag-groups") {
     const printBreakTarget = `section:${section}`;
-    const groups = getSectionTagGroups(state, section).filter((group) => group.label || group.tags.length);
+    const groups = getSectionTagGroups(state, section).filter(
+      (group) => group.label || group.tags.length,
+    );
     if (!groups.length) return null;
     return (
       <section
-        className={cn("resume-section resume-section-atomic", sectionActive && "resume-preview-section-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+        className={cn(
+          "resume-section resume-section-atomic",
+          sectionActive && "resume-preview-section-active",
+          hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before",
+        )}
         data-resume-guide-label={title || "Tag groups"}
         data-resume-print-section={section}
         style={printBreakStyle(printBreakTarget, printBreaks)}
@@ -526,7 +705,10 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
             value={title}
             placeholder="Skills"
             onCommit={(value) => onEditSectionTitle?.(section, value)}
-            className={cn("resume-section-title resume-preview-target", activeTarget === `section-title-${section}` && "resume-preview-active")}
+            className={cn(
+              "resume-section-title resume-preview-target",
+              activeTarget === `section-title-${section}` && "resume-preview-active",
+            )}
             {...(editable ? {} : previewTargetProps(`section-title-${section}`, onTargetSelect))}
           />
         ) : null}
@@ -537,7 +719,10 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
               <div
                 key={group.id}
                 data-preview-tag-group={group.id}
-                className={cn("resume-skill-line resume-preview-target", activeTarget === targetId && "resume-preview-active")}
+                className={cn(
+                  "resume-skill-line resume-preview-target",
+                  activeTarget === targetId && "resume-preview-active",
+                )}
                 aria-label={`Edit ${group.label.trim() || "untitled"} group in ${title || "section"}`}
                 {...(editable ? {} : previewTargetProps(targetId, onTargetSelect))}
               >
@@ -547,7 +732,9 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
                       editable
                       value={group.label}
                       placeholder="Category"
-                      onCommit={(label) => onEditTagGroup?.(section, group.id, { label, tags: group.tags })}
+                      onCommit={(label) =>
+                        onEditTagGroup?.(section, group.id, { label, tags: group.tags })
+                      }
                       className="resume-skill-cat"
                       data-preview-tag-group-label=""
                     />
@@ -556,15 +743,23 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
                       editable
                       value={group.tags.join(" · ")}
                       placeholder="Add skills"
-                      onCommit={(value) => onEditTagGroup?.(section, group.id, {
-                        label: group.label,
-                        tags: value.split(/[·,]/).map((tag) => tag.trim()).filter(Boolean),
-                      })}
+                      onCommit={(value) =>
+                        onEditTagGroup?.(section, group.id, {
+                          label: group.label,
+                          tags: value
+                            .split(/[·,]/)
+                            .map((tag) => tag.trim())
+                            .filter(Boolean),
+                        })
+                      }
                       data-preview-tag-group-tags=""
                     />
                   </>
                 ) : (
-                  <>{group.label ? <span className="resume-skill-cat">{group.label}:</span> : null} {group.tags.join(" · ")}</>
+                  <>
+                    {group.label ? <span className="resume-skill-cat">{group.label}:</span> : null}{" "}
+                    {group.tags.join(" · ")}
+                  </>
                 )}
               </div>
             );
@@ -581,7 +776,11 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
     const targetId = `field-${section}-content`;
     return (
       <section
-        className={cn("resume-section resume-preview-target", sectionActive && "resume-preview-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+        className={cn(
+          "resume-section resume-preview-target",
+          sectionActive && "resume-preview-active",
+          hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before",
+        )}
         data-resume-print-section={section}
         data-resume-section-has-heading={title ? "true" : "false"}
         style={printBreakStyle(printBreakTarget, printBreaks)}
@@ -602,7 +801,11 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
 
   return (
     <section
-      className={cn("resume-section", sectionActive && "resume-preview-section-active", hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before")}
+      className={cn(
+        "resume-section",
+        sectionActive && "resume-preview-section-active",
+        hasPrintBreak(printBreakTarget, printBreaks) && "resume-print-break-before",
+      )}
       data-resume-print-section={section}
       data-resume-section-has-heading={title ? "true" : "false"}
       style={printBreakStyle(printBreakTarget, printBreaks)}
@@ -610,14 +813,27 @@ function ResumeSection({ state, section, printBreaks, activeTarget, onTargetSele
       {editableHeading}
       {entries.map(({ entry, originalIndex }) => (
         <div
-          className={cn("resume-entry resume-preview-target", activeTarget?.startsWith(`field-${section}-${originalIndex}-`) && "resume-preview-active", hasPrintBreak(`entry:${section}:${originalIndex}`, printBreaks) && "resume-print-break-before")}
+          className={cn(
+            "resume-entry resume-preview-target",
+            activeTarget?.startsWith(`field-${section}-${originalIndex}-`) &&
+              "resume-preview-active",
+            hasPrintBreak(`entry:${section}:${originalIndex}`, printBreaks) &&
+              "resume-print-break-before",
+          )}
           key={`${section}-${originalIndex}`}
           data-resume-entry-section={section}
           data-resume-entry-index={originalIndex}
           data-resume-print-entry={`${section}:${originalIndex}`}
-          data-resume-guide-label={[title, entry.title || entry.subtitle || `Entry ${originalIndex + 1}`].filter(Boolean).join(" · ")}
+          data-resume-guide-label={[
+            title,
+            entry.title || entry.subtitle || `Entry ${originalIndex + 1}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           style={printBreakStyle(`entry:${section}:${originalIndex}`, printBreaks)}
-          {...(editable ? {} : previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect))}
+          {...(editable
+            ? {}
+            : previewTargetProps(`field-${section}-${originalIndex}-title`, onTargetSelect))}
         >
           <div className="resume-entry-head">
             <div>

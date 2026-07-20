@@ -12,9 +12,18 @@ test("presents credible browser metadata and public launch assets", async ({ pag
     "content",
     "PrivaCV: Free Private Resume Editor — No Sign-Up",
   );
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://privacv.app");
-  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", "https://privacv.app");
-  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest\.webmanifest$/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "https://privacv.app",
+  );
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+    "content",
+    "https://privacv.app",
+  );
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    /manifest\.webmanifest$/,
+  );
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/icon");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("type", "image/png");
 
@@ -54,7 +63,9 @@ test("presents credible browser metadata and public launch assets", async ({ pag
   );
 });
 
-test("protects the local workspace with production response security headers", async ({ request }) => {
+test("protects the local workspace with production response security headers", async ({
+  request,
+}) => {
   const response = await request.get("/");
   const headers = response.headers();
 

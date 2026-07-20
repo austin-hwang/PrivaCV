@@ -16,7 +16,8 @@ export const LOCAL_AI_MODELS = [
   {
     id: "DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC",
     label: "DeepSeek R1 Llama 8B",
-    description: "Reasoning-focused option for high-memory devices; edits can be significantly slower.",
+    description:
+      "Reasoning-focused option for high-memory devices; edits can be significantly slower.",
     memory: "~5.0 GB GPU memory",
     recommended: false,
   },

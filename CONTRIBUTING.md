@@ -4,7 +4,7 @@ Thanks for helping make private job-search tools easier to use. Small fixes and 
 
 ## Local setup
 
-PrivaCV uses Node.js 22 and pnpm 10. The pnpm version is pinned in `package.json`.
+PrivaCV uses Node.js 22 and pnpm 11. The pnpm version is pinned in `package.json`.
 
 ```sh
 corepack enable
@@ -21,6 +21,7 @@ Run the same checks as CI:
 
 ```sh
 pnpm lint
+pnpm format:check
 pnpm typecheck
 pnpm test
 pnpm test:e2e

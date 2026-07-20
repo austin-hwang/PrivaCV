@@ -46,9 +46,10 @@ export function LocalAIDialog({
   const [error, setError] = useState<string | null>(null);
   const modelSelectRef = useRef<HTMLSelectElement>(null);
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === modelId) ?? LOCAL_AI_MODELS[0];
-  const lowMemoryDevice = typeof navigator !== "undefined" && (navigator as NavigatorWithGPU).deviceMemory !== undefined
-    ? ((navigator as NavigatorWithGPU).deviceMemory ?? 8) <= 4
-    : false;
+  const lowMemoryDevice =
+    typeof navigator !== "undefined" && (navigator as NavigatorWithGPU).deviceMemory !== undefined
+      ? ((navigator as NavigatorWithGPU).deviceMemory ?? 8) <= 4
+      : false;
 
   useEffect(() => {
     if (!open) return;
@@ -202,7 +203,8 @@ export function LocalAIDialog({
   };
 
   const isCached = modelState === "cached" || modelState === "ready";
-  const setupBusy = modelState === "checking" || modelState === "loading" || modelState === "removing";
+  const setupBusy =
+    modelState === "checking" || modelState === "loading" || modelState === "removing";
   const modelSelectionBusy = modelState === "loading" || modelState === "removing";
 
   return (
@@ -225,20 +227,38 @@ export function LocalAIDialog({
         <Alert className="border-warning/40 bg-warning/10 pl-4">
           <AlertTitle>Local AI can vary by device</AlertTitle>
           <AlertDescription>
-            Performance may be slower on some devices, and suggestions may be inaccurate. Review every change before applying it.
+            Performance may be slower on some devices, and suggestions may be inaccurate. Review
+            every change before applying it.
           </AlertDescription>
         </Alert>
 
         <section className="space-y-3 rounded-lg border p-4" aria-labelledby="local-ai-setup-title">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 id="local-ai-setup-title" className="text-sm font-semibold">Prepare a model</h3>
+              <h3 id="local-ai-setup-title" className="text-sm font-semibold">
+                Prepare a model
+              </h3>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
                 Downloads an open-source model from Hugging Face and caches it in this browser.
               </p>
             </div>
-            <Badge variant={modelState === "ready" ? "secondary" : "outline"} className={modelState === "ready" ? "bg-success/15 text-success" : undefined}>
-              {modelState === "ready" ? "Ready" : isCached ? "Downloaded" : modelState === "not-cached" ? "Not downloaded" : modelState === "loading" ? "Preparing" : modelState === "removing" ? "Removing" : modelState === "error" ? "Needs attention" : "Checking cache"}
+            <Badge
+              variant={modelState === "ready" ? "secondary" : "outline"}
+              className={modelState === "ready" ? "bg-success/15 text-success" : undefined}
+            >
+              {modelState === "ready"
+                ? "Ready"
+                : isCached
+                  ? "Downloaded"
+                  : modelState === "not-cached"
+                    ? "Not downloaded"
+                    : modelState === "loading"
+                      ? "Preparing"
+                      : modelState === "removing"
+                        ? "Removing"
+                        : modelState === "error"
+                          ? "Needs attention"
+                          : "Checking cache"}
             </Badge>
           </div>
 
@@ -253,34 +273,70 @@ export function LocalAIDialog({
             >
               {LOCAL_AI_MODELS.map((model) => (
                 <option key={model.id} value={model.id}>
-                  {model.label} — {model.memory}{model.recommended ? " — recommended" : ""}
+                  {model.label} — {model.memory}
+                  {model.recommended ? " — recommended" : ""}
                 </option>
               ))}
             </Select>
           </label>
           <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{selectedModel.label}:</span> {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published configuration.
-            {lowMemoryDevice && selectedModel.recommended ? <span className="ml-1 text-warning">If loading fails, try the lower-memory model.</span> : null}
+            <span className="font-medium text-foreground">{selectedModel.label}:</span>{" "}
+            {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published
+            configuration.
+            {lowMemoryDevice && selectedModel.recommended ? (
+              <span className="ml-1 text-warning">
+                If loading fails, try the lower-memory model.
+              </span>
+            ) : null}
           </div>
 
           {modelState === "loading" ? (
             <div className="space-y-1.5" aria-live="polite">
               <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary transition-[width]" style={{ width: `${Math.round(progress * 100)}%` }} />
+                <div
+                  className="h-full bg-primary transition-[width]"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
               </div>
-              <p className="text-xs text-muted-foreground">{Math.round(progress * 100)}% · {progressText || "Downloading and loading model…"}</p>
+              <p className="text-xs text-muted-foreground">
+                {Math.round(progress * 100)}% · {progressText || "Downloading and loading model…"}
+              </p>
             </div>
           ) : null}
 
-          {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
           {deviceState === "unsupported" ? (
-            <p role="status" className="text-sm text-muted-foreground">Local AI isn&apos;t available in this browser or on this device.</p>
+            <p role="status" className="text-sm text-muted-foreground">
+              Local AI isn&apos;t available in this browser or on this device.
+            </p>
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={prepareModel} disabled={deviceState !== "supported" || setupBusy || modelState === "ready"}>
-              {modelState === "loading" ? <Loader2 className="animate-spin" /> : modelState === "ready" ? <Check /> : isCached ? <Cpu /> : <Download />}
-              {modelState === "loading" ? "Preparing…" : modelState === "ready" ? "Model ready" : isCached ? "Load cached model" : "Download and load model"}
+            <Button
+              type="button"
+              onClick={prepareModel}
+              disabled={deviceState !== "supported" || setupBusy || modelState === "ready"}
+            >
+              {modelState === "loading" ? (
+                <Loader2 className="animate-spin" />
+              ) : modelState === "ready" ? (
+                <Check />
+              ) : isCached ? (
+                <Cpu />
+              ) : (
+                <Download />
+              )}
+              {modelState === "loading"
+                ? "Preparing…"
+                : modelState === "ready"
+                  ? "Model ready"
+                  : isCached
+                    ? "Load cached model"
+                    : "Download and load model"}
             </Button>
             {isCached ? (
               <Button type="button" variant="outline" onClick={removeModel} disabled={setupBusy}>

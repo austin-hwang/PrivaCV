@@ -19,7 +19,8 @@ const faqItems: FaqItem[] = [
   },
   {
     question: "Do I need an account to check my resume?",
-    answer: "No. The review runs in your browser. There's no account, no subscription, and no upload.",
+    answer:
+      "No. The review runs in your browser. There's no account, no subscription, and no upload.",
   },
 ];
 
@@ -36,7 +37,10 @@ export default function AtsResumeCheckerPage() {
       h1="ATS resume checker that runs in your browser"
       lede={description}
       ctaLabel="Check your resume in the editor"
-      heroImage={{ src: "/social/ats-resume-checker", alt: "ATS resume checks for contact details, structure, bullets, and evidence" }}
+      heroImage={{
+        src: "/social/ats-resume-checker",
+        alt: "ATS resume checks for contact details, structure, bullets, and evidence",
+      }}
       breadcrumb={{ name: title, path: "/ats-resume-checker" }}
       cards={[
         {

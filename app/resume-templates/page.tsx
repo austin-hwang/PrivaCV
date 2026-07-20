@@ -20,7 +20,8 @@ const faqItems: FaqItem[] = [
   },
   {
     question: "Do the templates cost anything?",
-    answer: "No. Every template is free, with no account, no subscription, and no watermark on your resume.",
+    answer:
+      "No. Every template is free, with no account, no subscription, and no watermark on your resume.",
   },
 ];
 

@@ -1,4 +1,13 @@
-import { ArrowDown, ArrowLeftRight, ArrowUp, ChevronRight, GripVertical, Sparkles, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeftRight,
+  ArrowUp,
+  ChevronRight,
+  GripVertical,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type DragEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,8 +64,12 @@ export function FieldGroup({
           {/* The collapse toggle lives on the RIGHT so the title (and the fields
               below it) share one flush-left edge — a left chevron would indent the
               title past its own content and look misaligned. */}
-          <div className={cn("flex items-center justify-between gap-3", collapsed ? "mb-0" : "mb-3")}>
-            <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
+          <div
+            className={cn("flex items-center justify-between gap-3", collapsed ? "mb-0" : "mb-3")}
+          >
+            <h2 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              {title}
+            </h2>
             <div className="flex shrink-0 items-center gap-1">
               {actions}
               {collapsible ? (
@@ -65,16 +78,26 @@ export function FieldGroup({
                   onClick={onToggleCollapsed}
                   aria-expanded={!collapsed}
                   aria-label={collapsed ? "Expand section" : "Collapse section"}
-                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <ChevronRight className={cn("size-4 transition-transform", !collapsed && "rotate-90")} />
+                  <ChevronRight
+                    className={cn("size-4 transition-transform", !collapsed && "rotate-90")}
+                  />
                 </button>
               ) : null}
             </div>
           </div>
         </>
       )}
-      <div className={cn("space-y-3", header && !collapsed && "mt-3 border-t pt-3", collapsed && "hidden")}>{children}</div>
+      <div
+        className={cn(
+          "space-y-3",
+          header && !collapsed && "mt-3 border-t pt-3",
+          collapsed && "hidden",
+        )}
+      >
+        {children}
+      </div>
     </section>
   );
 }
@@ -140,7 +163,9 @@ export function TextAreaField({
   return (
     <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
       <div className="flex items-center justify-between gap-2">
-        <label id={id ? `${id}-label` : undefined} htmlFor={id}>{label}</label>
+        <label id={id ? `${id}-label` : undefined} htmlFor={id}>
+          {label}
+        </label>
         {aiAssist ? (
           <button
             type="button"
@@ -152,8 +177,9 @@ export function TextAreaField({
             data-ai-edit-for={id}
             title={value.trim() ? "Edit this text with local AI" : "Add text before using local AI"}
             className={cn(
-              "inline-flex size-7 items-center justify-center rounded-md border text-violet-600 transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 dark:text-violet-300 dark:hover:bg-violet-950/40",
-              aiAssist.expanded && "bg-violet-50 ring-1 ring-violet-200 dark:bg-violet-950/40 dark:ring-violet-500/40",
+              "inline-flex size-7 items-center justify-center rounded-md border text-violet-600 transition-colors hover:bg-violet-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 dark:text-violet-300 dark:hover:bg-violet-950/40",
+              aiAssist.expanded &&
+                "bg-violet-50 ring-1 ring-violet-200 dark:bg-violet-950/40 dark:ring-violet-500/40",
             )}
           >
             <Sparkles className="size-3.5" />
@@ -192,7 +218,8 @@ function TagGroupRow({
   const [draft, setDraft] = useState("");
   const addTag = () => {
     const value = draft.trim();
-    if (!value || group.tags.some((tag) => tag.toLocaleLowerCase() === value.toLocaleLowerCase())) return;
+    if (!value || group.tags.some((tag) => tag.toLocaleLowerCase() === value.toLocaleLowerCase()))
+      return;
     onChange({ ...group, tags: [...group.tags, value] });
     setDraft("");
   };
@@ -216,8 +243,15 @@ function TagGroupRow({
           onClick={onToggle}
           className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
         >
-          <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
-          <span className="shrink-0 truncate text-sm font-medium">{group.label.trim() || "Untitled group"}</span>
+          <ChevronRight
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-90",
+            )}
+          />
+          <span className="shrink-0 truncate text-sm font-medium">
+            {group.label.trim() || "Untitled group"}
+          </span>
           <span className="truncate text-xs text-muted-foreground">
             — {group.tags.length} {group.tags.length === 1 ? "tag" : "tags"}
             {group.tags.length ? ` · ${group.tags.slice(0, 3).join(", ")}` : ""}
@@ -244,17 +278,23 @@ function TagGroupRow({
             aria-label="Tag group label"
             className="h-8 text-xs"
           />
-          <div className="flex flex-wrap gap-1.5" aria-label={group.label ? `${group.label} tags` : "Tags"}>
+          <div
+            className="flex flex-wrap gap-1.5"
+            aria-label={group.label ? `${group.label} tags` : "Tags"}
+          >
             {group.tags.map((tag) => (
               <button
                 key={tag}
                 type="button"
-                onClick={() => onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })}
-                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() =>
+                  onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })
+                }
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`Remove ${tag}`}
                 title="Remove tag"
               >
-                {tag}<X className="size-3" aria-hidden="true" />
+                {tag}
+                <X className="size-3" aria-hidden="true" />
               </button>
             ))}
           </div>
@@ -263,7 +303,10 @@ function TagGroupRow({
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
-                if ((event.key === "Enter" || event.key === ",") && !event.nativeEvent.isComposing) {
+                if (
+                  (event.key === "Enter" || event.key === ",") &&
+                  !event.nativeEvent.isComposing
+                ) {
                   event.preventDefault();
                   addTag();
                 }
@@ -272,7 +315,14 @@ function TagGroupRow({
               aria-label={`Add tag to ${group.label || "group"}`}
               className="h-8 text-xs"
             />
-            <Button type="button" variant="outline" size="sm" className="h-8" onClick={addTag} disabled={!draft.trim()}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={addTag}
+              disabled={!draft.trim()}
+            >
               Add
             </Button>
           </div>
@@ -304,7 +354,9 @@ export function TagGroupEditor({
   // nested row as well as the containing section so its actual fields are
   // immediately visible when focus arrives.
   useEffect(() => {
-    const activeGroup = groups.find((group) => activeTarget === `field-${section}-group-${group.id}`);
+    const activeGroup = groups.find(
+      (group) => activeTarget === `field-${section}-group-${group.id}`,
+    );
     if (!activeGroup) return;
     setOpenGroupIds((current) => {
       if (current.has(activeGroup.id)) return current;
@@ -317,7 +369,9 @@ export function TagGroupEditor({
   return (
     <div className="overflow-hidden rounded-md border bg-muted/10">
       {!groups.length ? (
-        <p className="p-3 text-xs text-muted-foreground">No groups yet. Add one from the section header.</p>
+        <p className="p-3 text-xs text-muted-foreground">
+          No groups yet. Add one from the section header.
+        </p>
       ) : null}
       {groups.map((group) => {
         const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
@@ -352,7 +406,7 @@ export function TagGroupEditor({
                 openGroups.add(group.id);
                 return openGroups;
               });
-              onChange(groups.map((candidate) => candidate.id === group.id ? next : candidate));
+              onChange(groups.map((candidate) => (candidate.id === group.id ? next : candidate)));
             }}
             onRemove={() => onChange(groups.filter((candidate) => candidate.id !== group.id))}
           />
@@ -389,7 +443,13 @@ export function EntryList({
   onSwapTitleAndSubtitle: (index: number) => void;
   aiTargetId?: string | null;
   aiPanel?: ReactNode;
-  onAIEdit?: (target: { id: string; label: string; value: string; section: string; index: number }) => void;
+  onAIEdit?: (target: {
+    id: string;
+    label: string;
+    value: string;
+    section: string;
+    index: number;
+  }) => void;
   onEntryCollapse?: (section: string, index: number) => void;
 }) {
   const schema = entryFieldSchema(section, sectionLabel);
@@ -399,7 +459,9 @@ export function EntryList({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const prefix = `field-${section}-`;
-  const activeIndex = activeTarget?.startsWith(prefix) ? Number(activeTarget.slice(prefix.length).split("-")[0]) : -1;
+  const activeIndex = activeTarget?.startsWith(prefix)
+    ? Number(activeTarget.slice(prefix.length).split("-")[0])
+    : -1;
 
   const finishEntryDrag = () => {
     setDraggedIndex(null);
@@ -445,7 +507,8 @@ export function EntryList({
     });
     if (open) onEntryCollapse?.(section, index);
     // Opening a row drops the cursor straight into it — one click to edit.
-    if (!open) window.setTimeout(() => document.getElementById(`${prefix}${index}-title`)?.focus(), 0);
+    if (!open)
+      window.setTimeout(() => document.getElementById(`${prefix}${index}-title`)?.focus(), 0);
   };
 
   if (!entries.length) {
@@ -462,7 +525,9 @@ export function EntryList({
         const empty = !entryHasContent(entry);
         const open = openIndexes.has(index) || empty || activeIndex === index;
         const primary = entry.title.trim() || entry.subtitle.trim() || "Untitled entry";
-        const secondary = [entry.title.trim() && entry.subtitle.trim(), entry.meta.trim()].filter(Boolean).join(" · ");
+        const secondary = [entry.title.trim() && entry.subtitle.trim(), entry.meta.trim()]
+          .filter(Boolean)
+          .join(" · ");
 
         return (
           <div
@@ -471,19 +536,29 @@ export function EntryList({
             data-editor-entry=""
             data-editor-entry-index={index}
             data-dragging={draggedIndex === index || undefined}
-            data-drop-target={dropTargetIndex === index && draggedIndex !== index || undefined}
+            data-drop-target={(dropTargetIndex === index && draggedIndex !== index) || undefined}
             className={cn(
               "group/entry border-b transition-colors last:border-b-0",
               draggedIndex === index && "opacity-45 ring-2 ring-inset ring-muted-foreground/20",
-              dropTargetIndex === index && draggedIndex !== index && "bg-primary/5 ring-2 ring-inset ring-primary/25",
+              dropTargetIndex === index &&
+                draggedIndex !== index &&
+                "bg-primary/5 ring-2 ring-inset ring-primary/25",
             )}
             onDragEnter={(event) => {
-              if (draggedIndex !== null && (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain"))) {
+              if (
+                draggedIndex !== null &&
+                (event.dataTransfer.types.includes("application/x-resume-entry") ||
+                  event.dataTransfer.types.includes("text/plain"))
+              ) {
                 setDropTargetIndex(index);
               }
             }}
             onDragOver={(event) => {
-              if (draggedIndex !== null && (event.dataTransfer.types.includes("application/x-resume-entry") || event.dataTransfer.types.includes("text/plain"))) {
+              if (
+                draggedIndex !== null &&
+                (event.dataTransfer.types.includes("application/x-resume-entry") ||
+                  event.dataTransfer.types.includes("text/plain"))
+              ) {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = "move";
                 setDropTargetIndex(index);
@@ -492,13 +567,15 @@ export function EntryList({
             onDrop={(event) => {
               const customData = event.dataTransfer.getData("application/x-resume-entry");
               const plainData = event.dataTransfer.getData("text/plain");
-              const value = customData || (plainData.startsWith("entry:") ? plainData.slice(6) : "");
+              const value =
+                customData || (plainData.startsWith("entry:") ? plainData.slice(6) : "");
               if (!value) return;
               event.preventDefault();
               event.stopPropagation();
               try {
                 const dragged = JSON.parse(value) as { section: string; index: number };
-                if (dragged.section === section && dragged.index !== index) onReorder(section, dragged.index, index);
+                if (dragged.section === section && dragged.index !== index)
+                  onReorder(section, dragged.index, index);
               } catch {
                 // Ignore drag data from outside the editor.
               } finally {
@@ -514,9 +591,16 @@ export function EntryList({
                 onClick={() => toggle(index, open)}
                 className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
               >
-                <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
+                <ChevronRight
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform",
+                    open && "rotate-90",
+                  )}
+                />
                 <span className="shrink-0 truncate text-sm font-medium">{primary}</span>
-                {secondary ? <span className="truncate text-xs text-muted-foreground">— {secondary}</span> : null}
+                {secondary ? (
+                  <span className="truncate text-xs text-muted-foreground">— {secondary}</span>
+                ) : null}
               </button>
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/entry:opacity-100 group-focus-within/entry:opacity-100">
                 <span
@@ -605,17 +689,22 @@ export function EntryList({
                   value={entry.details}
                   legacyFormat="bullets"
                   onChange={(value) => onUpdate(section, index, "details", value)}
-                  aiAssist={onAIEdit ? {
-                    expanded: aiTargetId === `${section}:${index}`,
-                    onClick: () => onAIEdit({
-                      id: `${section}:${index}`,
-                      label: `${sectionLabel} · ${entry.title || entry.subtitle || `Entry ${index + 1}`} · ${schema.details}`,
-                      value: entry.details,
-                      section,
-                      index,
-                    }),
-                    content: aiTargetId === `${section}:${index}` ? aiPanel : undefined,
-                  } : undefined}
+                  aiAssist={
+                    onAIEdit
+                      ? {
+                          expanded: aiTargetId === `${section}:${index}`,
+                          onClick: () =>
+                            onAIEdit({
+                              id: `${section}:${index}`,
+                              label: `${sectionLabel} · ${entry.title || entry.subtitle || `Entry ${index + 1}`} · ${schema.details}`,
+                              value: entry.details,
+                              section,
+                              index,
+                            }),
+                          content: aiTargetId === `${section}:${index}` ? aiPanel : undefined,
+                        }
+                      : undefined
+                  }
                 />
               </div>
             ) : null}

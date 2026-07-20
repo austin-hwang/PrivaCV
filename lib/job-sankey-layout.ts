@@ -49,12 +49,15 @@ export function buildJobSankeyLayout(
 ) {
   const columns = [0, 1, 2, 3].map((column) => data.nodes.filter((node) => node.column === column));
   const largestGapCount = Math.max(0, ...columns.map((nodes) => nodes.length - 1));
-  const scale = data.total ? (options.chartHeight - largestGapCount * options.nodeGap) / data.total : 0;
+  const scale = data.total
+    ? (options.chartHeight - largestGapCount * options.nodeGap) / data.total
+    : 0;
   const nodes: PositionedJobSankeyNode[] = [];
 
   columns.forEach((columnNodes, column) => {
-    const contentHeight = columnNodes.reduce((sum, node) => sum + node.count * scale, 0)
-      + Math.max(0, columnNodes.length - 1) * options.nodeGap;
+    const contentHeight =
+      columnNodes.reduce((sum, node) => sum + node.count * scale, 0) +
+      Math.max(0, columnNodes.length - 1) * options.nodeGap;
     let y = options.chartTop + (options.chartHeight - contentHeight) / 2;
     columnNodes.forEach((node) => {
       const height = node.count * scale;
@@ -73,8 +76,14 @@ export function buildJobSankeyLayout(
   const sourceOffsets = new Map<JobSankeyNodeId, number>();
   const targetOffsets = new Map<JobSankeyNodeId, number>();
   nodes.forEach((node) => {
-    sourceOffsets.set(node.id, Math.max(0, (node.height - (outgoingTotals.get(node.id) ?? 0) * scale) / 2));
-    targetOffsets.set(node.id, Math.max(0, (node.height - (incomingTotals.get(node.id) ?? 0) * scale) / 2));
+    sourceOffsets.set(
+      node.id,
+      Math.max(0, (node.height - (outgoingTotals.get(node.id) ?? 0) * scale) / 2),
+    );
+    targetOffsets.set(
+      node.id,
+      Math.max(0, (node.height - (incomingTotals.get(node.id) ?? 0) * scale) / 2),
+    );
   });
 
   const links = [...data.links]
@@ -83,9 +92,11 @@ export function buildJobSankeyLayout(
       const rightSource = byId.get(right.source);
       const leftTarget = byId.get(left.target);
       const rightTarget = byId.get(right.target);
-      return (leftSource?.column ?? 0) - (rightSource?.column ?? 0)
-        || (leftSource?.y ?? 0) - (rightSource?.y ?? 0)
-        || (leftTarget?.y ?? 0) - (rightTarget?.y ?? 0);
+      return (
+        (leftSource?.column ?? 0) - (rightSource?.column ?? 0) ||
+        (leftSource?.y ?? 0) - (rightSource?.y ?? 0) ||
+        (leftTarget?.y ?? 0) - (rightTarget?.y ?? 0)
+      );
     })
     .flatMap<PositionedJobSankeyLink>((link) => {
       const source = byId.get(link.source);
@@ -101,22 +112,24 @@ export function buildJobSankeyLayout(
       const sourceX = source.x + source.width;
       const targetX = target.x;
       const curveX = sourceX + (targetX - sourceX) * 0.5;
-      return [{
-        ...link,
-        color: target.color,
-        sourceX,
-        sourceTop,
-        targetX,
-        targetTop,
-        thickness,
-        path: [
-          `M ${sourceX} ${sourceTop}`,
-          `C ${curveX} ${sourceTop}, ${curveX} ${targetTop}, ${targetX} ${targetTop}`,
-          `L ${targetX} ${targetTop + thickness}`,
-          `C ${curveX} ${targetTop + thickness}, ${curveX} ${sourceTop + thickness}, ${sourceX} ${sourceTop + thickness}`,
-          "Z",
-        ].join(" "),
-      }];
+      return [
+        {
+          ...link,
+          color: target.color,
+          sourceX,
+          sourceTop,
+          targetX,
+          targetTop,
+          thickness,
+          path: [
+            `M ${sourceX} ${sourceTop}`,
+            `C ${curveX} ${sourceTop}, ${curveX} ${targetTop}, ${targetX} ${targetTop}`,
+            `L ${targetX} ${targetTop + thickness}`,
+            `C ${curveX} ${targetTop + thickness}, ${curveX} ${sourceTop + thickness}, ${sourceX} ${sourceTop + thickness}`,
+            "Z",
+          ].join(" "),
+        },
+      ];
     });
 
   return { ...options, nodes, links };

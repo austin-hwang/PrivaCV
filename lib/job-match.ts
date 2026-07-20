@@ -207,9 +207,11 @@ function requirementTermOrder(jobDescription: string) {
     const headingRemainder = requirementHeading(trimmed);
     if (headingRemainder !== null) {
       isReadingRequirements = true;
-      words(headingRemainder).filter(isUsefulTerm).forEach((term) => {
-        if (!terms.has(term)) terms.set(term, terms.size);
-      });
+      words(headingRemainder)
+        .filter(isUsefulTerm)
+        .forEach((term) => {
+          if (!terms.has(term)) terms.set(term, terms.size);
+        });
       return;
     }
 
@@ -219,25 +221,33 @@ function requirementTermOrder(jobDescription: string) {
     }
 
     if (!isReadingRequirements) return;
-    words(trimmed).filter(isUsefulTerm).forEach((term) => {
-      if (!terms.has(term)) terms.set(term, terms.size);
-    });
+    words(trimmed)
+      .filter(isUsefulTerm)
+      .forEach((term) => {
+        if (!terms.has(term)) terms.set(term, terms.size);
+      });
   });
 
   return terms;
 }
 
-function entryEvidence(section: "experience" | "projects", entries: ResumeEntry[], term: string): RoleTermEvidence[] {
+function entryEvidence(
+  section: "experience" | "projects",
+  entries: ResumeEntry[],
+  term: string,
+): RoleTermEvidence[] {
   return entries.flatMap((entry, index) => {
     const detailsMatch = containsTerm(stripRichMarks(entry.details), term);
     const contextMatch = containsTerm([entry.title, entry.subtitle, entry.meta].join(" "), term);
     if (!detailsMatch && !contextMatch) return [];
 
-    return [{
-      label: `${section === "experience" ? "Experience" : "Project"} ${index + 1}`,
-      targetId: `field-${section}-${index}-${detailsMatch ? "details" : "title"}`,
-      isConcrete: detailsMatch,
-    }];
+    return [
+      {
+        label: `${section === "experience" ? "Experience" : "Project"} ${index + 1}`,
+        targetId: `field-${section}-${index}-${detailsMatch ? "details" : "title"}`,
+        isConcrete: detailsMatch,
+      },
+    ];
   });
 }
 
@@ -254,7 +264,11 @@ function findTermEvidence(state: ResumeState, term: string): RoleTermEvidence[] 
     evidence.push({ label: "Title", targetId: "field-title", isConcrete: false });
   }
 
-  return [...entryEvidence("experience", state.experience, term), ...entryEvidence("projects", state.projects, term), ...evidence];
+  return [
+    ...entryEvidence("experience", state.experience, term),
+    ...entryEvidence("projects", state.projects, term),
+    ...evidence,
+  ];
 }
 
 /**
@@ -268,41 +282,62 @@ export function buildRoleFocus(resume: ResumeState | string, jobDescription: str
     .filter(isUsefulTerm)
     .forEach((term) => counts.set(term, (counts.get(term) ?? 0) + 1));
 
-  const resumeText = typeof resume === "string" ? resume : [
-    resume.name,
-    resume.title,
-    resume.email,
-    resume.phone,
-    resume.location,
-    resume.website,
-    stripRichMarks(resume.summary),
-    resume.skills,
-    ...resume.experience.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, stripRichMarks(entry.details)]),
-    ...resume.projects.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, stripRichMarks(entry.details)]),
-    ...resume.education.flatMap((entry) => [entry.title, entry.subtitle, entry.meta, stripRichMarks(entry.details)]),
-  ].join(" ");
+  const resumeText =
+    typeof resume === "string"
+      ? resume
+      : [
+          resume.name,
+          resume.title,
+          resume.email,
+          resume.phone,
+          resume.location,
+          resume.website,
+          stripRichMarks(resume.summary),
+          resume.skills,
+          ...resume.experience.flatMap((entry) => [
+            entry.title,
+            entry.subtitle,
+            entry.meta,
+            stripRichMarks(entry.details),
+          ]),
+          ...resume.projects.flatMap((entry) => [
+            entry.title,
+            entry.subtitle,
+            entry.meta,
+            stripRichMarks(entry.details),
+          ]),
+          ...resume.education.flatMap((entry) => [
+            entry.title,
+            entry.subtitle,
+            entry.meta,
+            stripRichMarks(entry.details),
+          ]),
+        ].join(" ");
   const resumeTerms = new Set(words(resumeText));
-  const rankedTerms = [...counts.entries()]
-    .sort(([firstTerm, firstCount], [secondTerm, secondCount]) =>
-      secondCount - firstCount || secondTerm.length - firstTerm.length || firstTerm.localeCompare(secondTerm),
-    );
+  const rankedTerms = [...counts.entries()].sort(
+    ([firstTerm, firstCount], [secondTerm, secondCount]) =>
+      secondCount - firstCount ||
+      secondTerm.length - firstTerm.length ||
+      firstTerm.localeCompare(secondTerm),
+  );
   const requirements = requirementTermOrder(jobDescription);
   const requirementTerms = rankedTerms
     .filter(([term]) => requirements.has(term))
-    .sort(([firstTerm, firstCount], [secondTerm, secondCount]) =>
-      secondCount - firstCount || (requirements.get(firstTerm) ?? 0) - (requirements.get(secondTerm) ?? 0),
+    .sort(
+      ([firstTerm, firstCount], [secondTerm, secondCount]) =>
+        secondCount - firstCount ||
+        (requirements.get(firstTerm) ?? 0) - (requirements.get(secondTerm) ?? 0),
     )
     .slice(0, MAX_REQUIREMENT_TERMS);
   const generalTerms = rankedTerms.filter(([term]) => !requirements.has(term));
   const selectedTerms = [...requirementTerms, ...generalTerms].slice(0, MAX_TERMS);
-  const terms = selectedTerms
-    .map(([term, count]) => ({
-      term,
-      count,
-      matched: resumeTerms.has(term),
-      evidence: typeof resume === "string" ? [] : findTermEvidence(resume, term),
-      isRequirement: requirements.has(term),
-    }));
+  const terms = selectedTerms.map(([term, count]) => ({
+    term,
+    count,
+    matched: resumeTerms.has(term),
+    evidence: typeof resume === "string" ? [] : findTermEvidence(resume, term),
+    isRequirement: requirements.has(term),
+  }));
 
   return {
     terms,
@@ -321,9 +356,11 @@ export function buildRoleFocus(resume: ResumeState | string, jobDescription: str
 export function reviewRolePhrase(resumeText: string, phrase: string): RolePhraseReview {
   const phraseTerms = words(phrase);
   const resumeTerms = words(resumeText);
-  const matched = phraseTerms.length >= 2 && resumeTerms.some((_, index) =>
-    phraseTerms.every((term, phraseIndex) => resumeTerms[index + phraseIndex] === term),
-  );
+  const matched =
+    phraseTerms.length >= 2 &&
+    resumeTerms.some((_, index) =>
+      phraseTerms.every((term, phraseIndex) => resumeTerms[index + phraseIndex] === term),
+    );
 
   return {
     phrase: phrase.trim(),
@@ -338,7 +375,10 @@ export function reviewRolePhrase(resumeText: string, phrase: string): RolePhrase
  * their own. Suggestions remain deterministic, local, and deliberately avoid
  * inferring missing skills or job fit.
  */
-export function buildRolePhraseSuggestions(resumeText: string, jobDescription: string): RolePhraseSuggestion[] {
+export function buildRolePhraseSuggestions(
+  resumeText: string,
+  jobDescription: string,
+): RolePhraseSuggestion[] {
   const sourceTerms = rawWords(jobDescription);
   const normalizedTerms = sourceTerms.map((term) => term.toLocaleLowerCase());
   const counts = new Map<string, number>();

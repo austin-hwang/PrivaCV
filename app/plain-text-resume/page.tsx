@@ -19,7 +19,8 @@ const faqItems: FaqItem[] = [
   },
   {
     question: "Is exporting plain text free and private?",
-    answer: "Yes. The plain-text preview and export both run in your browser, at no cost, with no account and no upload.",
+    answer:
+      "Yes. The plain-text preview and export both run in your browser, at no cost, with no account and no upload.",
   },
 ];
 
@@ -36,7 +37,10 @@ export default function PlainTextResumePage() {
       h1="Create a clean plain-text resume"
       lede={description}
       ctaLabel="Build a plain-text resume"
-      heroImage={{ src: "/social/plain-text-resume", alt: "Clean plain-text resume preview for online application forms" }}
+      heroImage={{
+        src: "/social/plain-text-resume",
+        alt: "Clean plain-text resume preview for online application forms",
+      }}
       breadcrumb={{ name: title, path: "/plain-text-resume" }}
       cards={[
         {

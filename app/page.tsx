@@ -93,19 +93,27 @@ export default function Home() {
       <ResumeEditor />
       <section className="public-explainer app-chrome border-t px-4 py-16 lg:px-6">
         <div className="mx-auto max-w-5xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{SITE_NAME}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {SITE_NAME}
+          </p>
           <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
             A free, private resume editor that runs in your browser
           </h1>
-          <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted-foreground">{SITE_DESCRIPTION}</p>
+          <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted-foreground">
+            {SITE_DESCRIPTION}
+          </p>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2">
             {features.map((feature) => (
               <article key={feature.title} className="rounded-lg border bg-card p-5">
                 <h2 className="font-semibold">
-                  {feature.href
-                    ? <Link className="underline-offset-4 hover:underline" href={feature.href}>{feature.title}</Link>
-                    : feature.title}
+                  {feature.href ? (
+                    <Link className="underline-offset-4 hover:underline" href={feature.href}>
+                      {feature.title}
+                    </Link>
+                  ) : (
+                    feature.title
+                  )}
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.body}</p>
               </article>
@@ -138,7 +146,10 @@ export default function Home() {
       <div className="public-explainer">
         <SiteFooter />
       </div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
     </>
   );
 }

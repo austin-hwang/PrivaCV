@@ -10,12 +10,7 @@ import {
 } from "@/lib/browser-files";
 import { resumeDocxBlob } from "@/lib/docx-export";
 import { trackResumeExport } from "@/lib/export-metrics";
-import {
-  hasAnyContent,
-  resumeMarkdown,
-  type ResumeCheck,
-  type ResumeState,
-} from "@/lib/resume";
+import { hasAnyContent, resumeMarkdown, type ResumeCheck, type ResumeState } from "@/lib/resume";
 import type { ImportReviewState } from "@/lib/resume-workspace";
 import { pdfDocumentTitle, safeResumeFilename } from "@/features/resume/lib/resume-file-name";
 
@@ -136,7 +131,8 @@ export function useResumeExport({
         event.altKey ||
         (!event.metaKey && !event.ctrlKey) ||
         event.key.toLowerCase() !== "p"
-      ) return;
+      )
+        return;
       event.preventDefault();
       requestExportRef.current();
     };

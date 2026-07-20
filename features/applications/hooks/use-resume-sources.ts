@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadResumeWorkspace } from "@/lib/resume-db";
-import { CHECKPOINT_HISTORY_KEY, RESUME_LIBRARY_KEY, type ResumeLibraryItem, type VersionHistoryItem } from "@/lib/resume-workspace";
+import {
+  CHECKPOINT_HISTORY_KEY,
+  RESUME_LIBRARY_KEY,
+  type ResumeLibraryItem,
+  type VersionHistoryItem,
+} from "@/lib/resume-workspace";
 import type { ResumeState } from "@/lib/resume";
 
 export type ResumeSourceOption = {
@@ -24,7 +29,10 @@ function currentSource(resume: ResumeLibraryItem): ResumeSourceOption {
   };
 }
 
-function checkpointSource(resume: ResumeLibraryItem, checkpoint: VersionHistoryItem): ResumeSourceOption {
+function checkpointSource(
+  resume: ResumeLibraryItem,
+  checkpoint: VersionHistoryItem,
+): ResumeSourceOption {
   return {
     key: `resume:${resume.id}:checkpoint:${checkpoint.id}`,
     resumeId: resume.id,
@@ -52,7 +60,9 @@ export function useResumeSources() {
       }
       const next = workspace.resumeLibrary.flatMap((resume) => [
         currentSource(resume),
-        ...(workspace.checkpointHistoryByResume[resume.id] ?? []).map((checkpoint) => checkpointSource(resume, checkpoint)),
+        ...(workspace.checkpointHistoryByResume[resume.id] ?? []).map((checkpoint) =>
+          checkpointSource(resume, checkpoint),
+        ),
       ]);
       setSources(next);
       setActiveResumeId(workspace.activeResumeId);
@@ -74,7 +84,10 @@ export function useResumeSources() {
   }, [refresh]);
 
   const defaultSourceKey = useMemo(
-    () => sources.find((source) => source.resumeId === activeResumeId && !source.checkpointId)?.key ?? sources[0]?.key ?? "",
+    () =>
+      sources.find((source) => source.resumeId === activeResumeId && !source.checkpointId)?.key ??
+      sources[0]?.key ??
+      "",
     [activeResumeId, sources],
   );
   const byKey = useMemo(() => new Map(sources.map((source) => [source.key, source])), [sources]);

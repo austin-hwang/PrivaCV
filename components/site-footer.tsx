@@ -31,7 +31,10 @@ export function SiteFooter() {
       title: "Guides",
       links: [
         { href: "/guides", label: "All resume guides" },
-        ...GUIDES.map((guide) => ({ href: guidePath(guide.slug), label: guide.navLabel ?? guide.title })),
+        ...GUIDES.map((guide) => ({
+          href: guidePath(guide.slug),
+          label: guide.navLabel ?? guide.title,
+        })),
       ],
     },
     { title: "PrivaCV", links: COMPANY },
@@ -43,11 +46,16 @@ export function SiteFooter() {
         <nav className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4" aria-label="Footer">
           {groups.map((group) => (
             <div key={group.title}>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{group.title}</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {group.title}
+              </h2>
               <ul className="mt-3 grid gap-2 text-sm">
                 {group.links.map((link) => (
                   <li key={link.href}>
-                    <Link className="text-muted-foreground transition-colors hover:text-foreground" href={link.href}>
+                    <Link
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      href={link.href}
+                    >
                       {link.label}
                     </Link>
                   </li>
@@ -57,7 +65,13 @@ export function SiteFooter() {
           ))}
         </nav>
         <p className="mt-10 text-xs text-muted-foreground">
-          <Link href="/" prefetch={false} className="font-semibold text-foreground transition-opacity hover:opacity-80">{SITE_NAME}</Link>
+          <Link
+            href="/"
+            prefetch={false}
+            className="font-semibold text-foreground transition-opacity hover:opacity-80"
+          >
+            {SITE_NAME}
+          </Link>
           <span> · Private, ATS-friendly resume editing that stays in your browser.</span>
         </p>
       </div>

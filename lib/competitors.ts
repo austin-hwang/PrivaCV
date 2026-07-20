@@ -23,7 +23,11 @@ export type Comparator = {
 /** Column order for the table; PrivaCV first. */
 export const COMPARATORS: Comparator[] = [
   { name: "PrivaCV", isUs: true, price: "Free", priceNote: "No account · no trial · no watermark" },
-  { name: "Zety", price: "$25.95 / 4 wks", priceNote: "$1.95 14-day trial, then auto-renews (~$71/yr annual)" },
+  {
+    name: "Zety",
+    price: "$25.95 / 4 wks",
+    priceNote: "$1.95 14-day trial, then auto-renews (~$71/yr annual)",
+  },
   { name: "Resume.io", price: "$29.95 / 4 wks", priceNote: "$2.95 7-day trial (~$75/yr annual)" },
   { name: "Teal", price: "$29 / mo", priceNote: "Generous free tier; Teal+ from ~$9/wk" },
   { name: "Rezi", price: "$29 / mo", priceNote: "Free tier; $149 one-time lifetime" },

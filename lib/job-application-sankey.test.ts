@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { buildJobSankeyData } from "@/lib/job-application-sankey";
-import type { ApplicationEvent, JobApplication, JobApplicationStatus } from "@/lib/job-applications";
+import type {
+  ApplicationEvent,
+  JobApplication,
+  JobApplicationStatus,
+} from "@/lib/job-applications";
 import { buildJobSankeyLayout } from "@/lib/job-sankey-layout";
 
 const NOW = "2026-07-20T12:00:00.000Z";
 
-function application(id: string, status: JobApplicationStatus, applied = status !== "saved" && status !== "preparing"): JobApplication {
+function application(
+  id: string,
+  status: JobApplicationStatus,
+  applied = status !== "saved" && status !== "preparing",
+): JobApplication {
   return {
     id,
     company: `${id} company`,
@@ -26,7 +34,12 @@ function application(id: string, status: JobApplicationStatus, applied = status 
   };
 }
 
-function transition(applicationId: string, fromStatus: JobApplicationStatus, toStatus: JobApplicationStatus, order: number): ApplicationEvent {
+function transition(
+  applicationId: string,
+  fromStatus: JobApplicationStatus,
+  toStatus: JobApplicationStatus,
+  order: number,
+): ApplicationEvent {
   return {
     id: `event-${applicationId}-${order}`,
     applicationId,
@@ -60,14 +73,16 @@ describe("job search Sankey", () => {
 
     expect(data.total).toBe(4);
     expect(data.excluded).toBe(1);
-    expect(links).toEqual(new Map([
-      ["applications:awaiting", 1],
-      ["applications:rejected", 1],
-      ["applications:interviewing", 2],
-      ["interviewing:rejected", 1],
-      ["interviewing:offer", 1],
-      ["offer:accepted", 1],
-    ]));
+    expect(links).toEqual(
+      new Map([
+        ["applications:awaiting", 1],
+        ["applications:rejected", 1],
+        ["applications:interviewing", 2],
+        ["interviewing:rejected", 1],
+        ["interviewing:offer", 1],
+        ["offer:accepted", 1],
+      ]),
+    );
     expect(data.nodes.find((node) => node.id === "interviewing")?.count).toBe(2);
     expect(data.nodes.find((node) => node.id === "accepted")?.count).toBe(1);
   });
@@ -83,10 +98,10 @@ describe("job search Sankey", () => {
   });
 
   it("connects every ribbon exactly to its source and target node", () => {
-    const data = buildJobSankeyData([
-      application("waiting", "applied"),
-      application("accepted", "accepted"),
-    ], []);
+    const data = buildJobSankeyData(
+      [application("waiting", "applied"), application("accepted", "accepted")],
+      [],
+    );
     const layout = buildJobSankeyLayout(data);
     const nodes = new Map(layout.nodes.map((node) => [node.id, node]));
 

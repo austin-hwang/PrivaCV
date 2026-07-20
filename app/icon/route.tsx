@@ -14,12 +14,15 @@ const mark = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" vie
 /** Stable raster favicon URL for search crawlers and installed-app metadata. */
 export function GET() {
   return new ImageResponse(
-    (
-      <div style={{ display: "flex", width: "100%", height: "100%" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img width="96" height="96" src={`data:image/svg+xml;utf8,${encodeURIComponent(mark)}`} alt="" />
-      </div>
-    ),
+    <div style={{ display: "flex", width: "100%", height: "100%" }}>
+      {/* oxlint-disable-next-line nextjs/no-img-element */}
+      <img
+        width={96}
+        height={96}
+        src={`data:image/svg+xml;utf8,${encodeURIComponent(mark)}`}
+        alt=""
+      />
+    </div>,
     {
       width: 96,
       height: 96,

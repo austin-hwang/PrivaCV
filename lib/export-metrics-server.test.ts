@@ -33,11 +33,20 @@ describe("anonymous export metrics", () => {
     const writeDataPoint = vi.fn();
     const env: ExportMetricsEnv = { EXPORT_METRICS: { writeDataPoint } };
 
-    expect((await handleExportMetric(exportRequest({ format: "resume-content" }), env))?.status).toBe(400);
-    expect((await handleExportMetric(exportRequest(
-      { format: "pdf" },
-      { Origin: "https://example.com", "Sec-Fetch-Site": "cross-site" },
-    ), env))?.status).toBe(403);
+    expect(
+      (await handleExportMetric(exportRequest({ format: "resume-content" }), env))?.status,
+    ).toBe(400);
+    expect(
+      (
+        await handleExportMetric(
+          exportRequest(
+            { format: "pdf" },
+            { Origin: "https://example.com", "Sec-Fetch-Site": "cross-site" },
+          ),
+          env,
+        )
+      )?.status,
+    ).toBe(403);
     expect(writeDataPoint).not.toHaveBeenCalled();
   });
 

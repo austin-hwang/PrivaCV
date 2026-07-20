@@ -57,23 +57,33 @@ export function useResumeLibrary({
   reportStorageIssue,
   flash,
 }: Options) {
-  const persistResumeLibrary = useCallback((library: ResumeLibraryItem[], nextActiveId = activeResumeId) => {
-    try {
-      localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(library));
-      if (nextActiveId) localStorage.setItem(ACTIVE_RESUME_KEY, nextActiveId);
-    } catch {
-      // IndexedDB remains authoritative when the compatibility mirror fails.
-    }
-    void saveResumeLibrary(library, nextActiveId).then(confirmStorageAvailable).catch(reportStorageIssue);
-  }, [activeResumeId, confirmStorageAvailable, reportStorageIssue]);
+  const persistResumeLibrary = useCallback(
+    (library: ResumeLibraryItem[], nextActiveId = activeResumeId) => {
+      try {
+        localStorage.setItem(RESUME_LIBRARY_KEY, JSON.stringify(library));
+        if (nextActiveId) localStorage.setItem(ACTIVE_RESUME_KEY, nextActiveId);
+      } catch {
+        // IndexedDB remains authoritative when the compatibility mirror fails.
+      }
+      void saveResumeLibrary(library, nextActiveId)
+        .then(confirmStorageAvailable)
+        .catch(reportStorageIssue);
+    },
+    [activeResumeId, confirmStorageAvailable, reportStorageIssue],
+  );
 
-  const libraryWithCurrentDraft = useCallback((library = resumeLibrary) => {
-    if (!activeResumeId) return library;
-    const updatedAt = new Date().toISOString();
-    return library.map((item) => item.id === activeResumeId
-      ? { ...item, updatedAt, state: normalizeResume(state), importReview }
-      : item);
-  }, [activeResumeId, importReview, resumeLibrary, state]);
+  const libraryWithCurrentDraft = useCallback(
+    (library = resumeLibrary) => {
+      if (!activeResumeId) return library;
+      const updatedAt = new Date().toISOString();
+      return library.map((item) =>
+        item.id === activeResumeId
+          ? { ...item, updatedAt, state: normalizeResume(state), importReview }
+          : item,
+      );
+    },
+    [activeResumeId, importReview, resumeLibrary, state],
+  );
 
   const openResume = (resumeId: string) => {
     if (resumeId === activeResumeId) return;
@@ -134,9 +144,10 @@ export function useResumeLibrary({
 
   const duplicateResume = (resumeId = activeResumeId) => {
     if (!resumeId) return;
-    const source = resumeId === activeResumeId
-      ? libraryWithCurrentDraft().find((item) => item.id === resumeId)
-      : resumeLibrary.find((item) => item.id === resumeId);
+    const source =
+      resumeId === activeResumeId
+        ? libraryWithCurrentDraft().find((item) => item.id === resumeId)
+        : resumeLibrary.find((item) => item.id === resumeId);
     if (!source) return;
     const now = new Date().toISOString();
     const id = `resume-${Date.now().toString(36)}`;
@@ -171,7 +182,9 @@ export function useResumeLibrary({
   const renameResume = (resumeId: string, label: string) => {
     const clean = label.trim();
     if (!clean) return;
-    const library = resumeLibrary.map((item) => item.id === resumeId ? { ...item, label: clean } : item);
+    const library = resumeLibrary.map((item) =>
+      item.id === resumeId ? { ...item, label: clean } : item,
+    );
     persistResumeLibrary(library);
     setResumeLibrary(library);
     flash("Renamed resume");
@@ -180,25 +193,30 @@ export function useResumeLibrary({
   const deleteResume = (resumeId: string) => {
     const remaining = resumeLibrary.filter((item) => item.id !== resumeId);
     const now = new Date().toISOString();
-    const nextLibrary = remaining.length ? remaining : [{
-      id: `resume-${Date.now().toString(36)}`,
-      label: "Untitled resume",
-      createdAt: now,
-      updatedAt: now,
-      state: emptyState(),
-      importReview: null,
-    } satisfies ResumeLibraryItem];
+    const nextLibrary = remaining.length
+      ? remaining
+      : [
+          {
+            id: `resume-${Date.now().toString(36)}`,
+            label: "Untitled resume",
+            createdAt: now,
+            updatedAt: now,
+            state: emptyState(),
+            importReview: null,
+          } satisfies ResumeLibraryItem,
+        ];
     const deletingActive = resumeId === activeResumeId;
     const nextActive = deletingActive
       ? nextLibrary[0]
-      : nextLibrary.find((item) => item.id === activeResumeId) ?? nextLibrary[0];
+      : (nextLibrary.find((item) => item.id === activeResumeId) ?? nextLibrary[0]);
     persistResumeLibrary(nextLibrary, nextActive.id);
     setResumeLibrary(nextLibrary);
     setCheckpointHistoryByResume((current) => {
       const next = { ...current };
       delete next[resumeId];
       try {
-        if (Object.keys(next).length) localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(next));
+        if (Object.keys(next).length)
+          localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(next));
         else localStorage.removeItem(CHECKPOINT_HISTORY_KEY);
       } catch {
         // IndexedDB remains authoritative when the compatibility mirror fails.
