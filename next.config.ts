@@ -11,13 +11,16 @@ const contentSecurityPolicy = [
   // Next.js evaluates its development client bundle. Keep that allowance out
   // of production. WebLLM compiles its model runtime from WebAssembly only
   // after a user explicitly prepares a local model.
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${developmentScriptSource}`,
+  // static.cloudflareinsights.com serves Cloudflare's cookieless Web Analytics
+  // beacon, which Cloudflare injects at the edge in production.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com${developmentScriptSource}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",
-  // These are WebLLM's model manifest/weight hosts. Keeping the list explicit
+  // huggingface/hf.co hosts serve WebLLM's model manifest/weights; the beacon
+  // reports anonymous RUM to cloudflareinsights.com. Keeping the list explicit
   // preserves the local editor's narrow network boundary.
-  "connect-src 'self' https://huggingface.co https://*.hf.co https://*.xethub.hf.co https://raw.githubusercontent.com",
+  "connect-src 'self' https://huggingface.co https://*.hf.co https://*.xethub.hf.co https://raw.githubusercontent.com https://cloudflareinsights.com",
   "frame-src 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",

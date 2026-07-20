@@ -39,7 +39,7 @@ test("helps first-time users choose the right private import route", async ({ pa
   // Two clear primary paths up front: bring an existing resume in, or start blank.
   await expect(page.getByText("I have a resume")).toBeVisible();
   await expect(page.getByText("Start fresh")).toBeVisible();
-  const importFile = page.getByRole("button", { name: /^import a file$/i });
+  const importFile = page.getByRole("button", { name: /^import a file \(pdf or word\)$/i });
   const pasteText = page.getByRole("button", { name: /paste resume text/i });
   await expect(pasteText).toBeVisible();
   // PDF and Word share one importer that routes on the file itself.
@@ -270,10 +270,7 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(libraryButton.locator(".animate-spin")).toHaveCount(0);
 
   const versions = await openVersions(page);
-  const autosaveEntry = versions
-    .getByRole("listitem")
-    .filter({ hasText: "Autosave copy" })
-    .first();
+  const autosaveEntry = versions.getByRole("listitem").filter({ hasText: "Autosave copy" }).first();
   await expect(autosaveEntry).toBeVisible();
   // The freshest autosave is also the live draft, so it reads "Live draft" until a
   // later save supersedes it and it becomes "Autosaved". Either marker confirms the

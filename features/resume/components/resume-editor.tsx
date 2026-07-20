@@ -414,9 +414,12 @@ export function ResumeEditor() {
     "Untitled resume";
 
   if (!loaded) {
+    // Reserve the full workspace height while loading so the SEO explainer below
+    // stays off-screen and doesn't shift down when the editor mounts (avoids a
+    // large CLS on the initial, uncached load Lighthouse measures).
     return (
       <div
-        className="flex min-h-36 items-center justify-center gap-2 border-b bg-card text-sm text-muted-foreground"
+        className="flex min-h-dvh items-center justify-center gap-2 border-b bg-card text-sm text-muted-foreground"
         role="status"
       >
         <Loader2 className="animate-spin" /> Loading your private workspace

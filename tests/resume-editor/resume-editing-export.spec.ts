@@ -378,7 +378,9 @@ test("offers reversible page-fit adjustments without changing resume content", a
   await expect(page.getByRole("button", { name: "Try compact spacing" })).toBeVisible();
   await page.getByRole("button", { name: "Try compact spacing" }).click();
   await expect(page.locator(".resume-sheet")).toHaveAttribute("data-density", "compact");
-  await expect(page.locator('div[role="status"]')).toContainText("Applied compact spacing");
+  await expect(
+    page.locator('[role="status"]').filter({ hasText: "Applied compact spacing" }),
+  ).toBeVisible();
   await expect(roleDetails).toContainText("Led initiative 1");
 
   await page.getByRole("button", { name: "Undo" }).click();
@@ -388,7 +390,9 @@ test("offers reversible page-fit adjustments without changing resume content", a
   await page.getByRole("button", { name: "Try compact spacing" }).click();
   await page.getByRole("button", { name: "Reduce text 2%" }).click();
   await expect(page.getByText("98%", { exact: true })).toBeVisible();
-  await expect(page.locator('div[role="status"]')).toContainText("Reduced text size to 98%");
+  await expect(
+    page.locator('[role="status"]').filter({ hasText: "Reduced text size to 98%" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.getByText("100%", { exact: true })).toBeVisible();
   await expect(roleDetails).toContainText("Led initiative 1");

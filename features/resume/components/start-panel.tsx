@@ -57,7 +57,6 @@ export function StartPanel({
             <div className="mt-auto grid gap-2">
               <Button
                 type="button"
-                aria-label="Import a file"
                 className="h-auto min-h-9 w-full justify-start whitespace-normal text-left"
                 onClick={onImportFile}
                 disabled={isImporting}

@@ -4,7 +4,7 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import { APP_STAGE } from "@/lib/site";
+import { APP_STAGE, SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export type LocalSaveState = "loading" | "saving" | "saved" | "conflict";
@@ -28,6 +28,7 @@ export function LocalSaveStatus({ state }: { state: LocalSaveState }) {
   const status = SAVE_STATUS[state];
   return (
     <div
+      role="status"
       aria-live="polite"
       aria-label={status.ariaLabel}
       title={status.title}
@@ -75,6 +76,7 @@ export function ApplicationHeader({
           <Link
             href="/"
             prefetch={false}
+            aria-label={`${SITE_NAME} home`}
             className="flex min-w-0 items-center gap-2 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <BrandMark className="size-8" />

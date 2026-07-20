@@ -45,7 +45,8 @@
     --card-foreground: 220 23% 92%;
     --popover: 218 19% 11%;
     --popover-foreground: 220 23% 92%;
-    --primary: 217 91% 60%;
+    /* blue-600 keeps white button text at >=4.5:1 (WCAG AA); blue-500 was 3.6:1. */
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --secondary: 219 19% 14%;
     --secondary-foreground: 220 23% 93%;

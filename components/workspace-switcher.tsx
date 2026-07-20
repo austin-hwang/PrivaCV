@@ -29,6 +29,7 @@ export function WorkspaceSwitcher({
             key={workspace.id}
             href={workspace.href}
             prefetch={false}
+            aria-label={workspace.label}
             aria-current={selected ? "page" : undefined}
             className={cn(
               "inline-flex h-7 items-center gap-2 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",

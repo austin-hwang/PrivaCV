@@ -91,10 +91,13 @@ export function useResumeWorkspaceUI({
   }, [activeResumeId]);
 
   useEffect(() => {
-    document.documentElement.dataset.resumeWorkspace = workspaceHasStarted ? "active" : "";
-    return () => {
-      delete document.documentElement.dataset.resumeWorkspace;
-    };
+    // Once the workspace is active, keep the SEO explainer hidden for the rest of
+    // the session. The initial state loads asynchronously, so clearing this on a
+    // transient "not started" render (or matching a before-paint marker set in the
+    // document head) would reintroduce the layout shift this avoids.
+    if (workspaceHasStarted) {
+      document.documentElement.dataset.resumeWorkspace = "active";
+    }
   }, [workspaceHasStarted]);
 
   useEffect(() => {

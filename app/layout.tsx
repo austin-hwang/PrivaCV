@@ -3,10 +3,17 @@ import { Arimo, Carlito, Gelasio, Inter, Merriweather, Tinos } from "next/font/g
 import "./globals.css";
 import { KofiWidget } from "@/components/kofi-widget";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, THEME_STORAGE_KEY } from "@/lib/site";
+import { STORAGE_KEY } from "@/lib/resume-workspace";
 
 // Applied before first paint so there's no flash: default to night mode, and
 // only fall back to light when the person has explicitly chosen it.
 const themeInitScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t==="light"){document.documentElement.classList.remove("dark");}else{document.documentElement.classList.add("dark");}}catch(e){document.documentElement.classList.add("dark");}})();`;
+
+// Returning visitors have a saved resume, so the workspace will activate and the
+// SEO explainer will be hidden. Marking the document active before first paint
+// avoids a large layout shift when that hiding would otherwise happen after
+// hydration. New visitors (no saved draft) still see the explainer as the landing.
+const workspaceInitScript = `(function(){try{var d=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(d&&d.length>2&&d!=="null"){document.documentElement.dataset.resumeWorkspace="active";}}catch(e){}})();`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -112,6 +119,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: workspaceInitScript }} />
       </head>
       <body
         className={`${inter.variable} ${merriweather.variable} ${gelasio.variable} ${tinos.variable} ${arimo.variable} ${carlito.variable}`}
