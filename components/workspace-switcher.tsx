@@ -28,7 +28,7 @@ export function WorkspaceSwitcher({
           <Link
             key={workspace.id}
             href={workspace.href}
-            prefetch={false}
+            prefetch
             aria-label={workspace.label}
             aria-current={selected ? "page" : undefined}
             className={cn(

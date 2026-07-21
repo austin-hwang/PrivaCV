@@ -210,12 +210,22 @@ test("keeps the mobile section navigation below the persistent workspace header"
 
   const navigation = page.getByRole("navigation", { name: "Jump to a resume section" });
   await expect(navigation).toHaveCSS("position", "sticky");
-  await expect(navigation).toHaveCSS("top", "118px");
-  await page.evaluate(() => window.scrollTo(0, 600));
-  await expect
-    .poll(async () => (await navigation.boundingBox())?.y ?? -1)
-    .toBeGreaterThanOrEqual(117);
-  await expect.poll(async () => (await navigation.boundingBox())?.y ?? -1).toBeLessThanOrEqual(119);
+  const header = page.locator("header.app-chrome");
+
+  for (const width of [390, 768]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await expect
+      .poll(async () => {
+        const [headerBox, navigationBox] = await Promise.all([
+          header.boundingBox(),
+          navigation.boundingBox(),
+        ]);
+        if (!headerBox || !navigationBox) return Infinity;
+        return Math.abs(navigationBox.y - (headerBox.y + headerBox.height));
+      })
+      .toBeLessThanOrEqual(1);
+  }
 });
 
 test("warns clearly and offers a JSON backup when browser autosave fails", async ({ page }) => {

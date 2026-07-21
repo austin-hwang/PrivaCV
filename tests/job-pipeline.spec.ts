@@ -41,6 +41,25 @@ test("switches between the resume and application workspaces", async ({ page }) 
   await expect(page).toHaveURL(/\/applications$/);
 });
 
+test("keeps every application view reachable on small screens", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 720 } });
+  const page = await context.newPage();
+  await page.goto("/applications");
+
+  const viewScroller = page.getByRole("region", { name: "Application view options" });
+  await expect(viewScroller).toBeVisible();
+  await expect
+    .poll(() => viewScroller.evaluate((element) => element.scrollWidth - element.clientWidth))
+    .toBeGreaterThan(0);
+
+  await page.getByRole("radio", { name: "Sankey view" }).click();
+  await expect(page.getByRole("radio", { name: "Sankey view" })).toBeChecked();
+  expect(await viewScroller.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+
+  await context.close();
+});
+
 test("keeps light-mode selections visually distinct and readable", async ({ page }) => {
   await page.goto("/applications");
   await expect(page.locator("[data-local-save-status]")).toHaveAttribute(

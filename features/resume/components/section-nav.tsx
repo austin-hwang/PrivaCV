@@ -103,7 +103,7 @@ export function SectionNav({
       ref={navRef}
       aria-label="Jump to a resume section"
       className={cn(
-        "app-chrome sticky top-[118px] z-40 -mx-4 mb-5 border-b bg-background/85 px-4 py-2 backdrop-blur-sm lg:top-0 lg:z-20 lg:-mx-6 lg:px-6",
+        "app-chrome sticky top-[106px] z-40 -mx-4 mb-5 border-b bg-background/85 px-4 py-2 backdrop-blur-sm sm:top-[104px] lg:top-0 lg:z-20 lg:-mx-6 lg:px-6",
         className,
       )}
     >

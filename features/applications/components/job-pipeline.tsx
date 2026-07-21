@@ -53,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuGroup,
@@ -387,7 +388,7 @@ export function JobPipeline() {
                     : "How applications flow across stages"}
               </p>
             )}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
               {showListControls ? (
                 <Field className="min-w-0 sm:w-72">
                   <FieldLabel className="sr-only">Search applications</FieldLabel>
@@ -404,36 +405,44 @@ export function JobPipeline() {
                   </InputGroup>
                 </Field>
               ) : null}
-              <ToggleGroup
-                aria-label="Application view"
-                variant="outline"
-                spacing={0}
-                selectionMode="single"
-                selectedKeys={[view]}
-                onSelectionChange={(keys) => {
-                  const selected = [...keys][0];
-                  if (!selected) return;
-                  const next = String(selected) as PipelineView;
-                  if (next === "sankey") setScope("all");
-                  setView(next);
-                }}
+              <ScrollArea
+                className="w-full min-w-0 sm:flex-1 lg:w-auto lg:flex-none"
+                role="region"
+                aria-label="Application view options"
+                tabIndex={0}
               >
-                <ToggleGroupItem id="board" size="sm" aria-label="Board view">
-                  <KanbanSquare data-icon="inline-start" /> Board
-                </ToggleGroupItem>
-                <ToggleGroupItem id="list" size="sm" aria-label="List view">
-                  <LayoutList data-icon="inline-start" /> List
-                </ToggleGroupItem>
-                <ToggleGroupItem id="reminders" size="sm" aria-label="Reminders view">
-                  <AlarmClock data-icon="inline-start" /> Reminders
-                </ToggleGroupItem>
-                <ToggleGroupItem id="insights" size="sm" aria-label="Insights view">
-                  <BarChart3 data-icon="inline-start" /> Insights
-                </ToggleGroupItem>
-                <ToggleGroupItem id="sankey" size="sm" aria-label="Sankey view">
-                  <GitBranch data-icon="inline-start" /> Sankey
-                </ToggleGroupItem>
-              </ToggleGroup>
+                <ToggleGroup
+                  className="min-w-max"
+                  aria-label="Application view"
+                  variant="outline"
+                  spacing={0}
+                  selectionMode="single"
+                  selectedKeys={[view]}
+                  onSelectionChange={(keys) => {
+                    const selected = [...keys][0];
+                    if (!selected) return;
+                    const next = String(selected) as PipelineView;
+                    if (next === "sankey") setScope("all");
+                    setView(next);
+                  }}
+                >
+                  <ToggleGroupItem id="board" size="sm" aria-label="Board view">
+                    <KanbanSquare data-icon="inline-start" /> Board
+                  </ToggleGroupItem>
+                  <ToggleGroupItem id="list" size="sm" aria-label="List view">
+                    <LayoutList data-icon="inline-start" /> List
+                  </ToggleGroupItem>
+                  <ToggleGroupItem id="reminders" size="sm" aria-label="Reminders view">
+                    <AlarmClock data-icon="inline-start" /> Reminders
+                  </ToggleGroupItem>
+                  <ToggleGroupItem id="insights" size="sm" aria-label="Insights view">
+                    <BarChart3 data-icon="inline-start" /> Insights
+                  </ToggleGroupItem>
+                  <ToggleGroupItem id="sankey" size="sm" aria-label="Sankey view">
+                    <GitBranch data-icon="inline-start" /> Sankey
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </ScrollArea>
             </div>
           </div>
 
