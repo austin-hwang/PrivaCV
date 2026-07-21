@@ -397,14 +397,14 @@ export function GuidedReview({
             </p>
             <p className="text-sm font-semibold leading-snug">{step.title}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
+          <Button
+            unstyled
+            onPress={onClose}
             aria-label="Close guided review"
             className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" />
-          </button>
+          </Button>
         </div>
 
         {step.description ? (
@@ -455,7 +455,7 @@ export function GuidedReview({
               variant="outline"
               size="sm"
               className="h-8 px-2"
-              disabled={index === 0}
+              isDisabled={index === 0}
               onClick={() => onIndexChange(index - 1)}
             >
               <ArrowLeft /> Back
@@ -465,7 +465,7 @@ export function GuidedReview({
                 type="button"
                 size="sm"
                 className="h-8 px-3"
-                disabled={finishDisabled}
+                isDisabled={finishDisabled}
                 onClick={onFinish}
               >
                 <Check /> {finishLabel}

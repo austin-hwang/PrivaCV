@@ -37,10 +37,16 @@ import {
 import { JobPipelineSankey } from "@/features/applications/components/job-pipeline-sankey";
 import { RemindersView } from "@/features/applications/components/reminders-view";
 import { InsightsView } from "@/features/applications/components/insights-view";
+import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui/menu";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toggleTheme } from "@/components/theme-toggle";
 import { useJobPipeline } from "@/features/applications/hooks/use-job-pipeline";
 import { useResumeSources } from "@/features/applications/hooks/use-resume-sources";
@@ -85,19 +91,10 @@ export function JobPipeline() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropStatus, setDropStatus] = useState<JobApplicationStatus | null>(null);
-  const [actionMessage, setActionMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
-  useEffect(() => {
-    if (!actionMessage) return;
-    const timeout = window.setTimeout(() => setActionMessage(null), 4_000);
-    return () => window.clearTimeout(timeout);
-  }, [actionMessage]);
 
   const selectedApplication =
     pipeline.data.applications.find((application) => application.id === selectedId) ?? null;
@@ -142,7 +139,7 @@ export function JobPipeline() {
       applicationId,
       applicationDataFromForm(form, resumeSources.byKey.get(form.resumeSourceKey)),
     );
-    setActionMessage({ type: "success", text: "Application saved" });
+    toast.success("Application saved");
   };
   const moveApplication = async (applicationId: string, status: JobApplicationStatus) => {
     const application = pipeline.data.applications.find((item) => item.id === applicationId);
@@ -157,12 +154,9 @@ export function JobPipeline() {
         status,
         ...(source ? resumeLinkFromSource(source) : {}),
       });
-      setActionMessage({
-        type: "success",
-        text: `Moved ${application.role} to ${JOB_APPLICATION_STATUS_META[status].label}`,
-      });
+      toast.success(`Moved ${application.role} to ${JOB_APPLICATION_STATUS_META[status].label}`);
     } catch {
-      setActionMessage({ type: "error", text: "The application could not be moved." });
+      toast.error("The application could not be moved.");
     }
   };
   const dropApplication = (event: DragEvent<HTMLElement>, status: JobApplicationStatus) => {
@@ -178,7 +172,7 @@ export function JobPipeline() {
       `privacv-applications-${new Date().toISOString().slice(0, 10)}.json`,
       "application/json",
     );
-    setActionMessage({ type: "success", text: "Applications backup downloaded" });
+    toast.success("Applications backup downloaded");
   };
   const exportCsv = () => {
     downloadFile(
@@ -186,7 +180,7 @@ export function JobPipeline() {
       `privacv-applications-${new Date().toISOString().slice(0, 10)}.csv`,
       "text/csv;charset=utf-8",
     );
-    setActionMessage({ type: "success", text: "Applications CSV downloaded" });
+    toast.success("Applications CSV downloaded");
   };
   const exportReminders = (items: ReminderItem[]) => {
     if (!items.length) return;
@@ -195,10 +189,9 @@ export function JobPipeline() {
       `privacv-reminders-${new Date().toISOString().slice(0, 10)}.ics`,
       "text/calendar;charset=utf-8",
     );
-    setActionMessage({
-      type: "success",
-      text: `Exported ${items.length} ${items.length === 1 ? "reminder" : "reminders"} to calendar`,
-    });
+    toast.success(
+      `Exported ${items.length} ${items.length === 1 ? "reminder" : "reminders"} to calendar`,
+    );
   };
   const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -214,15 +207,9 @@ export function JobPipeline() {
       )
         return;
       await pipeline.restoreBackup(backup);
-      setActionMessage({
-        type: "success",
-        text: `Imported ${backup.applications.length} applications`,
-      });
+      toast.success(`Imported ${backup.applications.length} applications`);
     } catch (error) {
-      setActionMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "The backup could not be imported.",
-      });
+      toast.error(error instanceof Error ? error.message : "The backup could not be imported.");
     }
   };
   const clearPipeline = async () => {
@@ -235,9 +222,9 @@ export function JobPipeline() {
     try {
       await pipeline.clearPipeline();
       setSelectedId(null);
-      setActionMessage({ type: "success", text: "All application data deleted from this device" });
+      toast.success("All application data deleted from this device");
     } catch {
-      setActionMessage({ type: "error", text: "The application data could not be deleted." });
+      toast.error("The application data could not be deleted.");
     }
   };
 
@@ -255,20 +242,18 @@ export function JobPipeline() {
                 : "saved"
         }
         actions={
-          <Menu>
-            <MenuTrigger>
-              <Button type="button" variant="outline" size="icon" aria-label="More actions">
-                <MoreHorizontal />
-              </Button>
-            </MenuTrigger>
-            <MenuContent>
-              <MenuLabel>Appearance</MenuLabel>
-              <MenuItem onSelect={() => setIsDarkTheme(toggleTheme())}>
+          <DropdownMenuTrigger>
+            <Button type="button" variant="outline" size="icon" aria-label="More actions">
+              <MoreHorizontal />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+              <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
                 {isDarkTheme ? <Sun /> : <Moon />}{" "}
                 {isDarkTheme ? "Use light mode" : "Use dark mode"}
-              </MenuItem>
-            </MenuContent>
-          </Menu>
+              </DropdownMenuItem>
+            </DropdownMenu>
+          </DropdownMenuTrigger>
         }
       />
 
@@ -296,7 +281,7 @@ export function JobPipeline() {
               type="button"
               variant="outline"
               onClick={exportCsv}
-              disabled={!pipeline.data.applications.length}
+              isDisabled={!pipeline.data.applications.length}
             >
               <Download /> CSV
             </Button>
@@ -304,7 +289,7 @@ export function JobPipeline() {
               type="button"
               variant="outline"
               onClick={exportJson}
-              disabled={!pipeline.data.applications.length}
+              isDisabled={!pipeline.data.applications.length}
             >
               <Archive /> Backup
             </Button>
@@ -348,27 +333,6 @@ export function JobPipeline() {
             </AlertDescription>
           </Alert>
         ) : null}
-        {actionMessage ? (
-          <div
-            className={cn(
-              "mt-5 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm",
-              actionMessage.type === "error"
-                ? "border-destructive/30 bg-destructive/5 text-destructive"
-                : "border-success/30 bg-success/5",
-            )}
-            role="status"
-          >
-            <span>{actionMessage.text}</span>
-            <button
-              type="button"
-              className="text-xs font-medium opacity-70 hover:opacity-100"
-              onClick={() => setActionMessage(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        ) : null}
-
         <section className="mt-7 overflow-hidden rounded-xl border bg-card shadow-xs">
           <div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center lg:justify-between">
             {showListControls ? (
@@ -565,9 +529,7 @@ export function JobPipeline() {
           ) : view === "sankey" ? (
             <JobPipelineSankey
               data={sankeyData}
-              onExport={(result) =>
-                setActionMessage({ type: result.ok ? "success" : "error", text: result.message })
-              }
+              onExport={(result) => (result.ok ? toast.success : toast.error)(result.message)}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -586,13 +548,13 @@ export function JobPipeline() {
                   {visibleApplications.map((application) => (
                     <tr key={application.id} className="transition hover:bg-muted/25">
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
+                        <Button
+                          unstyled
                           className="font-medium hover:text-primary hover:underline"
-                          onClick={() => setSelectedId(application.id)}
+                          onPress={() => setSelectedId(application.id)}
                         >
                           {application.role}
-                        </button>
+                        </Button>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{application.company}</td>
                       <td className="px-4 py-3">
@@ -633,13 +595,13 @@ export function JobPipeline() {
               account.
             </p>
             {pipeline.data.applications.length ? (
-              <button
-                type="button"
+              <Button
+                unstyled
                 className="font-medium text-destructive hover:underline"
-                onClick={clearPipeline}
+                onPress={clearPipeline}
               >
                 Delete all pipeline data
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -655,10 +617,9 @@ export function JobPipeline() {
           const application = await pipeline.createApplication(
             applicationDataFromForm(form, resumeSources.byKey.get(form.resumeSourceKey)),
           );
-          setActionMessage({
-            type: "success",
-            text: `${application.role} added to ${JOB_APPLICATION_STATUS_META[application.status].label}`,
-          });
+          toast.success(
+            `${application.role} added to ${JOB_APPLICATION_STATUS_META[application.status].label}`,
+          );
           return application;
         }}
       />

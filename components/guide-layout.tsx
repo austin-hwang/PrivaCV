@@ -98,7 +98,7 @@ export function GuideLayout({
           priority
         />
 
-        <div className="guide-content mt-10">{children}</div>
+        <div className="typeset typeset-docs mt-10">{children}</div>
 
         <div className="mt-12 rounded-lg border bg-card p-6">
           <h2 className="text-lg font-semibold">Put this into practice</h2>

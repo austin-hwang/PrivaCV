@@ -1,5 +1,14 @@
 import { ChevronRight } from "lucide-react";
-import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { ToggleButton } from "@/components/ui/toggle-button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ACCENT_PRESETS,
   BULLET_STYLE_LABELS,
@@ -39,11 +48,10 @@ function ThemeSegment<T extends string>({
       </span>
       <div className="flex flex-wrap gap-1 rounded-md border bg-muted/40 p-1">
         {options.map((option) => (
-          <button
+          <ToggleButton
             key={option.value}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
+            isSelected={value === option.value}
+            onChange={() => onChange(option.value)}
             className={cn(
               "flex-1 whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
               value === option.value
@@ -52,7 +60,7 @@ function ThemeSegment<T extends string>({
             )}
           >
             {option.label}
-          </button>
+          </ToggleButton>
         ))}
       </div>
     </div>
@@ -80,15 +88,21 @@ export function ResumeDesignControls({
             Preset
           </span>
           <Select
-            value={state.template}
-            onChange={(event) => onTemplateChange(event.target.value as ResumeTemplateId)}
+            selectedKey={state.template}
+            onSelectionChange={(key) => onTemplateChange(String(key) as ResumeTemplateId)}
             aria-label="Resume preset"
+            className="w-full"
           >
-            {RESUME_TEMPLATES.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.label}
-              </option>
-            ))}
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RESUME_TEMPLATES.map((template) => (
+                <SelectItem key={template.id} id={template.id}>
+                  {template.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </label>
         <label className="grid gap-1.5">
@@ -96,16 +110,21 @@ export function ResumeDesignControls({
             Font
           </span>
           <Select
-            value={state.theme.font}
-            onChange={(event) => onThemeChange({ font: event.target.value })}
-            style={{ fontFamily: resolveFontStack(state.theme.font) }}
+            selectedKey={state.theme.font}
+            onSelectionChange={(key) => onThemeChange({ font: String(key) })}
             aria-label="Resume font"
+            className="w-full"
           >
-            {RESUME_FONTS.map((font) => (
-              <option key={font.id} value={font.id}>
-                {font.label} · {font.kind}
-              </option>
-            ))}
+            <SelectTrigger style={{ fontFamily: resolveFontStack(state.theme.font) }}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RESUME_FONTS.map((font) => (
+                <SelectItem key={font.id} id={font.id} textValue={`${font.label} · ${font.kind}`}>
+                  {font.label} · {font.kind}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </label>
       </div>
@@ -119,13 +138,12 @@ export function ResumeDesignControls({
             const selected =
               normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
             return (
-              <button
+              <ToggleButton
                 key={accent.id}
-                type="button"
-                aria-pressed={selected}
-                aria-label={accent.label}
                 title={accent.label}
-                onClick={() => onThemeChange({ accent: accent.value })}
+                isSelected={selected}
+                aria-label={accent.label}
+                onChange={() => onThemeChange({ accent: accent.value })}
                 className={cn(
                   "size-7 rounded-full border transition-transform focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                   selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
@@ -147,10 +165,10 @@ export function ResumeDesignControls({
         </div>
       </div>
 
-      <button
-        type="button"
+      <Button
+        unstyled
         aria-expanded={advancedOpen}
-        onClick={() => onAdvancedOpenChange(!advancedOpen)}
+        onPress={() => onAdvancedOpenChange(!advancedOpen)}
         className="flex w-full items-center gap-1.5 rounded-md text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ChevronRight
@@ -158,7 +176,7 @@ export function ResumeDesignControls({
         />
         Advanced
         <span className="font-normal">header, density, headings, bullets, divider</span>
-      </button>
+      </Button>
 
       {advancedOpen ? (
         <div className="grid gap-4 rounded-md border bg-muted/20 p-3">
@@ -203,16 +221,14 @@ export function ResumeDesignControls({
             onChange={(bulletStyle) => onThemeChange({ bulletStyle })}
           />
 
-          <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
+          <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
             <span className="text-xs font-medium">Divider under header</span>
-            <input
-              type="checkbox"
-              checked={state.theme.headerDivider}
-              onChange={(event) => onThemeChange({ headerDivider: event.target.checked })}
-              className="size-4 accent-foreground"
+            <Checkbox
+              isSelected={state.theme.headerDivider}
+              onChange={(headerDivider) => onThemeChange({ headerDivider })}
               aria-label="Divider under header"
             />
-          </label>
+          </div>
         </div>
       ) : null}
     </div>

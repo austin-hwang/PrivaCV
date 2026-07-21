@@ -50,9 +50,9 @@ export function VersionChangeRow({
 
   if (onSelect) {
     return (
-      <button type="button" className={cn(className, "hover:border-indigo-500")} onClick={onSelect}>
+      <Button unstyled className={cn(className, "hover:border-indigo-500")} onPress={onSelect}>
         {content}
-      </button>
+      </Button>
     );
   }
 

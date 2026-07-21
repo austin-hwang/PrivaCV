@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { GripVertical, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { FEEDBACK_URL } from "@/lib/site";
 import { clearStoredJobPipelineData } from "@/lib/job-application-db";
 import { ResumeDesignControls } from "@/features/resume/components/design-controls";
@@ -10,6 +10,7 @@ import { ResumeWorkspaceHeader } from "@/features/resume/components/resume-works
 import { ResumePreviewPane } from "@/features/resume/components/resume-preview-pane";
 import { ResumeWorkspaceDialogs } from "@/features/resume/components/resume-workspace-dialogs";
 import { ResumeEditorPane } from "@/features/resume/components/resume-editor-pane";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import {
   useResumeWorkspaceUI,
@@ -34,7 +35,6 @@ import {
 } from "@/lib/resume";
 import { clearAllLocalAIData } from "@/lib/local-ai-engine";
 import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-workspace";
-import { cn } from "@/lib/utils";
 
 const LocalAIInlineEdit = dynamic(
   () =>
@@ -102,7 +102,6 @@ export function ResumeEditor() {
     blankWorkspaceOpen,
     designAdvancedOpen,
     editorCollapsed,
-    editorPanePercent,
     historyPreviewItem,
     isDarkTheme,
     localAIEnabled,
@@ -110,10 +109,8 @@ export function ResumeEditor() {
     mobileWorkspaceView,
     printing,
     reviewTour,
-    startWorkspaceResize,
     toolsOpen,
     workspaceHasStarted,
-    workspaceRef,
     setActiveTarget,
     setBlankTemplatePreview,
     setBlankWorkspaceOpen,
@@ -121,7 +118,6 @@ export function ResumeEditor() {
     setCollapsedGroups,
     setDesignAdvancedOpen,
     setDestructiveAction,
-    setEditorPanePercent,
     setIsDarkTheme,
     setLibraryOpen,
     setLocalAIImportOpen,
@@ -413,6 +409,21 @@ export function ResumeEditor() {
     state.name.trim() ||
     "Untitled resume";
 
+  // The editor/preview split resizes as draggable panels on desktop, but stacks
+  // into one column on phones/tablets where the panels API doesn't apply. The
+  // workspace only renders client-side (guarded by `loaded`), so reading the
+  // media query in the initial state avoids any hydration mismatch or flash.
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia("(min-width: 64rem)").matches,
+  );
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 64rem)");
+    const update = () => setIsDesktop(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
   if (!loaded) {
     // Reserve the full workspace height while loading so the SEO explainer below
     // stays off-screen and doesn't shift down when the editor mounts (avoids a
@@ -426,6 +437,47 @@ export function ResumeEditor() {
       </div>
     );
   }
+
+  // Defined once and placed into either the desktop resizable panels or the
+  // stacked mobile layout below, so both paths render the same pane instances.
+  const editorPane = (
+    <ResumeEditorPane
+      editor={editor}
+      ui={workspaceUI}
+      navItems={navItems}
+      externalDraftChanges={externalDraftChanges}
+      importSkippedCoverage={importSkippedCoverage}
+      localAIInlinePanel={localAIInlinePanel}
+      headerActions={{
+        update: updateHeaderLink,
+        add: addHeaderLink,
+        remove: removeHeaderLink,
+        move: moveHeaderLink,
+      }}
+      startBlankResume={startBlankResume}
+      startImportTour={startImportTour}
+      toggleNavigator={toggleNavigator}
+      expandGroup={expandGroup}
+      toggleLocalAIInlineEdit={toggleLocalAIInlineEdit}
+      focusEditorTarget={focusEditorTarget}
+    />
+  );
+
+  const previewPane = (
+    <ResumePreviewPane
+      editor={editor}
+      ui={workspaceUI}
+      previewState={previewState}
+      currentHistoryPoint={currentHistoryPoint}
+      autosaveCopy={autosaveCopy}
+      designControls={designControls}
+      aiImportFixEnabled={LOCAL_AI_IMPORT_FIX_ENABLED}
+      currentImportSourceText={currentImportSourceText}
+      usingCurrentDraftForAIImport={usingCurrentDraftForAIImport}
+      focusEditorTarget={focusEditorTarget}
+      updateHeaderLink={updateHeaderLink}
+    />
+  );
 
   return (
     <>
@@ -448,79 +500,27 @@ export function ResumeEditor() {
         mobileWorkspaceView={mobileWorkspaceView}
         setMobileWorkspaceView={setMobileWorkspaceView}
       />
-      <main
-        ref={workspaceRef}
-        className={cn(
-          "app-shell grid min-h-[calc(100vh-73px)] grid-cols-1",
-          editorCollapsed
-            ? "lg:grid-cols-1"
-            : "lg:grid-cols-[minmax(340px,var(--editor-pane-width))_8px_minmax(440px,1fr)]",
+      <main className="app-shell min-h-[calc(100vh-73px)] lg:h-[calc(100vh-73px)]">
+        {isDesktop ? (
+          <ResizablePanelGroup className="h-full">
+            {!editorCollapsed ? (
+              <>
+                <ResizablePanel key="editor" id="editor-pane" defaultSize="50" minSize={340}>
+                  {editorPane}
+                </ResizablePanel>
+                <ResizableHandle withHandle aria-label="Resize editor and preview" />
+              </>
+            ) : null}
+            <ResizablePanel key="preview" id="preview-pane" minSize={editorCollapsed ? 0 : 440}>
+              {previewPane}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <>
+            {editorPane}
+            {previewPane}
+          </>
         )}
-        style={{ "--editor-pane-width": `${editorPanePercent}%` } as CSSProperties}
-      >
-        <ResumeEditorPane
-          editor={editor}
-          ui={workspaceUI}
-          navItems={navItems}
-          externalDraftChanges={externalDraftChanges}
-          importSkippedCoverage={importSkippedCoverage}
-          localAIInlinePanel={localAIInlinePanel}
-          headerActions={{
-            update: updateHeaderLink,
-            add: addHeaderLink,
-            remove: removeHeaderLink,
-            move: moveHeaderLink,
-          }}
-          startBlankResume={startBlankResume}
-          startImportTour={startImportTour}
-          toggleNavigator={toggleNavigator}
-          expandGroup={expandGroup}
-          toggleLocalAIInlineEdit={toggleLocalAIInlineEdit}
-          focusEditorTarget={focusEditorTarget}
-        />
-
-        {!editorCollapsed ? (
-          <div
-            role="separator"
-            aria-label="Resize editor and preview"
-            aria-orientation="vertical"
-            aria-valuemin={34}
-            aria-valuemax={57}
-            aria-valuenow={Math.round(editorPanePercent)}
-            tabIndex={0}
-            className="group relative hidden cursor-col-resize touch-none items-center justify-center border-x bg-border/50 outline-hidden transition-colors hover:bg-primary/15 focus-visible:bg-primary/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:flex"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              startWorkspaceResize(event.clientX);
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-              event.preventDefault();
-              setEditorPanePercent((value) =>
-                Math.min(57, Math.max(34, value + (event.key === "ArrowLeft" ? -2 : 2))),
-              );
-            }}
-          >
-            <GripVertical
-              className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-              aria-hidden="true"
-            />
-          </div>
-        ) : null}
-
-        <ResumePreviewPane
-          editor={editor}
-          ui={workspaceUI}
-          previewState={previewState}
-          currentHistoryPoint={currentHistoryPoint}
-          autosaveCopy={autosaveCopy}
-          designControls={designControls}
-          aiImportFixEnabled={LOCAL_AI_IMPORT_FIX_ENABLED}
-          currentImportSourceText={currentImportSourceText}
-          usingCurrentDraftForAIImport={usingCurrentDraftForAIImport}
-          focusEditorTarget={focusEditorTarget}
-          updateHeaderLink={updateHeaderLink}
-        />
       </main>
 
       <ResumeWorkspaceDialogs

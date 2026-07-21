@@ -24,6 +24,11 @@ test("switches between the resume and application workspaces", async ({ page }) 
 });
 
 test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
+  // The detail dialog is a tall, vertically-centered RAC modal (no internal
+  // scroll). Give it a viewport tall enough that its top fields (Status) stay
+  // on-screen so the Select trigger is clickable. Width is unchanged so the
+  // responsive layout is identical to the default Desktop Chrome device.
+  await page.setViewportSize({ width: 1280, height: 1400 });
   const applicationMetrics: unknown[] = [];
   await page.route("**/api/metrics/job-applications", async (route) => {
     applicationMetrics.push(route.request().postDataJSON());
@@ -43,9 +48,16 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
 
   await page.getByRole("button", { name: "Add application" }).click();
   const createDialog = page.getByRole("dialog", { name: "Add an application" });
-  await expect(createDialog.getByLabel("Status")).toHaveCSS("appearance", "none");
-  await expect(createDialog.locator("[data-select-caret]")).toHaveCount(2);
-  await expect(createDialog.locator("[data-select-caret]").first()).toHaveCSS("right", "12px");
+  // The status control is now a React Aria Select (listbox), not a native
+  // <select>. Verify it defaults to "Saved" and that opening it surfaces the
+  // status options as a behavioral replacement for the old caret/appearance
+  // style assertions.
+  const createStatusTrigger = createDialog.getByRole("button", { name: "Status" });
+  await expect(createStatusTrigger).toContainText("Saved");
+  await createStatusTrigger.click();
+  await expect(page.getByRole("option", { name: "Applied" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(createStatusTrigger).toContainText("Saved");
   await createDialog.getByLabel("Company").fill("Northstar Labs");
   await createDialog.getByLabel("Role").fill("Senior Product Designer");
   await createDialog.getByLabel("Location").fill("Remote");
@@ -63,7 +75,8 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
 
   await page.getByRole("button", { name: /Senior Product Designer/ }).click();
   const detailDialog = page.getByRole("dialog", { name: "Senior Product Designer" });
-  await detailDialog.getByLabel("Status").selectOption("applied");
+  await detailDialog.getByRole("button", { name: "Status" }).click();
+  await page.getByRole("option", { name: "Applied" }).click();
   await detailDialog.getByLabel("Next action").fill("Follow up with the recruiter");
   await detailDialog.getByLabel("Due date").fill("2026-07-25");
   await detailDialog.getByRole("button", { name: "Save changes" }).click();
@@ -106,10 +119,10 @@ test("captures an immutable checkpoint when an application is submitted", async 
   const createDialog = page.getByRole("dialog", { name: "Add an application" });
   await createDialog.getByLabel("Company").fill("Northstar Labs");
   await createDialog.getByLabel("Role").fill("Product Lead");
-  await createDialog.getByLabel("Status").selectOption("applied");
-  await createDialog
-    .getByLabel("Resume for this application")
-    .selectOption({ label: "John Doe — Product baseline" });
+  await createDialog.getByRole("button", { name: "Status" }).click();
+  await page.getByRole("option", { name: "Applied" }).click();
+  await createDialog.getByRole("button", { name: "Resume for this application" }).click();
+  await page.getByRole("option", { name: "John Doe — Product baseline" }).click();
   await createDialog.getByRole("button", { name: "Add application" }).click();
 
   await page.getByRole("button", { name: /Product Lead/ }).click();
@@ -144,6 +157,9 @@ test("captures an immutable checkpoint when an application is submitted", async 
 });
 
 test("logs a timeline activity that persists across reloads", async ({ page }) => {
+  // Tall detail modal (no internal scroll): keep the Activity type Select on
+  // screen. Width is unchanged from the default Desktop Chrome viewport.
+  await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/applications");
   await page.getByRole("button", { name: "Add application" }).click();
   const createDialog = page.getByRole("dialog", { name: "Add an application" });
@@ -153,7 +169,8 @@ test("logs a timeline activity that persists across reloads", async ({ page }) =
 
   await page.getByRole("button", { name: /Senior Product Designer/ }).click();
   const detail = page.getByRole("dialog", { name: "Senior Product Designer" });
-  await detail.getByLabel("Activity type").selectOption("interview");
+  await detail.getByRole("button", { name: "Activity type" }).click();
+  await page.getByRole("option", { name: "Interview" }).click();
   await detail.getByLabel("Activity title").fill("Phone screen with recruiter");
   await detail.getByRole("button", { name: "Log", exact: true }).click();
   await expect(detail.getByText("Phone screen with recruiter")).toBeVisible();
@@ -359,7 +376,8 @@ test("renders the job search as a Sankey diagram and downloads a PNG", async ({ 
   const createDialog = page.getByRole("dialog", { name: "Add an application" });
   await createDialog.getByLabel("Company").fill("Orbit Systems");
   await createDialog.getByLabel("Role").fill("Staff Engineer");
-  await createDialog.getByLabel("Status").selectOption("applied");
+  await createDialog.getByRole("button", { name: "Status" }).click();
+  await page.getByRole("option", { name: "Applied" }).click();
   await createDialog.getByRole("button", { name: "Add application" }).click();
 
   await page.getByRole("button", { name: "Sankey view" }).click();

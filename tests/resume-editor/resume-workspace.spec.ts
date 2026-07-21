@@ -6,6 +6,7 @@ import { sampleState } from "@/lib/resume";
 import {
   MAX_PDF_BYTES,
   advanceReviewTo,
+  chooseSelectOption,
   closeVersions,
   expandAllEntries,
   expandAllTagGroups,
@@ -92,7 +93,7 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await openDesign(page);
 
   // A preset is a professional starting point that sets every theme axis.
-  await page.getByLabel("Resume preset").selectOption("modern");
+  await chooseSelectOption(page, "Resume preset", "Modern");
   await expect(sheet).toHaveAttribute("data-heading", "bar");
   await expect(sheet).toHaveAttribute("data-divider", "on");
   await expect(sheet).toHaveAttribute("data-header-align", "center");
@@ -103,7 +104,7 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   // Individual controls layer on top of the preset.
   await page.getByRole("button", { name: "Burgundy" }).click();
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
-  await page.getByLabel("Resume font").selectOption("georgia");
+  await chooseSelectOption(page, "Resume font", /^Gelasio/);
   await expect(sheet).toHaveCSS("font-family", /Gelasio/);
 
   // Header, headings, and density sit under the panel's Advanced disclosure.
@@ -152,8 +153,9 @@ test("self-hosts every selectable resume font without device fallbacks", async (
   ] as const;
   const resolvedFamilies: string[] = [];
 
-  for (const [fontId, familyName] of expectedFonts) {
-    await page.getByLabel("Resume font").selectOption(fontId);
+  for (const [, familyName] of expectedFonts) {
+    // Each font's visible option label is its self-hosted family name.
+    await chooseSelectOption(page, "Resume font", new RegExp(`^${familyName}`));
     await expect(sheet).toHaveCSS("font-family", new RegExp(familyName));
     const font = await sheet.evaluate(async (element) => {
       const family = getComputedStyle(element).fontFamily.split(",")[0];

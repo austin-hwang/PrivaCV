@@ -12,12 +12,16 @@ import {
 } from "@/lib/docx-import";
 import {
   applicationCopyGroups,
+  blankEntry,
   buildResumeChecks,
   contactHref,
   contactFieldIssues,
   CUSTOM_SECTION_PRESETS,
   emptyState,
   entryFieldSchema,
+  entryMetaLine,
+  formatEntryDates,
+  personNameParts,
   exportChangeSummary,
   getSectionEntries,
   includedBulletsFrom,
@@ -236,6 +240,7 @@ describe("resume helpers", () => {
         title: "Certifications",
         entries: [
           {
+            ...blankEntry(),
             title: "AWS Certified Developer",
             subtitle: "Amazon",
             meta: "",
@@ -994,9 +999,11 @@ describe("resume helpers", () => {
     expect(state.experience[0]).toMatchObject({
       title: "Staff Engineer",
       subtitle: "Analytical Engines",
-      meta: "2022–Present",
+      startDate: "2022",
+      current: true,
       details: "Built reliable systems.",
     });
+    expect(formatEntryDates(state.experience[0])).toBe("2022 - Present");
   });
 
   it("keeps adjacent dated roles separate when exported resumes put dates on their own line", () => {
@@ -1021,13 +1028,15 @@ describe("resume helpers", () => {
       expect.objectContaining({
         title: "Staff Engineer",
         subtitle: "Analytical Engines",
-        meta: "Jan 2022 – Present",
+        startDate: "2022-01",
+        current: true,
         details: "Built reliable systems.",
       }),
       expect.objectContaining({
         title: "Software Engineer",
         subtitle: "Example Company",
-        meta: "Jun 2018 – Dec 2021",
+        startDate: "2018-06",
+        endDate: "2021-12",
         details: "Improved deployment tooling.",
       }),
     ]);
@@ -1070,7 +1079,8 @@ describe("resume helpers", () => {
       expect.objectContaining({
         title: "Senior Product Engineer",
         subtitle: "Northstar Labs",
-        meta: "Feb 2022 – Present",
+        startDate: "2022-02",
+        current: true,
         details: "Led dependable platform work.",
       }),
     ]);
@@ -1095,13 +1105,15 @@ describe("resume helpers", () => {
       expect.objectContaining({
         title: "Senior Product Engineer",
         subtitle: "Northstar Labs",
-        meta: "Feb 2022 – Present",
+        startDate: "2022-02",
+        current: true,
         details: "Led dependable platform work.",
       }),
       expect.objectContaining({
         title: "Software Engineer",
         subtitle: "Example Co.",
-        meta: "Jun 2018 – Jan 2022",
+        startDate: "2018-06",
+        endDate: "2022-01",
         details: "Improved deployment tooling.",
       }),
     ]);
@@ -1127,12 +1139,14 @@ describe("resume helpers", () => {
       expect.objectContaining({
         title: "Software Developer",
         subtitle: "Desi Diaries Pvt. Ltd. | Jaipur",
-        meta: "May 2023 – Present",
+        startDate: "2023-05",
+        current: true,
       }),
       expect.objectContaining({
         title: "Flutter Developer Intern",
         subtitle: "Desi Diaries Pvt. Ltd. | Jaipur",
-        meta: "Dec 2022 – May 2023",
+        startDate: "2022-12",
+        endDate: "2023-05",
       }),
     ]);
   });
@@ -1249,13 +1263,15 @@ describe("resume helpers", () => {
       expect.objectContaining({
         title: "Web Developer",
         subtitle: "Car Media Group Irvine, California",
-        meta: "November 2023 ‑ Present",
+        startDate: "2023-11",
+        current: true,
         details: expect.stringContaining("Figma mockups in an Agile work environment"),
       }),
       expect.objectContaining({
         title: "Software Engineer Contractor",
         subtitle: "Alpine IT",
-        meta: "June 2023 ‑ August 2023",
+        startDate: "2023-06",
+        endDate: "2023-08",
       }),
     ]);
   });
@@ -1394,12 +1410,14 @@ describe("resume helpers", () => {
       expect.objectContaining({
         title: "Master of Science in Computer Science",
         subtitle: "University of Example",
-        meta: "2016 – 2018",
+        startDate: "2016",
+        endDate: "2018",
       }),
       expect.objectContaining({
         title: "Bachelor of Science in Mathematics",
         subtitle: "Example College",
-        meta: "2012 – 2016",
+        startDate: "2012",
+        endDate: "2016",
       }),
     ]);
   });
@@ -1484,12 +1502,14 @@ describe("resume helpers", () => {
   it("includes every imported standard and custom entry in the review", () => {
     const state = sampleState();
     state.experience.push({
+      ...blankEntry(),
       title: "Software Engineer",
       subtitle: "Example Co.",
       meta: "2018 - 2021",
       details: "Built customer-facing tools.",
     });
     state.education.push({
+      ...blankEntry(),
       title: "B.S. Computer Science",
       subtitle: "Example University",
       meta: "2014 - 2018",
@@ -1501,6 +1521,7 @@ describe("resume helpers", () => {
         title: "Certifications",
         entries: [
           {
+            ...blankEntry(),
             title: "Certified Kubernetes Administrator",
             subtitle: "Cloud Native Computing Foundation",
             meta: "2026",
@@ -1554,6 +1575,7 @@ describe("resume helpers", () => {
     state.email = "ada@example.com";
     state.experience = [
       {
+        ...blankEntry(),
         title: "Engineer",
         subtitle: "Example Co.",
         meta: "2022 - Present",
@@ -1597,6 +1619,7 @@ describe("resume helpers", () => {
     state.name = "Ada Lovelace";
     state.experience = [
       {
+        ...blankEntry(),
         title: "Engineer",
         subtitle: "Example Co.",
         meta: "2022 - Present",
@@ -1779,6 +1802,7 @@ describe("resume helpers", () => {
     state.experience = [
       { ...state.experience[0], details: "Shipped a reliable service." },
       {
+        ...blankEntry(),
         title: "Engineer",
         subtitle: "Analytical Engines",
         meta: "2020–2022",
@@ -2175,5 +2199,66 @@ describe("resume helpers", () => {
     expect(versionContentBadges(sampleState())).toEqual(
       expect.arrayContaining(["3 roles", "2 education", "2 projects", "4 skill lines"]),
     );
+  });
+});
+
+describe("structured dates and name parts", () => {
+  const entryFrom = (meta: string) =>
+    normalizeResume({ ...emptyState(), experience: [{ ...blankEntry(), title: "Role", meta }] })
+      .experience[0];
+
+  it("backfills a month/year range with 'Present' and clears the date from meta", () => {
+    const entry = entryFrom("Mar 2022 - Present");
+    expect(entry.startDate).toBe("2022-03");
+    expect(entry.current).toBe(true);
+    expect(entry.endDate).toBe("");
+    expect(entry.meta).toBe("");
+    // The rendered date line is unchanged from the legacy free-text value.
+    expect(formatEntryDates(entry)).toBe("Mar 2022 - Present");
+  });
+
+  it("backfills a year-only range", () => {
+    const entry = entryFrom("2015 - 2019");
+    expect(entry.startDate).toBe("2015");
+    expect(entry.endDate).toBe("2019");
+    expect(formatEntryDates(entry)).toBe("2015 - 2019");
+  });
+
+  it("lifts a date out of a line that also holds a location, keeping the remainder", () => {
+    const entry = entryFrom("San Francisco, CA | Jan 2020 - Dec 2021");
+    expect(entry.startDate).toBe("2020-01");
+    expect(entry.endDate).toBe("2021-12");
+    expect(entry.meta).toBe("San Francisco, CA");
+    expect(entryMetaLine(entry)).toBe("Jan 2020 - Dec 2021 · San Francisco, CA");
+  });
+
+  it("leaves non-date meta (e.g. a DOI) untouched", () => {
+    const entry = entryFrom("doi:10.1000/xyz123");
+    expect(entry.startDate).toBe("");
+    expect(entry.endDate).toBe("");
+    expect(entry.current).toBe(false);
+    expect(entry.meta).toBe("doi:10.1000/xyz123");
+    expect(entryMetaLine(entry)).toBe("doi:10.1000/xyz123");
+  });
+
+  it("does not lift a bare year embedded in surrounding prose", () => {
+    const entry = entryFrom("Top 2020 recipient");
+    expect(entry.startDate).toBe("");
+    expect(entry.meta).toBe("Top 2020 recipient");
+  });
+
+  it("splits a full name best-effort and lets explicit parts override", () => {
+    const derived = personNameParts({ ...emptyState(), name: "Ada King Lovelace" });
+    expect(derived).toEqual({ first: "Ada", middle: "King", last: "Lovelace" });
+
+    const mononym = personNameParts({ ...emptyState(), name: "Prince" });
+    expect(mononym).toEqual({ first: "Prince", middle: "", last: "" });
+
+    const overridden = personNameParts({
+      ...emptyState(),
+      name: "Ada Lovelace",
+      lastName: "Byron",
+    });
+    expect(overridden.last).toBe("Byron");
   });
 });

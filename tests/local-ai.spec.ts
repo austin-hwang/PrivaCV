@@ -40,16 +40,17 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
     .click();
 
   const dialog = page.getByRole("dialog");
-  const modelSelect = dialog.getByRole("combobox", { name: /model/i });
   await expect(dialog).toBeVisible();
+  // The model picker is now a React Aria Select. Its trigger button reflects the
+  // selected value as its accessible name (aria-labelledby wins over the "Model"
+  // aria-label), so target it by its stable data-slot rather than by name.
+  const modelSelect = dialog.locator('[data-slot="select-trigger"]');
   await expect(modelSelect).toBeEnabled();
   await expect(modelSelect).toBeFocused();
-  await expect(modelSelect).toHaveCSS("appearance", "none");
-  const modelCaret = dialog.locator("[data-select-caret]");
-  await expect(modelCaret).toBeVisible();
-  await expect(modelCaret).toHaveCSS("right", "12px");
-  await expect(dialog).toHaveCSS("z-index", "80");
-  await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
+  // Layering behaviour: the modal renders on top of its backdrop overlay. This
+  // replaces the old fixed z-index (80/70) assertions, which no longer apply to
+  // the RAC dialog primitives.
+  await expect(page.locator('[data-slot="dialog-overlay"]')).toBeVisible();
   await expect(dialog).toContainText("Downloads an open-source model from Hugging Face");
   await expect(dialog).toContainText("Performance may be slower on some devices");
   await expect(dialog).toContainText("suggestions may be inaccurate");
@@ -57,14 +58,26 @@ test("local AI setup stays explicit and gives a concise quality disclaimer", asy
   await expect(dialog.getByText("Not downloaded", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Download and load model" })).toBeEnabled();
   await expect(dialog.getByRole("link", { name: /about webllm/i })).toHaveCount(0);
-  await expect(modelSelect).toHaveValue("Llama-3.2-3B-Instruct-q4f16_1-MLC");
+  // The default selection (Llama 3.2 3B) is reflected on the trigger and in the
+  // description beneath it.
+  await expect(modelSelect).toContainText("Llama 3.2 3B");
   await expect(dialog.getByText(/Llama 3\.2 3B:/)).toBeVisible();
   await expect(dialog).toContainText("Recommended for stronger rewrites");
-  await expect(dialog.getByRole("option", { name: /Phi-4 Mini.*3\.4 GB/i })).toHaveCount(1);
-  await expect(dialog.getByRole("option", { name: /DeepSeek R1 Llama 8B.*5\.0 GB/i })).toHaveCount(
-    1,
+  // Open the listbox to inspect the offered models. Options render in a popover
+  // portalled to the body, so query them from the page, not the dialog subtree.
+  await modelSelect.click();
+  const modelListbox = page.getByRole("listbox");
+  await expect(modelListbox.getByRole("option", { name: /Phi-4 Mini.*3\.4 GB/i })).toHaveCount(1);
+  await expect(
+    modelListbox.getByRole("option", { name: /DeepSeek R1 Llama 8B.*5\.0 GB/i }),
+  ).toHaveCount(1);
+  await expect(modelListbox.getByRole("option", { name: /SmolLM2|Qwen 3 0\.6B/i })).toHaveCount(0);
+  // The recommended Llama 3.2 3B option is the current selection.
+  await expect(modelListbox.getByRole("option", { name: /Llama 3\.2 3B/i })).toHaveAttribute(
+    "aria-selected",
+    "true",
   );
-  await expect(dialog.getByRole("option", { name: /SmolLM2|Qwen 3 0\.6B/i })).toHaveCount(0);
+  await page.keyboard.press("Escape");
 
   await page.waitForTimeout(250);
   expect(modelRequests).toEqual([]);

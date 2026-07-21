@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Check, Loader2, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   friendlyLocalAIError,
   generateLocalAIText,
@@ -134,7 +135,7 @@ export function LocalAIInlineEdit({
               variant="outline"
               size="sm"
               className="h-7 px-2 text-[11px]"
-              disabled={generating || !ready}
+              isDisabled={generating || !ready}
               onClick={() => setInstruction(preset.instruction)}
             >
               {preset.label}
@@ -166,7 +167,7 @@ export function LocalAIInlineEdit({
               type="button"
               size="sm"
               onClick={() => void generate()}
-              disabled={!ready || !instruction.trim()}
+              isDisabled={!ready || !instruction.trim()}
             >
               <Sparkles /> Edit
             </Button>
@@ -186,7 +187,7 @@ export function LocalAIInlineEdit({
           ) : null}
           {output || generating ? (
             <div className="space-y-2" aria-live="polite">
-              <div className="max-h-44 overflow-y-auto rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc">
+              <ScrollArea className="max-h-44 rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc">
                 {output ? (
                   <div dangerouslySetInnerHTML={{ __html: sanitizeRichContent(output) }} />
                 ) : (
@@ -195,7 +196,7 @@ export function LocalAIInlineEdit({
                     {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}
                   </span>
                 )}
-              </div>
+              </ScrollArea>
               {!generating && output.trim() ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button

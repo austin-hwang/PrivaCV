@@ -49,9 +49,9 @@ function reminderTime(item: ReminderItem) {
 
 function ReminderRow({ item, onOpen }: { item: ReminderItem; onOpen: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <Button
+      unstyled
+      onPress={onOpen}
       className="flex w-full items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-left transition hover:border-primary/35 hover:shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="min-w-0">
@@ -73,7 +73,7 @@ function ReminderRow({ item, onOpen }: { item: ReminderItem; onOpen: () => void 
           <Clock className="size-3" /> {reminderTime(item)}
         </span>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -107,7 +107,7 @@ export function RemindersView({
           type="button"
           variant="outline"
           size="sm"
-          disabled={!all.length}
+          isDisabled={!all.length}
           onClick={() => onExport(all)}
         >
           <CalendarPlus /> Export .ics

@@ -720,7 +720,9 @@ function chunkToEntry(chunk: string[]) {
     ? joinDetailLines([bulletInlineDetail, ...detailLines])
     : joinDetailLines(detailLines);
 
-  return { title, subtitle, meta, details };
+  // Dates stay in `meta` here; normalizeResume lifts them into the structured
+  // fields via its shared backfill, so imports and manual edits converge.
+  return { ...blankEntry(), title, subtitle, meta, details };
 }
 
 function parseEntries(blockLines: string[], inheritOrganization = false) {

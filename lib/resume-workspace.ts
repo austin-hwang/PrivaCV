@@ -1,5 +1,7 @@
 import {
   SECTION_LABELS,
+  entryHasDates,
+  entryMetaLine,
   normalizeResume,
   resumeHeaderLinks,
   resumeExportFingerprint,
@@ -524,7 +526,9 @@ export function versionHeadline(state: ResumeState) {
 }
 
 export function entryHasContent(entry: ResumeEntry) {
-  return Boolean(entry.title || entry.subtitle || entry.meta || entry.details);
+  return Boolean(
+    entry.title || entry.subtitle || entry.meta || entry.details || entryHasDates(entry),
+  );
 }
 
 export function versionContentBadges(state: ResumeState) {
@@ -548,9 +552,11 @@ export function entryTargetId(section: string, entry: ResumeEntry, index: number
     ? "title"
     : entry.subtitle
       ? "subtitle"
-      : entry.meta
-        ? "meta"
-        : "details";
+      : entryHasDates(entry)
+        ? "start-year"
+        : entry.meta
+          ? "meta"
+          : "details";
   return `field-${section}-${index}-${field}`;
 }
 
@@ -776,7 +782,7 @@ export function buildImportReview(
           label: `${SECTION_LABELS[section]} entry ${index + 1}`,
           targetId: entryTargetId(section, entry, index),
           detail: compactDetail(
-            [entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]]
+            [entry.title, entry.subtitle, entryMetaLine(entry), entry.details.split("\n")[0]]
               .filter(Boolean)
               .join(" | "),
           ),
@@ -805,7 +811,7 @@ export function buildImportReview(
           label: `${custom.title || "Custom section"} entry ${index + 1}`,
           targetId: entryTargetId(custom.id, entry, index),
           detail: compactDetail(
-            [entry.title, entry.subtitle, entry.meta, entry.details.split("\n")[0]]
+            [entry.title, entry.subtitle, entryMetaLine(entry), entry.details.split("\n")[0]]
               .filter(Boolean)
               .join(" | "),
           ),

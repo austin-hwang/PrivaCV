@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResumePreview } from "@/features/resume/components/resume-preview";
 import { VersionHistoryCard } from "@/features/resume/components/version-history-card";
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
@@ -143,129 +145,143 @@ export function ResumePreviewPane({
                 <Palette /> <span className="preview-toolbar-label">Design</span>
               </Button>
             ) : null}
-            <label className="preview-toolbar-optional h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground">
-              <span className="sr-only">Text size</span>
-              <input
+            <div className="preview-toolbar-optional h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground">
+              <Slider
                 id="resume-text-scale"
-                className="w-20 accent-foreground 2xl:w-24"
-                type="range"
-                min={MIN_TEXT_SCALE}
-                max={MAX_TEXT_SCALE}
-                step="0.02"
-                value={state.textScale}
-                onChange={(event) =>
-                  updateField("textScale", clampTextScale(Number(event.target.value)))
-                }
                 aria-label="Resume text size"
+                className="w-20 2xl:w-24"
+                minValue={MIN_TEXT_SCALE}
+                maxValue={MAX_TEXT_SCALE}
+                step={0.02}
+                value={state.textScale}
+                onChange={(value) =>
+                  updateField(
+                    "textScale",
+                    clampTextScale(Number(Array.isArray(value) ? value[0] : value)),
+                  )
+                }
               />
               <output className="w-9 text-right tabular-nums">
                 {Math.round(state.textScale * 100)}%
               </output>
-            </label>
+            </div>
             <p className="shrink-0 text-xs text-muted-foreground">
               {pageCount} {pageCount === 1 ? "page" : "pages"}
               <span className="preview-toolbar-label"> in preview</span>
             </p>
             {pageCount > 1 && canTightenLayout ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 shrink-0 gap-1.5 px-2 text-xs"
-                onClick={tightenLayout}
-                aria-label={
-                  state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"
-                }
-                title="Uses compact spacing first, then reduces text size by 2%. Your resume content stays unchanged."
-              >
-                <ChevronsDownUp />
-                <span className="preview-toolbar-label">
-                  {state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}
-                </span>
-              </Button>
+              <TooltipTrigger>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+                  onClick={tightenLayout}
+                  aria-label={
+                    state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"
+                  }
+                >
+                  <ChevronsDownUp />
+                  <span className="preview-toolbar-label">
+                    {state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}
+                  </span>
+                </Button>
+                <Tooltip>
+                  Uses compact spacing first, then reduces text size by 2%. Your resume content
+                  stays unchanged.
+                </Tooltip>
+              </TooltipTrigger>
             ) : null}
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {aiImportFixEnabled && importReview ? (
+                <TooltipTrigger>
+                  <Button
+                    type="button"
+                    variant={localAIImportOpen ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-8 gap-1.5 px-2"
+                    aria-label="Fix import with AI"
+                    isDisabled={!currentImportSourceText}
+                    onClick={() => setLocalAIImportOpen(true)}
+                  >
+                    <Sparkles /> <span className="preview-toolbar-label">Fix import with AI</span>
+                  </Button>
+                  <Tooltip>
+                    {importReview.sourceText
+                      ? "Remap the original extracted text with local AI"
+                      : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"}
+                  </Tooltip>
+                </TooltipTrigger>
+              ) : null}
+              <TooltipTrigger>
                 <Button
                   type="button"
-                  variant={localAIImportOpen ? "secondary" : "outline"}
+                  variant={inlineEdit ? "default" : "outline"}
                   size="sm"
-                  className="h-8 gap-1.5 px-2"
-                  aria-label="Fix import with AI"
-                  disabled={!currentImportSourceText}
-                  onClick={() => setLocalAIImportOpen(true)}
-                  title={
-                    importReview.sourceText
-                      ? "Remap the original extracted text with local AI"
-                      : "Reorganize the current parsed draft with local AI; re-import first to recover omitted source text"
+                  className="hidden h-8 gap-1.5 px-2 lg:inline-flex"
+                  aria-pressed={inlineEdit}
+                  aria-label={
+                    inlineEdit
+                      ? "Editing mode — switch to view only"
+                      : "View only mode — switch to editing"
                   }
+                  onClick={() => setInlineEdit((value) => !value)}
                 >
-                  <Sparkles /> <span className="preview-toolbar-label">Fix import with AI</span>
+                  {inlineEdit ? (
+                    <>
+                      <Pencil />
+                      <span className="preview-toolbar-label">Editing</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye />
+                      <span className="preview-toolbar-label">View only</span>
+                    </>
+                  )}
                 </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant={inlineEdit ? "default" : "outline"}
-                size="sm"
-                className="hidden h-8 gap-1.5 px-2 lg:inline-flex"
-                aria-pressed={inlineEdit}
-                aria-label={
-                  inlineEdit
-                    ? "Editing mode — switch to view only"
-                    : "View only mode — switch to editing"
-                }
-                onClick={() => setInlineEdit((value) => !value)}
-                title={
-                  inlineEdit
+                <Tooltip>
+                  {inlineEdit
                     ? "Editing is on — switch to view only"
-                    : "View only — switch to editing"
-                }
-              >
-                {inlineEdit ? (
-                  <>
-                    <Pencil />
-                    <span className="preview-toolbar-label">Editing</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye />
-                    <span className="preview-toolbar-label">View only</span>
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant={historyOpen ? "secondary" : "outline"}
-                size="icon"
-                className="hidden size-8 lg:inline-flex"
-                aria-label="Edit history"
-                aria-expanded={historyOpen}
-                aria-controls="edit-history-panel"
-                title={
-                  historyOpen
+                    : "View only — switch to editing"}
+                </Tooltip>
+              </TooltipTrigger>
+              <TooltipTrigger>
+                <Button
+                  type="button"
+                  variant={historyOpen ? "secondary" : "outline"}
+                  size="icon"
+                  className="hidden size-8 lg:inline-flex"
+                  aria-label="Edit history"
+                  aria-expanded={historyOpen}
+                  aria-controls="edit-history-panel"
+                  onClick={() => setHistoryOpen((open) => !open)}
+                >
+                  <History />
+                </Button>
+                <Tooltip>
+                  {historyOpen
                     ? "Close this resume's checkpoint timeline"
-                    : "Open this resume's checkpoint timeline"
-                }
-                onClick={() => setHistoryOpen((open) => !open)}
-              >
-                <History />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="hidden size-8 lg:inline-flex"
-                aria-pressed={editorCollapsed}
-                aria-label={editorCollapsed ? "Show editor" : "Hide editor"}
-                title={
-                  editorCollapsed
+                    : "Open this resume's checkpoint timeline"}
+                </Tooltip>
+              </TooltipTrigger>
+              <TooltipTrigger>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="hidden size-8 lg:inline-flex"
+                  aria-pressed={editorCollapsed}
+                  aria-label={editorCollapsed ? "Show editor" : "Hide editor"}
+                  onClick={() => setEditorCollapsed((value) => !value)}
+                >
+                  {editorCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+                </Button>
+                <Tooltip>
+                  {editorCollapsed
                     ? "Show the editor panel"
-                    : "Hide the editor panel for a focused canvas"
-                }
-                onClick={() => setEditorCollapsed((value) => !value)}
-              >
-                {editorCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-              </Button>
+                    : "Hide the editor panel for a focused canvas"}
+                </Tooltip>
+              </TooltipTrigger>
               <Button
                 type="button"
                 variant="outline"

@@ -379,7 +379,7 @@ test("offers reversible page-fit adjustments without changing resume content", a
   await page.getByRole("button", { name: "Try compact spacing" }).click();
   await expect(page.locator(".resume-sheet")).toHaveAttribute("data-density", "compact");
   await expect(
-    page.locator('[role="status"]').filter({ hasText: "Applied compact spacing" }),
+    page.locator("[data-sonner-toast]").filter({ hasText: "Applied compact spacing" }),
   ).toBeVisible();
   await expect(roleDetails).toContainText("Led initiative 1");
 
@@ -391,7 +391,7 @@ test("offers reversible page-fit adjustments without changing resume content", a
   await page.getByRole("button", { name: "Reduce text 2%" }).click();
   await expect(page.getByText("98%", { exact: true })).toBeVisible();
   await expect(
-    page.locator('[role="status"]').filter({ hasText: "Reduced text size to 98%" }),
+    page.locator("[data-sonner-toast]").filter({ hasText: "Reduced text size to 98%" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.getByText("100%", { exact: true })).toBeVisible();
@@ -481,10 +481,11 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   const iconButton = newLink.getByLabel(/GitHub icon/i);
   await expect(iconButton.locator(".lucide-github")).toBeVisible();
   await iconButton.click();
-  const iconMenu = page.getByRole("menu", { name: /GitHub icon options/i });
-  await expect(iconMenu.getByRole("menuitem")).toHaveCount(14);
-  await expect(iconMenu.getByRole("menuitem", { name: "Automatic" })).toHaveCount(0);
-  await iconMenu.getByRole("menuitem", { name: "Portfolio / work" }).click();
+  const iconMenu = page.locator('[data-slot="popover-content"]');
+  const iconOptions = iconMenu.getByRole("button").filter({ has: page.locator("svg") });
+  await expect(iconOptions).toHaveCount(14);
+  await expect(iconMenu.getByRole("button", { name: "Automatic" })).toHaveCount(0);
+  await iconMenu.getByRole("button", { name: "Portfolio / work" }).click();
   await expect(github.locator(".lucide-briefcase-business")).toBeVisible();
   await newLink.getByRole("button", { name: /move github up/i }).click();
   await expect(page.locator("[data-header-link]").first().locator('input[type="url"]')).toHaveValue(

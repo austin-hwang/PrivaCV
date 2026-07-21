@@ -1,5 +1,6 @@
 import {
   entryFieldSchema,
+  entryMetaLine,
   getSectionEntries,
   getSectionFormat,
   getSectionTagGroups,
@@ -91,7 +92,7 @@ export function buildNavigatorItems(
     getSectionEntries(state, section).forEach((entry, index) => {
       const entryLabel = entry.title.trim() || entry.subtitle.trim() || `Entry ${index + 1}`;
       const context = `${sectionTitle} · ${entryLabel}`;
-      const keywords = `${entry.title} ${entry.subtitle} ${entry.meta} ${stripRichMarks(entry.details)}`;
+      const keywords = `${entry.title} ${entry.subtitle} ${entryMetaLine(entry)} ${stripRichMarks(entry.details)}`;
       (Object.keys(schema) as (keyof typeof schema)[]).forEach((field) => {
         items.push({
           id: `field-${section}-${index}-${field}`,

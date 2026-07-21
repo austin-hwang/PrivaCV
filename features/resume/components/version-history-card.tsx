@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Download, History, Save, Search, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import {
   formatCheckpointTime,
@@ -162,34 +165,38 @@ export function VersionHistoryCard({
             size="sm"
             className="min-w-0"
             onClick={onSave}
-            disabled={!hasContent}
+            isDisabled={!hasContent}
             aria-label="Save current version checkpoint"
           >
             <Save /> <span className="truncate">Checkpoint</span>
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-9"
-            aria-label="Open checkpoint backup"
-            title="Open checkpoint backup"
-            onClick={onOpenBackup}
-          >
-            <Upload />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-9"
-            aria-label="Back up checkpoints"
-            title="Back up checkpoints"
-            onClick={onSaveBackup}
-            disabled={!versions.length}
-          >
-            <Download />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-9"
+              aria-label="Open checkpoint backup"
+              onClick={onOpenBackup}
+            >
+              <Upload />
+            </Button>
+            <Tooltip>Open checkpoint backup</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-9"
+              aria-label="Back up checkpoints"
+              onClick={onSaveBackup}
+              isDisabled={!versions.length}
+            >
+              <Download />
+            </Button>
+            <Tooltip>Back up checkpoints</Tooltip>
+          </TooltipTrigger>
         </div>
         <Button
           type="button"
@@ -197,7 +204,7 @@ export function VersionHistoryCard({
           size="sm"
           className="mt-1.5 w-full text-destructive hover:text-destructive"
           onClick={onClear}
-          disabled={!versions.length}
+          isDisabled={!versions.length}
         >
           <Trash2 /> Clear checkpoints
         </Button>
@@ -211,7 +218,7 @@ export function VersionHistoryCard({
               size="sm"
               className="mt-2 w-full border-warning/50 bg-background"
               onClick={onSaveBackup}
-              disabled={!versions.length}
+              isDisabled={!versions.length}
             >
               <Download /> Back up now
             </Button>
@@ -257,31 +264,29 @@ export function VersionHistoryCard({
                 <span className="text-[9px] font-medium text-muted-foreground" aria-hidden="true">
                   Now
                 </span>
-                <input
-                  type="range"
-                  min={0}
+                <Slider
+                  orientation="vertical"
+                  aria-label="Move through edit history"
+                  minValue={0}
                   // A min===max range renders its thumb ambiguously (not
                   // pinned to either end) in some browsers, so keep the
                   // track non-degenerate even with nothing to scrub through.
-                  max={Math.max(1, allVersions.length - 1)}
+                  maxValue={Math.max(1, allVersions.length - 1)}
                   value={Math.max(0, allVersions.length - 1 - clampedIndex)}
-                  disabled={allVersions.length < 2}
-                  aria-label="Move through edit history"
-                  aria-valuetext={
+                  isDisabled={allVersions.length < 2}
+                  thumbValueText={
                     selectedVersion
                       ? `${selectedVersion.label}, ${formatCheckpointTime(selectedVersion.savedAt)}`
                       : undefined
                   }
-                  onChange={(event) => {
-                    const nextIndex = Math.max(
-                      0,
-                      allVersions.length - 1 - Number(event.target.value),
-                    );
+                  onChange={(value) => {
+                    const raw = Array.isArray(value) ? value[0] : value;
+                    const nextIndex = Math.max(0, allVersions.length - 1 - Number(raw));
                     setSelectedIndex(nextIndex);
                     const item = allVersions[nextIndex] ?? null;
                     onPreview(item?.id === "current-draft" ? null : item);
                   }}
-                  className="my-2 h-44 w-6 flex-1 cursor-ns-resize accent-primary [direction:rtl] [writing-mode:vertical-lr]"
+                  className="my-2 h-44 flex-1 cursor-ns-resize"
                 />
                 <span className="text-[9px] font-medium text-muted-foreground" aria-hidden="true">
                   Older
@@ -311,11 +316,10 @@ export function VersionHistoryCard({
                         )}
                         aria-hidden="true"
                       />
-                      <button
-                        type="button"
+                      <ToggleButton
                         aria-label={`Select ${item.label}`}
-                        aria-pressed={selected}
-                        onClick={() => selectVersion(item)}
+                        isSelected={selected}
+                        onChange={() => selectVersion(item)}
                         className={cn(
                           "w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
                           selected && "bg-accent text-accent-foreground",
@@ -345,7 +349,7 @@ export function VersionHistoryCard({
                             Automatic
                           </span>
                         ) : null}
-                      </button>
+                      </ToggleButton>
                     </li>
                   );
                 })}
@@ -403,7 +407,7 @@ export function VersionHistoryCard({
                     type="button"
                     size="sm"
                     className="min-w-0"
-                    disabled={selectedMatchesCurrent}
+                    isDisabled={selectedMatchesCurrent}
                     onClick={confirmRestore}
                   >
                     <Undo2 /> <span className="truncate">Confirm restore</span>

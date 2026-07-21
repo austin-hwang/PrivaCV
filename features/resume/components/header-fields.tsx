@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -24,8 +23,10 @@ import {
 import { FieldGroup, TextField } from "@/features/resume/components/editor-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import {
   HEADER_LINK_ICON_OPTIONS,
+  personNameParts,
   type HeaderLink,
   type HeaderLinkIconId,
   type ResumeState,
@@ -66,92 +67,106 @@ function HeaderLinkIconPicker({
   onChange: (icon: HeaderLinkIconId) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const button = rootRef.current?.querySelector("button");
-    const rect = button?.getBoundingClientRect();
-    if (rect) setPosition({ top: rect.bottom + 4, left: rect.left });
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const close = () => setOpen(false);
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
-    };
-  }, [open]);
-
   const currentLabel =
     HEADER_LINK_ICON_OPTIONS.find((option) => option.id === value)?.label ?? "Website";
 
   return (
-    <div ref={rootRef} className="relative shrink-0">
-      <button
-        type="button"
+    <PopoverTrigger isOpen={open} onOpenChange={setOpen}>
+      <Button
+        unstyled
         id={id}
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
-        aria-haspopup="menu"
-        aria-expanded={open}
         aria-label={`${label} icon — ${currentLabel}`}
-        title="Choose an icon"
         className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <HeaderLinkIcon icon={value} />
-      </button>
-      {open && position
-        ? createPortal(
-            <div
-              ref={panelRef}
-              role="menu"
-              aria-label={`${label} icon options`}
-              style={{ top: position.top, left: position.left }}
-              className="fixed z-50 grid grid-cols-4 gap-1 rounded-md border bg-popover p-1.5 text-popover-foreground shadow-lg"
-            >
-              {HEADER_LINK_ICON_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onChange(option.id);
-                    setOpen(false);
-                  }}
-                  aria-current={option.id === value}
-                  aria-label={option.label}
-                  title={option.label}
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
-                    option.id === value && "bg-muted text-foreground ring-1 ring-ring",
-                  )}
-                >
-                  <HeaderLinkIcon icon={option.id} />
-                </button>
-              ))}
-            </div>,
-            document.body,
-          )
-        : null}
-    </div>
+      </Button>
+      <Popover
+        className="grid w-auto grid-cols-4 gap-1 p-1.5"
+        placement="bottom start"
+        aria-label={`${label} icon options`}
+      >
+        {HEADER_LINK_ICON_OPTIONS.map((option) => (
+          <Button
+            unstyled
+            key={option.id}
+            aria-label={option.label}
+            onPress={() => {
+              onChange(option.id);
+              setOpen(false);
+            }}
+            className={cn(
+              "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
+              option.id === value && "bg-muted text-foreground ring-1 ring-ring",
+            )}
+          >
+            <HeaderLinkIcon icon={option.id} />
+          </Button>
+        ))}
+      </Popover>
+    </PopoverTrigger>
   );
 }
 
-type HeaderTextField = "name" | "title" | "email" | "phone" | "location";
+type HeaderTextField =
+  | "name"
+  | "firstName"
+  | "middleName"
+  | "lastName"
+  | "title"
+  | "email"
+  | "phone"
+  | "location";
+
+/**
+ * Optional split name for application forms. `name` stays the value the resume
+ * renders; these override the best-effort split when set. Placeholders show the
+ * derived split so the person sees what autofill will use before overriding it.
+ */
+function NameParts({
+  state,
+  onUpdateField,
+}: {
+  state: ResumeState;
+  onUpdateField: (field: HeaderTextField, value: string) => void;
+}) {
+  const derived = personNameParts(state);
+  return (
+    <details className="rounded-md border bg-muted/10 px-3 py-2">
+      <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+        Name parts — used for application forms
+      </summary>
+      <div className="editor-pane-grid mt-2 grid gap-3">
+        <TextField
+          id="field-first-name"
+          label="First"
+          value={state.firstName}
+          placeholder={derived.first || "Jane"}
+          autoComplete="given-name"
+          spellCheck={false}
+          onChange={(value) => onUpdateField("firstName", value)}
+        />
+        <TextField
+          id="field-middle-name"
+          label="Middle"
+          value={state.middleName}
+          placeholder={derived.middle || "—"}
+          autoComplete="additional-name"
+          spellCheck={false}
+          onChange={(value) => onUpdateField("middleName", value)}
+        />
+        <TextField
+          id="field-last-name"
+          label="Last"
+          value={state.lastName}
+          placeholder={derived.last || "Doe"}
+          autoComplete="family-name"
+          spellCheck={false}
+          onChange={(value) => onUpdateField("lastName", value)}
+        />
+      </div>
+    </details>
+  );
+}
 
 export function ResumeHeaderFields({
   state,
@@ -194,6 +209,7 @@ export function ResumeHeaderFields({
         spellCheck={false}
         onChange={(value) => onUpdateField("name", value)}
       />
+      <NameParts state={state} onUpdateField={onUpdateField} />
       <TextField
         id="field-title"
         label="Title / Role"
@@ -293,7 +309,7 @@ export function ResumeHeaderFields({
                       variant="ghost"
                       size="icon"
                       className="size-7"
-                      disabled={index === 0}
+                      isDisabled={index === 0}
                       aria-label={`Move ${fieldLabel} up`}
                       onClick={() => onMoveLink(index, -1)}
                     >
@@ -304,7 +320,7 @@ export function ResumeHeaderFields({
                       variant="ghost"
                       size="icon"
                       className="size-7"
-                      disabled={index === state.headerLinks.length - 1}
+                      isDisabled={index === state.headerLinks.length - 1}
                       aria-label={`Move ${fieldLabel} down`}
                       onClick={() => onMoveLink(index, 1)}
                     >

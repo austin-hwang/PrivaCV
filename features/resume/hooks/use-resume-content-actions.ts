@@ -89,7 +89,12 @@ export function useResumeContentActions({
     });
   };
 
-  const updateEntry = (section: string, index: number, key: keyof ResumeEntry, value: string) => {
+  const updateEntry = (
+    section: string,
+    index: number,
+    key: keyof ResumeEntry,
+    value: string | boolean,
+  ) => {
     setState((current) => {
       if (section === "skills") {
         return {

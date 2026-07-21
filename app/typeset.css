@@ -1,0 +1,173 @@
+/* Typeset — consistent typography for rendered long-form prose (guides and
+   other pages that emit plain headings/paragraphs/lists). Adapted from shadcn's
+   Typeset system: a container-aware vertical rhythm driven by three controls
+   (`--typeset-size`, `--typeset-leading`, `--typeset-flow`) so the same markup
+   reads well in a wide article or a narrow card. Colors come from the app's
+   theme tokens, so it tracks light/dark automatically. */
+
+.typeset {
+  --typeset-font-body: inherit;
+  --typeset-font-heading: inherit;
+  --typeset-font-mono: var(--font-mono, ui-monospace, "SFMono-Regular", monospace);
+  --typeset-size: 1rem;
+  --typeset-leading: 1.75;
+  --typeset-flow: 1.25em;
+
+  container-type: inline-size;
+  font-size: var(--typeset-size);
+  line-height: var(--typeset-leading);
+  font-family: var(--typeset-font-body);
+  color: hsl(var(--foreground));
+  text-wrap: pretty;
+}
+
+/* Vertical rhythm: consecutive blocks are separated by one "flow" step; the
+   first child never adds a leading gap. New trailing content therefore never
+   reflows the blocks above it. */
+.typeset > * {
+  margin-block: 0;
+}
+.typeset > * + * {
+  margin-top: var(--typeset-flow);
+}
+
+.typeset :where(h1, h2, h3, h4) {
+  font-family: var(--typeset-font-heading);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  text-wrap: balance;
+}
+.typeset :where(h2, h3, h4) {
+  scroll-margin-top: 5rem;
+}
+/* A leading heading rides the container's own top spacing rather than adding
+   its own, so a section that opens with a heading isn't pushed down. */
+.typeset > :where(h1, h2, h3, h4):first-child {
+  margin-top: 0;
+}
+.typeset :where(h1) {
+  font-size: 2em;
+}
+.typeset :where(h2) {
+  font-size: 1.5em;
+  margin-top: calc(var(--typeset-flow) * 2);
+  margin-bottom: calc(var(--typeset-flow) * -0.55);
+}
+.typeset :where(h3) {
+  font-size: 1.2em;
+  margin-top: calc(var(--typeset-flow) * 1.4);
+  margin-bottom: calc(var(--typeset-flow) * -0.6);
+}
+.typeset :where(h4) {
+  font-size: 1em;
+}
+
+.typeset :where(p, ul, ol, blockquote, table) {
+  color: hsl(var(--muted-foreground));
+}
+
+.typeset :where(ul, ol) {
+  padding-left: 1.4em;
+  display: grid;
+  gap: calc(var(--typeset-flow) * 0.4);
+}
+.typeset :where(ul) {
+  list-style: disc;
+}
+.typeset :where(ol) {
+  list-style: decimal;
+}
+.typeset :where(li)::marker {
+  color: hsl(var(--muted-foreground));
+}
+.typeset :where(li > ul, li > ol) {
+  margin-top: calc(var(--typeset-flow) * 0.4);
+}
+
+.typeset :where(strong, b) {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.typeset :where(a) {
+  color: hsl(var(--foreground));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.typeset :where(a):hover {
+  text-decoration-thickness: 2px;
+}
+
+.typeset :where(code) {
+  font-family: var(--typeset-font-mono);
+  font-size: 0.875em;
+  background: hsl(var(--muted));
+  padding: 0.15em 0.35em;
+  border-radius: var(--radius-sm);
+}
+.typeset :where(pre) {
+  font-family: var(--typeset-font-mono);
+  font-size: 0.875em;
+  line-height: 1.6;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  padding: 1em 1.15em;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+.typeset :where(pre code) {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.typeset :where(blockquote) {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 1em;
+  font-style: italic;
+}
+
+.typeset :where(hr) {
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.typeset :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925em;
+  text-align: left;
+}
+.typeset :where(th, td) {
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.55em 0.75em;
+}
+.typeset :where(th) {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+/* Wrap a wide table in this so the page body never scrolls sideways. */
+.typeset-scroll {
+  overflow-x: auto;
+}
+
+/* Opt a subtree out of Typeset (e.g. an embedded widget with its own styles). */
+.not-typeset {
+  all: revert;
+}
+
+/* Preset for long-form documentation/guide pages: a slightly larger measure. */
+.typeset-docs {
+  --typeset-size: 1.05rem;
+}
+
+/* Container-aware: tighten size and rhythm inside narrow containers. */
+@container (max-width: 32rem) {
+  .typeset {
+    --typeset-size: 0.95rem;
+    --typeset-flow: 1.1em;
+  }
+}

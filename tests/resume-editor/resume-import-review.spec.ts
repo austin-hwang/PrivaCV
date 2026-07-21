@@ -361,9 +361,12 @@ test("keeps an employer-first dated PDF header editable as the right role and em
     "Senior Product Engineer",
   );
   await expect(page.getByLabel("Company", { exact: true }).first()).toHaveValue("Northstar Labs");
-  await expect(
-    page.getByLabel("Dates (e.g. Jan 2020 - Present)", { exact: true }).first(),
-  ).toHaveValue("Feb 2022 – Present");
+  // Dates are lifted into the structured date control on import: the start
+  // trigger shows the parsed month/year and "current" is checked.
+  await expect(page.getByRole("button", { name: "Start date", exact: true }).first()).toHaveText(
+    "Feb 2022",
+  );
+  await expect(page.getByLabel("Current / ongoing", { exact: true }).first()).toBeChecked();
   await expect(
     page
       .getByLabel("Responsibilities / achievements (one bullet per line)", { exact: true })

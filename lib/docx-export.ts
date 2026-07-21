@@ -3,6 +3,8 @@ import {
   BULLET_STYLE_MARKERS,
   contactHref,
   entryHasContent,
+  entryOrgLine,
+  formatEntryDates,
   getSectionEntries,
   getSectionFormat,
   getSectionTagGroups,
@@ -146,10 +148,12 @@ function blocksToDocx(
 }
 
 function entryParagraphs(entry: ResumeEntry, bulletMarker: string) {
+  const org = entryOrgLine(entry);
+  const dates = formatEntryDates(entry);
   const parts = [
     entry.title ? textRun(entry.title, { bold: true }) : "",
-    entry.subtitle ? textRun(`${entry.title ? " | " : ""}${entry.subtitle}`) : "",
-    entry.meta ? textRun(`${entry.title || entry.subtitle ? " | " : ""}${entry.meta}`) : "",
+    org ? textRun(`${entry.title ? " | " : ""}${org}`) : "",
+    dates ? textRun(`${entry.title || org ? " | " : ""}${dates}`) : "",
   ].join("");
   const details = blocksToDocx(entry.details, "bullets", bulletMarker, 45);
   const heading = parts ? paragraph(parts, { after: details ? 20 : 90 }) : "";

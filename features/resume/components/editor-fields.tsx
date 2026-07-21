@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowLeftRight,
   ArrowUp,
+  ChevronLeft,
   ChevronRight,
   GripVertical,
   Sparkles,
@@ -10,9 +11,21 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type DragEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { entryFieldSchema, entryHasContent, type ResumeEntry, type TagGroup } from "@/lib/resume";
+import {
+  MONTH_ABBR,
+  buildYearMonth,
+  entryFieldSchema,
+  entryHasContent,
+  entryMetaLine,
+  yearMonthParts,
+  type ResumeEntry,
+  type TagGroup,
+} from "@/lib/resume";
 import { RichTextEditor } from "@/features/resume/components/rich-text-editor";
 import { cn } from "@/lib/utils";
 
@@ -73,9 +86,9 @@ export function FieldGroup({
             <div className="flex shrink-0 items-center gap-1">
               {actions}
               {collapsible ? (
-                <button
-                  type="button"
-                  onClick={onToggleCollapsed}
+                <Button
+                  unstyled
+                  onPress={onToggleCollapsed}
                   aria-expanded={!collapsed}
                   aria-label={collapsed ? "Expand section" : "Collapse section"}
                   className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
@@ -83,7 +96,7 @@ export function FieldGroup({
                   <ChevronRight
                     className={cn("size-4 transition-transform", !collapsed && "rotate-90")}
                   />
-                </button>
+                </Button>
               ) : null}
             </div>
           </div>
@@ -139,6 +152,216 @@ export function TextField({
   );
 }
 
+/** The label for the leftover `meta` text once dates move to their own control. */
+export function metaRemainderLabel(section: string): string {
+  if (section === "experience" || section === "education") return "Location";
+  if (section === "projects") return "Link";
+  return "Additional detail";
+}
+
+type DateFieldKey = "startDate" | "endDate" | "current" | "dateText";
+
+/** Human label for a stored "YYYY-MM"/"YYYY" value, or "" when unset. */
+function monthYearLabel(value: string): string {
+  const { year, month } = yearMonthParts(value);
+  if (!year) return "";
+  return month ? `${MONTH_ABBR[Number(month) - 1]} ${year}` : year;
+}
+
+/**
+ * A calendar-style month picker: a button showing the selected month/year that
+ * opens a small popover with a year navigator and a 12-month grid. Portaled to
+ * escape the editor's overflow-clipping and the inline sheet popover. Resumes
+ * are month/year granularity, so there is no day grid — a "Year only" action
+ * covers education-style year ranges.
+ */
+function MonthYearField({
+  idPrefix,
+  legend,
+  value,
+  disabled,
+  onChange,
+}: {
+  idPrefix: string;
+  legend: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [navYear, setNavYear] = useState(() => yearMonthParts(value).year);
+  const parts = yearMonthParts(value);
+  const label = monthYearLabel(value);
+  const selectedMonth = navYear === parts.year ? Number(parts.month) : 0;
+
+  const stepYear = (delta: number) =>
+    setNavYear((current) => String((Number(current) || new Date().getFullYear()) + delta));
+
+  const select = (next: string) => {
+    onChange(next);
+    setOpen(false);
+  };
+
+  return (
+    <div className="grid gap-1">
+      <span className="text-[11px] font-medium text-muted-foreground">{legend}</span>
+      <PopoverTrigger
+        isOpen={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (nextOpen) setNavYear(yearMonthParts(value).year || String(new Date().getFullYear()));
+        }}
+      >
+        <Button
+          id={`${idPrefix}-trigger`}
+          variant="outline"
+          isDisabled={disabled}
+          aria-label={`${legend} date`}
+          className="h-9 w-full justify-start px-2 font-normal"
+        >
+          {label || <span className="text-muted-foreground">Select</span>}
+        </Button>
+        <Popover className="w-56 gap-0 p-2" placement="bottom start">
+          <div className="flex items-center justify-between gap-1 pb-1.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Previous year"
+              onClick={() => stepYear(-1)}
+            >
+              <ChevronLeft />
+            </Button>
+            <Input
+              aria-label={`${legend} year`}
+              value={navYear}
+              placeholder="Year"
+              inputMode="numeric"
+              maxLength={4}
+              spellCheck={false}
+              className="h-8 w-16 text-center"
+              onChange={(event) => setNavYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
+            />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Next year"
+              onClick={() => stepYear(1)}
+            >
+              <ChevronRight />
+            </Button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {MONTH_ABBR.map((month, index) => (
+              <ToggleButton
+                key={month}
+                aria-label={`${month} ${navYear}`}
+                isSelected={selectedMonth === index + 1}
+                isDisabled={!navYear}
+                onChange={() => select(buildYearMonth(navYear, String(index + 1)))}
+                className={cn(
+                  "rounded-md px-1 py-1.5 text-xs hover:bg-muted disabled:opacity-40",
+                  selectedMonth === index + 1 &&
+                    "bg-primary text-primary-foreground hover:bg-primary",
+                )}
+              >
+                {month}
+              </ToggleButton>
+            ))}
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              unstyled
+              isDisabled={!navYear}
+              onPress={() => select(buildYearMonth(navYear, ""))}
+              className="text-[11px] font-medium text-primary hover:underline disabled:opacity-40"
+            >
+              Year only
+            </Button>
+            <Button
+              unstyled
+              onPress={() => select("")}
+              className="text-[11px] font-medium text-muted-foreground hover:underline"
+            >
+              Clear
+            </Button>
+          </div>
+        </Popover>
+      </PopoverTrigger>
+    </div>
+  );
+}
+
+/**
+ * Structured start/end date editor: month + year pickers, a "current" toggle
+ * that disables the end date, and a free-text override for dates that don't fit
+ * a month/year ("Expected 2026", "Summer 2021"). Shared by the form and the
+ * inline sheet popover so both commit the same fields.
+ */
+export function DateRangeField({
+  idPrefix,
+  entry,
+  onChange,
+}: {
+  idPrefix: string;
+  entry: ResumeEntry;
+  onChange: (key: DateFieldKey, value: string | boolean) => void;
+}) {
+  const [custom, setCustom] = useState(() => Boolean(entry.dateText.trim()));
+  return (
+    <div className="grid gap-2 text-xs font-medium text-muted-foreground">
+      <div className="flex items-center justify-between gap-2">
+        <span>Dates</span>
+        <Button
+          unstyled
+          className="text-[11px] font-medium text-primary hover:underline"
+          onPress={() => {
+            if (custom) onChange("dateText", "");
+            setCustom((wasCustom) => !wasCustom);
+          }}
+        >
+          {custom ? "Use date pickers" : "Enter exact text"}
+        </Button>
+      </div>
+      {custom ? (
+        <Input
+          id={`${idPrefix}-dateText`}
+          aria-label="Date text"
+          value={entry.dateText}
+          placeholder="e.g. Expected 2026"
+          spellCheck={false}
+          onChange={(event) => onChange("dateText", event.target.value)}
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <MonthYearField
+              idPrefix={`${idPrefix}-start`}
+              legend="Start"
+              value={entry.startDate}
+              onChange={(value) => onChange("startDate", value)}
+            />
+            <MonthYearField
+              idPrefix={`${idPrefix}-end`}
+              legend={entry.current ? "End — Present" : "End"}
+              value={entry.endDate}
+              disabled={entry.current}
+              onChange={(value) => onChange("endDate", value)}
+            />
+          </div>
+          <Checkbox
+            id={`${idPrefix}-current`}
+            isSelected={entry.current}
+            onChange={(isSelected) => onChange("current", isSelected)}
+            className="font-normal"
+          >
+            Current / ongoing
+          </Checkbox>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function TextAreaField({
   id,
   label,
@@ -167,15 +390,15 @@ export function TextAreaField({
           {label}
         </label>
         {aiAssist ? (
-          <button
-            type="button"
-            onClick={aiAssist.onClick}
-            disabled={!value.trim()}
+          <Button
+            unstyled
+            title={value.trim() ? "Edit this text with local AI" : "Add text before using local AI"}
+            onPress={aiAssist.onClick}
+            isDisabled={!value.trim()}
             aria-expanded={aiAssist.expanded}
             aria-label="Open local AI text editor"
             aria-describedby={id ? `${id}-label` : undefined}
             data-ai-edit-for={id}
-            title={value.trim() ? "Edit this text with local AI" : "Add text before using local AI"}
             className={cn(
               "inline-flex size-7 items-center justify-center rounded-md border text-violet-600 transition-colors hover:bg-violet-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 dark:text-violet-300 dark:hover:bg-violet-950/40",
               aiAssist.expanded &&
@@ -183,7 +406,7 @@ export function TextAreaField({
             )}
           >
             <Sparkles className="size-3.5" />
-          </button>
+          </Button>
         ) : null}
       </div>
       <Textarea
@@ -259,12 +482,12 @@ function TagGroupRow({
       )}
     >
       <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
-        <button
-          type="button"
+        <Button
+          unstyled
           data-tag-group-toggle=""
           aria-expanded={open}
           aria-label={`${open ? "Collapse" : "Expand"} ${group.label || "untitled"} tag group`}
-          onClick={onToggle}
+          onPress={onToggle}
           className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
         >
           <ChevronRight
@@ -280,7 +503,7 @@ function TagGroupRow({
             — {group.tags.length} {group.tags.length === 1 ? "tag" : "tags"}
             {group.tags.length ? ` · ${group.tags.slice(0, 3).join(", ")}` : ""}
           </span>
-        </button>
+        </Button>
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/tag-group:opacity-100 group-focus-within/tag-group:opacity-100">
           <span
             draggable
@@ -299,7 +522,7 @@ function TagGroupRow({
             className="size-7 text-muted-foreground hover:text-foreground"
             aria-label={`Move ${group.label || "tag"} group up`}
             title="Move group up"
-            disabled={index === 0}
+            isDisabled={index === 0}
             onClick={() => onMove(-1)}
           >
             <ArrowUp className="size-3.5" />
@@ -311,7 +534,7 @@ function TagGroupRow({
             className="size-7 text-muted-foreground hover:text-foreground"
             aria-label={`Move ${group.label || "tag"} group down`}
             title="Move group down"
-            disabled={index === total - 1}
+            isDisabled={index === total - 1}
             onClick={() => onMove(1)}
           >
             <ArrowDown className="size-3.5" />
@@ -343,19 +566,19 @@ function TagGroupRow({
             aria-label={group.label ? `${group.label} tags` : "Tags"}
           >
             {group.tags.map((tag) => (
-              <button
+              <Button
+                unstyled
                 key={tag}
-                type="button"
-                onClick={() =>
+                title="Remove tag"
+                onPress={() =>
                   onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })
                 }
                 className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`Remove ${tag}`}
-                title="Remove tag"
               >
                 {tag}
                 <X className="size-3" aria-hidden="true" />
-              </button>
+              </Button>
             ))}
           </div>
           <div className="flex gap-2">
@@ -381,7 +604,7 @@ function TagGroupRow({
               size="sm"
               className="h-8"
               onClick={addTag}
-              disabled={!draft.trim()}
+              isDisabled={!draft.trim()}
             >
               Add
             </Button>
@@ -542,7 +765,12 @@ export function EntryList({
   entries: ResumeEntry[];
   /** Field id currently being edited; its entry is auto-expanded. */
   activeTarget?: string | null;
-  onUpdate: (section: string, index: number, key: keyof ResumeEntry, value: string) => void;
+  onUpdate: (
+    section: string,
+    index: number,
+    key: keyof ResumeEntry,
+    value: string | boolean,
+  ) => void;
   onMove: (section: string, index: number, direction: -1 | 1) => void;
   onReorder: (section: string, index: number, target: number) => void;
   onRemove: (section: string, index: number) => void;
@@ -631,7 +859,7 @@ export function EntryList({
         const empty = !entryHasContent(entry);
         const open = openIndexes.has(index) || empty || activeIndex === index;
         const primary = entry.title.trim() || entry.subtitle.trim() || "Untitled entry";
-        const secondary = [entry.title.trim() && entry.subtitle.trim(), entry.meta.trim()]
+        const secondary = [entry.title.trim() && entry.subtitle.trim(), entryMetaLine(entry)]
           .filter(Boolean)
           .join(" · ");
 
@@ -690,11 +918,11 @@ export function EntryList({
             }}
           >
             <div className="flex items-center gap-1 pr-1.5 hover:bg-muted/30">
-              <button
-                type="button"
+              <Button
+                unstyled
                 data-entry-toggle=""
                 aria-expanded={open}
-                onClick={() => toggle(index, open)}
+                onPress={() => toggle(index, open)}
                 className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
               >
                 <ChevronRight
@@ -707,7 +935,7 @@ export function EntryList({
                 {secondary ? (
                   <span className="truncate text-xs text-muted-foreground">— {secondary}</span>
                 ) : null}
-              </button>
+              </Button>
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/entry:opacity-100 group-focus-within/entry:opacity-100">
                 <span
                   draggable
@@ -726,7 +954,7 @@ export function EntryList({
                   className="size-7"
                   aria-label="Move entry up"
                   title="Move entry up"
-                  disabled={index === 0}
+                  isDisabled={index === 0}
                   onClick={() => onMove(section, index, -1)}
                 >
                   <ArrowUp />
@@ -738,7 +966,7 @@ export function EntryList({
                   className="size-7"
                   aria-label="Move entry down"
                   title="Move entry down"
-                  disabled={index === entries.length - 1}
+                  isDisabled={index === entries.length - 1}
                   onClick={() => onMove(section, index, 1)}
                 >
                   <ArrowDown />
@@ -783,9 +1011,14 @@ export function EntryList({
                   value={entry.subtitle}
                   onChange={(value) => onUpdate(section, index, "subtitle", value)}
                 />
+                <DateRangeField
+                  idPrefix={`field-${section}-${index}`}
+                  entry={entry}
+                  onChange={(key, value) => onUpdate(section, index, key, value)}
+                />
                 <TextField
                   id={`field-${section}-${index}-meta`}
-                  label={schema.meta}
+                  label={metaRemainderLabel(section)}
                   value={entry.meta}
                   onChange={(value) => onUpdate(section, index, "meta", value)}
                 />

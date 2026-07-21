@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type RefObject,
-} from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import type { ResumeTemplateId } from "@/lib/resume";
 import type { VersionHistoryItem } from "@/lib/resume-workspace";
 import type { DestructiveResumeAction } from "@/features/resume/components/review-dialogs";
@@ -44,7 +37,6 @@ export function useResumeWorkspaceUI({
   const [reviewTour, setReviewTour] = useState<ReviewTourState | null>(null);
   const [inlineEdit, setInlineEdit] = useState(true);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
-  const [editorPanePercent, setEditorPanePercent] = useState(50);
   const [printing, setPrinting] = useState(false);
   const [blankWorkspaceOpen, setBlankWorkspaceOpen] = useState(false);
   const [blankTemplatePreview, setBlankTemplatePreview] = useState<ResumeTemplateId | null>(null);
@@ -63,7 +55,6 @@ export function useResumeWorkspaceUI({
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [previewScale, setPreviewScale] = useState(1);
   const [sheetHeight, setSheetHeight] = useState(11 * 96);
-  const workspaceRef = useRef<HTMLElement>(null);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
 
@@ -115,36 +106,6 @@ export function useResumeWorkspaceUI({
     if (!navigatorOpen) setNavigatorQuery("");
   }, [navigatorOpen]);
 
-  const resizeWorkspace = useCallback((clientX: number) => {
-    const workspace = workspaceRef.current;
-    if (!workspace) return;
-    const rect = workspace.getBoundingClientRect();
-    const available = rect.width - 8;
-    if (available <= 0) return;
-    const minimumEditor = Math.min(340, available / 2);
-    const minimumPreview = Math.min(440, available / 2);
-    const next = ((clientX - rect.left) / available) * 100;
-    const minimum = (minimumEditor / available) * 100;
-    const maximum = ((available - minimumPreview) / available) * 100;
-    setEditorPanePercent(Math.min(maximum, Math.max(minimum, next)));
-  }, []);
-
-  const startWorkspaceResize = (clientX: number) => {
-    const previousUserSelect = document.body.style.userSelect;
-    document.body.style.userSelect = "none";
-    resizeWorkspace(clientX);
-    const move = (event: PointerEvent) => resizeWorkspace(event.clientX);
-    const stop = () => {
-      document.body.style.userSelect = previousUserSelect;
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-      window.removeEventListener("pointercancel", stop);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stop);
-    window.addEventListener("pointercancel", stop);
-  };
-
   const sheetWidthPx = 8.5 * 96;
   useEffect(() => {
     const wrap = previewWrapRef.current;
@@ -180,7 +141,6 @@ export function useResumeWorkspaceUI({
     draggedSection,
     dropTargetSection,
     editorCollapsed,
-    editorPanePercent,
     historyOpen,
     historyPreviewItem,
     inlineEdit,
@@ -197,10 +157,8 @@ export function useResumeWorkspaceUI({
     previewWrapRef,
     printing,
     reviewTour,
-    startWorkspaceResize,
     toolsOpen,
     workspaceHasStarted,
-    workspaceRef,
     setActiveTarget,
     setBlankTemplatePreview,
     setBlankWorkspaceOpen,
@@ -212,7 +170,6 @@ export function useResumeWorkspaceUI({
     setDraggedSection,
     setDropTargetSection,
     setEditorCollapsed,
-    setEditorPanePercent,
     setHistoryOpen,
     setHistoryPreviewItem,
     setInlineEdit,

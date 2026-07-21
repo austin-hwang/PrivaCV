@@ -103,7 +103,7 @@ export function JobPipelineSankey({
             Flows are reconstructed from recorded application stages. Current filters are reflected.
           </p>
         </div>
-        <Button type="button" variant="outline" onClick={saveImage} disabled={exporting}>
+        <Button type="button" variant="outline" onClick={saveImage} isDisabled={exporting}>
           {exporting ? <Loader2 className="animate-spin" /> : <Download />}{" "}
           {exporting ? "Rendering PNG" : "Save as PNG"}
         </Button>

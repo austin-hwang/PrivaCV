@@ -13,7 +13,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui/menu";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { RESUME_TEMPLATES, type ResumeTemplateId } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +64,7 @@ export function StartPanel({
                 type="button"
                 className="h-auto min-h-9 w-full justify-start whitespace-normal text-left"
                 onClick={onImportFile}
-                disabled={isImporting}
+                isDisabled={isImporting}
               >
                 <Upload />{" "}
                 <span className="min-w-0">
@@ -85,30 +90,27 @@ export function StartPanel({
                 Begin from a blank, ATS-ready draft.
               </p>
             </div>
-            <Menu
-              className="mt-auto"
+            <DropdownMenuTrigger
               onOpenChange={(open) => {
                 if (!open) onPreviewBlank(null);
               }}
             >
-              <MenuTrigger>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-auto min-h-9 w-full justify-start border border-input whitespace-normal text-left"
-                >
-                  <FileText /> <span className="min-w-0">Start a blank resume</span>{" "}
-                  <ChevronDown className="ml-auto shrink-0" />
-                </Button>
-              </MenuTrigger>
-              <MenuContent align="start" className="w-full min-w-64">
-                <MenuLabel>Choose a layout</MenuLabel>
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-auto h-auto min-h-9 w-full justify-start border border-input whitespace-normal text-left"
+              >
+                <FileText /> <span className="min-w-0">Start a blank resume</span>{" "}
+                <ChevronDown className="ml-auto shrink-0" />
+              </Button>
+              <DropdownMenu className="w-full min-w-64">
+                <DropdownMenuLabel>Choose a layout</DropdownMenuLabel>
                 {RESUME_TEMPLATES.map((template) => (
-                  <MenuItem
+                  <DropdownMenuItem
                     key={template.id}
                     className="items-start"
-                    onHighlight={() => onPreviewBlank(template.id)}
-                    onSelect={() => onStartBlank(template.id)}
+                    onHoverStart={() => onPreviewBlank(template.id)}
+                    onAction={() => onStartBlank(template.id)}
                   >
                     <span>
                       <span className="block">{template.label}</span>
@@ -116,10 +118,10 @@ export function StartPanel({
                         {template.description}
                       </span>
                     </span>
-                  </MenuItem>
+                  </DropdownMenuItem>
                 ))}
-              </MenuContent>
-            </Menu>
+              </DropdownMenu>
+            </DropdownMenuTrigger>
             <p className="text-xs leading-snug text-muted-foreground">
               You can change the layout and theme later from Design.
             </p>
@@ -127,10 +129,10 @@ export function StartPanel({
         </div>
 
         <div className="rounded-lg border bg-muted/20">
-          <button
-            type="button"
+          <Button
+            unstyled
             aria-expanded={moreOpen}
-            onClick={() => setMoreOpen((open) => !open)}
+            onPress={() => setMoreOpen((open) => !open)}
             className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ChevronRight
@@ -145,7 +147,7 @@ export function StartPanel({
                 Sample, saved JSON, backup
               </span>
             </span>
-          </button>
+          </Button>
 
           {moreOpen ? (
             <div className="space-y-4 border-t px-4 py-4">

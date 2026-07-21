@@ -1,5 +1,6 @@
 @config "../tailwind.config.ts";
 @import "tailwindcss";
+@import "./typeset.css";
 
 @layer base {
   /* Light parity */
@@ -33,6 +34,14 @@
     --input: 214 24% 88%;
     --ring: 221 83% 53%;
     --radius: 0.5rem;
+    /* Radius scale as CSS custom properties. The Tailwind config maps the
+       rounded-sm/md/lg utilities to these same calc()s, but shadcn/aria-nova
+       components also reference the raw vars (e.g. rounded-[min(var(--radius-md),12px)]),
+       which would otherwise resolve empty and render sharp corners. */
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
   }
 
   /* Night mode — default */
@@ -211,52 +220,6 @@ html[data-resume-workspace="active"] .public-explainer {
 
 /* Long-form guide article typography. Scoped so it only styles the prose body
    of a guide, not the surrounding app chrome. */
-.guide-content {
-  font-size: 1.05rem;
-  line-height: 1.75;
-  color: hsl(var(--muted-foreground));
-}
-.guide-content > * + * {
-  margin-top: 1.15rem;
-}
-.guide-content h2 {
-  margin-top: 2.5rem;
-  margin-bottom: 0.25rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: hsl(var(--foreground));
-  scroll-margin-top: 5rem;
-}
-.guide-content h3 {
-  margin-top: 1.75rem;
-  margin-bottom: 0.25rem;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: hsl(var(--foreground));
-}
-.guide-content ul,
-.guide-content ol {
-  padding-left: 1.4rem;
-  display: grid;
-  gap: 0.45rem;
-}
-.guide-content ul {
-  list-style: disc;
-}
-.guide-content ol {
-  list-style: decimal;
-}
-.guide-content strong {
-  color: hsl(var(--foreground));
-  font-weight: 600;
-}
-.guide-content a {
-  color: hsl(var(--foreground));
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 .resume-sheet {
   position: relative;
   isolation: isolate;
@@ -559,6 +522,24 @@ html[data-resume-workspace="active"] .public-explainer {
   white-space: nowrap;
 }
 
+/* The date-picker trigger on the sheet reads as plain resume text until hover,
+   so edit and preview modes look identical. */
+.resume-entry-date-trigger {
+  cursor: pointer;
+  border-radius: 3px;
+  color: inherit;
+  font: inherit;
+}
+
+.resume-entry-date-trigger:hover {
+  background: rgb(15 23 42 / 8%);
+}
+
+.resume-entry-date-trigger-empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
 .resume-bullets {
   margin: 3px 0 0;
   padding-left: 16px;
@@ -766,6 +747,22 @@ html[data-resume-workspace="active"] .public-explainer {
   .app-shell {
     display: block !important;
     height: auto !important;
+  }
+
+  /* The resizable workspace applies an inline `display:flex` that CSS can only
+     override with !important. Flatten the group so the preview panel spans the
+     full page instead of its on-screen split width (which would repaginate the
+     sheet), and drop the drag handle. */
+  [data-slot="resizable-panel-group"] {
+    display: block !important;
+    height: auto !important;
+  }
+  [data-slot="resizable-panel"] {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+  }
+  [data-slot="resizable-handle"] {
+    display: none !important;
   }
 
   .preview-pane {

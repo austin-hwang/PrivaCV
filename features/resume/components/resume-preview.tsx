@@ -1,10 +1,13 @@
 import {
   forwardRef,
+  useState,
   type ClipboardEvent,
   type CSSProperties,
   type FocusEvent,
   type KeyboardEvent,
 } from "react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import {
   BriefcaseBusiness,
   Calendar,
@@ -26,6 +29,8 @@ import {
 import {
   contactHref,
   entryHasContent,
+  entryOrgLine,
+  formatEntryDates,
   getSectionEntries,
   getSectionFormat,
   getSectionTagGroups,
@@ -37,11 +42,13 @@ import {
   resumeHeaderLinks,
   visibleSectionOrder,
   resolveFontStack,
+  type ResumeEntry,
   type ResumeState,
   type HeaderLink,
   type HeaderLinkIconId,
   type TagGroup,
 } from "@/lib/resume";
+import { DateRangeField } from "@/features/resume/components/editor-fields";
 import { commitRichContent, renderRichContent, stripRichMarks } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 
@@ -57,8 +64,16 @@ type InlineEditHandlers = {
   onEditEntry?: (
     section: string,
     index: number,
-    key: "title" | "subtitle" | "meta" | "details",
-    value: string,
+    key:
+      | "title"
+      | "subtitle"
+      | "meta"
+      | "details"
+      | "startDate"
+      | "endDate"
+      | "current"
+      | "dateText",
+    value: string | boolean,
   ) => void;
   onEditTagGroup?: (
     section: string,
@@ -216,6 +231,48 @@ function RichBody({
       }
       dangerouslySetInnerHTML={{ __html: html || "<p><br></p>" }}
     />
+  );
+}
+
+type EntryDateChange = (
+  key: "startDate" | "endDate" | "current" | "dateText",
+  value: string | boolean,
+) => void;
+
+/**
+ * The inline (editable) date slot on the sheet: a button showing the formatted
+ * dates that opens a popover hosting the shared DateRangeField, so dates are
+ * edited in place, consistent with the form. Read-only sheets render the dates
+ * as plain text via entryMetaLine instead.
+ */
+function EntryDateControl({
+  idPrefix,
+  entry,
+  onChange,
+}: {
+  idPrefix: string;
+  entry: ResumeEntry;
+  onChange: EntryDateChange;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = formatEntryDates(entry);
+
+  return (
+    <PopoverTrigger isOpen={open} onOpenChange={setOpen}>
+      <Button
+        unstyled
+        aria-label="Edit dates"
+        className={cn(
+          "resume-entry-date-control resume-entry-date-trigger",
+          !label && "resume-entry-date-trigger-empty",
+        )}
+      >
+        {label || "Add dates"}
+      </Button>
+      <Popover className="w-72 p-3" placement="bottom end" aria-label="Edit dates">
+        <DateRangeField idPrefix={idPrefix} entry={entry} onChange={onChange} />
+      </Popover>
+    </PopoverTrigger>
   );
 }
 
@@ -848,26 +905,49 @@ function ResumeSection({
                 />
               ) : null}
             </div>
-            {entry.meta ? (
-              <InlineText
-                as="div"
-                editable={editable}
-                value={entry.meta}
-                placeholder="Dates / details"
-                className="resume-entry-meta"
-                onCommit={(value) => onEditEntry?.(section, originalIndex, "meta", value)}
-              />
+            {editable ? (
+              <div className="resume-entry-meta">
+                <EntryDateControl
+                  idPrefix={`field-${section}-${originalIndex}`}
+                  entry={entry}
+                  onChange={(key, value) => onEditEntry?.(section, originalIndex, key, value)}
+                />
+              </div>
+            ) : formatEntryDates(entry) ? (
+              <div className="resume-entry-meta">{formatEntryDates(entry)}</div>
             ) : null}
           </div>
-          {entry.subtitle ? (
-            <InlineText
-              as="div"
-              editable={editable}
-              value={entry.subtitle}
-              placeholder="Organization / context"
-              className="resume-entry-sub"
-              onCommit={(value) => onEditEntry?.(section, originalIndex, "subtitle", value)}
-            />
+          {editable ? (
+            entry.subtitle || entry.meta.trim() ? (
+              <div className="resume-entry-sub">
+                {entry.subtitle ? (
+                  <InlineText
+                    as="span"
+                    editable
+                    value={entry.subtitle}
+                    placeholder="Organization / context"
+                    onCommit={(value) => onEditEntry?.(section, originalIndex, "subtitle", value)}
+                  />
+                ) : null}
+                {/* The location/link sits on the org line next to the company,
+                    separated by a dot. Only shown when it already has content —
+                    it is added and cleared from the editor form. */}
+                {entry.meta.trim() ? (
+                  <>
+                    {entry.subtitle ? <span className="resume-entry-sub-sep"> · </span> : null}
+                    <InlineText
+                      as="span"
+                      editable
+                      value={entry.meta}
+                      placeholder="Location / link"
+                      onCommit={(value) => onEditEntry?.(section, originalIndex, "meta", value)}
+                    />
+                  </>
+                ) : null}
+              </div>
+            ) : null
+          ) : entryOrgLine(entry) ? (
+            <div className="resume-entry-sub">{entryOrgLine(entry)}</div>
           ) : null}
           {stripRichMarks(entry.details).trim() ? (
             <RichBody

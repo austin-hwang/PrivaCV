@@ -159,7 +159,7 @@ export function LocalAIImportFix({
               type="button"
               size="sm"
               onClick={() => onApply(proposal)}
-              disabled={!changes.length}
+              isDisabled={!changes.length}
             >
               <Check /> Apply corrected draft
             </Button>

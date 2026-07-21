@@ -294,10 +294,20 @@ export const entrySchema = z.object({
   subtitle: z.string().catch(""),
   meta: z.string().catch(""),
   details: z.string().catch(""),
+  // Structured dates for application autofill and consistent formatting.
+  // `startDate`/`endDate` hold "YYYY-MM" or "YYYY" (month optional); `current`
+  // marks an ongoing role; `dateText` is a free-text override that wins over the
+  // structured fields ("Expected 2026", "Summer 2021"). Legacy resumes keep
+  // their dates in `meta`; see the backfill in normalizeResume.
+  startDate: z.string().catch(""),
+  endDate: z.string().catch(""),
+  current: z.boolean().catch(false),
+  dateText: z.string().catch(""),
 });
 
 export type ResumeEntry = z.infer<typeof entrySchema>;
 
+/** Free-text entry fields that the inline editor commits directly. */
 export type EntryTextField = "title" | "subtitle" | "meta" | "details";
 export type EntryFieldSchema = Record<EntryTextField, string>;
 
@@ -493,6 +503,12 @@ export type HeaderLink = z.infer<typeof headerLinkSchema>;
 
 export const resumeSchema = z.object({
   name: z.string().catch(""),
+  // Optional split name used for application autofill. `name` stays the
+  // canonical value that every render/export uses; these override the
+  // best-effort split when set (see personNameParts).
+  firstName: z.string().catch(""),
+  middleName: z.string().catch(""),
+  lastName: z.string().catch(""),
   title: z.string().catch(""),
   email: z.string().catch(""),
   phone: z.string().catch(""),
@@ -585,12 +601,24 @@ export const MIN_TEXT_SCALE = 0.8;
 export const MAX_TEXT_SCALE = 1.3;
 
 export function blankEntry(): ResumeEntry {
-  return { title: "", subtitle: "", meta: "", details: "" };
+  return {
+    title: "",
+    subtitle: "",
+    meta: "",
+    details: "",
+    startDate: "",
+    endDate: "",
+    current: false,
+    dateText: "",
+  };
 }
 
 export function emptyState(): ResumeState {
   return {
     name: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     title: "",
     email: "",
     phone: "",
@@ -614,6 +642,269 @@ export function emptyState(): ResumeState {
     theme: defaultTheme(),
     textScale: 1,
   };
+}
+
+export const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/** Splits a stored "YYYY-MM"/"YYYY" value into picker parts. */
+export function yearMonthParts(value: string): { year: string; month: string } {
+  const match = /^(\d{4})(?:-(\d{1,2}))?$/.exec(value.trim());
+  if (!match) return { year: "", month: "" };
+  const month = match[2] ? Number(match[2]) : 0;
+  return { year: match[1], month: month >= 1 && month <= 12 ? String(month) : "" };
+}
+
+/** Builds a stored date value from picker parts; a year is required. */
+export function buildYearMonth(year: string, month: string): string {
+  const trimmedYear = year.trim();
+  if (!/^\d{4}$/.test(trimmedYear)) return "";
+  const monthNumber = Number(month);
+  if (monthNumber >= 1 && monthNumber <= 12)
+    return `${trimmedYear}-${String(monthNumber).padStart(2, "0")}`;
+  return trimmedYear;
+}
+
+const MONTH_LOOKUP: Record<string, number> = {
+  jan: 1,
+  january: 1,
+  feb: 2,
+  february: 2,
+  mar: 3,
+  march: 3,
+  apr: 4,
+  april: 4,
+  may: 5,
+  jun: 6,
+  june: 6,
+  jul: 7,
+  july: 7,
+  aug: 8,
+  august: 8,
+  sep: 9,
+  sept: 9,
+  september: 9,
+  oct: 10,
+  october: 10,
+  nov: 11,
+  november: 11,
+  dec: 12,
+  december: 12,
+};
+
+export type PersonNameParts = { first: string; middle: string; last: string };
+
+/**
+ * Resolves the split name for application forms. Explicit first/middle/last win
+ * when any is set; otherwise the full `name` is split best-effort (first token,
+ * last token, everything between as the middle). Never mutates state, and never
+ * forces a split on a mononym.
+ */
+export function personNameParts(state: ResumeState): PersonNameParts {
+  const first = state.firstName.trim();
+  const middle = state.middleName.trim();
+  const last = state.lastName.trim();
+  if (first || middle || last) return { first, middle, last };
+
+  const tokens = state.name.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return { first: "", middle: "", last: "" };
+  if (tokens.length === 1) return { first: tokens[0], middle: "", last: "" };
+  return {
+    first: tokens[0],
+    middle: tokens.slice(1, -1).join(" "),
+    last: tokens[tokens.length - 1],
+  };
+}
+
+/** Formats a stored "YYYY-MM" or "YYYY" value for display ("Mar 2022", "2019"). */
+function formatYearMonth(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const match = /^(\d{4})(?:-(\d{1,2}))?$/.exec(trimmed);
+  if (!match) return trimmed;
+  const year = match[1];
+  const month = match[2] ? Number(match[2]) : 0;
+  if (month >= 1 && month <= 12) return `${MONTH_ABBR[month - 1]} ${year}`;
+  return year;
+}
+
+/**
+ * Builds the display date string for an entry. A `dateText` override wins
+ * verbatim; otherwise the structured start/end (with `current` → "Present") are
+ * formatted. Returns "" when no structured date is set, so legacy entries fall
+ * back to their free-text `meta` line unchanged.
+ */
+export function formatEntryDates(entry: ResumeEntry): string {
+  const override = entry.dateText.trim();
+  if (override) return override;
+  const start = formatYearMonth(entry.startDate);
+  const end = entry.current ? "Present" : formatYearMonth(entry.endDate);
+  if (start && end) return `${start} - ${end}`;
+  return start || end;
+}
+
+/** True when an entry carries any structured or free-text date. */
+export function entryHasDates(entry: ResumeEntry): boolean {
+  return Boolean(
+    entry.startDate.trim() || entry.endDate.trim() || entry.current || entry.dateText.trim(),
+  );
+}
+
+/**
+ * Dates joined with the free-text `meta` remainder — a compact secondary string
+ * for linear contexts (search text, change snapshots, collapsed summaries) where
+ * the subtitle is shown separately and layout doesn't matter.
+ */
+export function entryMetaLine(entry: ResumeEntry): string {
+  return [formatEntryDates(entry), entry.meta.trim()].filter(Boolean).join(" · ");
+}
+
+/**
+ * The organization line as it reads on the resume: the subtitle (company/school)
+ * joined with the `meta` remainder (location/link) by a dot, e.g.
+ * "Commure (Series E) · Mountain View, CA". Dates render separately, right-aligned.
+ */
+export function entryOrgLine(entry: ResumeEntry): string {
+  return [entry.subtitle.trim(), entry.meta.trim()].filter(Boolean).join(" · ");
+}
+
+// Coarse finders for a confident month/year date; `parseDatePoint` is the real
+// gate, so a stray word before a year (e.g. "Grant 2020") is rejected on parse.
+const CONFIDENT_DATE = "(?:[A-Za-z]{3,9}\\.?\\s+\\d{4}|\\d{1,2}[\\/-]\\d{4}|\\d{4})";
+const PRESENT_TOKEN = "(?:Present|Current|Now|Ongoing)";
+const DATE_SEP = "\\s*(?:to|[\\u2010-\\u2015\\u2212\\-])\\s*";
+const CONFIDENT_RANGE_RE = new RegExp(
+  `(${CONFIDENT_DATE})${DATE_SEP}(${PRESENT_TOKEN}|${CONFIDENT_DATE})`,
+  "i",
+);
+const CONFIDENT_SINGLE_RE = new RegExp(CONFIDENT_DATE, "i");
+const REMAINDER_TRIM = /^[\s|·•‣,;‐-―−-]+|[\s|·•‣,;‐-―−-]+$/g;
+
+/** Parses one date endpoint to "YYYY-MM"/"YYYY", or null if not a clean date. */
+function parseDatePoint(raw: string): string | null {
+  const token = raw.trim().replace(/\.$/, "");
+  const named = /^([A-Za-z]+)\.?\s+(\d{4})$/.exec(token);
+  if (named) {
+    const month = MONTH_LOOKUP[named[1].toLowerCase()];
+    if (month) return `${named[2]}-${String(month).padStart(2, "0")}`;
+    return null;
+  }
+  const numeric = /^(\d{1,2})[\/-](\d{4})$/.exec(token);
+  if (numeric) {
+    const month = Number(numeric[1]);
+    if (month >= 1 && month <= 12) return `${numeric[2]}-${String(month).padStart(2, "0")}`;
+    return null;
+  }
+  if (/^\d{4}$/.test(token)) return token;
+  return null;
+}
+
+export type ParsedEntryDates = {
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  remainder: string;
+};
+
+function stripMatched(source: string, index: number, length: number): string {
+  const before = source.slice(0, index).replace(REMAINDER_TRIM, "");
+  const after = source.slice(index + length).replace(REMAINDER_TRIM, "");
+  return [before, after].filter(Boolean).join(" · ").trim();
+}
+
+/**
+ * Best-effort, conservative parse of a date out of a free-text line into
+ * structured fields, returning the leftover text as `remainder`. Returns null
+ * unless it finds a confident month/year range, a delimited month/year, or a
+ * whole-string year — so location/link/DOI values are left untouched. Shared by
+ * the migration backfill and the PDF/text importer.
+ */
+export function parseEntryDateRange(value: string): ParsedEntryDates | null {
+  const text = value.trim();
+  if (!text) return null;
+  // Day-level dates (e.g. 02/05/2024) can't be represented at month granularity,
+  // and matching a month/year substring inside one would corrupt the value —
+  // leave the whole line in `meta`.
+  if (/\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/.test(text)) return null;
+
+  const range = CONFIDENT_RANGE_RE.exec(text);
+  if (range) {
+    const start = parseDatePoint(range[1]);
+    if (start) {
+      const endToken = range[2];
+      if (new RegExp(`^${PRESENT_TOKEN}$`, "i").test(endToken)) {
+        return {
+          startDate: start,
+          endDate: "",
+          current: true,
+          remainder: stripMatched(text, range.index, range[0].length),
+        };
+      }
+      const end = parseDatePoint(endToken);
+      if (end)
+        return {
+          startDate: start,
+          endDate: end,
+          current: false,
+          remainder: stripMatched(text, range.index, range[0].length),
+        };
+    }
+  }
+
+  const single = CONFIDENT_SINGLE_RE.exec(text);
+  if (single) {
+    const point = parseDatePoint(single[0]);
+    if (point) {
+      // A bare four-digit year is only safe to lift when it is the whole line;
+      // a month/year token can be extracted from surrounding text confidently.
+      const bareYear = /^\d{4}$/.test(single[0].trim());
+      if (!bareYear || text === single[0].trim())
+        return {
+          startDate: point,
+          endDate: "",
+          current: false,
+          remainder: stripMatched(text, single.index, single[0].length),
+        };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Lifts legacy free-text dates from `meta` into the structured fields the first
+ * time an older draft is opened, mirroring the skills text→groups migration
+ * below. Only touches entries whose structured dates are empty and whose `meta`
+ * yields a confident date; everything else is returned unchanged.
+ */
+function backfillEntryDates(entry: ResumeEntry): ResumeEntry {
+  if (entryHasDates(entry)) return entry;
+  const parsed = parseEntryDateRange(entry.meta);
+  if (!parsed) return entry;
+  return {
+    ...entry,
+    startDate: parsed.startDate,
+    endDate: parsed.endDate,
+    current: parsed.current,
+    meta: parsed.remainder,
+  };
+}
+
+/** Applies blank-field defaults and the date backfill to a stored entry. */
+function normalizeEntry(entry: unknown): ResumeEntry {
+  return backfillEntryDates({ ...blankEntry(), ...(entry as Partial<ResumeEntry>) });
 }
 
 export function normalizeResume(data: unknown): ResumeState {
@@ -641,7 +932,7 @@ export function normalizeResume(data: unknown): ResumeState {
     .map((section) => ({
       ...section,
       title: section.title.trim(),
-      entries: section.entries.map((entry) => ({ ...blankEntry(), ...entry })),
+      entries: section.entries.map(normalizeEntry),
     }));
   const validSectionIds = new Set<string>([
     ...SECTION_KEYS,
@@ -717,10 +1008,10 @@ export function normalizeResume(data: unknown): ResumeState {
     // useful first website while the app uses the repeatable collection.
     website: headerLinks[0]?.url ?? "",
     headerLinks,
-    skillEntries: parsed.skillEntries.map((entry) => ({ ...blankEntry(), ...entry })),
-    experience: parsed.experience.map((entry) => ({ ...blankEntry(), ...entry })),
-    education: parsed.education.map((entry) => ({ ...blankEntry(), ...entry })),
-    projects: parsed.projects.map((entry) => ({ ...blankEntry(), ...entry })),
+    skillEntries: parsed.skillEntries.map(normalizeEntry),
+    experience: parsed.experience.map(normalizeEntry),
+    education: parsed.education.map(normalizeEntry),
+    projects: parsed.projects.map(normalizeEntry),
     sectionTitles: { ...SECTION_LABELS, ...parsed.sectionTitles },
     customSections,
     sectionFormats,
@@ -998,14 +1289,14 @@ export function hasAnyContent(state: ResumeState) {
   if (state.skillEntries.some(entryHasContent)) return true;
   if (state.customSections.some((section) => section.entries.some(entryHasContent))) return true;
   return ["experience", "education", "projects"].some((section) =>
-    state[section as "experience" | "education" | "projects"].some(
-      (entry) => entry.title || entry.subtitle || entry.meta || entry.details,
-    ),
+    state[section as "experience" | "education" | "projects"].some(entryHasContent),
   );
 }
 
 export function entryHasContent(entry: ResumeEntry) {
-  return Boolean(entry.title || entry.subtitle || entry.meta || entry.details);
+  return Boolean(
+    entry.title || entry.subtitle || entry.meta || entry.details || entryHasDates(entry),
+  );
 }
 
 export function allBullets(state: ResumeState) {
@@ -1301,11 +1592,11 @@ function pushBlock(lines: string[], block: string[]) {
 function entryPlainText(entry: ResumeEntry) {
   const lines: string[] = [];
   const title = cleanTextLine(entry.title);
-  const subtitle = cleanTextLine(entry.subtitle);
-  const meta = cleanTextLine(entry.meta);
+  const org = cleanTextLine(entryOrgLine(entry));
+  const dates = cleanTextLine(formatEntryDates(entry));
 
   if (title) lines.push(title);
-  if (subtitle || meta) lines.push([subtitle, meta].filter(Boolean).join(" | "));
+  if (org || dates) lines.push([org, dates].filter(Boolean).join(" | "));
   lines.push(...contentPlainLines(entry.details, "bullets"));
   return lines;
 }
@@ -1363,10 +1654,10 @@ export function resumePlainText(state: ResumeState) {
 function entryMarkdown(entry: ResumeEntry): string {
   const blocks: string[] = [];
   const title = cleanTextLine(entry.title);
-  const subtitle = cleanTextLine(entry.subtitle);
-  const meta = cleanTextLine(entry.meta);
+  const org = cleanTextLine(entryOrgLine(entry));
+  const dates = cleanTextLine(formatEntryDates(entry));
   if (title) blocks.push(`### ${title}`);
-  const metaLine = [subtitle, meta].filter(Boolean).join(" · ");
+  const metaLine = [org, dates].filter(Boolean).join(" · ");
   if (metaLine) blocks.push(`*${metaLine}*`);
   const details = contentMarkdown(entry.details, "bullets");
   if (details) blocks.push(details);
@@ -1459,6 +1750,7 @@ function entryApplicationCopyGroup(
 ): ApplicationCopyGroup {
   const title = applicationCopyValue(entry.title);
   const subtitle = applicationCopyValue(entry.subtitle);
+  const dates = applicationCopyValue(formatEntryDates(entry));
   const meta = applicationCopyValue(entry.meta);
   const details = contentPlainLines(entry.details, "bullets", "• ").join("\n");
   const entryText = entryPlainText(entry).join("\n");
@@ -1466,14 +1758,14 @@ function entryApplicationCopyGroup(
   // from the same specific metadata names shown in the editor.
   const schema =
     section === "experience"
-      ? { title: "Job title", subtitle: "Employer", meta: "Dates", details: "Achievements" }
+      ? { title: "Job title", subtitle: "Employer", meta: "Location", details: "Achievements" }
       : section === "education"
-        ? { title: "Degree", subtitle: "School", meta: "Dates / location", details: "Details" }
+        ? { title: "Degree", subtitle: "School", meta: "Location", details: "Details" }
         : section === "projects"
           ? {
               title: "Project name",
               subtitle: "Technologies / role",
-              meta: "Dates / link",
+              meta: "Link",
               details: "Description",
             }
           : entryFieldSchema(section, label);
@@ -1481,6 +1773,7 @@ function entryApplicationCopyGroup(
     { id: "entry", label: "Whole entry", text: entryText },
     { id: "title", label: schema.title, text: title },
     { id: "subtitle", label: schema.subtitle, text: subtitle },
+    { id: "dates", label: "Dates", text: dates },
     { id: "meta", label: schema.meta, text: meta },
     { id: "details", label: schema.details, text: details },
   ].filter((field) => Boolean(field.text));
@@ -1501,6 +1794,7 @@ function entryApplicationCopyGroup(
 export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[] {
   const groups: ApplicationCopyGroup[] = [];
   const headerLinks = resumeHeaderLinks(state).filter((link) => link.url.trim());
+  const nameParts = personNameParts(state);
   const profileFields: ApplicationCopyField[] = [
     {
       id: "profile",
@@ -1518,6 +1812,9 @@ export function applicationCopyGroups(state: ResumeState): ApplicationCopyGroup[
         .join("\n"),
     },
     { id: "name", label: "Full name", text: applicationCopyValue(state.name) },
+    { id: "first-name", label: "First name", text: applicationCopyValue(nameParts.first) },
+    { id: "middle-name", label: "Middle name", text: applicationCopyValue(nameParts.middle) },
+    { id: "last-name", label: "Last name", text: applicationCopyValue(nameParts.last) },
     { id: "title", label: "Title / role", text: applicationCopyValue(state.title) },
     { id: "email", label: "Email", text: applicationCopyValue(state.email) },
     { id: "phone", label: "Phone", text: applicationCopyValue(state.phone) },
@@ -1573,8 +1870,21 @@ function changedFields<K extends keyof ResumeState>(
   return fields.filter((field) => String(previous[field] ?? "") !== String(current[field] ?? ""));
 }
 
-const CONTACT_FIELD_LABELS: Record<"name" | "title" | "email" | "phone" | "location", string> = {
+type ContactLabelField =
+  | "name"
+  | "firstName"
+  | "middleName"
+  | "lastName"
+  | "title"
+  | "email"
+  | "phone"
+  | "location";
+
+const CONTACT_FIELD_LABELS: Record<ContactLabelField, string> = {
   name: "Full name",
+  firstName: "First name",
+  middleName: "Middle name",
+  lastName: "Last name",
   title: "Title / role",
   email: "Email",
   phone: "Phone",
@@ -1588,19 +1898,19 @@ const ENTRY_FIELD_LABELS: Record<
   experience: {
     title: "Job title",
     subtitle: "Company",
-    meta: "Dates",
+    meta: "Location",
     details: "Achievements",
   },
   education: {
     title: "Degree",
     subtitle: "School",
-    meta: "Dates / location",
+    meta: "Location",
     details: "Details",
   },
   projects: {
     title: "Project name",
     subtitle: "Technologies / role",
-    meta: "Dates / link",
+    meta: "Link",
     details: "Description",
   },
 };
@@ -1630,14 +1940,12 @@ function contactSnapshot(state: ResumeState) {
 }
 
 function sectionSnapshot(state: ResumeState, section: "experience" | "education" | "projects") {
-  const entries = state[section].filter(
-    (entry) => entry.title || entry.subtitle || entry.meta || entry.details,
-  );
+  const entries = state[section].filter(entryHasContent);
   if (!entries.length) return "";
   return entries
     .map((entry) => {
       const firstBullet = bulletsFrom(entry.details)[0] ?? "";
-      return [entry.title, entry.subtitle, entry.meta, firstBullet]
+      return [entry.title, entry.subtitle, entryMetaLine(entry), firstBullet]
         .map(cleanTextLine)
         .filter(Boolean)
         .join(" | ");
@@ -1682,7 +1990,7 @@ function visualStyleChangeLabels(previous: ResumeState, current: ResumeState) {
 }
 
 function entryIsEmpty(entry: ResumeEntry) {
-  return !entry.title && !entry.subtitle && !entry.meta && !entry.details;
+  return !entry.title && !entry.subtitle && !entry.meta && !entry.details && !entryHasDates(entry);
 }
 
 function repeatableSectionChangeDetails(
@@ -1723,6 +2031,19 @@ function repeatableSectionChangeDetails(
         foundTarget = true;
       }
     });
+
+    const datesChanged =
+      before.startDate !== after.startDate ||
+      before.endDate !== after.endDate ||
+      before.current !== after.current ||
+      before.dateText !== after.dateText;
+    if (datesChanged) {
+      fieldLabels.push(`Entry ${index + 1} Dates`);
+      if (!foundTarget) {
+        targetId = `field-${section}-${index}-start-year`;
+        foundTarget = true;
+      }
+    }
   }
 
   return { fieldLabels, targetId };
@@ -1737,6 +2058,9 @@ export function exportChangeSummary(
   const changes: ExportChange[] = [];
   const contactFields = changedFields(previous, current, [
     "name",
+    "firstName",
+    "middleName",
+    "lastName",
     "title",
     "email",
     "phone",
@@ -1779,9 +2103,7 @@ export function exportChangeSummary(
   (["experience", "education", "projects"] as const).forEach((section) => {
     if (JSON.stringify(previous[section]) === JSON.stringify(current[section])) return;
     const sectionDetails = repeatableSectionChangeDetails(previous, current, section);
-    const entryCount = current[section].filter(
-      (entry) => entry.title || entry.subtitle || entry.meta || entry.details,
-    ).length;
+    const entryCount = current[section].filter(entryHasContent).length;
     changes.push({
       id: section,
       label: `${getSectionTitle(current, section)} changed`,

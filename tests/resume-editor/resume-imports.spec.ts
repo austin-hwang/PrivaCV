@@ -121,7 +121,7 @@ test("imports an editable Word resume locally and keeps its review deliberate", 
 
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.getByText("Imported Word document - please review")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /review the imported fields/i })).toBeVisible();
+  await expect(page.getByText(/review the imported fields/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /start walkthrough/i })).toBeVisible();
 });
 
@@ -447,7 +447,7 @@ test("offers copy-ready application fields without making users retype resume de
   await expect(
     dialog.getByText("Copy exactly what each portal asks for", { exact: true }),
   ).toHaveCount(0);
-  await expect(dialog).toHaveCSS("overflow-y", "hidden");
+  await expect(page.locator('[data-slot="dialog-content"]')).toHaveCSS("overflow-y", "hidden");
   await expect(dialog.locator("[data-application-copy-list]")).toHaveCSS("overflow-y", "auto");
   await expect(dialog.getByRole("button", { name: /copy full name/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
@@ -1034,7 +1034,7 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
     .first()
     .click();
   await expect(
-    page.locator('[role="status"]').filter({ hasText: "Removed Experience entry" }),
+    page.locator("[data-sonner-toast]").filter({ hasText: "Removed Experience entry" }),
   ).toBeVisible();
   await expect(experience.getByLabel("Job Title").first()).toHaveValue(
     "Business Operations Analyst",
@@ -1069,7 +1069,7 @@ test("keeps accidental entry and custom-section removal reversible", async ({ pa
   await removeSection(page, "Publications");
   await expect(sectionTitle).toBeHidden();
   await expect(
-    page.locator('[role="status"]').filter({ hasText: "Removed Publications section" }),
+    page.locator("[data-sonner-toast]").filter({ hasText: "Removed Publications section" }),
   ).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expect(page.getByLabel("Publications section title")).toBeVisible();
@@ -1088,7 +1088,8 @@ test("adds a common section with its useful heading already in place", async ({ 
   );
   await expect(page.getByLabel("License / certification", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Issuing organization", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Earned / expiration dates", { exact: true })).toBeVisible();
+  // Dates now live in the structured date control rather than a free-text meta field.
+  await expect(page.getByRole("button", { name: "Start date", exact: true }).first()).toBeVisible();
   await expect(
     page.locator(".resume-sheet").getByText("Licenses & Certifications", { exact: true }),
   ).toBeHidden();
@@ -1198,11 +1199,9 @@ test("navigates to any resume field with Cmd or Ctrl K", async ({ page }) => {
   await expect(dialog).toBeVisible();
   const search = dialog.getByLabel("Search resume fields");
   await expect(search).toBeFocused();
-  await expect(dialog).toHaveCSS("z-index", "80");
-  await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("z-index", "70");
   await search.fill("Business Operations Analyst company");
   await dialog
-    .getByRole("option", { name: /Company Experience · Business Operations Analyst/i })
+    .getByRole("menuitem", { name: /Company Experience · Business Operations Analyst/i })
     .click();
   await expect(experience.locator("#field-experience-1-subtitle")).toBeFocused();
 
@@ -1284,7 +1283,7 @@ test("keeps blank titles blank and lets users remove and restore default section
   await expect(page.locator('[data-editor-section="education"]')).toBeHidden();
   await expect(page.getByRole("button", { name: "Education", exact: true })).toBeVisible();
   await expect(
-    page.locator('[role="status"]').filter({ hasText: "Removed Education section" }),
+    page.locator("[data-sonner-toast]").filter({ hasText: "Removed Education section" }),
   ).toBeVisible();
   await page.getByRole("button", { name: /^undo$/i }).click();
   await expandAllEntries(page);

@@ -26,15 +26,28 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent, type React
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ResumeSourceOption } from "@/features/applications/hooks/use-resume-sources";
 import type { ApplicationActivityInput, ApplicationActivityUpdate } from "@/lib/job-application-db";
@@ -188,14 +201,20 @@ function ApplicationFields({
         </Field>
         <Field label="Status">
           <Select
-            value={form.status}
-            onChange={(event) => setField("status", event.target.value as JobApplicationStatus)}
+            aria-label="Status"
+            selectedKey={form.status}
+            onSelectionChange={(key) => setField("status", String(key) as JobApplicationStatus)}
           >
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {JOB_APPLICATION_STATUS_META[status].label}
-              </option>
-            ))}
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} id={status}>
+                  {JOB_APPLICATION_STATUS_META[status].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </Field>
         <Field label="Location" hint="— optional">
@@ -207,15 +226,21 @@ function ApplicationFields({
         </Field>
         <Field label="Resume for this application" hint="— optional" className="sm:col-span-2">
           <Select
-            value={form.resumeSourceKey}
-            onChange={(event) => setField("resumeSourceKey", event.target.value)}
+            aria-label="Resume for this application"
+            selectedKey={form.resumeSourceKey}
+            onSelectionChange={(key) => setField("resumeSourceKey", String(key))}
           >
-            <option value="">No resume attached</option>
-            {resumeSources.map((source) => (
-              <option key={source.key} value={source.key}>
-                {source.label}
-              </option>
-            ))}
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem id="">No resume attached</SelectItem>
+              {resumeSources.map((source) => (
+                <SelectItem key={source.key} id={source.key}>
+                  {source.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <span className="text-xs font-normal leading-relaxed text-muted-foreground">
             {attachedSnapshot
@@ -359,34 +384,31 @@ export function CreateApplicationDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <form onSubmit={submit} className="grid gap-5">
-          <DialogHeader>
-            <DialogTitle>Add an application</DialogTitle>
-            <DialogDescription>
-              Capture the role now. You can add contacts, notes, and follow-ups from its detail
-              view.
-            </DialogDescription>
-          </DialogHeader>
-          <ApplicationFields
-            form={form}
-            setField={setField}
-            includeDetails={false}
-            statusOptions={["saved", "preparing", "applied"]}
-            resumeSources={resumeSources}
-          />
-          {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? <Loader2 className="animate-spin" /> : <Plus />} Add application
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} className="max-w-2xl">
+      <form onSubmit={submit} className="grid gap-5">
+        <DialogHeader>
+          <DialogTitle>Add an application</DialogTitle>
+          <DialogDescription>
+            Capture the role now. You can add contacts, notes, and follow-ups from its detail view.
+          </DialogDescription>
+        </DialogHeader>
+        <ApplicationFields
+          form={form}
+          setField={setField}
+          includeDetails={false}
+          statusOptions={["saved", "preparing", "applied"]}
+          resumeSources={resumeSources}
+        />
+        {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" isDisabled={saving}>
+            {saving ? <Loader2 className="animate-spin" /> : <Plus />} Add application
+          </Button>
+        </DialogFooter>
+      </form>
     </Dialog>
   );
 }
@@ -491,14 +513,19 @@ function ActivityComposer({
       <div className="grid grid-cols-[7rem_1fr] gap-2">
         <Select
           aria-label="Activity type"
-          value={type}
-          onChange={(event) => setType(event.target.value as ApplicationActivityType)}
+          selectedKey={type}
+          onSelectionChange={(key) => setType(String(key) as ApplicationActivityType)}
         >
-          {APPLICATION_ACTIVITY_TYPES.map((activityType) => (
-            <option key={activityType} value={activityType}>
-              {APPLICATION_ACTIVITY_META[activityType].label}
-            </option>
-          ))}
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {APPLICATION_ACTIVITY_TYPES.map((activityType) => (
+              <SelectItem key={activityType} id={activityType}>
+                {APPLICATION_ACTIVITY_META[activityType].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
         <Input
           aria-label="Activity title"
@@ -533,12 +560,12 @@ function ActivityComposer({
             size="sm"
             variant="ghost"
             onClick={onCancelEdit}
-            disabled={disabled}
+            isDisabled={disabled}
           >
             Cancel
           </Button>
         ) : null}
-        <Button type="button" size="sm" onClick={() => void submit()} disabled={disabled}>
+        <Button type="button" size="sm" onClick={() => void submit()} isDisabled={disabled}>
           {editing ? <CheckCircle2 /> : <Plus />} {editing ? "Save" : "Log"}
         </Button>
       </div>
@@ -594,22 +621,22 @@ function Timeline({
                 </p>
                 {editable ? (
                   <span className="flex shrink-0 gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover/event:opacity-100">
-                    <button
-                      type="button"
+                    <Button
+                      unstyled
                       aria-label="Edit activity"
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      onClick={() => onEdit(event)}
+                      onPress={() => onEdit(event)}
                     >
                       <Pencil className="size-3" />
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      unstyled
                       aria-label="Delete activity"
                       className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => onDelete(event)}
+                      onPress={() => onDelete(event)}
                     >
                       <Trash2 className="size-3" />
-                    </button>
+                    </Button>
                   </span>
                 ) : null}
               </div>
@@ -736,94 +763,90 @@ export function ApplicationDetailDialog({
   };
 
   return (
-    <Dialog open={Boolean(application)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0">
-        {application ? (
-          <form onSubmit={submit}>
-            <DialogHeader className="border-b px-6 py-5 pr-12">
-              <div className="flex flex-wrap items-center gap-2">
-                <DialogTitle className="text-xl">{application.role}</DialogTitle>
-                <StatusBadge status={application.status} />
-              </div>
-              <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span>{application.company}</span>
-                <span>Updated {formatApplicationDate(application.updatedAt)}</span>
-                {application.sourceUrl ? (
-                  <a
-                    className="inline-flex items-center gap-1 text-primary hover:underline"
-                    href={application.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open posting <ArrowUpRight className="size-3" />
-                  </a>
-                ) : null}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="p-6">
-                <ApplicationFields
-                  form={form}
-                  setField={setField}
-                  resumeSources={resumeSources}
-                  attachedSnapshot={attachedSnapshot}
+    <Dialog isOpen={Boolean(application)} onOpenChange={onOpenChange} className="max-w-5xl p-0">
+      {application ? (
+        <form onSubmit={submit}>
+          <DialogHeader className="border-b px-6 py-5 pr-12">
+            <div className="flex flex-wrap items-center gap-2">
+              <DialogTitle className="text-xl">{application.role}</DialogTitle>
+              <StatusBadge status={application.status} />
+            </div>
+            <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>{application.company}</span>
+              <span>Updated {formatApplicationDate(application.updatedAt)}</span>
+              {application.sourceUrl ? (
+                <a
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                  href={application.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open posting <ArrowUpRight className="size-3" />
+                </a>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="p-6">
+              <ApplicationFields
+                form={form}
+                setField={setField}
+                resumeSources={resumeSources}
+                attachedSnapshot={attachedSnapshot}
+              />
+            </div>
+            <aside className="border-t bg-muted/20 p-6 lg:border-l lg:border-t-0">
+              <h3 className="text-sm font-semibold">Activity</h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Log interviews, calls, and follow-ups. Each saves on this device on its own.
+              </p>
+              <div className="mt-4">
+                <ActivityComposer
+                  applicationId={application.id}
+                  editing={editingEvent}
+                  disabled={saving}
+                  onLog={onLogActivity}
+                  onUpdate={onUpdateActivity}
+                  onCancelEdit={() => setEditingEvent(null)}
                 />
               </div>
-              <aside className="border-t bg-muted/20 p-6 lg:border-l lg:border-t-0">
-                <h3 className="text-sm font-semibold">Activity</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Log interviews, calls, and follow-ups. Each saves on this device on its own.
-                </p>
-                <div className="mt-4">
-                  <ActivityComposer
-                    applicationId={application.id}
-                    editing={editingEvent}
-                    disabled={saving}
-                    onLog={onLogActivity}
-                    onUpdate={onUpdateActivity}
-                    onCancelEdit={() => setEditingEvent(null)}
-                  />
-                </div>
-                <div className="mt-5">
-                  <Timeline
-                    events={events}
-                    editingId={editingEvent?.id ?? null}
-                    onEdit={setEditingEvent}
-                    onDelete={(event) => {
-                      if (
-                        window.confirm(
-                          `Delete this ${event.title} activity? This cannot be undone.`,
-                        )
-                      )
-                        void onDeleteActivity(event.id);
-                    }}
-                  />
-                </div>
-              </aside>
-            </div>
-            {formError ? <p className="mx-6 mb-3 text-sm text-destructive">{formError}</p> : null}
-            <div className="flex flex-col-reverse gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={remove}
-                disabled={saving}
-              >
-                <Trash2 /> Delete application
-              </Button>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? <Loader2 className="animate-spin" /> : <CheckCircle2 />} Save changes
-                </Button>
+              <div className="mt-5">
+                <Timeline
+                  events={events}
+                  editingId={editingEvent?.id ?? null}
+                  onEdit={setEditingEvent}
+                  onDelete={(event) => {
+                    if (
+                      window.confirm(`Delete this ${event.title} activity? This cannot be undone.`)
+                    )
+                      void onDeleteActivity(event.id);
+                  }}
+                />
               </div>
+            </aside>
+          </div>
+          {formError ? <p className="mx-6 mb-3 text-sm text-destructive">{formError}</p> : null}
+          <div className="flex flex-col-reverse gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={remove}
+              isDisabled={saving}
+            >
+              <Trash2 /> Delete application
+            </Button>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" isDisabled={saving}>
+                {saving ? <Loader2 className="animate-spin" /> : <CheckCircle2 />} Save changes
+              </Button>
             </div>
-          </form>
-        ) : null}
-      </DialogContent>
+          </div>
+        </form>
+      ) : null}
     </Dialog>
   );
 }
@@ -848,10 +871,10 @@ export function ApplicationCard({
       className="group rounded-lg border bg-card shadow-xs transition hover:border-primary/35 hover:shadow-md active:cursor-grabbing"
       data-application-card={application.id}
     >
-      <button
-        type="button"
+      <Button
+        unstyled
         className="w-full p-4 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-        onClick={onOpen}
+        onPress={onOpen}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -903,29 +926,33 @@ export function ApplicationCard({
           </span>
           <ChevronRight className="size-3.5 shrink-0 opacity-0 transition group-hover:opacity-100" />
         </div>
-      </button>
+      </Button>
     </article>
   );
 }
 
 export function EmptyPipeline({ scoped, onCreate }: { scoped: boolean; onCreate: () => void }) {
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center px-6 py-20 text-center">
-      <span className="flex size-14 items-center justify-center rounded-2xl border bg-card shadow-xs">
-        <BriefcaseBusiness className="size-6 text-primary" />
-      </span>
-      <h2 className="mt-5 text-xl font-semibold">
-        {scoped ? "No applications in this view" : "Build your private applications workspace"}
-      </h2>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        {scoped
-          ? "Try another filter or add a new opportunity."
-          : "Track roles, follow-ups, interviews, and outcomes without sending your job search to a remote database."}
-      </p>
-      <Button className="mt-6" onClick={onCreate}>
-        <Plus /> Add your first application
-      </Button>
-    </div>
+    <Empty className="mx-auto my-10 max-w-lg border-none">
+      <EmptyHeader>
+        <EmptyMedia variant="icon" className="size-14 rounded-2xl border bg-card shadow-xs">
+          <BriefcaseBusiness className="size-6 text-primary" />
+        </EmptyMedia>
+        <EmptyTitle className="text-xl">
+          {scoped ? "No applications in this view" : "Build your private applications workspace"}
+        </EmptyTitle>
+        <EmptyDescription>
+          {scoped
+            ? "Try another filter or add a new opportunity."
+            : "Track roles, follow-ups, interviews, and outcomes without sending your job search to a remote database."}
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button onClick={onCreate}>
+          <Plus /> Add your first application
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
 

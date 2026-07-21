@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   disposeLocalAIRuntime,
   friendlyLocalAIError,
@@ -44,7 +50,6 @@ export function LocalAIDialog({
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const modelSelectRef = useRef<HTMLSelectElement>(null);
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === modelId) ?? LOCAL_AI_MODELS[0];
   const lowMemoryDevice =
     typeof navigator !== "undefined" && (navigator as NavigatorWithGPU).deviceMemory !== undefined
@@ -208,144 +213,143 @@ export function LocalAIDialog({
   const modelSelectionBusy = modelState === "loading" || modelState === "removing";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-2xl"
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          window.requestAnimationFrame(() => modelSelectRef.current?.focus());
-        }}
-      >
-        <DialogHeader>
-          <div className="flex items-center gap-2 pr-8">
-            <Sparkles className="size-5" aria-hidden="true" />
-            <DialogTitle>Local AI setup</DialogTitle>
-            <Badge variant="secondary">Experimental</Badge>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} className="max-w-2xl">
+      <DialogHeader>
+        <div className="flex items-center gap-2 pr-8">
+          <Sparkles className="size-5" aria-hidden="true" />
+          <DialogTitle>Local AI setup</DialogTitle>
+          <Badge variant="secondary">Experimental</Badge>
+        </div>
+      </DialogHeader>
+
+      <Alert className="border-warning/40 bg-warning/10 pl-4">
+        <AlertTitle>Local AI can vary by device</AlertTitle>
+        <AlertDescription>
+          Performance may be slower on some devices, and suggestions may be inaccurate. Review every
+          change before applying it.
+        </AlertDescription>
+      </Alert>
+
+      <section className="space-y-3 rounded-lg border p-4" aria-labelledby="local-ai-setup-title">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 id="local-ai-setup-title" className="text-sm font-semibold">
+              Prepare a model
+            </h3>
+            <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
+              Downloads an open-source model from Hugging Face and caches it in this browser.
+            </p>
           </div>
-        </DialogHeader>
+          <Badge
+            variant={modelState === "ready" ? "secondary" : "outline"}
+            className={modelState === "ready" ? "bg-success/15 text-success" : undefined}
+          >
+            {modelState === "ready"
+              ? "Ready"
+              : isCached
+                ? "Downloaded"
+                : modelState === "not-cached"
+                  ? "Not downloaded"
+                  : modelState === "loading"
+                    ? "Preparing"
+                    : modelState === "removing"
+                      ? "Removing"
+                      : modelState === "error"
+                        ? "Needs attention"
+                        : "Checking cache"}
+          </Badge>
+        </div>
 
-        <Alert className="border-warning/40 bg-warning/10 pl-4">
-          <AlertTitle>Local AI can vary by device</AlertTitle>
-          <AlertDescription>
-            Performance may be slower on some devices, and suggestions may be inaccurate. Review
-            every change before applying it.
-          </AlertDescription>
-        </Alert>
-
-        <section className="space-y-3 rounded-lg border p-4" aria-labelledby="local-ai-setup-title">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 id="local-ai-setup-title" className="text-sm font-semibold">
-                Prepare a model
-              </h3>
-              <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                Downloads an open-source model from Hugging Face and caches it in this browser.
-              </p>
-            </div>
-            <Badge
-              variant={modelState === "ready" ? "secondary" : "outline"}
-              className={modelState === "ready" ? "bg-success/15 text-success" : undefined}
-            >
-              {modelState === "ready"
-                ? "Ready"
-                : isCached
-                  ? "Downloaded"
-                  : modelState === "not-cached"
-                    ? "Not downloaded"
-                    : modelState === "loading"
-                      ? "Preparing"
-                      : modelState === "removing"
-                        ? "Removing"
-                        : modelState === "error"
-                          ? "Needs attention"
-                          : "Checking cache"}
-            </Badge>
-          </div>
-
-          <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-            Model
-            <Select
-              ref={modelSelectRef}
-              value={modelId}
-              disabled={modelSelectionBusy}
-              onChange={(event) => changeModel(event.target.value)}
-              className="h-10"
-            >
+        <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+          Model
+          <Select
+            selectedKey={modelId}
+            isDisabled={modelSelectionBusy}
+            onSelectionChange={(key) => changeModel(String(key))}
+            aria-label="Model"
+            autoFocus
+          >
+            <SelectTrigger className="h-10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {LOCAL_AI_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>
+                <SelectItem
+                  key={model.id}
+                  id={model.id}
+                  textValue={`${model.label} — ${model.memory}${model.recommended ? " — recommended" : ""}`}
+                >
                   {model.label} — {model.memory}
                   {model.recommended ? " — recommended" : ""}
-                </option>
+                </SelectItem>
               ))}
-            </Select>
-          </label>
-          <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{selectedModel.label}:</span>{" "}
-            {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published
-            configuration.
-            {lowMemoryDevice && selectedModel.recommended ? (
-              <span className="ml-1 text-warning">
-                If loading fails, try the lower-memory model.
-              </span>
-            ) : null}
-          </div>
+            </SelectContent>
+          </Select>
+        </label>
+        <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{selectedModel.label}:</span>{" "}
+          {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published
+          configuration.
+          {lowMemoryDevice && selectedModel.recommended ? (
+            <span className="ml-1 text-warning">If loading fails, try the lower-memory model.</span>
+          ) : null}
+        </div>
 
-          {modelState === "loading" ? (
-            <div className="space-y-1.5" aria-live="polite">
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-primary transition-[width]"
-                  style={{ width: `${Math.round(progress * 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {Math.round(progress * 100)}% · {progressText || "Downloading and loading model…"}
-              </p>
+        {modelState === "loading" ? (
+          <div className="space-y-1.5" aria-live="polite">
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-[width]"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
             </div>
-          ) : null}
-
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
+            <p className="text-xs text-muted-foreground">
+              {Math.round(progress * 100)}% · {progressText || "Downloading and loading model…"}
             </p>
-          ) : null}
-          {deviceState === "unsupported" ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              Local AI isn&apos;t available in this browser or on this device.
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              onClick={prepareModel}
-              disabled={deviceState !== "supported" || setupBusy || modelState === "ready"}
-            >
-              {modelState === "loading" ? (
-                <Loader2 className="animate-spin" />
-              ) : modelState === "ready" ? (
-                <Check />
-              ) : isCached ? (
-                <Cpu />
-              ) : (
-                <Download />
-              )}
-              {modelState === "loading"
-                ? "Preparing…"
-                : modelState === "ready"
-                  ? "Model ready"
-                  : isCached
-                    ? "Load cached model"
-                    : "Download and load model"}
-            </Button>
-            {isCached ? (
-              <Button type="button" variant="outline" onClick={removeModel} disabled={setupBusy}>
-                <Trash2 /> Remove download
-              </Button>
-            ) : null}
           </div>
-        </section>
-      </DialogContent>
+        ) : null}
+
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        {deviceState === "unsupported" ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Local AI isn&apos;t available in this browser or on this device.
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={prepareModel}
+            isDisabled={deviceState !== "supported" || setupBusy || modelState === "ready"}
+          >
+            {modelState === "loading" ? (
+              <Loader2 className="animate-spin" />
+            ) : modelState === "ready" ? (
+              <Check />
+            ) : isCached ? (
+              <Cpu />
+            ) : (
+              <Download />
+            )}
+            {modelState === "loading"
+              ? "Preparing…"
+              : modelState === "ready"
+                ? "Model ready"
+                : isCached
+                  ? "Load cached model"
+                  : "Download and load model"}
+          </Button>
+          {isCached ? (
+            <Button type="button" variant="outline" onClick={removeModel} isDisabled={setupBusy}>
+              <Trash2 /> Remove download
+            </Button>
+          ) : null}
+        </div>
+      </section>
     </Dialog>
   );
 }

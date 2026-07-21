@@ -2,6 +2,8 @@
 
 import { Bold, Italic, List, ListOrdered, Sparkles, Underline } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import { commitRichContent, renderRichContent, stripRichMarks } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 
@@ -161,19 +163,19 @@ export function RichTextEditor({
           {label}
         </label>
         {aiAssist ? (
-          <button
-            type="button"
-            onClick={aiAssist.onClick}
-            disabled={!stripRichMarks(value).trim()}
-            aria-expanded={aiAssist.expanded}
-            aria-label="Open local AI text editor"
-            aria-describedby={id ? `${id}-label` : undefined}
-            data-ai-edit-for={id}
+          <Button
+            unstyled
             title={
               stripRichMarks(value).trim()
                 ? "Edit this text with local AI"
                 : "Add text before using local AI"
             }
+            onPress={aiAssist.onClick}
+            isDisabled={!stripRichMarks(value).trim()}
+            aria-expanded={aiAssist.expanded}
+            aria-label="Open local AI text editor"
+            aria-describedby={id ? `${id}-label` : undefined}
+            data-ai-edit-for={id}
             className={cn(
               "inline-flex size-7 items-center justify-center rounded-md border text-violet-600 transition-colors hover:bg-violet-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 dark:text-violet-300 dark:hover:bg-violet-950/40",
               aiAssist.expanded &&
@@ -181,7 +183,7 @@ export function RichTextEditor({
             )}
           >
             <Sparkles className="size-3.5" />
-          </button>
+          </Button>
         ) : null}
       </div>
       <div className="overflow-hidden rounded-md border border-input bg-background shadow-xs transition-colors focus-within:ring-2 focus-within:ring-ring">
@@ -194,23 +196,24 @@ export function RichTextEditor({
             key === "sep" ? (
               <span key={key} className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
             ) : (
-              <button
+              <ToggleButton
                 key={key}
-                type="button"
                 title={buttonLabel}
                 aria-label={buttonLabel}
-                aria-pressed={isActive}
+                isSelected={isActive}
                 className={cn(
                   "inline-flex size-7 items-center justify-center rounded-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
                   isActive
                     ? "bg-foreground text-background hover:bg-foreground/90"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
+                // Keep the caret/selection in the contentEditable so execCommand
+                // formats the current selection instead of the button stealing focus.
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={onClick}
+                onChange={onClick}
               >
                 <Icon className="size-3.5" />
-              </button>
+              </ToggleButton>
             ),
           )}
         </div>

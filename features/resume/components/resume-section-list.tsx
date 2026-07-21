@@ -12,9 +12,16 @@ import {
   Trash2,
 } from "lucide-react";
 import type { DragEvent, ReactNode } from "react";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EntryList, FieldGroup, TagGroupEditor } from "@/features/resume/components/editor-fields";
 import { RichTextEditor } from "@/features/resume/components/rich-text-editor";
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
@@ -235,6 +242,7 @@ export function ResumeSectionList({
             }}
           >
             <FieldGroup
+              key={`${section}-${sectionFormat}`}
               {...groupProps(section)}
               id={`review-region-${section}`}
               card
@@ -324,63 +332,63 @@ export function ResumeSectionList({
                       <Plus /> <span className="editor-pane-wide">Add</span>
                     </Button>
                   ) : null}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                    aria-label={
-                      sectionHidden
-                        ? `Show ${sectionDisplayTitle} section in resume`
-                        : `Hide ${sectionDisplayTitle} section from resume`
-                    }
-                    aria-pressed={sectionHidden}
-                    title={sectionHidden ? "Show in resume" : "Hide from resume"}
-                    onClick={() => toggleSectionHidden(section)}
-                  >
-                    {sectionHidden ? <EyeOff /> : <Eye />}
-                  </Button>
-                  <Menu>
-                    <MenuTrigger>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 shrink-0"
-                        aria-label={`More actions for ${sectionDisplayTitle}`}
-                      >
-                        <MoreHorizontal />
-                      </Button>
-                    </MenuTrigger>
-                    <MenuContent>
-                      <MenuItem
-                        disabled={sectionIndex === 0}
-                        onSelect={() => moveSection(section, -1)}
+                  <TooltipTrigger>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                      aria-label={
+                        sectionHidden
+                          ? `Show ${sectionDisplayTitle} section in resume`
+                          : `Hide ${sectionDisplayTitle} section from resume`
+                      }
+                      aria-pressed={sectionHidden}
+                      onClick={() => toggleSectionHidden(section)}
+                    >
+                      {sectionHidden ? <EyeOff /> : <Eye />}
+                    </Button>
+                    <Tooltip>{sectionHidden ? "Show in resume" : "Hide from resume"}</Tooltip>
+                  </TooltipTrigger>
+                  <DropdownMenuTrigger>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 shrink-0"
+                      aria-label={`More actions for ${sectionDisplayTitle}`}
+                    >
+                      <MoreHorizontal />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuItem
+                        isDisabled={sectionIndex === 0}
+                        onAction={() => moveSection(section, -1)}
                       >
                         <ArrowUp /> Move section up
-                      </MenuItem>
-                      <MenuItem
-                        disabled={sectionIndex === state.sectionOrder.length - 1}
-                        onSelect={() => moveSection(section, 1)}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        isDisabled={sectionIndex === state.sectionOrder.length - 1}
+                        onAction={() => moveSection(section, 1)}
                       >
                         <ArrowDown /> Move section down
-                      </MenuItem>
-                      <MenuSeparator />
-                      <MenuItem
-                        destructive
-                        onSelect={() =>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onAction={() =>
                           customSection
                             ? removeCustomSection(section)
                             : removeBuiltinSection(section)
                         }
                       >
                         <Trash2 /> Remove section
-                      </MenuItem>
-                    </MenuContent>
-                  </Menu>
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(section)}
+                      </DropdownMenuItem>
+                    </DropdownMenu>
+                  </DropdownMenuTrigger>
+                  <Button
+                    unstyled
+                    onPress={() => toggleGroup(section)}
                     aria-expanded={!sectionCollapsed}
                     aria-label={
                       sectionCollapsed
@@ -395,7 +403,7 @@ export function ResumeSectionList({
                         !sectionCollapsed && "rotate-90",
                       )}
                     />
-                  </button>
+                  </Button>
                 </div>
               }
             >
@@ -413,13 +421,12 @@ export function ResumeSectionList({
                       { key: "text", label: "Text" },
                     ] as const
                   ).map((option, index) => (
-                    <button
+                    <ToggleButton
                       key={option.key}
-                      type="button"
-                      aria-pressed={sectionFormat === option.key}
-                      aria-label={`${option.label} format`}
                       title={option.label}
-                      onClick={() => updateSectionFormat(section, option.key)}
+                      isSelected={sectionFormat === option.key}
+                      aria-label={`${option.label} format`}
+                      onChange={() => updateSectionFormat(section, option.key)}
                       className={cn(
                         "min-w-fit flex-1 border-l px-2 py-2 text-xs font-medium transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                         index === 0 && "border-l-0",
@@ -429,7 +436,7 @@ export function ResumeSectionList({
                       )}
                     >
                       {option.label}
-                    </button>
+                    </ToggleButton>
                   ))}
                 </div>
                 <p className="text-[11px] font-normal leading-snug text-muted-foreground">

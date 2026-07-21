@@ -1,15 +1,14 @@
 "use client";
 
-import { useMemo, useRef, type KeyboardEvent } from "react";
-import { Search } from "lucide-react";
+import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Kbd } from "@/components/ui/kbd";
 
 export type ResumeNavigatorItem = {
   id: string;
@@ -33,127 +32,78 @@ export function ResumeNavigator({
   onQueryChange: (query: string) => void;
   onSelect: (id: string) => void;
 }) {
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const filteredItems = useMemo(() => {
-    const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    if (!terms.length) return items;
-    return items.filter((item) => {
-      const haystack = `${item.label} ${item.context} ${item.keywords ?? ""}`.toLocaleLowerCase();
-      return terms.every((term) => haystack.includes(term));
-    });
-  }, [items, query]);
-
-  const moveFocus = (event: KeyboardEvent<HTMLElement>, direction: -1 | 1) => {
-    const buttons = Array.from(
-      event.currentTarget
-        .closest("[data-resume-navigator]")
-        ?.querySelectorAll<HTMLButtonElement>("[data-navigator-item]") ?? [],
-    );
-    if (!buttons.length) return;
-    const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
-    const nextIndex =
-      currentIndex < 0
-        ? direction > 0
-          ? 0
-          : buttons.length - 1
-        : (currentIndex + direction + buttons.length) % buttons.length;
-    event.preventDefault();
-    buttons[nextIndex]?.focus();
-  };
-
   const choose = (id: string) => {
     onOpenChange(false);
     onQueryChange("");
     onSelect(id);
   };
 
+  // Match every whitespace-delimited term (AND) against the combined
+  // label/context/keywords — the same behavior the hand-rolled listbox had,
+  // rather than React Aria's default single contiguous-substring contains().
+  const matchesQuery = (textValue: string, inputValue: string) => {
+    const terms = inputValue.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return true;
+    const haystack = textValue.toLocaleLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  };
+
   return (
     <Dialog
-      open={open}
+      isOpen={open}
       onOpenChange={(nextOpen) => {
         onOpenChange(nextOpen);
         if (!nextOpen) onQueryChange("");
       }}
+      className="max-w-xl gap-0 overflow-hidden p-0"
     >
-      <DialogContent
-        data-resume-navigator
-        className="max-w-xl gap-0 overflow-hidden p-0"
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          window.requestAnimationFrame(() => searchInputRef.current?.focus());
-        }}
+      <DialogHeader className="sr-only">
+        <DialogTitle>Navigate resume</DialogTitle>
+        <DialogDescription>
+          Search for a resume field and move focus directly to it.
+        </DialogDescription>
+      </DialogHeader>
+      <Command
+        filter={matchesQuery}
+        inputValue={query}
+        onInputChange={onQueryChange}
+        className="bg-transparent"
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>Navigate resume</DialogTitle>
-          <DialogDescription>
-            Search for a resume field and move focus directly to it.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="relative border-b">
-          <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            ref={searchInputRef}
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && filteredItems[0]) {
-                event.preventDefault();
-                choose(filteredItems[0].id);
-              } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                moveFocus(event, event.key === "ArrowDown" ? 1 : -1);
-              }
-            }}
+        <div className="border-b">
+          <CommandInput
             aria-label="Search resume fields"
             placeholder="Search fields, sections, or content…"
-            className="h-14 rounded-none border-0 bg-transparent pl-11 pr-12 text-base shadow-none focus-visible:ring-0"
           />
         </div>
-        <div
-          className="max-h-[min(55vh,28rem)] overflow-y-auto p-2"
-          role="listbox"
+        <CommandList
+          items={items}
           aria-label="Resume fields"
+          onAction={(key) => choose(String(key))}
+          renderEmptyState={() => <CommandEmpty>No matching resume fields.</CommandEmpty>}
         >
-          {filteredItems.length ? (
-            filteredItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                data-navigator-item
-                role="option"
-                aria-selected="false"
-                onClick={() => choose(item.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                    moveFocus(event, event.key === "ArrowDown" ? 1 : -1);
-                  }
-                }}
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-muted focus:bg-muted focus:outline-hidden"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{item.label}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {item.context}
-                  </span>
-                </span>
-              </button>
-            ))
-          ) : (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-              No matching resume fields.
-            </p>
+          {(item: ResumeNavigatorItem) => (
+            <CommandItem
+              id={item.id}
+              textValue={`${item.label} ${item.context} ${item.keywords ?? ""}`}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{item.label}</span>
+                <span className="block truncate text-xs text-muted-foreground">{item.context}</span>
+              </span>
+            </CommandItem>
           )}
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <kbd className="font-medium text-foreground">Cmd / Ctrl + K</kbd>
-            <span>navigate</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <kbd className="font-medium text-foreground">Cmd / Ctrl + P</kbd>
-            <span>review and print</span>
-          </span>
-        </div>
-      </DialogContent>
+        </CommandList>
+      </Command>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <Kbd>Cmd / Ctrl + K</Kbd>
+          <span>navigate</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Kbd>Cmd / Ctrl + P</Kbd>
+          <span>review and print</span>
+        </span>
+      </div>
     </Dialog>
   );
 }

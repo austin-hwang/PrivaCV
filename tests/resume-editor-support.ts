@@ -70,6 +70,25 @@ function summaryEditor(page: Page) {
   return page.getByRole("textbox", { name: "Professional Summary", exact: true });
 }
 
+/**
+ * React Aria Select replacement for the old native `<select>.selectOption()`.
+ * Opens the Select whose trigger carries the given `aria-label` (optionally
+ * scoped to a container such as a dialog), then clicks the option matching
+ * `option`. Options render in a body-level popover, so they are queried from
+ * the page rather than from `scope`. Pass a string to match an option's exact
+ * visible label, or a RegExp for a partial/pattern match.
+ */
+async function chooseSelectOption(
+  page: Page,
+  ariaLabel: string,
+  option: string | RegExp,
+  scope?: Locator,
+) {
+  const root = scope ?? page;
+  await root.locator(`[data-slot="select-trigger"][aria-label="${ariaLabel}"]`).click();
+  await page.getByRole("option", { name: option, exact: typeof option === "string" }).click();
+}
+
 async function setRichTextBlocks(
   editor: Locator,
   blocks: Array<{ type: "paragraph" | "bullet" | "number"; text: string }>,
@@ -313,6 +332,7 @@ function makeDocxWithFooterContact() {
 export {
   MAX_PDF_BYTES,
   advanceReviewTo,
+  chooseSelectOption,
   closeVersions,
   expandAllEntries,
   expandAllTagGroups,

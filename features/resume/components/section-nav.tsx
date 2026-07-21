@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type SectionNavItem = { id: string; label: string };
@@ -113,12 +114,12 @@ export function SectionNav({
         {items.map((item) => {
           const active = item.id === activeId;
           return (
-            <button
+            <Button
+              unstyled
               key={item.id}
-              type="button"
               data-nav-id={item.id}
               aria-current={active ? "true" : undefined}
-              onClick={() => jump(item.id)}
+              onPress={() => jump(item.id)}
               className={cn(
                 "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                 active
@@ -127,7 +128,7 @@ export function SectionNav({
               )}
             >
               {item.label}
-            </button>
+            </Button>
           );
         })}
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import {
   BriefcaseBusiness,
   ChevronDown,
@@ -26,13 +26,12 @@ import type { DestructiveResumeAction } from "@/features/resume/components/revie
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import { Button } from "@/components/ui/button";
 import {
-  Menu,
-  MenuContent,
-  MenuItem,
-  MenuLabel,
-  MenuSeparator,
-  MenuTrigger,
-} from "@/components/ui/menu";
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toggleTheme } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +85,19 @@ export function ResumeWorkspaceHeader({
     storageIssue,
   } = editor;
 
+  // The Applications shortcut only belongs in this menu on compact screens (it
+  // has its own spot in the desktop nav). Render it conditionally rather than
+  // CSS-hiding it, so React Aria's keyboard navigation doesn't stop on a
+  // display:none item.
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 1023px)");
+    const update = () => setIsCompact(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
   return (
     <ApplicationHeader
       active="resume"
@@ -131,82 +143,86 @@ export function ResumeWorkspaceHeader({
               </span>
             ) : null}
           </Button>
-          <Menu>
-            <MenuTrigger>
-              <Button type="button" aria-label="Export">
-                <Download /> <span className="hidden sm:inline">Export</span>
-                <ChevronDown className="hidden size-3.5 sm:block" />
-              </Button>
-            </MenuTrigger>
-            <MenuContent>
-              <MenuLabel>Export resume</MenuLabel>
-              <MenuItem onSelect={requestExport}>
+          <DropdownMenuTrigger>
+            <Button type="button" aria-label="Export">
+              <Download /> <span className="hidden sm:inline">Export</span>
+              <ChevronDown className="hidden size-3.5 sm:block" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuLabel>Export resume</DropdownMenuLabel>
+              <DropdownMenuItem onAction={requestExport}>
                 <Printer /> Export PDF
-              </MenuItem>
-              <MenuItem onSelect={requestDocxExport} disabled={!hasContent}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onAction={requestDocxExport} isDisabled={!hasContent}>
                 <FileText /> Export Word (.docx)
-              </MenuItem>
-              <MenuItem onSelect={saveMarkdown} disabled={!hasContent}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onAction={saveMarkdown} isDisabled={!hasContent}>
                 <FileCode /> Export Markdown (.md)
-              </MenuItem>
-              <MenuItem onSelect={saveJson}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onAction={saveJson}>
                 <FileJson /> Export JSON
-              </MenuItem>
-              <MenuItem onSelect={() => setTextReviewOpen(true)} disabled={!hasContent}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onAction={() => setTextReviewOpen(true)} isDisabled={!hasContent}>
                 <ClipboardCopy /> Copy resume text
-              </MenuItem>
-            </MenuContent>
-          </Menu>
-          <Menu>
-            <MenuTrigger>
-              <Button type="button" variant="outline" size="icon" aria-label="More actions">
-                <MoreHorizontal />
-              </Button>
-            </MenuTrigger>
-            <MenuContent>
-              <MenuLabel>Appearance</MenuLabel>
-              <MenuItem onSelect={() => setIsDarkTheme(toggleTheme())}>
+              </DropdownMenuItem>
+            </DropdownMenu>
+          </DropdownMenuTrigger>
+          <DropdownMenuTrigger>
+            <Button type="button" variant="outline" size="icon" aria-label="More actions">
+              <MoreHorizontal />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+              <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
                 {isDarkTheme ? <Sun /> : <Moon />}{" "}
                 {isDarkTheme ? "Use light mode" : "Use dark mode"}
-              </MenuItem>
-              <MenuSeparator />
-              <MenuLabel>Resume</MenuLabel>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Resume</DropdownMenuLabel>
               {resumeLibrary.length ? (
-                <MenuItem onSelect={() => setLibraryOpen(true)}>
+                <DropdownMenuItem onAction={() => setLibraryOpen(true)}>
                   <Library /> Resume library
                   {resumeLibrary.length > 1 ? ` (${resumeLibrary.length})` : ""}
-                </MenuItem>
+                </DropdownMenuItem>
               ) : null}
-              <MenuItem
-                className="lg:hidden"
-                onSelect={() => window.location.assign("/applications")}
+              {isCompact ? (
+                <DropdownMenuItem onAction={() => window.location.assign("/applications")}>
+                  <BriefcaseBusiness /> Applications
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Import resume</DropdownMenuLabel>
+              <DropdownMenuItem
+                onAction={() => importFileInputRef.current?.click()}
+                isDisabled={isImporting}
               >
-                <BriefcaseBusiness /> Applications
-              </MenuItem>
-              <MenuSeparator />
-              <MenuLabel>Import resume</MenuLabel>
-              <MenuItem onSelect={() => importFileInputRef.current?.click()} disabled={isImporting}>
                 <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
-              </MenuItem>
-              <MenuItem onSelect={() => setTextImportOpen(true)}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onAction={() => setTextImportOpen(true)}>
                 <ClipboardPaste /> Paste resume text
-              </MenuItem>
-              <MenuItem onSelect={() => jsonInputRef.current?.click()}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onAction={() => jsonInputRef.current?.click()}>
                 <FileJson /> Open saved JSON
-              </MenuItem>
-              <MenuSeparator />
-              <MenuLabel>Workspace data</MenuLabel>
-              <MenuItem onSelect={loadSample}>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Workspace data</DropdownMenuLabel>
+              <DropdownMenuItem onAction={loadSample}>
                 <FileText /> Sample
-              </MenuItem>
-              <MenuItem destructive onSelect={() => setDestructiveAction("clear")}>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onAction={() => setDestructiveAction("clear")}
+              >
                 <RotateCcw /> Clear resume
-              </MenuItem>
-              <MenuItem destructive onSelect={() => setDestructiveAction("delete-all")}>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onAction={() => setDestructiveAction("delete-all")}
+              >
                 <Trash2 /> Delete all data
-              </MenuItem>
-            </MenuContent>
-          </Menu>
+              </DropdownMenuItem>
+            </DropdownMenu>
+          </DropdownMenuTrigger>
         </>
       }
       secondary={

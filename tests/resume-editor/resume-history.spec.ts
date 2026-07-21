@@ -248,7 +248,7 @@ test("duplicates and switches named resumes while keeping checkpoint history sep
 
   let library = await openResumeLibrary(page);
   await expect(library.getByText("1 resume saved in this browser")).toBeVisible();
-  await library.getByTitle("Duplicate resume").click();
+  await library.getByRole("button", { name: /^duplicate/i }).click();
   await expect(page.getByText(/Duplicated/i)).toBeVisible();
 
   const history = await openVersions(page);
@@ -279,7 +279,7 @@ test("duplicates and switches named resumes while keeping checkpoint history sep
 
   library = await openResumeLibrary(page);
   const current = library.getByRole("listitem").filter({ hasText: "Current" });
-  await current.getByTitle("Rename resume").click();
+  await current.getByRole("button", { name: /^rename/i }).click();
   const rename = current.locator('input[aria-label^="Rename "]');
   await rename.fill("Product roles");
   await rename.press("Enter");
@@ -365,7 +365,10 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
 
   const timeline = await openVersions(page);
-  await timeline.getByLabel("Move through edit history").fill("0");
+  // The RAC slider exposes a focusable role="slider"; Home jumps to the minimum
+  // (value 0 = the oldest entry) the way the old range input's fill("0") did.
+  await timeline.getByRole("slider", { name: "Move through edit history" }).focus();
+  await page.keyboard.press("Home");
   await expect(timeline.locator("[data-history-selection]")).toContainText(
     "Original software resume",
   );
@@ -374,7 +377,10 @@ test("saves and restores a named local version history checkpoint", async ({ pag
   await timeline.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.locator(".resume-sheet .resume-name")).toHaveText("Grace Hopper");
   await expect(page.getByLabel("Full Name")).toHaveValue("Grace Hopper");
-  await timeline.getByLabel("Move through edit history").fill("0");
+  // The RAC slider exposes a focusable role="slider"; Home jumps to the minimum
+  // (value 0 = the oldest entry) the way the old range input's fill("0") did.
+  await timeline.getByRole("slider", { name: "Move through edit history" }).focus();
+  await page.keyboard.press("Home");
   await timeline.getByRole("button", { name: "Confirm restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
   await expect(page.getByText(/Restored from the version saved/i)).toBeHidden();

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Arimo, Carlito, Gelasio, Inter, Merriweather, Tinos } from "next/font/google";
 import "./globals.css";
 import { KofiWidget } from "@/components/kofi-widget";
+import { Toaster } from "@/components/ui/sonner";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, THEME_STORAGE_KEY } from "@/lib/site";
 import { STORAGE_KEY } from "@/lib/resume-workspace";
 
@@ -126,6 +127,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       >
         {children}
         <KofiWidget />
+        <Toaster position="bottom-center" />
       </body>
     </html>
   );
