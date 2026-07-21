@@ -88,7 +88,7 @@ function Dialog({
           // matter when a consumer opts into `flex flex-col` (e.g. a tall
           // dialog with an internal scroll area). `min-h-0` lets that scroll
           // area shrink within the modal instead of growing past its bounds.
-          className="min-h-0 grow [display:inherit] [flex-direction:inherit] [gap:inherit] outline-none"
+          className="min-h-0 min-w-0 grow [display:inherit] [flex-direction:inherit] [gap:inherit] outline-none"
         >
           {children}
           {showCloseButton && (

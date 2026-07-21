@@ -222,8 +222,28 @@ test("loads the sample resume and reviews plain text", async ({ page }) => {
 
   await openExport(page);
   await page.getByRole("menuitem", { name: /copy resume text/i }).click();
-  await expect(page.getByRole("dialog", { name: /review before copying/i })).toBeVisible();
-  await expect(page.locator("textarea[readonly]")).toContainText("John Doe");
+  const copyTextDialog = page.getByRole("dialog", { name: /review before copying/i });
+  const copyTextContent = page.locator('[data-slot="dialog-content"]');
+  const copyTextArea = page.locator("textarea[readonly]");
+  const copyTextFooter = copyTextDialog.locator('[data-slot="dialog-footer"]');
+  await expect(copyTextDialog).toBeVisible();
+  await expect(copyTextContent).toHaveCSS("overflow-y", "hidden");
+  await expect(copyTextArea).toContainText("John Doe");
+  await expect
+    .poll(async () => {
+      const [contentBox, areaBox, footerBox] = await Promise.all([
+        copyTextContent.boundingBox(),
+        copyTextArea.boundingBox(),
+        copyTextFooter.boundingBox(),
+      ]);
+      if (!contentBox || !areaBox || !footerBox) return false;
+      const areaRight = areaBox.x + areaBox.width;
+      const contentRight = contentBox.x + contentBox.width;
+      const contentBottom = contentBox.y + contentBox.height;
+      const footerBottom = footerBox.y + footerBox.height;
+      return areaRight <= contentRight && Math.abs(contentBottom - footerBottom) < 2;
+    })
+    .toBe(true);
 
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /download \.txt/i }).click();
@@ -449,6 +469,18 @@ test("offers copy-ready application fields without making users retype resume de
   ).toHaveCount(0);
   await expect(page.locator('[data-slot="dialog-content"]')).toHaveCSS("overflow-y", "hidden");
   await expect(dialog.locator("[data-application-copy-list]")).toHaveCSS("overflow-y", "auto");
+  await expect
+    .poll(async () => {
+      const [contentBox, footerBox] = await Promise.all([
+        page.locator('[data-slot="dialog-content"]').boundingBox(),
+        dialog.locator('[data-slot="dialog-footer"]').boundingBox(),
+      ]);
+      if (!contentBox || !footerBox) return false;
+      const contentBottom = contentBox.y + contentBox.height;
+      const footerBottom = footerBox.y + footerBox.height;
+      return Math.abs(contentBottom - footerBottom) < 2;
+    })
+    .toBe(true);
   await expect(dialog.getByRole("button", { name: /copy full name/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy email/i })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /copy job title/i }).first()).toBeVisible();
@@ -855,6 +887,16 @@ test("collapses an expanded resume entry even when one of its fields was active"
 });
 
 test("keeps light scroll surfaces and the tools panel visually connected", async ({ page }) => {
+  const semanticColor = (token: string) =>
+    page.evaluate((name) => {
+      const probe = document.createElement("span");
+      probe.style.color = `hsl(var(--${name}))`;
+      document.body.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    }, token);
+
   await page.goto("/");
   await page.evaluate(() => {
     localStorage.clear();
@@ -876,12 +918,17 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
     await page
       .locator("[data-brand-surface]")
       .evaluate((element) => getComputedStyle(element).fill),
-  ).toBe("rgb(241, 245, 249)");
+  ).toBe(await semanticColor("muted"));
   expect(
     await page
       .locator("[data-brand-document]")
       .evaluate((element) => getComputedStyle(element).fill),
-  ).toBe("rgb(15, 23, 42)");
+  ).toBe(await semanticColor("primary-foreground"));
+  expect(
+    await page
+      .locator("[data-brand-primary]")
+      .evaluate((element) => getComputedStyle(element).fill),
+  ).toBe(await semanticColor("primary"));
 
   const toolsToggle = page.locator('button[aria-controls="tools-panel"]');
   const toolsPanel = page.getByRole("dialog", { name: /^tools$/i });
@@ -913,12 +960,17 @@ test("keeps light scroll surfaces and the tools panel visually connected", async
     await page
       .locator("[data-brand-surface]")
       .evaluate((element) => getComputedStyle(element).fill),
-  ).toBe("rgb(21, 27, 39)");
+  ).toBe(await semanticColor("muted"));
   expect(
     await page
       .locator("[data-brand-document]")
       .evaluate((element) => getComputedStyle(element).fill),
-  ).toBe("rgb(248, 250, 252)");
+  ).toBe(await semanticColor("primary-foreground"));
+  expect(
+    await page
+      .locator("[data-brand-primary]")
+      .evaluate((element) => getComputedStyle(element).fill),
+  ).toBe(await semanticColor("primary"));
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe(
     "dark",
   );

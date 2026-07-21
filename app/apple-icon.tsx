@@ -12,7 +12,7 @@ export default function AppleIcon() {
     <div
       style={{
         alignItems: "center",
-        background: "#151b27",
+        background: "#1d222a",
         borderRadius: 40,
         display: "flex",
         height: "100%",
@@ -23,7 +23,7 @@ export default function AppleIcon() {
     >
       <div
         style={{
-          background: "#f8fafc",
+          background: "#e6e9ef",
           display: "flex",
           height: 108,
           position: "relative",
@@ -32,7 +32,7 @@ export default function AppleIcon() {
       >
         <div
           style={{
-            background: "#dbeafe",
+            background: "#142d52",
             height: 21,
             position: "absolute",
             right: 0,
@@ -42,7 +42,7 @@ export default function AppleIcon() {
         />
         <div
           style={{
-            background: "#60a5fa",
+            background: "#3b6eba",
             borderRadius: 8,
             height: 7,
             left: 16,
@@ -53,7 +53,7 @@ export default function AppleIcon() {
         />
         <div
           style={{
-            background: "#60a5fa",
+            background: "#3b6eba",
             borderRadius: 8,
             height: 7,
             left: 16,
@@ -64,7 +64,7 @@ export default function AppleIcon() {
         />
         <div
           style={{
-            background: "#60a5fa",
+            background: "#3b6eba",
             borderRadius: 8,
             height: 7,
             left: 16,
@@ -75,7 +75,7 @@ export default function AppleIcon() {
         />
         <div
           style={{
-            border: "7px solid #2563eb",
+            border: "7px solid #3b6eba",
             borderBottom: "0",
             borderRadius: "18px 18px 0 0",
             height: 20,
@@ -87,7 +87,7 @@ export default function AppleIcon() {
         />
         <div
           style={{
-            background: "#2563eb",
+            background: "#3b6eba",
             alignItems: "center",
             borderRadius: 8,
             display: "flex",
@@ -99,7 +99,7 @@ export default function AppleIcon() {
             width: 48,
           }}
         >
-          <div style={{ background: "#f8fafc", borderRadius: 99, height: 8, width: 8 }} />
+          <div style={{ background: "#ffffff", borderRadius: 99, height: 8, width: 8 }} />
         </div>
       </div>
     </div>,

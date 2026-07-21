@@ -172,7 +172,11 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
         </form>
       </Dialog>
 
-      <Dialog isOpen={textReviewOpen} className="max-w-3xl" onOpenChange={setTextReviewOpen}>
+      <Dialog
+        isOpen={textReviewOpen}
+        className="flex h-[calc(100dvh-2rem)] max-h-[40rem] max-w-3xl flex-col overflow-hidden"
+        onOpenChange={setTextReviewOpen}
+      >
         <DialogHeader>
           <DialogTitle>Review before copying</DialogTitle>
           <DialogDescription>
@@ -180,7 +184,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           </DialogDescription>
         </DialogHeader>
         {plainText ? (
-          <Field>
+          <Field className="min-h-0 min-w-0 flex-1">
             <FieldLabel className="sr-only" htmlFor="plain-text-review">
               Resume as plain text
             </FieldLabel>
@@ -188,7 +192,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
               id="plain-text-review"
               value={plainText}
               readOnly
-              className="min-h-[300px] w-full min-w-0 resize-y overflow-auto whitespace-pre font-mono text-xs leading-relaxed"
+              className="field-sizing-fixed h-full min-h-0 w-full min-w-0 flex-1 resize-none overflow-auto whitespace-pre font-mono text-xs leading-relaxed"
             />
           </Field>
         ) : (
@@ -234,7 +238,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           setApplicationCopyOpen(open);
           if (!open) setExpandedApplicationFields(new Set());
         }}
-        className="max-h-[calc(100dvh-2rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+        className="flex max-h-[calc(100dvh-2rem)] max-w-4xl flex-col overflow-hidden"
       >
         <DialogHeader>
           <DialogTitle className="sr-only">Copy for applications</DialogTitle>
@@ -243,7 +247,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           </DialogDescription>
         </DialogHeader>
         {applicationCopy.length ? (
-          <ScrollArea data-application-copy-list className="grid min-h-0 gap-5 pr-1">
+          <ScrollArea data-application-copy-list className="grid min-h-0 flex-1 gap-5 pr-1">
             {applicationCopy.map((group) => (
               <section key={group.id} aria-label={group.label} className="grid gap-2">
                 <div>
@@ -315,7 +319,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
             </AlertDescription>
           </Alert>
         )}
-        <DialogFooter className="items-center border-t pt-4 sm:justify-between">
+        <DialogFooter className="items-center sm:justify-between">
           <span className="text-xs text-muted-foreground">
             Need the whole resume? Use Export → Copy resume text.
           </span>
