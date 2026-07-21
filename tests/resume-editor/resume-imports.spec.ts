@@ -280,8 +280,12 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
   await expect(autosave.getByText("Saved", { exact: true })).toBeVisible();
 
+  // Open history before starting the edit. On a busy CI runner, opening the
+  // panel after the edit can take longer than the 400ms debounce, by which
+  // point the previous autosave has correctly become the current draft and is
+  // no longer shown as a separate history point.
+  const versions = await openVersions(page);
   const summary = page.getByRole("textbox", { name: "Professional Summary" });
-  await page.waitForTimeout(450);
   await summary.fill("A local-first product engineer who ships dependable tools.");
   await summary.press("Tab");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
@@ -289,7 +293,6 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave.getByText("Saving", { exact: true })).toBeVisible();
   await expect(libraryButton.locator(".animate-spin")).toHaveCount(0);
 
-  const versions = await openVersions(page);
   const autosaveEntry = versions.getByRole("listitem").filter({ hasText: "Autosave copy" }).first();
   await expect(autosaveEntry).toBeVisible();
   // The freshest autosave is also the live draft, so it reads "Live draft" until a
