@@ -8,6 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { type ResumeCheck } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
@@ -23,37 +32,35 @@ export function DestructiveResumeDialog({
   onConfirm: (action: DestructiveResumeAction) => void;
 }) {
   return (
-    <Dialog
+    <AlertDialog
       isOpen={action !== null}
       onOpenChange={(open) => {
         if (!open) onActionChange(null);
       }}
       className="max-w-md"
     >
-      <DialogHeader>
-        <DialogTitle>
+      <AlertDialogHeader>
+        <AlertDialogTitle>
           {action === "delete-all"
             ? "Delete all browser data?"
             : action === "clear-checkpoints"
               ? "Clear all checkpoints?"
               : "Clear this resume?"}
-        </DialogTitle>
-        <DialogDescription>
+        </AlertDialogTitle>
+        <AlertDialogDescription>
           {action === "delete-all"
             ? "This removes the resume library, edit history, applications, imported text, Local AI settings, and downloaded model files from this browser. This cannot be undone. Export backups first if you want to keep a copy."
             : action === "clear-checkpoints"
               ? "This removes every saved checkpoint for the current resume. Your live draft and autosave stay intact. This cannot be undone."
               : "This clears every resume field. You can restore the current version from the recovery card."}
-        </DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => onActionChange(null)}>
-          Cancel
-        </Button>
-        <Button
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel onPress={() => onActionChange(null)}>Cancel</AlertDialogCancel>
+        <AlertDialogAction
           type="button"
           variant="destructive"
-          onClick={() => {
+          onPress={() => {
             if (action) onConfirm(action);
           }}
         >
@@ -62,9 +69,9 @@ export function DestructiveResumeDialog({
             : action === "clear-checkpoints"
               ? "Clear checkpoints"
               : "Clear resume"}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialog>
   );
 }
 
@@ -144,7 +151,7 @@ export function ResumeChecksDialog({
             Close
           </Button>
           <Button type="button" onClick={onStartWalkthrough}>
-            <ClipboardCheck /> Start walkthrough
+            <ClipboardCheck data-icon="inline-start" /> Start walkthrough
           </Button>
         </div>
       </DialogFooter>

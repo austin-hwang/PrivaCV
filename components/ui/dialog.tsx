@@ -86,8 +86,9 @@ function Dialog({
           // Mirror the content box's layout so children behave as its direct
           // children. `display`/`gap` inherit; flex-direction and grow only
           // matter when a consumer opts into `flex flex-col` (e.g. a tall
-          // dialog with an internal scroll area) — no-ops under the default grid.
-          className="grow [display:inherit] [flex-direction:inherit] [gap:inherit] outline-none"
+          // dialog with an internal scroll area). `min-h-0` lets that scroll
+          // area shrink within the modal instead of growing past its bounds.
+          className="min-h-0 grow [display:inherit] [flex-direction:inherit] [gap:inherit] outline-none"
         >
           {children}
           {showCloseButton && (

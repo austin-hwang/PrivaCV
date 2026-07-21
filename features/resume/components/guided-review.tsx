@@ -39,11 +39,11 @@ function resolveRegionEl(targetId: string): HTMLElement | null {
 function toneRing(tone: GuidedReviewStep["tone"]) {
   switch (tone) {
     case "warn":
-      return "shadow-[0_0_0_2px_rgb(217_119_6),0_0_0_6px_rgb(217_119_6/0.18)]";
+      return "shadow-[0_0_0_2px_hsl(var(--warning)),0_0_0_6px_hsl(var(--warning)/0.18)]";
     case "ok":
-      return "shadow-[0_0_0_2px_rgb(5_150_105),0_0_0_6px_rgb(5_150_105/0.18)]";
+      return "shadow-[0_0_0_2px_hsl(var(--success)),0_0_0_6px_hsl(var(--success)/0.18)]";
     case "info":
-      return "shadow-[0_0_0_2px_rgb(2_132_199),0_0_0_6px_rgb(2_132_199/0.18)]";
+      return "shadow-[0_0_0_2px_hsl(var(--brand)),0_0_0_6px_hsl(var(--brand)/0.18)]";
     default:
       return "shadow-[0_0_0_2px_hsl(var(--ring)),0_0_0_6px_hsl(var(--ring)/0.16)]";
   }
@@ -322,7 +322,7 @@ export function GuidedReview({
   // the card. Four panes around the region leave a "hole" so the active field
   // stays clickable and editable while clicks elsewhere are swallowed.
   const HOLE = 6;
-  const backdropClass = "pointer-events-auto absolute bg-foreground/40 dark:bg-background/70";
+  const backdropClass = "pointer-events-auto absolute bg-foreground/40";
   const backdrop = !modal ? null : rect ? (
     <div
       data-guided-review-backdrop
@@ -398,12 +398,13 @@ export function GuidedReview({
             <p className="text-sm font-semibold leading-snug">{step.title}</p>
           </div>
           <Button
-            unstyled
+            variant="ghost"
+            size="icon-sm"
             onPress={onClose}
             aria-label="Close guided review"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+            className="shrink-0"
           >
-            <X className="size-4" />
+            <X data-icon="inline-start" />
           </Button>
         </div>
 
@@ -441,7 +442,7 @@ export function GuidedReview({
             aria-pressed={step.done}
             onClick={step.action.run}
           >
-            {step.done ? <Check /> : null} {step.action.label}
+            {step.done ? <Check data-icon="inline-start" /> : null} {step.action.label}
           </Button>
         ) : null}
 
@@ -458,7 +459,7 @@ export function GuidedReview({
               isDisabled={index === 0}
               onClick={() => onIndexChange(index - 1)}
             >
-              <ArrowLeft /> Back
+              <ArrowLeft data-icon="inline-start" /> Back
             </Button>
             {isLast ? (
               <Button
@@ -468,7 +469,7 @@ export function GuidedReview({
                 isDisabled={finishDisabled}
                 onClick={onFinish}
               >
-                <Check /> {finishLabel}
+                <Check data-icon="inline-start" /> {finishLabel}
               </Button>
             ) : (
               <Button
@@ -477,7 +478,7 @@ export function GuidedReview({
                 className="h-8 px-3"
                 onClick={() => onIndexChange(index + 1)}
               >
-                Next <ArrowRight />
+                Next <ArrowRight data-icon="inline-end" />
               </Button>
             )}
           </div>

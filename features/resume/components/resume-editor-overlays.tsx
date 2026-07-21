@@ -26,10 +26,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import { applicationCopyGroups, plainTextStats } from "@/lib/resume";
+import { cn } from "@/lib/utils";
 
 export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof useResumeEditor> }) {
   const [pastedResumeText, setPastedResumeText] = useState("");
@@ -120,6 +122,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
     <>
       <Dialog
         isOpen={textImportOpen}
+        className="max-w-2xl"
         onOpenChange={(open) => {
           setTextImportOpen(open);
           if (!open) setPastedResumeText("");
@@ -133,41 +136,43 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           </DialogDescription>
         </DialogHeader>
         <form
-          className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
             if (openTextImport(pastedResumeText)) setPastedResumeText("");
           }}
         >
-          <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-            <span>Resume text</span>
-            <Textarea
-              autoFocus
-              value={pastedResumeText}
-              placeholder={
-                "Jane Doe\nSoftware Engineer\njane@example.com | San Francisco, CA\n\nExperience\nSoftware Engineer | Acme | 2022–Present\n• Built reliable web experiences for customers."
-              }
-              className="min-h-64 font-mono text-xs leading-relaxed"
-              onChange={(event) => setPastedResumeText(event.target.value)}
-            />
-          </label>
-          <DialogFooter className="items-center sm:justify-between">
-            <span className="text-xs text-muted-foreground">
-              Nothing is uploaded or sent anywhere.
-            </span>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setTextImportOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                <ClipboardPaste /> Import text
-              </Button>
-            </div>
-          </DialogFooter>
+          <FieldGroup className="gap-4">
+            <Field>
+              <FieldLabel htmlFor="resume-text-import">Resume text</FieldLabel>
+              <Textarea
+                id="resume-text-import"
+                autoFocus
+                value={pastedResumeText}
+                placeholder={
+                  "Jane Doe\nSoftware Engineer\njane@example.com | San Francisco, CA\n\nExperience\nSoftware Engineer | Acme | 2022–Present\n• Built reliable web experiences for customers."
+                }
+                className="min-h-64 font-mono text-xs leading-relaxed"
+                onChange={(event) => setPastedResumeText(event.target.value)}
+              />
+            </Field>
+            <DialogFooter className="items-center sm:justify-between">
+              <span className="text-xs text-muted-foreground">
+                Nothing is uploaded or sent anywhere.
+              </span>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setTextImportOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <ClipboardPaste data-icon="inline-start" /> Import text
+                </Button>
+              </div>
+            </DialogFooter>
+          </FieldGroup>
         </form>
       </Dialog>
 
-      <Dialog isOpen={textReviewOpen} onOpenChange={setTextReviewOpen}>
+      <Dialog isOpen={textReviewOpen} className="max-w-3xl" onOpenChange={setTextReviewOpen}>
         <DialogHeader>
           <DialogTitle>Review before copying</DialogTitle>
           <DialogDescription>
@@ -175,14 +180,20 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           </DialogDescription>
         </DialogHeader>
         {plainText ? (
-          <Textarea
-            value={plainText}
-            readOnly
-            className="min-h-[300px] w-full min-w-0 resize-y overflow-auto whitespace-pre font-mono text-xs leading-relaxed"
-          />
+          <Field>
+            <FieldLabel className="sr-only" htmlFor="plain-text-review">
+              Resume as plain text
+            </FieldLabel>
+            <Textarea
+              id="plain-text-review"
+              value={plainText}
+              readOnly
+              className="min-h-[300px] w-full min-w-0 resize-y overflow-auto whitespace-pre font-mono text-xs leading-relaxed"
+            />
+          </Field>
         ) : (
           <Alert>
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle />
             <AlertTitle>Add resume details first</AlertTitle>
             <AlertDescription>
               The plain-text review will appear once your resume has content.
@@ -200,7 +211,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
               onClick={requestDocxExport}
               isDisabled={!plainText}
             >
-              <FileText /> Download .docx
+              <FileText data-icon="inline-start" /> Download .docx
             </Button>
             <Button
               type="button"
@@ -208,10 +219,10 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
               onClick={downloadPlainText}
               isDisabled={!plainText}
             >
-              <Download /> Download .txt
+              <Download data-icon="inline-start" /> Download .txt
             </Button>
             <Button type="button" onClick={copyPlainText} isDisabled={!plainText}>
-              <ClipboardCopy /> Copy Text
+              <ClipboardCopy data-icon="inline-start" /> Copy Text
             </Button>
           </div>
         </DialogFooter>
@@ -223,7 +234,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           setApplicationCopyOpen(open);
           if (!open) setExpandedApplicationFields(new Set());
         }}
-        className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+        className="max-h-[calc(100dvh-2rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
       >
         <DialogHeader>
           <DialogTitle className="sr-only">Copy for applications</DialogTitle>
@@ -257,14 +268,18 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
                           <p className="text-xs font-semibold">{field.label}</p>
                           <p
                             id={`application-copy-${applicationFieldId}`}
-                            className={`mt-1 whitespace-pre-line text-xs leading-snug text-muted-foreground ${canExpand && !isExpanded ? "max-h-12 overflow-hidden" : ""}`}
+                            className={cn(
+                              "mt-1 whitespace-pre-line text-xs leading-snug text-muted-foreground",
+                              canExpand && !isExpanded && "max-h-12 overflow-hidden",
+                            )}
                           >
                             {field.text}
                           </p>
                           {canExpand ? (
                             <Button
-                              unstyled
-                              className="mt-1 text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                              variant="link"
+                              size="xs"
+                              className="mt-1 h-auto p-0"
                               aria-expanded={isExpanded}
                               aria-controls={`application-copy-${applicationFieldId}`}
                               onPress={() => toggleApplicationField(applicationFieldId)}
@@ -280,7 +295,8 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
                           className="shrink-0"
                           onClick={() => copyApplicationField(field.text, field.label)}
                         >
-                          <ClipboardCopy /> <span className="sr-only">Copy </span>
+                          <ClipboardCopy data-icon="inline-start" />{" "}
+                          <span className="sr-only">Copy </span>
                           {field.label}
                         </Button>
                       </div>
@@ -292,7 +308,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           </ScrollArea>
         ) : (
           <Alert>
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle />
             <AlertTitle>Add resume details first</AlertTitle>
             <AlertDescription>
               Copy-ready fields will appear here as you fill out the resume.
@@ -315,55 +331,54 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
           <DialogDescription>Add a label and optional note.</DialogDescription>
         </DialogHeader>
         <form
-          className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
             saveVersion();
           }}
         >
-          <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-            <span>Checkpoint name</span>
-            <Input
-              value={versionDraftLabel}
-              placeholder="Frontend manager draft"
-              onChange={(event) => setVersionDraftLabel(event.target.value)}
-            />
-          </label>
-          <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-            <span>
-              Note{" "}
-              <span className="font-normal normal-case text-muted-foreground/80">
-                — optional, what makes this version different
-              </span>
-            </span>
-            <Textarea
-              value={versionDraftNote}
-              placeholder="e.g. Tailored for the Stripe backend role; trimmed to one page."
-              className="min-h-20"
-              onChange={(event) => setVersionDraftNote(event.target.value)}
-            />
-          </label>
-          {existingVersionForSave ? (
-            <Alert>
-              <History className="h-4 w-4" />
-              <AlertTitle>A checkpoint with identical content exists</AlertTitle>
-              <AlertDescription>
-                “{existingVersionForSave.label}” already holds this exact resume. Saving keeps both
-                — use the name or note to tell them apart.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-          <DialogFooter className="items-center sm:justify-between">
-            <span className="text-xs text-muted-foreground">Saved only in this browser.</span>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setVersionSaveOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                <Save /> Save checkpoint
-              </Button>
-            </div>
-          </DialogFooter>
+          <FieldGroup className="gap-4">
+            <Field>
+              <FieldLabel htmlFor="checkpoint-name">Checkpoint name</FieldLabel>
+              <Input
+                id="checkpoint-name"
+                value={versionDraftLabel}
+                placeholder="Frontend manager draft"
+                onChange={(event) => setVersionDraftLabel(event.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="checkpoint-note">Note</FieldLabel>
+              <Textarea
+                id="checkpoint-note"
+                value={versionDraftNote}
+                placeholder="e.g. Tailored for the Stripe backend role; trimmed to one page."
+                className="min-h-20"
+                onChange={(event) => setVersionDraftNote(event.target.value)}
+              />
+              <FieldDescription>Optional — what makes this version different.</FieldDescription>
+            </Field>
+            {existingVersionForSave ? (
+              <Alert>
+                <History />
+                <AlertTitle>A checkpoint with identical content exists</AlertTitle>
+                <AlertDescription>
+                  “{existingVersionForSave.label}” already holds this exact resume. Saving keeps
+                  both — use the name or note to tell them apart.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <DialogFooter className="items-center sm:justify-between">
+              <span className="text-xs text-muted-foreground">Saved only in this browser.</span>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setVersionSaveOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <Save data-icon="inline-start" /> Save checkpoint
+                </Button>
+              </div>
+            </DialogFooter>
+          </FieldGroup>
         </form>
       </Dialog>
 
@@ -445,35 +460,32 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
               ) : null}
             </div>
           ) : (
-            <div className="rounded-lg border border-success/30 bg-success/10 p-4">
-              <div data-checkpoint-summary className="flex items-start gap-3">
-                <Check
-                  data-checkpoint-summary-icon
-                  className="mt-0.5 size-4 shrink-0 text-success"
-                />
-                <div className="min-w-0">
-                  <p className="font-medium leading-snug">
-                    All checkpoints are already in this browser
-                  </p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {backupMatchCount} matching{" "}
-                    {backupMatchCount === 1 ? "checkpoint was" : "checkpoints were"} kept as-is. No
-                    duplicates were added.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
-                      <Badge
-                        key={checkpoint.id}
-                        variant="outline"
-                        className="max-w-full bg-background"
-                      >
-                        {checkpoint.label}
-                      </Badge>
-                    ))}
+            <Alert variant="success">
+              <AlertDescription>
+                <div data-checkpoint-summary className="flex items-start gap-3">
+                  <Check data-checkpoint-summary-icon className="mt-0.5 shrink-0 text-success" />
+                  <div className="min-w-0">
+                    <AlertTitle>All checkpoints are already in this browser</AlertTitle>
+                    <p className="mt-1">
+                      {backupMatchCount} matching{" "}
+                      {backupMatchCount === 1 ? "checkpoint was" : "checkpoints were"} kept as-is.
+                      No duplicates were added.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {mergedHistoryBackup.matchingCheckpoints.map((checkpoint) => (
+                        <Badge
+                          key={checkpoint.id}
+                          variant="outline"
+                          className="max-w-full bg-background"
+                        >
+                          {checkpoint.label}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
           )
         ) : null}
         <DialogFooter className="items-center sm:justify-between">
@@ -491,7 +503,7 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
                   Cancel
                 </Button>
                 <Button type="button" onClick={importVersionHistoryBackup}>
-                  <History /> Add {backupUniqueCount}{" "}
+                  <History data-icon="inline-start" /> Add {backupUniqueCount}{" "}
                   {backupUniqueCount === 1 ? "checkpoint" : "checkpoints"}
                 </Button>
               </>
@@ -517,46 +529,47 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
 
         <div className="grid gap-3">
           {importReview ? (
-            <div className="rounded-md border border-warning/40 bg-warning/10 p-3">
-              <div className="mb-2 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">
-                    {importReviewStatus?.isComplete
-                      ? "Imported fields are confirmed"
-                      : "Imported fields still need review"}
-                  </p>
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    {importReviewStatus?.isComplete
-                      ? "Finish the review to clear this reminder before your next export."
-                      : `Confirm each suggested field, or consciously continue with ${pendingExportFormat === "docx" ? "Download Anyway" : "Export Anyway"}.`}
-                  </p>
-                </div>
+            <Alert variant="warning">
+              <AlertCircle />
+              <AlertTitle className="flex items-start justify-between gap-3">
+                <span>
+                  {importReviewStatus?.isComplete
+                    ? "Imported fields are confirmed"
+                    : "Imported fields still need review"}
+                </span>
                 <Badge variant="secondary">
                   {importReviewStatus?.reviewedCount ?? 0}/{importReview.items.length} confirmed
                 </Badge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {nextImportReviewItem ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => focusFromExportCheck(nextImportReviewItem.targetId)}
-                  >
-                    <Eye /> Review next field
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => completeImportReview()}
-                  >
-                    <Check /> Finish import review
-                  </Button>
-                )}
-              </div>
-            </div>
+              </AlertTitle>
+              <AlertDescription>
+                <p>
+                  {importReviewStatus?.isComplete
+                    ? "Finish the review to clear this reminder before your next export."
+                    : `Confirm each suggested field, or consciously continue with ${pendingExportFormat === "docx" ? "Download Anyway" : "Export Anyway"}.`}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {nextImportReviewItem ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => focusFromExportCheck(nextImportReviewItem.targetId)}
+                    >
+                      <Eye data-icon="inline-start" /> Review next field
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => completeImportReview()}
+                    >
+                      <Check data-icon="inline-start" /> Finish import review
+                    </Button>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
           ) : null}
 
           {failedChecks.length ? (
@@ -580,14 +593,14 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
                     className="shrink-0"
                     onClick={() => focusFromExportCheck(check.targetId)}
                   >
-                    <ArrowRight /> {check.actionLabel}
+                    <ArrowRight data-icon="inline-start" /> {check.actionLabel}
                   </Button>
                 </div>
               ))}
             </div>
           ) : (
             <Alert>
-              <Check className="h-4 w-4" />
+              <Check />
               <AlertTitle>Resume checks passed</AlertTitle>
               <AlertDescription>
                 The remaining checkpoint is the imported-field review.
@@ -607,7 +620,11 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
               Keep Editing
             </Button>
             <Button type="button" onClick={exportAnyway}>
-              {pendingExportFormat === "docx" ? <FileText /> : <Printer />}
+              {pendingExportFormat === "docx" ? (
+                <FileText data-icon="inline-start" />
+              ) : (
+                <Printer data-icon="inline-start" />
+              )}
               {pendingExportFormat === "docx" ? "Download Anyway" : "Export Anyway"}
             </Button>
           </div>

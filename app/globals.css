@@ -13,26 +13,27 @@
     --card-foreground: 222 26% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 26% 10%;
-    --primary: 221 83% 53%;
+    --primary: 220 55% 46%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 216 24% 97%;
+    --secondary: 216 24% 92%;
     --secondary-foreground: 222 20% 18%;
     --muted: 216 20% 95%;
     --muted-foreground: 217 12% 40%;
-    --accent: 214 100% 96%;
+    --accent: 214 100% 92%;
     --accent-foreground: 221 83% 40%;
     --brand: 221 83% 53%;
     --brand-foreground: 0 0% 100%;
     --brand-soft: 214 100% 96%;
-    --success: 158 64% 42%;
+    --success: 158 64% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 30 60% 15%;
-    --destructive: 0 84% 60%;
+    --warning: 38 92% 30%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 27% 91%;
-    --input: 214 24% 88%;
-    --ring: 221 83% 53%;
+    --border: 214 24% 86%;
+    --color-border: hsl(var(--border));
+    --input: 214 22% 80%;
+    --ring: 220 55% 46%;
     --radius: 0.5rem;
     /* Radius scale as CSS custom properties. The Tailwind config maps the
        rounded-sm/md/lg utilities to these same calc()s, but shadcn/aria-nova
@@ -54,8 +55,9 @@
     --card-foreground: 220 23% 92%;
     --popover: 218 19% 11%;
     --popover-foreground: 220 23% 92%;
-    /* blue-600 keeps white button text at >=4.5:1 (WCAG AA); blue-500 was 3.6:1. */
-    --primary: 221 83% 53%;
+    /* A quieter slate-blue keeps selected controls distinct without glowing
+       against the dark canvas, while white button text remains WCAG AA. */
+    --primary: 216 52% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 219 19% 14%;
     --secondary-foreground: 220 23% 93%;
@@ -74,7 +76,7 @@
     --destructive-foreground: 0 60% 15%;
     --border: 219 18% 18%;
     --input: 217 17% 24%;
-    --ring: 217 91% 60%;
+    --ring: 216 52% 48%;
   }
 
   * {

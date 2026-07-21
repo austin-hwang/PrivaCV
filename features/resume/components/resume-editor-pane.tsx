@@ -15,7 +15,14 @@ import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { FieldGroup } from "@/features/resume/components/editor-fields";
 import { ResumeHeaderFields } from "@/features/resume/components/header-fields";
 import { RichTextEditor } from "@/features/resume/components/rich-text-editor";
@@ -162,8 +169,8 @@ export function ResumeEditorPane({
         ) : null}
 
         {storageIssue ? (
-          <Alert className="mb-6 border-warning/40 bg-warning/10">
-            <AlertCircle className="h-4 w-4 text-warning" />
+          <Alert variant="warning" className="mb-6">
+            <AlertCircle />
             <AlertTitle>Browser autosave is unavailable</AlertTitle>
             <AlertDescription className="editor-pane-row-center flex gap-3">
               <span>
@@ -174,18 +181,18 @@ export function ResumeEditorPane({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="w-fit border-warning/50 bg-background"
+                className="w-fit"
                 onClick={saveJson}
               >
-                <Download /> Save JSON copy
+                <Download data-icon="inline-start" /> Save JSON copy
               </Button>
             </AlertDescription>
           </Alert>
         ) : null}
 
         {externalDraft ? (
-          <Alert className="mb-6 border-brand/40 bg-brand/10">
-            <AlertCircle className="h-4 w-4 text-brand" />
+          <Alert variant="brand" className="mb-6">
+            <AlertCircle />
             <AlertTitle>A different resume was saved in another tab</AlertTitle>
             <AlertDescription className="grid gap-3">
               <span>
@@ -201,22 +208,10 @@ export function ResumeEditorPane({
                 />
               ) : null}
               <span className="flex shrink-0 flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-brand/40 bg-background"
-                  onClick={useExternalDraft}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={useExternalDraft}>
                   Use saved draft
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-brand/40 bg-background"
-                  onClick={keepCurrentDraft}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={keepCurrentDraft}>
                   Keep this draft
                 </Button>
               </span>
@@ -226,28 +221,26 @@ export function ResumeEditorPane({
 
         {recoveryPoint ? (
           <Card className="mb-6 border-brand/30 bg-brand/10">
-            <CardHeader data-recovery-header className="editor-pane-row flex gap-3 space-y-0">
-              <div>
-                <CardTitle className="text-base">Previous resume available</CardTitle>
-                <CardDescription>
-                  {recoveryPoint.label}. Stays until you restore or dismiss it.
-                </CardDescription>
-              </div>
-              <div className="editor-pane-actions flex shrink-0 gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={restoreRecoveryPoint}>
-                  <Undo2 /> Restore previous
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={dismissRecoveryPoint}>
-                  Dismiss
-                </Button>
-              </div>
+            <CardHeader data-recovery-header className="editor-pane-row flex gap-3">
+              <CardTitle className="text-base">Previous resume available</CardTitle>
+              <CardDescription>
+                {recoveryPoint.label}. Stays until you restore or dismiss it.
+              </CardDescription>
             </CardHeader>
+            <CardFooter className="editor-pane-actions flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={restoreRecoveryPoint}>
+                <Undo2 data-icon="inline-start" /> Restore previous
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={dismissRecoveryPoint}>
+                Dismiss
+              </Button>
+            </CardFooter>
           </Card>
         ) : null}
 
         {importReview ? (
           <Card id="import-review-panel" className="mb-6 border-warning/30 bg-warning/10">
-            <CardHeader className="space-y-2">
+            <CardHeader className="gap-2">
               <div className="editor-pane-row flex gap-3">
                 <div>
                   <CardTitle className="text-base">Review the imported fields</CardTitle>
@@ -274,7 +267,7 @@ export function ResumeEditorPane({
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-2">
               <Button type="button" size="sm" onClick={startImportTour}>
-                <ArrowRight />{" "}
+                <ArrowRight data-icon="inline-start" />{" "}
                 {(importReviewStatus?.reviewedCount ?? 0) > 0
                   ? "Continue walkthrough"
                   : "Start walkthrough"}
@@ -285,7 +278,7 @@ export function ResumeEditorPane({
                 size="sm"
                 onClick={() => completeImportReview(true)}
               >
-                <Check /> Finish review
+                <Check data-icon="inline-start" /> Finish review
               </Button>
             </CardContent>
           </Card>
@@ -308,12 +301,12 @@ export function ResumeEditorPane({
         <div className="-mt-2 mb-1 flex justify-end gap-1">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
             onClick={toggleNavigator}
           >
-            <Search /> Navigate
+            <Search data-icon="inline-start" /> Navigate
           </Button>
           <Button
             type="button"
@@ -322,23 +315,27 @@ export function ResumeEditorPane({
             className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
             onClick={() => setCollapsedGroups(allCollapsed ? new Set() : new Set(editorGroupIds))}
           >
-            {allCollapsed ? <ChevronsUpDown /> : <ChevronsDownUp />}{" "}
+            {allCollapsed ? (
+              <ChevronsUpDown data-icon="inline-start" />
+            ) : (
+              <ChevronsDownUp data-icon="inline-start" />
+            )}{" "}
             {allCollapsed ? "Expand all" : "Collapse all"}
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant="destructive"
             size="sm"
-            className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="h-7 gap-1.5 px-2 text-xs"
             onClick={() => setDestructiveAction("clear")}
           >
-            <RotateCcw /> Clear
+            <RotateCcw data-icon="inline-start" /> Clear
           </Button>
         </div>
       ) : null}
 
       {workspaceHasStarted ? (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <ResumeHeaderFields
             state={state}
             active={headerActive}

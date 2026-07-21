@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { cn } from "@/lib/utils";
 
 export default function NotFound() {
   return (
@@ -11,10 +13,7 @@ export default function NotFound() {
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Your resume stays in this browser. Return to the editor to keep working on it.
         </p>
-        <Link
-          href="/"
-          className="mt-6 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
+        <Link href="/" className={cn(buttonVariants({ size: "lg" }), "mt-6")}>
           Return to editor
         </Link>
       </section>

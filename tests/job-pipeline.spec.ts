@@ -1,5 +1,23 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+
+async function renderedColors(locator: Locator) {
+  return locator.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return { background: styles.backgroundColor, foreground: styles.color };
+  });
+}
+
+function rgbContrast(foreground: string, background: string) {
+  const channels = (color: string) =>
+    (color.match(/[\d.]+/g) ?? []).slice(0, 3).map((value) => Number(value) / 255);
+  const luminance = (color: string) =>
+    channels(color)
+      .map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4))
+      .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+  const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
 
 test("switches between the resume and application workspaces", async ({ page }) => {
   await page.goto("/applications");
@@ -21,6 +39,62 @@ test("switches between the resume and application workspaces", async ({ page }) 
   );
   await resumeNav.getByRole("link", { name: "Applications" }).click();
   await expect(page).toHaveURL(/\/applications$/);
+});
+
+test("keeps light-mode selections visually distinct and readable", async ({ page }) => {
+  await page.goto("/applications");
+  await expect(page.locator("[data-local-save-status]")).toHaveAttribute(
+    "data-local-save-status",
+    "saved",
+  );
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: /use light mode/i }).click();
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
+
+  const pairs = [
+    [page.getByRole("link", { name: "Applications" }), page.getByRole("link", { name: "Resume" })],
+    [
+      page.getByRole("radio", { name: "Active", exact: true }),
+      page.getByRole("radio", { name: "Closed", exact: true }),
+    ],
+    [
+      page.getByRole("radio", { name: "Board view" }),
+      page.getByRole("radio", { name: "List view" }),
+    ],
+  ] as const;
+
+  for (const [selected, unselected] of pairs) {
+    const [selectedColors, unselectedColors] = await Promise.all([
+      renderedColors(selected),
+      renderedColors(unselected),
+    ]);
+    expect(selectedColors.background).not.toBe(unselectedColors.background);
+    expect(
+      rgbContrast(selectedColors.foreground, selectedColors.background),
+    ).toBeGreaterThanOrEqual(4.5);
+  }
+
+  const scopeItems = page.getByRole("radiogroup", { name: "Application scope" }).getByRole("radio");
+  const radii = await scopeItems.evaluateAll((items) =>
+    items.map((item) => {
+      const styles = getComputedStyle(item);
+      return [
+        styles.borderTopLeftRadius,
+        styles.borderTopRightRadius,
+        styles.borderBottomRightRadius,
+        styles.borderBottomLeftRadius,
+      ].map(Number.parseFloat);
+    }),
+  );
+  expect(radii).toHaveLength(3);
+  expect(radii[0][0]).toBeGreaterThan(0);
+  expect(radii[0].slice(1, 3)).toEqual([0, 0]);
+  expect(radii[0][3]).toBeGreaterThan(0);
+  expect(radii[1]).toEqual([0, 0, 0, 0]);
+  expect(radii[2][0]).toBe(0);
+  expect(radii[2][1]).toBeGreaterThan(0);
+  expect(radii[2][2]).toBeGreaterThan(0);
+  expect(radii[2][3]).toBe(0);
 });
 
 test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
@@ -184,6 +258,45 @@ test("logs a timeline activity that persists across reloads", async ({ page }) =
   ).toBeVisible();
 });
 
+test("uses accessible alert dialogs for destructive application actions", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/applications");
+  await page.getByRole("button", { name: "Add application" }).click();
+  const createDialog = page.getByRole("dialog", { name: "Add an application" });
+  await createDialog.getByLabel("Company").fill("Northstar Labs");
+  await createDialog.getByLabel("Role").fill("Product Designer");
+  await createDialog.getByRole("button", { name: "Add application" }).click();
+
+  await page.getByRole("button", { name: /Product Designer/ }).click();
+  const detail = page.getByRole("dialog", { name: "Product Designer" });
+  await detail.getByLabel("Activity title").fill("Recruiter follow-up");
+  await detail.getByRole("button", { name: "Log", exact: true }).click();
+  await detail.getByRole("button", { name: "Delete activity" }).click();
+
+  const activityConfirmation = page.getByRole("alertdialog", {
+    name: "Delete this activity?",
+  });
+  await expect(activityConfirmation).toContainText("Recruiter follow-up");
+  await activityConfirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(detail.getByText("Recruiter follow-up", { exact: true })).toBeVisible();
+
+  await detail.getByRole("button", { name: "Delete application" }).click();
+  const applicationConfirmation = page.getByRole("alertdialog", {
+    name: "Delete this application?",
+  });
+  await expect(applicationConfirmation).toContainText("Product Designer");
+  await applicationConfirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(detail).toBeVisible();
+
+  await detail.getByRole("button", { name: "Delete application" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Delete this application?" })
+    .getByRole("button", { name: "Delete application" })
+    .click();
+  await expect(detail).toBeHidden();
+  await expect(page.getByRole("button", { name: /Product Designer/ })).toHaveCount(0);
+});
+
 // Seed the IndexedDB pipeline directly so reminder buckets and insight metrics are
 // deterministic. The page load creates the database (and its object stores) first;
 // waiting for the "saved" status guarantees the stores exist before we write.
@@ -266,7 +379,7 @@ test("groups reminders by due date and exports an ics file", async ({ page }) =>
     ],
   });
 
-  await page.getByRole("button", { name: "Reminders view" }).click();
+  await page.getByRole("radio", { name: "Reminders view" }).click();
   await expect(page.getByRole("heading", { name: "Overdue" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Due today" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Upcoming" })).toBeVisible();
@@ -360,7 +473,7 @@ test("summarizes conversion metrics in the insights view", async ({ page }) => {
     ],
   });
 
-  await page.getByRole("button", { name: "Insights view" }).click();
+  await page.getByRole("radio", { name: "Insights view" }).click();
   // 4 submitted; 3 of 4 responded; 3 reached interviewing; 1 of those 3 got an offer.
   await expect(page.getByText("Reached Applied or beyond")).toBeVisible();
   await expect(page.getByText("3 of 4 heard back")).toBeVisible();
@@ -380,9 +493,9 @@ test("renders the job search as a Sankey diagram and downloads a PNG", async ({ 
   await page.getByRole("option", { name: "Applied" }).click();
   await createDialog.getByRole("button", { name: "Add application" }).click();
 
-  await page.getByRole("button", { name: "Sankey view" }).click();
-  await expect(page.getByRole("button", { name: "Sankey view" })).toHaveAttribute(
-    "aria-pressed",
+  await page.getByRole("radio", { name: "Sankey view" }).click();
+  await expect(page.getByRole("radio", { name: "Sankey view" })).toHaveAttribute(
+    "aria-checked",
     "true",
   );
   await expect(page.getByRole("heading", { name: "Job search Sankey" })).toBeVisible();

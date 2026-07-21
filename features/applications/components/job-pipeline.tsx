@@ -12,7 +12,6 @@ import {
   GitBranch,
   KanbanSquare,
   LayoutList,
-  Loader2,
   MoreHorizontal,
   Moon,
   Plus,
@@ -21,6 +20,7 @@ import {
   Upload,
   UserRound,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { ApplicationHeader } from "@/features/shared/components/application-header";
 import {
@@ -39,15 +39,29 @@ import { RemindersView } from "@/features/applications/components/reminders-view
 import { InsightsView } from "@/features/applications/components/insights-view";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import {
   DropdownMenu,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toggleTheme } from "@/components/theme-toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useJobPipeline } from "@/features/applications/hooks/use-job-pipeline";
 import { useResumeSources } from "@/features/applications/hooks/use-resume-sources";
 import { createJobPipelineBackup, parseJobPipelineBackup } from "@/lib/job-application-db";
@@ -92,6 +106,9 @@ export function JobPipeline() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropStatus, setDropStatus] = useState<JobApplicationStatus | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const [pendingBackup, setPendingBackup] = useState<ReturnType<
+    typeof parseJobPipelineBackup
+  > | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
@@ -193,32 +210,32 @@ export function JobPipeline() {
       `Exported ${items.length} ${items.length === 1 ? "reminder" : "reminders"} to calendar`,
     );
   };
+  const restoreBackup = async (backup: ReturnType<typeof parseJobPipelineBackup>) => {
+    try {
+      await pipeline.restoreBackup(backup);
+      toast.success(`Imported ${backup.applications.length} applications`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The backup could not be imported.");
+    } finally {
+      setPendingBackup(null);
+    }
+  };
   const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     try {
       const backup = parseJobPipelineBackup(await file.text());
-      if (
-        pipeline.data.applications.length &&
-        !window.confirm(
-          "Merge this backup into the applications already on this device? Matching records will be updated.",
-        )
-      )
+      if (pipeline.data.applications.length) {
+        setPendingBackup(backup);
         return;
-      await pipeline.restoreBackup(backup);
-      toast.success(`Imported ${backup.applications.length} applications`);
+      }
+      await restoreBackup(backup);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "The backup could not be imported.");
     }
   };
   const clearPipeline = async () => {
-    if (
-      !window.confirm(
-        "Delete every job application, job description, and timeline event from this device? Download a backup first if you may need them later.",
-      )
-    )
-      return;
     try {
       await pipeline.clearPipeline();
       setSelectedId(null);
@@ -244,14 +261,16 @@ export function JobPipeline() {
         actions={
           <DropdownMenuTrigger>
             <Button type="button" variant="outline" size="icon" aria-label="More actions">
-              <MoreHorizontal />
+              <MoreHorizontal data-icon="inline-start" />
             </Button>
             <DropdownMenu>
-              <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-              <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
-                {isDarkTheme ? <Sun /> : <Moon />}{" "}
-                {isDarkTheme ? "Use light mode" : "Use dark mode"}
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
+                  {isDarkTheme ? <Sun /> : <Moon />}{" "}
+                  {isDarkTheme ? "Use light mode" : "Use dark mode"}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenu>
           </DropdownMenuTrigger>
         }
@@ -275,7 +294,7 @@ export function JobPipeline() {
               onChange={importBackup}
             />
             <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
-              <Upload /> Import backup
+              <Upload data-icon="inline-start" /> Import backup
             </Button>
             <Button
               type="button"
@@ -283,7 +302,7 @@ export function JobPipeline() {
               onClick={exportCsv}
               isDisabled={!pipeline.data.applications.length}
             >
-              <Download /> CSV
+              <Download data-icon="inline-start" /> CSV
             </Button>
             <Button
               type="button"
@@ -291,10 +310,10 @@ export function JobPipeline() {
               onClick={exportJson}
               isDisabled={!pipeline.data.applications.length}
             >
-              <Archive /> Backup
+              <Archive data-icon="inline-start" /> Backup
             </Button>
             <Button type="button" onClick={() => setCreateOpen(true)}>
-              <Plus /> Add application
+              <Plus data-icon="inline-start" /> Add application
             </Button>
           </div>
         </div>
@@ -325,7 +344,7 @@ export function JobPipeline() {
         </section>
 
         {pipeline.storageError ? (
-          <Alert variant="destructive" className="mt-5 bg-card">
+          <Alert variant="destructive" className="mt-5">
             <AlertTriangle />
             <AlertTitle>Browser storage is unavailable</AlertTitle>
             <AlertDescription>
@@ -336,24 +355,29 @@ export function JobPipeline() {
         <section className="mt-7 overflow-hidden rounded-xl border bg-card shadow-xs">
           <div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center lg:justify-between">
             {showListControls ? (
-              <div
-                className="flex flex-wrap items-center gap-1 rounded-lg bg-muted/50 p-1"
+              <ToggleGroup
                 aria-label="Application scope"
+                variant="outline"
+                spacing={0}
+                selectionMode="single"
+                selectedKeys={[scope]}
+                onSelectionChange={(keys) => {
+                  const selected = [...keys][0];
+                  if (selected) setScope(String(selected) as PipelineScope);
+                }}
               >
-                {(["active", "closed", "all"] as const).map((item) => (
-                  <Button
-                    key={item}
-                    type="button"
-                    size="sm"
-                    variant={scope === item ? "secondary" : "ghost"}
-                    aria-pressed={scope === item}
-                    onClick={() => setScope(item)}
-                    className="capitalize"
-                  >
-                    {item}
-                  </Button>
+                {(
+                  [
+                    { id: "active", label: "Active" },
+                    { id: "closed", label: "Closed" },
+                    { id: "all", label: "All" },
+                  ] as const
+                ).map((item) => (
+                  <ToggleGroupItem key={item.id} id={item.id} size="sm">
+                    {item.label}
+                  </ToggleGroupItem>
                 ))}
-              </div>
+              </ToggleGroup>
             ) : (
               <p className="px-1 text-sm font-medium text-muted-foreground">
                 {view === "reminders"
@@ -365,82 +389,57 @@ export function JobPipeline() {
             )}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               {showListControls ? (
-                <label className="relative min-w-0 sm:w-72">
-                  <span className="sr-only">Search applications</span>
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    type="search"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search roles, companies, notes..."
-                  />
-                </label>
+                <Field className="min-w-0 sm:w-72">
+                  <FieldLabel className="sr-only">Search applications</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Search />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      type="search"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search roles, companies, notes..."
+                    />
+                  </InputGroup>
+                </Field>
               ) : null}
-              <div
-                className="flex flex-wrap rounded-lg border bg-background p-1"
+              <ToggleGroup
                 aria-label="Application view"
+                variant="outline"
+                spacing={0}
+                selectionMode="single"
+                selectedKeys={[view]}
+                onSelectionChange={(keys) => {
+                  const selected = [...keys][0];
+                  if (!selected) return;
+                  const next = String(selected) as PipelineView;
+                  if (next === "sankey") setScope("all");
+                  setView(next);
+                }}
               >
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === "board" ? "secondary" : "ghost"}
-                  aria-label="Board view"
-                  aria-pressed={view === "board"}
-                  onClick={() => setView("board")}
-                >
-                  <KanbanSquare /> Board
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === "list" ? "secondary" : "ghost"}
-                  aria-label="List view"
-                  aria-pressed={view === "list"}
-                  onClick={() => setView("list")}
-                >
-                  <LayoutList /> List
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === "reminders" ? "secondary" : "ghost"}
-                  aria-label="Reminders view"
-                  aria-pressed={view === "reminders"}
-                  onClick={() => setView("reminders")}
-                >
-                  <AlarmClock /> Reminders
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === "insights" ? "secondary" : "ghost"}
-                  aria-label="Insights view"
-                  aria-pressed={view === "insights"}
-                  onClick={() => setView("insights")}
-                >
-                  <BarChart3 /> Insights
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === "sankey" ? "secondary" : "ghost"}
-                  aria-label="Sankey view"
-                  aria-pressed={view === "sankey"}
-                  onClick={() => {
-                    setScope("all");
-                    setView("sankey");
-                  }}
-                >
-                  <GitBranch /> Sankey
-                </Button>
-              </div>
+                <ToggleGroupItem id="board" size="sm" aria-label="Board view">
+                  <KanbanSquare data-icon="inline-start" /> Board
+                </ToggleGroupItem>
+                <ToggleGroupItem id="list" size="sm" aria-label="List view">
+                  <LayoutList data-icon="inline-start" /> List
+                </ToggleGroupItem>
+                <ToggleGroupItem id="reminders" size="sm" aria-label="Reminders view">
+                  <AlarmClock data-icon="inline-start" /> Reminders
+                </ToggleGroupItem>
+                <ToggleGroupItem id="insights" size="sm" aria-label="Insights view">
+                  <BarChart3 data-icon="inline-start" /> Insights
+                </ToggleGroupItem>
+                <ToggleGroupItem id="sankey" size="sm" aria-label="Sankey view">
+                  <GitBranch data-icon="inline-start" /> Sankey
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </div>
 
           {pipeline.loading ? (
             <div className="flex min-h-80 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="animate-spin" /> Loading your pipeline
+              <Spinner /> Loading your pipeline
             </div>
           ) : view === "reminders" ? (
             <RemindersView
@@ -494,9 +493,9 @@ export function JobPipeline() {
                             {JOB_APPLICATION_STATUS_META[status].description}
                           </p>
                         </div>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                        <Badge variant="secondary" className="tabular-nums">
                           {applications.length}
-                        </span>
+                        </Badge>
                       </div>
                       <div className="grid gap-2.5">
                         {applications.map((application) => (
@@ -549,8 +548,8 @@ export function JobPipeline() {
                     <tr key={application.id} className="transition hover:bg-muted/25">
                       <td className="px-4 py-3">
                         <Button
-                          unstyled
-                          className="font-medium hover:text-primary hover:underline"
+                          variant="link"
+                          className="h-auto p-0"
                           onPress={() => setSelectedId(application.id)}
                         >
                           {application.role}
@@ -595,17 +594,55 @@ export function JobPipeline() {
               account.
             </p>
             {pipeline.data.applications.length ? (
-              <Button
-                unstyled
-                className="font-medium text-destructive hover:underline"
-                onPress={clearPipeline}
-              >
-                Delete all pipeline data
-              </Button>
+              <AlertDialogTrigger>
+                <Button variant="destructive" size="xs">
+                  Delete all pipeline data
+                </Button>
+                <AlertDialog>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete all pipeline data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Every job application, job description, and timeline event on this device will
+                      be permanently removed. Download a backup first if you may need them.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onPress={() => void clearPipeline()}>
+                      Delete all data
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialog>
+              </AlertDialogTrigger>
             ) : null}
           </div>
         </div>
       </main>
+
+      <AlertDialog
+        isOpen={pendingBackup !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingBackup(null);
+        }}
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle>Merge this applications backup?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The imported records will be merged with applications already on this device. Matching
+            records will be updated.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onPress={() => {
+              if (pendingBackup) void restoreBackup(pendingBackup);
+            }}
+          >
+            Merge backup
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialog>
 
       <CreateApplicationDialog
         open={createOpen}

@@ -2,6 +2,7 @@
 
 import { ArrowRight, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useState } from "react";
+import { Button as ButtonPrimitive } from "react-aria-components";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type ExportChange } from "@/lib/resume";
@@ -21,7 +22,7 @@ export function VersionChangeRow({
 }) {
   const content = (
     <>
-      <History className="mt-0.5 size-4 shrink-0 text-indigo-800 dark:text-indigo-300" />
+      <History className="mt-0.5 size-4 shrink-0 text-brand" />
       <div className="min-w-0">
         <span className="block font-semibold text-foreground">{change.label}</span>
         <span className="block truncate text-xs text-muted-foreground">{change.detail}</span>
@@ -50,9 +51,9 @@ export function VersionChangeRow({
 
   if (onSelect) {
     return (
-      <Button unstyled className={cn(className, "hover:border-indigo-500")} onPress={onSelect}>
+      <ButtonPrimitive className={cn(className, "hover:border-brand")} onPress={onSelect}>
         {content}
-      </Button>
+      </ButtonPrimitive>
     );
   }
 
@@ -105,7 +106,11 @@ export function ChangeSummaryGrid({
             className="shrink-0"
             onClick={() => setShowAll((current) => !current)}
           >
-            {showAll ? <ChevronUp /> : <ChevronDown />}
+            {showAll ? (
+              <ChevronUp data-icon="inline-start" />
+            ) : (
+              <ChevronDown data-icon="inline-start" />
+            )}
             {showAll ? "Show fewer changes" : "Show all changes"}
           </Button>
         </div>

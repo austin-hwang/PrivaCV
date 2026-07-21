@@ -78,7 +78,7 @@ export function ReviewDrawer({
           aria-label="Close tools"
           onClick={() => onOpenChange(false)}
         >
-          <X />
+          <X data-icon="inline-start" />
         </Button>
       </div>
 
@@ -92,7 +92,10 @@ export function ReviewDrawer({
                 className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
                 onClick={onOpenChecksReview}
               >
-                <ClipboardCheck className={checksReady ? "text-success" : "text-warning"} />
+                <ClipboardCheck
+                  data-icon="inline-start"
+                  className={cn(checksReady ? "text-success" : "text-warning")}
+                />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">Resume Review</span>
                   <span className="block text-xs font-normal text-muted-foreground">
@@ -113,7 +116,7 @@ export function ReviewDrawer({
               onClick={onOpenApplicationCopy}
               isDisabled={!hasContent}
             >
-              <ClipboardCopy />
+              <ClipboardCopy data-icon="inline-start" />
               <span>
                 <span className="block text-sm font-semibold">Copy for applications</span>
                 <span className="block text-xs font-normal text-muted-foreground">
@@ -128,7 +131,7 @@ export function ReviewDrawer({
                 className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
                 onClick={onOpenLocalAI}
               >
-                <Cpu className="text-violet-600 dark:text-violet-300" />
+                <Cpu data-icon="inline-start" className="text-brand" />
                 <span>
                   <span className="block text-sm font-semibold">Local AI</span>
                   <span className="block text-xs font-normal text-muted-foreground">
@@ -143,7 +146,7 @@ export function ReviewDrawer({
               className="h-auto justify-start gap-3 whitespace-normal py-3 text-left"
               onClick={onOpenNavigator}
             >
-              <Search />
+              <Search data-icon="inline-start" />
               <span>
                 <span className="block text-sm font-semibold">Navigate resume</span>
                 <span className="block text-xs font-normal text-muted-foreground">

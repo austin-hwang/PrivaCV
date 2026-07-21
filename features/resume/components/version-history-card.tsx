@@ -2,12 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Download, History, Save, Search, Trash2, Undo2, Upload, X } from "lucide-react";
-import { ToggleButton } from "@/components/ui/toggle-button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Toggle } from "@/components/ui/toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   formatCheckpointTime,
   isAutomaticCheckpointId,
@@ -145,7 +159,7 @@ export function VersionHistoryCard({
         </div>
         <Button
           type="button"
-          variant="ghost"
+          variant="destructive"
           size="icon"
           className="size-8"
           aria-label="Close edit history"
@@ -154,7 +168,7 @@ export function VersionHistoryCard({
             onOpenChange(false);
           }}
         >
-          <X />
+          <X data-icon="inline-start" />
         </Button>
       </div>
 
@@ -168,7 +182,7 @@ export function VersionHistoryCard({
             isDisabled={!hasContent}
             aria-label="Save current version checkpoint"
           >
-            <Save /> <span className="truncate">Checkpoint</span>
+            <Save data-icon="inline-start" /> <span className="truncate">Checkpoint</span>
           </Button>
           <TooltipTrigger>
             <Button
@@ -179,7 +193,7 @@ export function VersionHistoryCard({
               aria-label="Open checkpoint backup"
               onClick={onOpenBackup}
             >
-              <Upload />
+              <Upload data-icon="inline-start" />
             </Button>
             <Tooltip>Open checkpoint backup</Tooltip>
           </TooltipTrigger>
@@ -193,7 +207,7 @@ export function VersionHistoryCard({
               onClick={onSaveBackup}
               isDisabled={!versions.length}
             >
-              <Download />
+              <Download data-icon="inline-start" />
             </Button>
             <Tooltip>Back up checkpoints</Tooltip>
           </TooltipTrigger>
@@ -202,57 +216,63 @@ export function VersionHistoryCard({
           type="button"
           variant="ghost"
           size="sm"
-          className="mt-1.5 w-full text-destructive hover:text-destructive"
+          className="mt-1.5 w-full"
           onClick={onClear}
           isDisabled={!versions.length}
         >
-          <Trash2 /> Clear checkpoints
+          <Trash2 data-icon="inline-start" /> Clear checkpoints
         </Button>
 
         {storageIssue ? (
-          <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs leading-snug text-foreground">
-            <p>Browser storage is unavailable. Checkpoints shown here may not survive a refresh.</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2 w-full border-warning/50 bg-background"
-              onClick={onSaveBackup}
-              isDisabled={!versions.length}
-            >
-              <Download /> Back up now
-            </Button>
-          </div>
+          <Alert variant="warning" className="mt-3">
+            <AlertTitle>Browser storage is unavailable</AlertTitle>
+            <AlertDescription>
+              <p>Checkpoints shown here may not survive a refresh.</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={onSaveBackup}
+                isDisabled={!versions.length}
+              >
+                <Download data-icon="inline-start" /> Back up now
+              </Button>
+            </AlertDescription>
+          </Alert>
         ) : null}
 
         {allVersions.length ? (
           <>
-            <div className="relative mt-3">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                aria-label="Find a checkpoint"
-                placeholder="Find a checkpoint"
-                className="h-8 pl-8 pr-8 text-xs"
-              />
-              {query ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 size-8"
-                  aria-label="Clear version search"
-                  onClick={() => setQuery("")}
-                >
-                  <X />
-                </Button>
-              ) : null}
-            </div>
+            <Field className="mt-3">
+              <FieldLabel className="sr-only" htmlFor="version-history-search">
+                Find a checkpoint
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <Search aria-hidden="true" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="version-history-search"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Find a checkpoint"
+                  className="text-xs"
+                />
+                {query ? (
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      aria-label="Clear version search"
+                      onClick={() => setQuery("")}
+                    >
+                      <X data-icon="inline-start" />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                ) : null}
+              </InputGroup>
+            </Field>
             <p className="mt-1.5 text-[10px] text-muted-foreground" aria-live="polite">
               {visibleVersions.length === allVersions.length
                 ? "Showing all checkpoints"
@@ -260,11 +280,18 @@ export function VersionHistoryCard({
             </p>
 
             <div className="mt-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-2">
-              <div className="flex min-h-56 flex-col items-center rounded-md border bg-muted/20 py-2">
-                <span className="text-[9px] font-medium text-muted-foreground" aria-hidden="true">
+              <Field className="flex min-h-56 flex-col items-center rounded-md border bg-muted/20 py-2">
+                <FieldLabel className="sr-only" htmlFor="version-history-slider">
+                  Move through edit history
+                </FieldLabel>
+                <span
+                  className="text-center text-[9px] font-medium text-muted-foreground"
+                  aria-hidden="true"
+                >
                   Now
                 </span>
                 <Slider
+                  id="version-history-slider"
                   orientation="vertical"
                   aria-label="Move through edit history"
                   minValue={0}
@@ -288,13 +315,16 @@ export function VersionHistoryCard({
                   }}
                   className="my-2 h-44 flex-1 cursor-ns-resize"
                 />
-                <span className="text-[9px] font-medium text-muted-foreground" aria-hidden="true">
+                <span
+                  className="text-center text-[9px] font-medium text-muted-foreground"
+                  aria-hidden="true"
+                >
                   Older
                 </span>
-              </div>
+              </Field>
 
               <ol
-                className="max-h-64 space-y-1 overflow-y-auto pr-1"
+                className="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1"
                 aria-label="Checkpoint timeline"
               >
                 {visibleVersions.map((item) => {
@@ -316,40 +346,40 @@ export function VersionHistoryCard({
                         )}
                         aria-hidden="true"
                       />
-                      <ToggleButton
+                      <Toggle
                         aria-label={`Select ${item.label}`}
                         isSelected={selected}
                         onChange={() => selectVersion(item)}
-                        className={cn(
-                          "w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
-                          selected && "bg-accent text-accent-foreground",
-                        )}
+                        variant="subtle"
+                        className="h-auto w-full items-start justify-start whitespace-normal px-2 py-1.5 text-left"
                       >
-                        <span className="block truncate text-xs font-medium">{item.label}</span>
-                        <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
-                          {formatCheckpointTime(item.savedAt)}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-medium">{item.label}</span>
+                          <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                            {formatCheckpointTime(item.savedAt)}
+                          </span>
+                          {item.note ? (
+                            <span className="mt-1 block max-h-7 overflow-hidden text-[10px] leading-snug text-muted-foreground">
+                              {item.note}
+                            </span>
+                          ) : null}
+                          {isCurrentDraft ? (
+                            <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-primary">
+                              Live draft
+                            </span>
+                          ) : null}
+                          {!isCurrentDraft && isAutosave ? (
+                            <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                              Autosaved
+                            </span>
+                          ) : null}
+                          {!isCurrentDraft && !isAutosave && isAutomatic ? (
+                            <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                              Automatic
+                            </span>
+                          ) : null}
                         </span>
-                        {item.note ? (
-                          <span className="mt-1 block max-h-7 overflow-hidden text-[10px] leading-snug text-muted-foreground">
-                            {item.note}
-                          </span>
-                        ) : null}
-                        {isCurrentDraft ? (
-                          <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-primary">
-                            Live draft
-                          </span>
-                        ) : null}
-                        {!isCurrentDraft && isAutosave ? (
-                          <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                            Autosaved
-                          </span>
-                        ) : null}
-                        {!isCurrentDraft && !isAutosave && isAutomatic ? (
-                          <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                            Automatic
-                          </span>
-                        ) : null}
-                      </ToggleButton>
+                      </Toggle>
                     </li>
                   );
                 })}
@@ -410,7 +440,8 @@ export function VersionHistoryCard({
                     isDisabled={selectedMatchesCurrent}
                     onClick={confirmRestore}
                   >
-                    <Undo2 /> <span className="truncate">Confirm restore</span>
+                    <Undo2 data-icon="inline-start" />{" "}
+                    <span className="truncate">Confirm restore</span>
                   </Button>
                   {!selectedIsNow ? (
                     <Button type="button" variant="outline" size="sm" onClick={cancelPreview}>
@@ -420,13 +451,13 @@ export function VersionHistoryCard({
                   {!selectedIsLivePoint ? (
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="destructive"
                       size="icon"
-                      className="size-8 text-destructive hover:text-destructive"
+                      className="size-8"
                       aria-label={`Delete ${selectedVersion.label}`}
                       onClick={deleteSelected}
                     >
-                      <Trash2 />
+                      <Trash2 data-icon="inline-start" />
                     </Button>
                   ) : null}
                 </div>
@@ -434,33 +465,32 @@ export function VersionHistoryCard({
             ) : null}
           </>
         ) : (
-          <div className="mt-3 rounded-md border border-dashed bg-muted/20 p-4 text-center">
-            <History className="mx-auto mb-2 size-5 text-muted-foreground" aria-hidden="true" />
-            <p className="text-xs font-semibold">No checkpoints yet</p>
-            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-              Save a checkpoint to restore this resume later.
-            </p>
-          </div>
+          <Empty className="mt-3 min-h-40">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <History />
+              </EmptyMedia>
+              <EmptyTitle>No checkpoints yet</EmptyTitle>
+              <EmptyDescription>Save a checkpoint to restore this resume later.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
 
         {deletedVersion ? (
-          <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-2.5">
-            <p className="truncate text-xs text-foreground">Deleted “{deletedVersion.label}”.</p>
-            <div className="mt-2 flex gap-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="bg-background"
-                onClick={onUndoDelete}
-              >
-                <Undo2 /> Undo
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={onDismissDeleted}>
-                Dismiss
-              </Button>
-            </div>
-          </div>
+          <Alert variant="warning" className="mt-3">
+            <AlertTitle>Checkpoint deleted</AlertTitle>
+            <AlertDescription>
+              <p className="truncate">Deleted “{deletedVersion.label}”.</p>
+              <div className="mt-2 flex gap-1">
+                <Button type="button" variant="outline" size="sm" onClick={onUndoDelete}>
+                  <Undo2 data-icon="inline-start" /> Undo
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={onDismissDeleted}>
+                  Dismiss
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
         ) : null}
       </div>
     </aside>

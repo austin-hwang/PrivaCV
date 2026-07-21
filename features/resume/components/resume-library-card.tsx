@@ -4,9 +4,33 @@ import { useMemo, useState } from "react";
 import { Copy, FileStack, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResumePreview } from "@/features/resume/components/resume-preview";
 import {
@@ -109,37 +133,39 @@ export function ResumeLibraryCard({
             onOpenChange(false);
           }}
         >
-          <Plus /> New resume
+          <Plus data-icon="inline-start" /> New resume
         </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1 p-5">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="relative min-w-0 flex-1 sm:max-w-sm">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              aria-label="Find a resume"
-              placeholder="Find by resume name or role"
-              className="pl-9 pr-9"
-            />
-            {query ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 size-9"
-                aria-label="Clear resume search"
-                onClick={() => setQuery("")}
-              >
-                <X />
-              </Button>
-            ) : null}
-          </div>
+          <Field className="min-w-0 flex-1 sm:max-w-sm">
+            <FieldLabel className="sr-only" htmlFor="resume-library-search">
+              Find a resume
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupAddon>
+                <Search aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                id="resume-library-search"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Find by resume name or role"
+              />
+              {query ? (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-xs"
+                    aria-label="Clear resume search"
+                    onClick={() => setQuery("")}
+                  >
+                    <X data-icon="inline-start" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+          </Field>
         </div>
 
         {visibleItems.length ? (
@@ -158,21 +184,27 @@ export function ResumeLibraryCard({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         {renaming ? (
-                          <Input
-                            autoFocus
-                            value={renameDraft}
-                            aria-label={`Rename ${item.label}`}
-                            className="h-8 min-w-0"
-                            onChange={(event) => setRenameDraft(event.target.value)}
-                            onBlur={() => finishRename(item)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") event.currentTarget.blur();
-                              if (event.key === "Escape") {
-                                setRenamingId(null);
-                                setRenameDraft("");
-                              }
-                            }}
-                          />
+                          <Field>
+                            <FieldLabel className="sr-only" htmlFor={`rename-resume-${item.id}`}>
+                              Rename {item.label}
+                            </FieldLabel>
+                            <Input
+                              id={`rename-resume-${item.id}`}
+                              autoFocus
+                              value={renameDraft}
+                              aria-label={`Rename ${item.label}`}
+                              className="h-8 min-w-0"
+                              onChange={(event) => setRenameDraft(event.target.value)}
+                              onBlur={() => finishRename(item)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") event.currentTarget.blur();
+                                if (event.key === "Escape") {
+                                  setRenamingId(null);
+                                  setRenameDraft("");
+                                }
+                              }}
+                            />
+                          </Field>
                         ) : (
                           <p className="truncate text-sm font-semibold">{item.label}</p>
                         )}
@@ -188,114 +220,108 @@ export function ResumeLibraryCard({
                       </p>
                     </div>
                   </div>
-                  {deletingId === item.id ? (
-                    <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
-                      <p className="text-xs text-foreground">
-                        Delete this resume and its checkpoints?
-                      </p>
-                      <div className="mt-2 flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDeletingId(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            onDelete(item.id);
-                            setDeletingId(null);
-                          }}
-                        >
-                          Delete resume
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    <Button
+                      type="button"
+                      variant={active ? "secondary" : "outline"}
+                      size="sm"
+                      isDisabled={active}
+                      onClick={() => {
+                        onOpen(item.id);
+                        onOpenChange(false);
+                      }}
+                    >
+                      {active ? "Open now" : "Open"}
+                    </Button>
+                    <TooltipTrigger>
                       <Button
                         type="button"
-                        variant={active ? "secondary" : "outline"}
-                        size="sm"
-                        isDisabled={active}
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Duplicate ${item.label}`}
                         onClick={() => {
-                          onOpen(item.id);
+                          onDuplicate(item.id);
                           onOpenChange(false);
                         }}
                       >
-                        {active ? "Open now" : "Open"}
+                        <Copy data-icon="inline-start" />
                       </Button>
-                      <TooltipTrigger>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Duplicate ${item.label}`}
-                          onClick={() => {
-                            onDuplicate(item.id);
-                            onOpenChange(false);
-                          }}
-                        >
-                          <Copy />
-                        </Button>
-                        <Tooltip>Duplicate resume</Tooltip>
-                      </TooltipTrigger>
-                      <TooltipTrigger>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Rename ${item.label}`}
-                          onClick={() => {
-                            setRenamingId(item.id);
-                            setRenameDraft(item.label);
-                          }}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Tooltip>Rename resume</Tooltip>
-                      </TooltipTrigger>
-                      <TooltipTrigger>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          aria-label={`Delete ${item.label}`}
-                          onClick={() => setDeletingId(item.id)}
-                        >
-                          <Trash2 />
-                        </Button>
-                        <Tooltip>Delete resume</Tooltip>
-                      </TooltipTrigger>
-                    </div>
-                  )}
+                      <Tooltip>Duplicate resume</Tooltip>
+                    </TooltipTrigger>
+                    <TooltipTrigger>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Rename ${item.label}`}
+                        onClick={() => {
+                          setRenamingId(item.id);
+                          setRenameDraft(item.label);
+                        }}
+                      >
+                        <Pencil data-icon="inline-start" />
+                      </Button>
+                      <Tooltip>Rename resume</Tooltip>
+                    </TooltipTrigger>
+                    <TooltipTrigger>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon-sm"
+                        aria-label={`Delete ${item.label}`}
+                        onClick={() => setDeletingId(item.id)}
+                      >
+                        <Trash2 data-icon="inline-start" />
+                      </Button>
+                      <Tooltip>Delete resume</Tooltip>
+                    </TooltipTrigger>
+                  </div>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <div className="grid min-h-56 place-items-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
-            <div>
-              <Search className="mx-auto mb-3 size-6 text-muted-foreground" />
-              <p className="font-semibold">No resumes match “{query.trim()}”</p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={() => setQuery("")}
-              >
+          <Empty className="min-h-56">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Search />
+              </EmptyMedia>
+              <EmptyTitle>No resumes match “{query.trim()}”</EmptyTitle>
+              <EmptyDescription>Try another search or show every saved resume.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button type="button" variant="outline" size="sm" onClick={() => setQuery("")}>
                 Clear search
               </Button>
-            </div>
-          </div>
+            </EmptyContent>
+          </Empty>
         )}
       </ScrollArea>
+      <AlertDialog
+        isOpen={deletingId !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setDeletingId(null);
+        }}
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this resume?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This resume and all of its saved checkpoints will be permanently removed.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onPress={() => {
+              if (deletingId) onDelete(deletingId);
+              setDeletingId(null);
+            }}
+          >
+            Delete resume
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialog>
     </Dialog>
   );
 }

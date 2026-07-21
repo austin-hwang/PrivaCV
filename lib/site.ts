@@ -1,8 +1,5 @@
 /** App-wide metadata that isn't part of a person's resume state. */
 
-/** Development stage, surfaced as a badge in the header. */
-export const APP_STAGE = "alpha";
-
 export const SITE_NAME = "PrivaCV";
 export const SITE_DESCRIPTION =
   "Build, tailor, and export a clean resume locally in your browser. Free, with no account, subscription, watermark, or resume upload required.";

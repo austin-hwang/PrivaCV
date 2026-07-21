@@ -12,13 +12,9 @@ export function BrandMark({ className }: { className?: string }) {
         y="1"
         rx="15"
         strokeWidth="2"
-        className="fill-[#f1f5f9] stroke-[#cbd5e1] dark:fill-[#151b27] dark:stroke-[#151b27]"
+        className="fill-muted stroke-border"
       />
-      <path
-        data-brand-document
-        d="M15 10h23l10 10v33H15z"
-        className="fill-[#0f172a] dark:fill-[#f8fafc]"
-      />
+      <path data-brand-document d="M15 10h23l10 10v33H15z" className="fill-foreground" />
       <path d="M38 10v10h10" fill="#dbeafe" />
       <path
         d="M22 24h17M22 30h12M22 36h14"

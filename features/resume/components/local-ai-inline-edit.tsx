@@ -1,9 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Check, Loader2, Sparkles, Square, X } from "lucide-react";
+import { Check, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Spinner } from "@/components/ui/spinner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   friendlyLocalAIError,
@@ -102,12 +109,12 @@ export function LocalAIInlineEdit({
 
   return (
     <div
-      className="space-y-2 rounded-md border border-violet-200 bg-violet-50/70 p-3 text-foreground shadow-xs dark:border-violet-500/40 dark:bg-violet-950/30"
+      className="flex flex-col gap-2 rounded-md border border-brand/30 bg-brand/5 p-3 text-foreground shadow-xs"
       aria-label={`Edit ${label} with local AI`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-950 dark:text-violet-100">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <Sparkles className="size-3.5" /> Edit this text locally
           </p>
           <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">
@@ -122,11 +129,11 @@ export function LocalAIInlineEdit({
           onClick={onClose}
           aria-label="Close AI edit"
         >
-          <X />
+          <X data-icon="inline-start" />
         </Button>
       </div>
 
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <div className="flex flex-wrap gap-1.5" aria-label="Suggested AI edits">
           {INLINE_AI_PRESETS.map((preset) => (
             <Button
@@ -142,37 +149,47 @@ export function LocalAIInlineEdit({
             </Button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <Input
-            value={instruction}
-            maxLength={INLINE_AI_INSTRUCTION_LIMIT}
-            onChange={(event) => setInstruction(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                event.preventDefault();
-                void generate();
-              }
-            }}
-            disabled={generating || !ready}
-            placeholder="e.g. Make this more concise"
-            aria-label={`AI edit instruction for ${label}`}
-            className="bg-background"
-          />
-          {generating ? (
-            <Button type="button" variant="outline" size="sm" onClick={stop}>
-              <Square /> Stop
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void generate()}
-              isDisabled={!ready || !instruction.trim()}
-            >
-              <Sparkles /> Edit
-            </Button>
-          )}
-        </div>
+        <Field data-invalid={Boolean(error) || undefined}>
+          <FieldLabel className="sr-only" htmlFor="local-ai-inline-instruction">
+            AI edit instruction for {label}
+          </FieldLabel>
+          <InputGroup className="bg-background">
+            <InputGroupInput
+              id="local-ai-inline-instruction"
+              value={instruction}
+              maxLength={INLINE_AI_INSTRUCTION_LIMIT}
+              aria-invalid={Boolean(error) || undefined}
+              onChange={(event) => {
+                setInstruction(event.target.value);
+                if (error) setError(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  void generate();
+                }
+              }}
+              disabled={generating || !ready}
+              placeholder="e.g. Make this more concise"
+            />
+            <InputGroupAddon align="inline-end">
+              {generating ? (
+                <InputGroupButton variant="outline" onClick={stop}>
+                  <Square data-icon="inline-start" /> Stop
+                </InputGroupButton>
+              ) : (
+                <InputGroupButton
+                  variant="default"
+                  onClick={() => void generate()}
+                  isDisabled={!ready || !instruction.trim()}
+                >
+                  <Sparkles data-icon="inline-start" /> Edit
+                </InputGroupButton>
+              )}
+            </InputGroupAddon>
+          </InputGroup>
+          <FieldError className="text-xs">{error}</FieldError>
+        </Field>
         <p className="text-right text-[10px] font-normal tabular-nums text-muted-foreground">
           {instruction.length}/{INLINE_AI_INSTRUCTION_LIMIT}
         </p>
@@ -180,20 +197,14 @@ export function LocalAIInlineEdit({
 
       {ready ? (
         <>
-          {error ? (
-            <p role="alert" className="text-xs font-normal text-destructive">
-              {error}
-            </p>
-          ) : null}
           {output || generating ? (
-            <div className="space-y-2" aria-live="polite">
+            <div className="flex flex-col gap-2" aria-live="polite">
               <ScrollArea className="max-h-44 rounded-md border bg-background p-2.5 text-sm font-normal leading-relaxed [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc">
                 {output ? (
                   <div dangerouslySetInnerHTML={{ __html: sanitizeRichContent(output) }} />
                 ) : (
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" />{" "}
-                    {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}
+                    <Spinner /> {retrying ? "Trying a stricter rewrite…" : "Editing locally…"}
                   </span>
                 )}
               </ScrollArea>
@@ -207,7 +218,7 @@ export function LocalAIInlineEdit({
                       onApply(sanitizeRichContent(cleanLocalAIRewrite(output)));
                     }}
                   >
-                    <Check /> Apply edit
+                    <Check data-icon="inline-start" /> Apply edit
                   </Button>
                   <span className="text-[11px] font-normal text-muted-foreground">
                     Review facts before applying.
@@ -223,7 +234,7 @@ export function LocalAIInlineEdit({
             Load a downloaded model before editing.
           </p>
           <Button type="button" variant="outline" size="sm" onClick={onOpenSetup}>
-            <Sparkles /> Open setup
+            <Sparkles data-icon="inline-start" /> Open setup
           </Button>
         </div>
       )}

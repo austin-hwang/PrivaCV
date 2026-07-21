@@ -34,7 +34,7 @@ export function WorkspaceSwitcher({
             className={cn(
               "inline-flex h-7 items-center gap-2 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
               selected
-                ? "bg-secondary text-secondary-foreground shadow-xs"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >

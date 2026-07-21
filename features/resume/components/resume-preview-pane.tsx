@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResumePreview } from "@/features/resume/components/resume-preview";
@@ -142,10 +143,17 @@ export function ResumePreviewPane({
                 aria-controls="design-panel"
                 onClick={() => setDesignOpen((open) => !open)}
               >
-                <Palette /> <span className="preview-toolbar-label">Design</span>
+                <Palette data-icon="inline-start" />{" "}
+                <span className="preview-toolbar-label">Design</span>
               </Button>
             ) : null}
-            <div className="preview-toolbar-optional h-8 shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground">
+            <Field
+              orientation="horizontal"
+              className="preview-toolbar-optional h-8 w-auto shrink-0 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground"
+            >
+              <FieldLabel className="sr-only" htmlFor="resume-text-scale">
+                Resume text size
+              </FieldLabel>
               <Slider
                 id="resume-text-scale"
                 aria-label="Resume text size"
@@ -164,7 +172,7 @@ export function ResumePreviewPane({
               <output className="w-9 text-right tabular-nums">
                 {Math.round(state.textScale * 100)}%
               </output>
-            </div>
+            </Field>
             <p className="shrink-0 text-xs text-muted-foreground">
               {pageCount} {pageCount === 1 ? "page" : "pages"}
               <span className="preview-toolbar-label"> in preview</span>
@@ -181,7 +189,7 @@ export function ResumePreviewPane({
                     state.theme.density === "compact" ? "Reduce text 2%" : "Try compact spacing"
                   }
                 >
-                  <ChevronsDownUp />
+                  <ChevronsDownUp data-icon="inline-start" />
                   <span className="preview-toolbar-label">
                     {state.theme.density === "compact" ? "Reduce text 2%" : "Compact spacing"}
                   </span>
@@ -204,7 +212,8 @@ export function ResumePreviewPane({
                     isDisabled={!currentImportSourceText}
                     onClick={() => setLocalAIImportOpen(true)}
                   >
-                    <Sparkles /> <span className="preview-toolbar-label">Fix import with AI</span>
+                    <Sparkles data-icon="inline-start" />{" "}
+                    <span className="preview-toolbar-label">Fix import with AI</span>
                   </Button>
                   <Tooltip>
                     {importReview.sourceText
@@ -229,12 +238,12 @@ export function ResumePreviewPane({
                 >
                   {inlineEdit ? (
                     <>
-                      <Pencil />
+                      <Pencil data-icon="inline-start" />
                       <span className="preview-toolbar-label">Editing</span>
                     </>
                   ) : (
                     <>
-                      <Eye />
+                      <Eye data-icon="inline-start" />
                       <span className="preview-toolbar-label">View only</span>
                     </>
                   )}
@@ -256,7 +265,7 @@ export function ResumePreviewPane({
                   aria-controls="edit-history-panel"
                   onClick={() => setHistoryOpen((open) => !open)}
                 >
-                  <History />
+                  <History data-icon="inline-start" />
                 </Button>
                 <Tooltip>
                   {historyOpen
@@ -274,7 +283,11 @@ export function ResumePreviewPane({
                   aria-label={editorCollapsed ? "Show editor" : "Hide editor"}
                   onClick={() => setEditorCollapsed((value) => !value)}
                 >
-                  {editorCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+                  {editorCollapsed ? (
+                    <PanelLeftOpen data-icon="inline-start" />
+                  ) : (
+                    <PanelLeftClose data-icon="inline-start" />
+                  )}
                 </Button>
                 <Tooltip>
                   {editorCollapsed
@@ -289,7 +302,7 @@ export function ResumePreviewPane({
                 className="lg:hidden"
                 onClick={() => setMobileWorkspaceView("editor")}
               >
-                <FileText /> Edit resume
+                <FileText data-icon="inline-start" /> Edit resume
               </Button>
               <Button
                 type="button"
@@ -301,7 +314,8 @@ export function ResumePreviewPane({
                 aria-controls="edit-history-panel"
                 onClick={() => setHistoryOpen((open) => !open)}
               >
-                <History /> <span className="preview-toolbar-label">History</span>
+                <History data-icon="inline-start" />{" "}
+                <span className="preview-toolbar-label">History</span>
               </Button>
             </div>
           </div>

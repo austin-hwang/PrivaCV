@@ -3,6 +3,14 @@
 import { useMemo } from "react";
 import { AlarmClock, CalendarCheck, CalendarClock, CalendarPlus, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { StatusBadge } from "@/features/applications/components/application-components";
 import { APPLICATION_ACTIVITY_META, formatApplicationDate } from "@/lib/job-applications";
 import type { ApplicationEvent, JobApplication } from "@/lib/job-applications";
@@ -50,17 +58,17 @@ function reminderTime(item: ReminderItem) {
 function ReminderRow({ item, onOpen }: { item: ReminderItem; onOpen: () => void }) {
   return (
     <Button
-      unstyled
+      variant="outline"
       onPress={onOpen}
-      className="flex w-full items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-left transition hover:border-primary/35 hover:shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+      className="h-auto w-full justify-between gap-3 px-4 py-3 text-left"
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{item.title}</p>
           {item.activityType ? (
-            <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <Badge variant="secondary" className="shrink-0">
               {APPLICATION_ACTIVITY_META[item.activityType].label}
-            </span>
+            </Badge>
           ) : null}
         </div>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -110,21 +118,23 @@ export function RemindersView({
           isDisabled={!all.length}
           onClick={() => onExport(all)}
         >
-          <CalendarPlus /> Export .ics
+          <CalendarPlus data-icon="inline-start" /> Export .ics
         </Button>
       </div>
 
       {all.length === 0 ? (
-        <div className="mx-auto flex max-w-md flex-col items-center rounded-xl border border-dashed bg-card px-6 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
-            <CalendarCheck className="size-5 text-primary" />
-          </span>
-          <h3 className="mt-4 text-base font-semibold">You&apos;re all caught up</h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            Add a due date to a next action, or schedule an interview or call from an
-            application&apos;s timeline, and it will show up here.
-          </p>
-        </div>
+        <Empty className="mx-auto min-h-72 max-w-md">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <CalendarCheck />
+            </EmptyMedia>
+            <EmptyTitle>You&apos;re all caught up</EmptyTitle>
+            <EmptyDescription>
+              Add a due date to a next action, or schedule an interview or call from an
+              application&apos;s timeline, and it will show up here.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="grid gap-5 lg:grid-cols-3">
           {orderedBuckets.map((bucket) => {
@@ -136,9 +146,9 @@ export function RemindersView({
                   <h2 className={cn("flex items-center gap-2 text-sm font-semibold", meta.tone)}>
                     <meta.icon className="size-4" /> {meta.title}
                   </h2>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                  <Badge variant="secondary" className="tabular-nums">
                     {items.length}
-                  </span>
+                  </Badge>
                 </header>
                 {items.length ? (
                   <div className="grid gap-2">

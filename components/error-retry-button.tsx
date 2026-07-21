@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, type CSSProperties } from "react";
-import { Button } from "@/components/ui/button";
+import { Button as ButtonPrimitive } from "react-aria-components";
 
 type ErrorRetryButtonProps = {
   reset: () => void;
@@ -31,8 +31,7 @@ export function ErrorRetryButton({
   };
 
   return (
-    <Button
-      unstyled
+    <ButtonPrimitive
       ref={(node) => {
         // React Aria doesn't forward `aria-busy`; set it directly to keep the
         // pending state exposed to assistive tech (and to tests).
@@ -44,6 +43,6 @@ export function ErrorRetryButton({
       isDisabled={retrying}
     >
       {retrying ? "Refreshing…" : "Try again"}
-    </Button>
+    </ButtonPrimitive>
   );
 }

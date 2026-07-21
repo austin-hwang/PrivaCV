@@ -1,4 +1,5 @@
 import { Check, Minus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { COMPARATORS, FEATURE_ROWS, type Cell } from "@/lib/competitors";
 import { cn } from "@/lib/utils";
 
@@ -6,10 +7,7 @@ function CellContent({ value }: { value: Cell }) {
   if (value === true) {
     return (
       <>
-        <Check
-          className="mx-auto size-4 text-emerald-600 dark:text-emerald-400"
-          aria-hidden="true"
-        />
+        <Check className="mx-auto size-4 text-success" aria-hidden="true" />
         <span className="sr-only">Yes</span>
       </>
     );
@@ -23,10 +21,10 @@ function CellContent({ value }: { value: Cell }) {
     );
   }
   if (value === "partial") {
-    return <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Limited</span>;
+    return <Badge variant="outline">Limited</Badge>;
   }
   if (value === "paid") {
-    return <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Paid</span>;
+    return <Badge variant="secondary">Paid</Badge>;
   }
   return <span className="text-xs font-medium text-foreground">{value}</span>;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button as ButtonPrimitive } from "react-aria-components";
 import {
   ChevronDown,
   ChevronRight,
@@ -12,9 +13,10 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -49,7 +51,10 @@ export function StartPanel({
 
   return (
     <Card className="mb-6">
-      <CardContent className="space-y-4 pt-6">
+      <CardHeader className="sr-only">
+        <CardTitle>Start your resume</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
         <div data-start-primary-paths className="editor-pane-grid grid gap-3">
           {/* Path 1 — bring an existing resume in and review it. */}
           <div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
@@ -66,7 +71,7 @@ export function StartPanel({
                 onClick={onImportFile}
                 isDisabled={isImporting}
               >
-                <Upload />{" "}
+                <Upload data-icon="inline-start" />{" "}
                 <span className="min-w-0">
                   {isImporting ? "Importing…" : "Import a file (PDF or Word)"}
                 </span>
@@ -77,7 +82,8 @@ export function StartPanel({
                 className="h-auto min-h-9 w-full justify-start whitespace-normal text-left"
                 onClick={onImportText}
               >
-                <ClipboardPaste /> <span className="min-w-0">Paste resume text</span>
+                <ClipboardPaste data-icon="inline-start" />{" "}
+                <span className="min-w-0">Paste resume text</span>
               </Button>
             </div>
           </div>
@@ -100,26 +106,29 @@ export function StartPanel({
                 variant="secondary"
                 className="mt-auto h-auto min-h-9 w-full justify-start border border-input whitespace-normal text-left"
               >
-                <FileText /> <span className="min-w-0">Start a blank resume</span>{" "}
-                <ChevronDown className="ml-auto shrink-0" />
+                <FileText data-icon="inline-start" />{" "}
+                <span className="min-w-0">Start a blank resume</span>{" "}
+                <ChevronDown data-icon="inline-end" className="ml-auto shrink-0" />
               </Button>
               <DropdownMenu className="min-w-64">
-                <DropdownMenuLabel>Choose a layout</DropdownMenuLabel>
-                {RESUME_TEMPLATES.map((template) => (
-                  <DropdownMenuItem
-                    key={template.id}
-                    className="items-start"
-                    onHoverStart={() => onPreviewBlank(template.id)}
-                    onAction={() => onStartBlank(template.id)}
-                  >
-                    <span>
-                      <span className="block">{template.label}</span>
-                      <span className="mt-0.5 block text-xs font-normal leading-snug text-muted-foreground">
-                        {template.description}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Choose a layout</DropdownMenuLabel>
+                  {RESUME_TEMPLATES.map((template) => (
+                    <DropdownMenuItem
+                      key={template.id}
+                      className="items-start"
+                      onHoverStart={() => onPreviewBlank(template.id)}
+                      onAction={() => onStartBlank(template.id)}
+                    >
+                      <span>
+                        <span className="block">{template.label}</span>
+                        <span className="mt-0.5 block text-xs font-normal leading-snug text-muted-foreground">
+                          {template.description}
+                        </span>
                       </span>
-                    </span>
-                  </DropdownMenuItem>
-                ))}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
               </DropdownMenu>
             </DropdownMenuTrigger>
             <p className="text-xs leading-snug text-muted-foreground">
@@ -129,13 +138,13 @@ export function StartPanel({
         </div>
 
         <div className="rounded-lg border bg-muted/20">
-          <Button
-            unstyled
+          <ButtonPrimitive
             aria-expanded={moreOpen}
             onPress={() => setMoreOpen((open) => !open)}
             className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ChevronRight
+              data-icon="inline-start"
               className={cn(
                 "size-4 text-muted-foreground transition-transform",
                 moreOpen && "rotate-90",
@@ -147,19 +156,19 @@ export function StartPanel({
                 Sample, saved JSON, backup
               </span>
             </span>
-          </Button>
+          </ButtonPrimitive>
 
           {moreOpen ? (
-            <div className="space-y-4 border-t px-4 py-4">
+            <div className="flex flex-col gap-4 border-t px-4 py-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={onLoadSample}>
-                  <FileText /> Load a sample
+                  <FileText data-icon="inline-start" /> Load a sample
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={onOpenJson}>
-                  <FileJson /> Open saved JSON
+                  <FileJson data-icon="inline-start" /> Open saved JSON
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={onOpenCheckpointBackup}>
-                  <History /> Open checkpoint backup
+                  <History data-icon="inline-start" /> Open checkpoint backup
                 </Button>
               </div>
             </div>
@@ -168,10 +177,7 @@ export function StartPanel({
 
         <div className="flex flex-wrap gap-2" aria-label="Privacy and export benefits">
           <Badge variant="secondary">No account</Badge>
-          <Badge
-            variant={storageIssue ? "outline" : "secondary"}
-            className={storageIssue ? "border-warning/40 bg-warning/10 text-foreground" : undefined}
-          >
+          <Badge variant={storageIssue ? "outline" : "secondary"}>
             {storageIssue ? "Autosave unavailable" : "Local autosave"}
           </Badge>
           <Badge variant="secondary">Free PDF export</Badge>

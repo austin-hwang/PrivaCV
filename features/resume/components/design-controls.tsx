@@ -1,10 +1,12 @@
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToggleButton } from "@/components/ui/toggle-button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -42,28 +44,27 @@ function ThemeSegment<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="grid gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-1 rounded-md border bg-muted/40 p-1">
+    <Field>
+      <FieldLabel>{label}</FieldLabel>
+      <ToggleGroup
+        aria-label={label}
+        variant="outline"
+        spacing={0}
+        selectionMode="single"
+        selectedKeys={[value]}
+        onSelectionChange={(keys) => {
+          const selected = [...keys][0];
+          if (selected != null) onChange(String(selected) as T);
+        }}
+        className="w-full"
+      >
         {options.map((option) => (
-          <ToggleButton
-            key={option.value}
-            isSelected={value === option.value}
-            onChange={() => onChange(option.value)}
-            className={cn(
-              "flex-1 whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
-              value === option.value
-                ? "bg-card text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
+          <ToggleGroupItem key={option.value} id={option.value} className="min-w-0 flex-1">
             {option.label}
-          </ToggleButton>
+          </ToggleGroupItem>
         ))}
-      </div>
-    </div>
+      </ToggleGroup>
+    </Field>
   );
 }
 
@@ -81,12 +82,10 @@ export function ResumeDesignControls({
   onThemeChange: (patch: Partial<ResumeTheme>) => void;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Preset
-          </span>
+    <FieldGroup className="gap-4">
+      <FieldGroup className="grid gap-3 sm:grid-cols-2">
+        <Field>
+          <FieldLabel>Preset</FieldLabel>
           <Select
             selectedKey={state.template}
             onSelectionChange={(key) => onTemplateChange(String(key) as ResumeTemplateId)}
@@ -97,18 +96,18 @@ export function ResumeDesignControls({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {RESUME_TEMPLATES.map((template) => (
-                <SelectItem key={template.id} id={template.id}>
-                  {template.label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {RESUME_TEMPLATES.map((template) => (
+                  <SelectItem key={template.id} id={template.id}>
+                    {template.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
-        </label>
-        <label className="grid gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Font
-          </span>
+        </Field>
+        <Field>
+          <FieldLabel>Font</FieldLabel>
           <Select
             selectedKey={state.theme.font}
             onSelectionChange={(key) => onThemeChange({ font: String(key) })}
@@ -119,60 +118,76 @@ export function ResumeDesignControls({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {RESUME_FONTS.map((font) => (
-                <SelectItem key={font.id} id={font.id} textValue={`${font.label} · ${font.kind}`}>
-                  {font.label} · {font.kind}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {RESUME_FONTS.map((font) => (
+                  <SelectItem key={font.id} id={font.id} textValue={`${font.label} · ${font.kind}`}>
+                    {font.label} · {font.kind}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
-        </label>
-      </div>
+        </Field>
+      </FieldGroup>
 
-      <div className="grid gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <FieldSet>
+        <FieldLegend id="accent-color-legend" variant="label">
           Accent color
-        </span>
-        <div className="flex flex-wrap items-center gap-1.5" aria-label="Accent color">
-          {ACCENT_PRESETS.map((accent) => {
-            const selected =
-              normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase();
-            return (
-              <ToggleButton
-                key={accent.id}
-                title={accent.label}
-                isSelected={selected}
-                aria-label={accent.label}
-                onChange={() => onThemeChange({ accent: accent.value })}
-                className={cn(
-                  "size-7 rounded-full border transition-transform focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                  selected ? "ring-2 ring-ring ring-offset-1" : "hover:scale-110",
-                )}
-                style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
-              />
-            );
-          })}
-          <label className="ml-1 inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
-            Custom
+        </FieldLegend>
+        <FieldGroup className="flex-row flex-wrap items-center gap-2">
+          <ToggleGroup
+            aria-labelledby="accent-color-legend"
+            spacing={2}
+            selectionMode="single"
+            selectedKeys={ACCENT_PRESETS.filter(
+              (accent) =>
+                normalizeAccent(state.theme.accent).toLowerCase() === accent.value.toLowerCase(),
+            ).map((accent) => accent.id)}
+            onSelectionChange={(keys) => {
+              const selected = [...keys][0];
+              const accent = ACCENT_PRESETS.find((option) => option.id === selected);
+              if (accent) onThemeChange({ accent: accent.value });
+            }}
+            className="flex-wrap"
+          >
+            {ACCENT_PRESETS.map((accent) => {
+              return (
+                <ToggleGroupItem
+                  key={accent.id}
+                  id={accent.id}
+                  aria-label={accent.label}
+                  className="size-7 min-w-0 rounded-full border p-0 transition-transform hover:scale-110 data-selected:ring-2 data-selected:ring-ring data-selected:ring-offset-1"
+                  style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
+                />
+              );
+            })}
+          </ToggleGroup>
+          <Field orientation="horizontal" className="w-fit rounded-full border px-2 py-1">
+            <FieldLabel htmlFor="custom-accent-color" className="text-[11px] text-muted-foreground">
+              Custom
+            </FieldLabel>
             <input
+              id="custom-accent-color"
               type="color"
               value={normalizeAccent(state.theme.accent)}
               onChange={(event) => onThemeChange({ accent: event.target.value })}
               className="size-5 cursor-pointer rounded-sm border-0 bg-transparent p-0"
               aria-label="Custom accent color"
             />
-          </label>
-        </div>
-      </div>
+          </Field>
+        </FieldGroup>
+      </FieldSet>
 
       <Button
-        unstyled
+        variant="ghost"
+        size="sm"
         aria-expanded={advancedOpen}
         onPress={() => onAdvancedOpenChange(!advancedOpen)}
-        className="flex w-full items-center gap-1.5 rounded-md text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        className="w-full justify-start"
       >
         <ChevronRight
-          className={cn("size-3.5 transition-transform", advancedOpen && "rotate-90")}
+          data-icon="inline-start"
+          className={cn("transition-transform", advancedOpen && "rotate-90")}
         />
         Advanced
         <span className="font-normal">header, density, headings, bullets, divider</span>
@@ -231,6 +246,6 @@ export function ResumeDesignControls({
           </div>
         </div>
       ) : null}
-    </div>
+    </FieldGroup>
   );
 }

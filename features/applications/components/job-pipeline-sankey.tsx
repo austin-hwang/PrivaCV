@@ -1,8 +1,16 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import type { JobSankeyData } from "@/lib/job-application-sankey";
 import { buildJobSankeyLayout, DEFAULT_JOB_SANKEY_LAYOUT } from "@/lib/job-sankey-layout";
 
@@ -84,13 +92,18 @@ export function JobPipelineSankey({
 
   if (!data.total) {
     return (
-      <div className="flex min-h-112 flex-col items-center justify-center px-6 text-center">
-        <h2 className="text-lg font-semibold">No submitted applications to chart yet</h2>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-          Move an opportunity to Applied or a later stage. Saved and Preparing roles are
-          intentionally left out of the job-search flow.
-        </p>
-      </div>
+      <Empty className="min-h-112">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <GitBranch />
+          </EmptyMedia>
+          <EmptyTitle>No submitted applications to chart yet</EmptyTitle>
+          <EmptyDescription>
+            Move an opportunity to Applied or a later stage. Saved and Preparing roles are
+            intentionally left out of the job-search flow.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -104,7 +117,7 @@ export function JobPipelineSankey({
           </p>
         </div>
         <Button type="button" variant="outline" onClick={saveImage} isDisabled={exporting}>
-          {exporting ? <Loader2 className="animate-spin" /> : <Download />}{" "}
+          {exporting ? <Spinner data-icon="inline-start" /> : <Download data-icon="inline-start" />}{" "}
           {exporting ? "Rendering PNG" : "Save as PNG"}
         </Button>
       </div>

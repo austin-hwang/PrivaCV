@@ -949,7 +949,7 @@ test("adapts editor cards when the divider narrows the pane", async ({ page }) =
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: "Clear resume" }).click();
-  const clearDialog = page.getByRole("dialog", { name: /clear this resume/i });
+  const clearDialog = page.getByRole("alertdialog", { name: /clear this resume/i });
   await clearDialog.getByRole("button", { name: /clear resume/i }).click();
 
   const editorPane = page.locator("#resume-editor-pane");

@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buildRoleFocus, buildRolePhraseSuggestions, reviewRolePhrase } from "@/lib/job-match";
@@ -53,14 +54,14 @@ export function RoleFocusCard({
   };
 
   return (
-    <Card className="mb-6 border-sky-300 bg-sky-50/70">
-      <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+    <Card className="mb-6">
+      <CardHeader className="flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-sky-300 bg-background text-sky-800">
+          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-brand/30 bg-background text-brand">
             <Target className="size-4" />
           </span>
           <div>
-            <CardDescription className="font-semibold uppercase tracking-[0.16em] text-sky-900">
+            <CardDescription className="font-semibold uppercase tracking-[0.16em]">
               Role focus
             </CardDescription>
             <CardTitle className="text-base">Check the language you already use.</CardTitle>
@@ -82,35 +83,34 @@ export function RoleFocusCard({
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-3">
-        <label className="grid gap-1.5 text-sm font-medium">
-          <span>Private role label (optional)</span>
+      <CardContent className="flex flex-col gap-3">
+        <Field>
+          <FieldLabel htmlFor="role-focus-label">Private role label (optional)</FieldLabel>
           <Input
+            id="role-focus-label"
             value={roleLabel}
             onChange={(event) => onRoleLabelChange(event.target.value)}
             placeholder="e.g. Acme — Senior Product Engineer"
           />
-          <span className="text-xs font-normal leading-snug text-muted-foreground">
+          <FieldDescription>
             A short local-only label makes saved drafts easy to recognize. It never appears in your
             resume or PDF.
-          </span>
-        </label>
-        <label className="grid gap-1.5 text-sm font-medium">
-          <span>Job description</span>
+          </FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="role-focus-description">Job description</FieldLabel>
           <Textarea
+            id="role-focus-description"
             value={jobDescription}
             onChange={(event) => onChange(event.target.value)}
             placeholder="Paste the role description here to compare wording locally."
             className="min-h-24 resize-y bg-background"
           />
-        </label>
+        </Field>
         {hasDescription && roleFocus.totalCount ? (
           <div className="rounded-md border bg-background p-3">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge
-                variant="secondary"
-                className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100"
-              >
+              <Badge variant="secondary">
                 {roleFocus.matchedCount} of {roleFocus.totalCount} selected terms already used
               </Badge>
               <span className="text-xs text-muted-foreground">
@@ -126,15 +126,7 @@ export function RoleFocusCard({
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {requirementTerms.map((term) => (
-                    <Badge
-                      key={term.term}
-                      variant="outline"
-                      className={
-                        term.matched
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                          : "border-amber-300 bg-amber-50 text-amber-950"
-                      }
-                    >
+                    <Badge key={term.term} variant={term.matched ? "secondary" : "outline"}>
                       {term.term}{" "}
                       <span className="ml-1 text-[10px] font-medium">
                         {term.matched ? "present" : "review"}
@@ -151,11 +143,7 @@ export function RoleFocusCard({
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {generalMatchedTerms.map((term) => (
-                    <Badge
-                      key={term.term}
-                      variant="outline"
-                      className="border-emerald-300 bg-emerald-50 text-emerald-900"
-                    >
+                    <Badge key={term.term} variant="secondary">
                       {term.term}
                     </Badge>
                   ))}
@@ -169,11 +157,7 @@ export function RoleFocusCard({
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {generalMissingTerms.map((term) => (
-                    <Badge
-                      key={term.term}
-                      variant="outline"
-                      className="border-amber-300 bg-amber-50 text-amber-950"
-                    >
+                    <Badge key={term.term} variant="outline">
                       {term.term}
                     </Badge>
                   ))}
@@ -194,7 +178,7 @@ export function RoleFocusCard({
                   Jump to the wording you already have. Terms found only in a title, summary, or
                   skills can be worth grounding in a truthful achievement too.
                 </p>
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 flex flex-col gap-2">
                   {matchedTerms
                     .filter((term) => term.evidence.length)
                     .map((term) => {
@@ -212,10 +196,10 @@ export function RoleFocusCard({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-7 border-emerald-300 bg-emerald-50 px-2 text-emerald-950"
+                              className="h-7 px-2"
                               onClick={() => onFocus(item.targetId)}
                             >
-                              {item.label} <ArrowRight />
+                              {item.label} <ArrowRight data-icon="inline-end" />
                             </Button>
                           ))}
                           {supportingEvidence.map((item) => (
@@ -224,10 +208,10 @@ export function RoleFocusCard({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-7 border-sky-300 bg-sky-50 px-2 text-sky-950"
+                              className="h-7 px-2"
                               onClick={() => onFocus(item.targetId)}
                             >
-                              {item.label} <ArrowRight />
+                              {item.label} <ArrowRight data-icon="inline-end" />
                             </Button>
                           ))}
                         </div>
@@ -249,19 +233,22 @@ export function RoleFocusCard({
         ) : null}
         {hasDescription ? (
           <div className="rounded-md border bg-background p-3">
-            <label className="grid gap-1.5 text-sm font-medium">
-              <span>Check an exact phrase from this role</span>
+            <Field>
+              <FieldLabel htmlFor="role-focus-phrase">
+                Check an exact phrase from this role
+              </FieldLabel>
               <Input
+                id="role-focus-phrase"
                 value={phrase}
                 onChange={(event) => setPhrase(event.target.value)}
                 placeholder="e.g. TypeScript services"
                 aria-describedby="role-phrase-help"
               />
-            </label>
-            <p id="role-phrase-help" className="mt-1.5 text-xs leading-snug text-muted-foreground">
-              Compare a specific two-or-more-word concept after deciding it accurately reflects your
-              work.
-            </p>
+              <FieldDescription id="role-phrase-help">
+                Compare a specific two-or-more-word concept after deciding it accurately reflects
+                your work.
+              </FieldDescription>
+            </Field>
             {phraseSuggestions.length ? (
               <div className="mt-3 border-t pt-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -285,7 +272,7 @@ export function RoleFocusCard({
                       <span
                         className={cn(
                           "ml-1.5 text-xs",
-                          suggestion.matched ? "text-emerald-800" : "text-muted-foreground",
+                          suggestion.matched ? "text-success" : "text-muted-foreground",
                         )}
                       >
                         {suggestion.matched ? "in resume" : "review"}
@@ -300,11 +287,9 @@ export function RoleFocusCard({
                 {phraseReview.termCount < 2 ? (
                   <p className="text-muted-foreground">Add at least two words to check a phrase.</p>
                 ) : phraseReview.matched ? (
-                  <p className="font-medium text-emerald-900">
-                    Phrase already appears in your resume.
-                  </p>
+                  <p className="font-medium text-success">Phrase already appears in your resume.</p>
                 ) : (
-                  <p className="font-medium text-amber-950">
+                  <p className="font-medium text-warning">
                     Phrase not found verbatim in your resume.
                   </p>
                 )}

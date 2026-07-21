@@ -148,7 +148,7 @@ test("restores the previous resume after clearing", async ({ page }) => {
 
   await page.getByRole("button", { name: "More actions", exact: true }).click();
   await page.getByRole("menuitem", { name: "Clear resume" }).click();
-  const clearDialog = page.getByRole("dialog", { name: /clear this resume/i });
+  const clearDialog = page.getByRole("alertdialog", { name: /clear this resume/i });
   await expect(clearDialog).toBeVisible();
   await clearDialog.getByRole("button", { name: /clear resume/i }).click();
 
@@ -195,7 +195,7 @@ test("deletes all data from a shared browser", async ({ page }) => {
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /delete all data/i }).click();
-  const deleteDialog = page.getByRole("dialog", { name: /delete all browser data/i });
+  const deleteDialog = page.getByRole("alertdialog", { name: /delete all browser data/i });
   await expect(deleteDialog).toBeVisible();
   await deleteDialog.getByRole("button", { name: /delete all data/i }).click();
 
@@ -284,6 +284,35 @@ test("duplicates and switches named resumes while keeping checkpoint history sep
   await rename.fill("Product roles");
   await rename.press("Enter");
   await expect(current.getByText("Product roles", { exact: true })).toBeVisible();
+});
+
+test("scrolls the resume library when its cards exceed the dialog height", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  for (let index = 0; index < 8; index += 1) {
+    const library = await openResumeLibrary(page);
+    await library
+      .getByRole("button", { name: /^duplicate/i })
+      .first()
+      .click();
+    await expect(library).toBeHidden();
+  }
+
+  const library = await openResumeLibrary(page);
+  await expect(library.getByText("9 resumes saved in this browser")).toBeVisible();
+  const scrollArea = library.locator('[data-slot="scroll-area"]');
+  await expect
+    .poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true);
+
+  await scrollArea.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 });
 
 test("migrates the active draft and legacy versions into separate library resumes", async ({
@@ -436,7 +465,7 @@ test("clears checkpoints for the current resume without clearing its live draft"
   await versions.getByRole("button", { name: "Select Before tailoring" }).click();
   await versions.getByRole("button", { name: "Clear checkpoints", exact: true }).click();
 
-  const confirmDialog = page.getByRole("dialog", { name: "Clear all checkpoints?" });
+  const confirmDialog = page.getByRole("alertdialog", { name: "Clear all checkpoints?" });
   await expect(confirmDialog).toContainText("Your live draft and autosave stay intact");
   await confirmDialog.getByRole("button", { name: "Cancel" }).click();
   await expect(versions.getByRole("button", { name: "Select Before tailoring" })).toBeVisible();
@@ -538,7 +567,7 @@ test("imports a checkpoint history backup without replacing the current resume",
   // IndexedDB workspace are empty before the backup is merged.
   await openMenu(page);
   await page.getByRole("menuitem", { name: /delete all data/i }).click();
-  const deleteDialog = page.getByRole("dialog", { name: /delete all browser data/i });
+  const deleteDialog = page.getByRole("alertdialog", { name: /delete all browser data/i });
   await deleteDialog.getByRole("button", { name: /delete all data/i }).click();
   await expect(page.getByText("I have a resume")).toBeVisible();
   await page.locator("#history-backup-input").setInputFiles({

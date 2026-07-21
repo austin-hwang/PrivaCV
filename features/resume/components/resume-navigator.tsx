@@ -4,6 +4,7 @@ import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/componen
 import {
   Command,
   CommandEmpty,
+  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
@@ -76,22 +77,25 @@ export function ResumeNavigator({
           />
         </div>
         <CommandList
-          items={items}
           aria-label="Resume fields"
           onAction={(key) => choose(String(key))}
           renderEmptyState={() => <CommandEmpty>No matching resume fields.</CommandEmpty>}
         >
-          {(item: ResumeNavigatorItem) => (
-            <CommandItem
-              id={item.id}
-              textValue={`${item.label} ${item.context} ${item.keywords ?? ""}`}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{item.label}</span>
-                <span className="block truncate text-xs text-muted-foreground">{item.context}</span>
-              </span>
-            </CommandItem>
-          )}
+          <CommandGroup items={items}>
+            {(item: ResumeNavigatorItem) => (
+              <CommandItem
+                id={item.id}
+                textValue={`${item.label} ${item.context} ${item.keywords ?? ""}`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{item.label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {item.context}
+                  </span>
+                </span>
+              </CommandItem>
+            )}
+          </CommandGroup>
         </CommandList>
       </Command>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground">

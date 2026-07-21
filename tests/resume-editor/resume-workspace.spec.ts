@@ -92,6 +92,21 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   // Appearance controls live in the inline Design panel above the preview.
   await openDesign(page);
 
+  // Preset swatches and the custom color input share one row when the panel
+  // has room; the group may wrap only at genuinely narrow widths.
+  const accentPresets = page.getByRole("radiogroup", { name: "Accent color" });
+  const customAccent = page.getByLabel("Custom accent color");
+  await expect
+    .poll(async () => {
+      const presetsBox = await accentPresets.boundingBox();
+      const customBox = await customAccent.boundingBox();
+      if (!presetsBox || !customBox) return false;
+      const presetsCenter = presetsBox.y + presetsBox.height / 2;
+      const customCenter = customBox.y + customBox.height / 2;
+      return Math.abs(presetsCenter - customCenter) < 2;
+    })
+    .toBe(true);
+
   // A preset is a professional starting point that sets every theme axis.
   await chooseSelectOption(page, "Resume preset", "Modern");
   await expect(sheet).toHaveAttribute("data-heading", "bar");
@@ -102,16 +117,16 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(31, 58, 95)");
 
   // Individual controls layer on top of the preset.
-  await page.getByRole("button", { name: "Burgundy" }).click();
+  await page.getByRole("radio", { name: "Burgundy" }).click();
   await expect(page.locator(".resume-name")).toHaveCSS("color", "rgb(127, 29, 58)");
   await chooseSelectOption(page, "Resume font", /^Gelasio/);
   await expect(sheet).toHaveCSS("font-family", /Gelasio/);
 
   // Header, headings, and density sit under the panel's Advanced disclosure.
   await page.getByRole("button", { name: /^Advanced/ }).click();
-  await page.getByRole("button", { name: "Plain", exact: true }).click();
+  await page.getByRole("radio", { name: "Plain", exact: true }).click();
   await expect(sheet).toHaveAttribute("data-heading", "plain");
-  await page.getByRole("button", { name: "Compact", exact: true }).click();
+  await page.getByRole("radio", { name: "Compact", exact: true }).click();
   await expect(sheet).toHaveAttribute("data-density", "compact");
 
   // Reload only after IndexedDB confirms the debounced save. A fixed delay can

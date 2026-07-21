@@ -10,7 +10,6 @@ import {
   ChevronRight,
   FileText,
   GripVertical,
-  Loader2,
   MapPin,
   Pencil,
   Phone,
@@ -22,9 +21,29 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
+import {
+  cloneElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+  type ReactElement,
+} from "react";
+import { Button as ButtonPrimitive } from "react-aria-components";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Empty,
   EmptyContent,
@@ -42,13 +61,22 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  Field as FieldRoot,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import type { ResumeSourceOption } from "@/features/applications/hooks/use-resume-sources";
 import type { ApplicationActivityInput, ApplicationActivityUpdate } from "@/lib/job-application-db";
 import {
@@ -104,35 +132,47 @@ const EMPTY_APPLICATION_FORM: ApplicationForm = {
 };
 
 export const STATUS_DOT_CLASSES: Record<JobApplicationStatus, string> = {
-  saved: "bg-slate-400",
-  preparing: "bg-violet-500",
-  applied: "bg-blue-500",
-  interviewing: "bg-amber-500",
-  offer: "bg-emerald-500",
-  accepted: "bg-green-500",
-  rejected: "bg-rose-500",
-  withdrawn: "bg-zinc-500",
-  no_response: "bg-orange-500",
+  saved: "bg-secondary-foreground",
+  preparing: "bg-brand",
+  applied: "bg-primary",
+  interviewing: "bg-warning",
+  offer: "bg-success",
+  accepted: "bg-success",
+  rejected: "bg-destructive",
+  withdrawn: "bg-foreground",
+  no_response: "bg-warning",
 };
 
-const STATUS_BADGE_CLASSES: Record<JobApplicationStatus, string> = {
-  saved: "border-slate-400/30 bg-slate-400/10 text-foreground",
-  preparing: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-  applied: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  interviewing: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
-  offer: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
-  accepted: "border-green-500/30 bg-green-500/10 text-green-800 dark:text-green-300",
-  rejected: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-  withdrawn: "border-zinc-500/30 bg-zinc-500/10 text-muted-foreground",
-  no_response: "border-orange-500/30 bg-orange-500/10 text-orange-800 dark:text-orange-300",
+const STATUS_DOT_FOREGROUND_CLASSES: Record<JobApplicationStatus, string> = {
+  saved: "text-secondary",
+  preparing: "text-brand-foreground",
+  applied: "text-primary-foreground",
+  interviewing: "text-warning-foreground",
+  offer: "text-success-foreground",
+  accepted: "text-success-foreground",
+  rejected: "text-destructive-foreground",
+  withdrawn: "text-background",
+  no_response: "text-warning-foreground",
 };
+
+const STATUS_BADGE_VARIANTS = {
+  saved: "outline",
+  preparing: "secondary",
+  applied: "default",
+  interviewing: "secondary",
+  offer: "secondary",
+  accepted: "default",
+  rejected: "destructive",
+  withdrawn: "outline",
+  no_response: "secondary",
+} as const satisfies Record<
+  JobApplicationStatus,
+  "default" | "secondary" | "destructive" | "outline"
+>;
 
 export function StatusBadge({ status }: { status: JobApplicationStatus }) {
   return (
-    <Badge
-      variant="outline"
-      className={cn("gap-1.5 whitespace-nowrap font-medium", STATUS_BADGE_CLASSES[status])}
-    >
+    <Badge variant={STATUS_BADGE_VARIANTS[status]} className="gap-1.5 whitespace-nowrap">
       <span
         className={cn("size-1.5 rounded-full", STATUS_DOT_CLASSES[status])}
         aria-hidden="true"
@@ -145,22 +185,31 @@ export function StatusBadge({ status }: { status: JobApplicationStatus }) {
 function Field({
   label,
   hint,
+  description,
+  error,
   children,
   className,
 }: {
   label: string;
   hint?: string;
-  children: ReactNode;
+  description?: string;
+  error?: string;
+  children: ReactElement<{ id?: string; "aria-invalid"?: boolean }>;
   className?: string;
 }) {
+  const generatedId = useId();
+  const controlId = children.props.id ?? generatedId;
+
   return (
-    <label className={cn("grid gap-1.5 text-sm font-medium", className)}>
-      <span>
+    <FieldRoot className={className} data-invalid={Boolean(error) || undefined}>
+      <FieldLabel htmlFor={controlId}>
         {label}
         {hint ? <span className="ml-1 font-normal text-muted-foreground">{hint}</span> : null}
-      </span>
-      {children}
-    </label>
+      </FieldLabel>
+      {cloneElement(children, { id: controlId, "aria-invalid": Boolean(error) || undefined })}
+      {description ? <FieldDescription>{description}</FieldDescription> : null}
+      <FieldError>{error}</FieldError>
+    </FieldRoot>
   );
 }
 
@@ -171,6 +220,7 @@ function ApplicationFields({
   statusOptions = JOB_APPLICATION_STATUSES,
   resumeSources,
   attachedSnapshot,
+  requiredErrors,
 }: {
   form: ApplicationForm;
   setField: <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) => void;
@@ -178,11 +228,12 @@ function ApplicationFields({
   statusOptions?: readonly JobApplicationStatus[];
   resumeSources: ResumeSourceOption[];
   attachedSnapshot?: ResumeSnapshot;
+  requiredErrors?: Partial<Record<"company" | "role", string>>;
 }) {
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Company">
+    <FieldGroup>
+      <FieldGroup className="grid gap-4 sm:grid-cols-2">
+        <Field label="Company" error={requiredErrors?.company}>
           <Input
             required
             autoComplete="organization"
@@ -191,7 +242,7 @@ function ApplicationFields({
             placeholder="Acme"
           />
         </Field>
-        <Field label="Role">
+        <Field label="Role" error={requiredErrors?.role}>
           <Input
             required
             value={form.role}
@@ -209,11 +260,13 @@ function ApplicationFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {statusOptions.map((status) => (
-                <SelectItem key={status} id={status}>
-                  {JOB_APPLICATION_STATUS_META[status].label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {statusOptions.map((status) => (
+                  <SelectItem key={status} id={status}>
+                    {JOB_APPLICATION_STATUS_META[status].label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
@@ -224,7 +277,16 @@ function ApplicationFields({
             placeholder="Remote or Seattle, WA"
           />
         </Field>
-        <Field label="Resume for this application" hint="— optional" className="sm:col-span-2">
+        <Field
+          label="Resume for this application"
+          hint="— optional"
+          className="sm:col-span-2"
+          description={
+            attachedSnapshot
+              ? `Submitted snapshot captured ${formatApplicationDate(attachedSnapshot.capturedAt)} · ${attachedSnapshot.label}`
+              : "PrivaCV captures an immutable copy when this application reaches Applied."
+          }
+        >
           <Select
             aria-label="Resume for this application"
             selectedKey={form.resumeSourceKey}
@@ -234,21 +296,18 @@ function ApplicationFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem id="">No resume attached</SelectItem>
-              {resumeSources.map((source) => (
-                <SelectItem key={source.key} id={source.key}>
-                  {source.label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                <SelectItem id="">No resume attached</SelectItem>
+                {resumeSources.map((source) => (
+                  <SelectItem key={source.key} id={source.key}>
+                    {source.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
-          <span className="text-xs font-normal leading-relaxed text-muted-foreground">
-            {attachedSnapshot
-              ? `Submitted snapshot captured ${formatApplicationDate(attachedSnapshot.capturedAt)} · ${attachedSnapshot.label}`
-              : "PrivaCV captures an immutable copy when this application reaches Applied."}
-          </span>
         </Field>
-      </div>
+      </FieldGroup>
 
       <Field label="Job posting URL" hint="— optional">
         <Input
@@ -262,7 +321,7 @@ function ApplicationFields({
 
       {includeDetails ? (
         <>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <FieldGroup className="grid gap-4 sm:grid-cols-2">
             <Field label="Source" hint="— optional">
               <Input
                 value={form.source}
@@ -292,8 +351,8 @@ function ApplicationFields({
                 placeholder="name@company.com"
               />
             </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
+          </FieldGroup>
+          <FieldGroup className="grid gap-4 sm:grid-cols-[1fr_12rem]">
             <Field label="Next action" hint="— optional">
               <Input
                 value={form.nextAction}
@@ -308,7 +367,7 @@ function ApplicationFields({
                 onChange={(event) => setField("nextActionAt", event.target.value)}
               />
             </Field>
-          </div>
+          </FieldGroup>
           <Field label="Notes" hint="— optional">
             <Textarea
               className="min-h-28"
@@ -328,7 +387,7 @@ function ApplicationFields({
           placeholder="Paste the job description before the posting disappears..."
         />
       </Field>
-    </div>
+    </FieldGroup>
   );
 }
 
@@ -367,6 +426,12 @@ export function CreateApplicationDialog({
 
   const setField = <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) =>
     setForm((current) => ({ ...current, [key]: value }));
+  const requiredErrors = formError
+    ? {
+        ...(!form.company.trim() ? { company: "Company is required." } : {}),
+        ...(!form.role.trim() ? { role: "Role is required." } : {}),
+      }
+    : undefined;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!form.company.trim() || !form.role.trim()) {
@@ -398,14 +463,18 @@ export function CreateApplicationDialog({
           includeDetails={false}
           statusOptions={["saved", "preparing", "applied"]}
           resumeSources={resumeSources}
+          requiredErrors={requiredErrors}
         />
-        {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+        {formError && !requiredErrors?.company && !requiredErrors?.role ? (
+          <FieldError>{formError}</FieldError>
+        ) : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button type="submit" isDisabled={saving}>
-            {saving ? <Loader2 className="animate-spin" /> : <Plus />} Add application
+            {saving ? <Spinner data-icon="inline-start" /> : <Plus data-icon="inline-start" />} Add
+            application
           </Button>
         </DialogFooter>
       </form>
@@ -509,51 +578,79 @@ function ActivityComposer({
   };
 
   return (
-    <div className="grid gap-2 rounded-lg border bg-card p-3">
+    <FieldRoot
+      className="grid gap-2 rounded-lg border bg-card p-3"
+      data-invalid={Boolean(error) || undefined}
+    >
       <div className="grid grid-cols-[7rem_1fr] gap-2">
-        <Select
-          aria-label="Activity type"
-          selectedKey={type}
-          onSelectionChange={(key) => setType(String(key) as ApplicationActivityType)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {APPLICATION_ACTIVITY_TYPES.map((activityType) => (
-              <SelectItem key={activityType} id={activityType}>
-                {APPLICATION_ACTIVITY_META[activityType].label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          aria-label="Activity title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              void submit();
-            }
-          }}
-          placeholder={APPLICATION_ACTIVITY_META[type].placeholder}
-        />
+        <FieldRoot>
+          <FieldLabel className="sr-only">Activity type</FieldLabel>
+          <Select
+            aria-label="Activity type"
+            selectedKey={type}
+            onSelectionChange={(key) => setType(String(key) as ApplicationActivityType)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {APPLICATION_ACTIVITY_TYPES.map((activityType) => (
+                  <SelectItem key={activityType} id={activityType}>
+                    {APPLICATION_ACTIVITY_META[activityType].label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </FieldRoot>
+        <FieldRoot data-invalid={Boolean(error && !title.trim()) || undefined}>
+          <FieldLabel className="sr-only" htmlFor="activity-title">
+            Activity title
+          </FieldLabel>
+          <Input
+            id="activity-title"
+            aria-invalid={Boolean(error && !title.trim()) || undefined}
+            value={title}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              if (error) setError(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void submit();
+              }
+            }}
+            placeholder={APPLICATION_ACTIVITY_META[type].placeholder}
+          />
+        </FieldRoot>
       </div>
-      <Textarea
-        className="min-h-16 text-sm"
-        value={detail}
-        onChange={(event) => setDetail(event.target.value)}
-        placeholder="Details — optional"
-      />
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          type="datetime-local"
-          aria-label="When"
-          className="h-9 w-auto flex-1"
-          value={when}
-          onChange={(event) => setWhen(event.target.value)}
+      <FieldRoot>
+        <FieldLabel className="sr-only" htmlFor="activity-details">
+          Activity details
+        </FieldLabel>
+        <Textarea
+          id="activity-details"
+          className="min-h-16 text-sm"
+          value={detail}
+          onChange={(event) => setDetail(event.target.value)}
+          placeholder="Details — optional"
         />
+      </FieldRoot>
+      <div className="flex flex-wrap items-center gap-2">
+        <FieldRoot className="w-auto flex-1">
+          <FieldLabel className="sr-only" htmlFor="activity-when">
+            When
+          </FieldLabel>
+          <Input
+            id="activity-when"
+            type="datetime-local"
+            className="h-9"
+            value={when}
+            onChange={(event) => setWhen(event.target.value)}
+          />
+        </FieldRoot>
         {editing ? (
           <Button
             type="button"
@@ -566,11 +663,12 @@ function ActivityComposer({
           </Button>
         ) : null}
         <Button type="button" size="sm" onClick={() => void submit()} isDisabled={disabled}>
-          {editing ? <CheckCircle2 /> : <Plus />} {editing ? "Save" : "Log"}
+          {editing ? <CheckCircle2 data-icon="inline-start" /> : <Plus data-icon="inline-start" />}{" "}
+          {editing ? "Save" : "Log"}
         </Button>
       </div>
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
-    </div>
+      <FieldError className="text-xs">{error}</FieldError>
+    </FieldRoot>
   );
 }
 
@@ -585,8 +683,18 @@ function Timeline({
   onEdit: (event: ApplicationEvent) => void;
   onDelete: (event: ApplicationEvent) => void;
 }) {
-  if (!events.length)
-    return <p className="text-sm text-muted-foreground">No activity recorded yet.</p>;
+  if (!events.length) {
+    return (
+      <Empty className="min-h-32">
+        <EmptyHeader>
+          <EmptyTitle>No activity recorded yet</EmptyTitle>
+          <EmptyDescription>
+            Notes, interviews, calls, and follow-ups will appear here.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
   const now = Date.now();
   return (
     <ol className="grid gap-0">
@@ -606,7 +714,9 @@ function Timeline({
                 <Icon
                   className={cn(
                     "size-2.5",
-                    event.toStatus ? "text-white" : "text-muted-foreground",
+                    event.toStatus
+                      ? STATUS_DOT_FOREGROUND_CLASSES[event.toStatus]
+                      : "text-muted-foreground",
                   )}
                 />
               </span>
@@ -622,21 +732,33 @@ function Timeline({
                 {editable ? (
                   <span className="flex shrink-0 gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover/event:opacity-100">
                     <Button
-                      unstyled
+                      variant="ghost"
+                      size="icon-xs"
                       aria-label="Edit activity"
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                       onPress={() => onEdit(event)}
                     >
-                      <Pencil className="size-3" />
+                      <Pencil data-icon="inline-start" />
                     </Button>
-                    <Button
-                      unstyled
-                      aria-label="Delete activity"
-                      className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                      onPress={() => onDelete(event)}
-                    >
-                      <Trash2 className="size-3" />
-                    </Button>
+                    <AlertDialogTrigger>
+                      <Button variant="destructive" size="icon-xs" aria-label="Delete activity">
+                        <Trash2 data-icon="inline-start" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this activity?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            “{event.title}” will be permanently removed from this application’s
+                            timeline.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction variant="destructive" onPress={() => onDelete(event)}>
+                            Delete activity
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialog>
+                    </AlertDialogTrigger>
                   </span>
                 ) : null}
               </div>
@@ -650,11 +772,7 @@ function Timeline({
                 {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(
                   new Date(event.occurredAt),
                 )}
-                {scheduled ? (
-                  <span className="rounded-full bg-primary/10 px-1.5 font-medium text-primary">
-                    Scheduled
-                  </span>
-                ) : null}
+                {scheduled ? <Badge variant="secondary">Scheduled</Badge> : null}
               </time>
             </div>
           </li>
@@ -730,6 +848,12 @@ export function ApplicationDetailDialog({
   }, [application, jobDescription, resumeSources]);
   const setField = <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) =>
     setForm((current) => ({ ...current, [key]: value }));
+  const requiredErrors = formError
+    ? {
+        ...(!form.company.trim() ? { company: "Company is required." } : {}),
+        ...(!form.role.trim() ? { role: "Role is required." } : {}),
+      }
+    : undefined;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!application) return;
@@ -745,13 +869,7 @@ export function ApplicationDetailDialog({
     }
   };
   const remove = async () => {
-    if (
-      !application ||
-      !window.confirm(
-        `Delete the ${application.role} application at ${application.company}? This removes its local history and cannot be undone.`,
-      )
-    )
-      return;
+    if (!application) return;
     try {
       await onDelete(application.id);
       onOpenChange(false);
@@ -793,6 +911,7 @@ export function ApplicationDetailDialog({
                 setField={setField}
                 resumeSources={resumeSources}
                 attachedSnapshot={attachedSnapshot}
+                requiredErrors={requiredErrors}
               />
             </div>
             <aside className="border-t bg-muted/20 p-6 lg:border-l lg:border-t-0">
@@ -815,33 +934,46 @@ export function ApplicationDetailDialog({
                   events={events}
                   editingId={editingEvent?.id ?? null}
                   onEdit={setEditingEvent}
-                  onDelete={(event) => {
-                    if (
-                      window.confirm(`Delete this ${event.title} activity? This cannot be undone.`)
-                    )
-                      void onDeleteActivity(event.id);
-                  }}
+                  onDelete={(event) => void onDeleteActivity(event.id)}
                 />
               </div>
             </aside>
           </div>
-          {formError ? <p className="mx-6 mb-3 text-sm text-destructive">{formError}</p> : null}
+          {formError && !requiredErrors?.company && !requiredErrors?.role ? (
+            <FieldError className="mx-6 mb-3">{formError}</FieldError>
+          ) : null}
           <div className="flex flex-col-reverse gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={remove}
-              isDisabled={saving}
-            >
-              <Trash2 /> Delete application
-            </Button>
+            <AlertDialogTrigger>
+              <Button type="button" variant="destructive" isDisabled={saving}>
+                <Trash2 data-icon="inline-start" /> Delete application
+              </Button>
+              <AlertDialog>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this application?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    The {application.role} application at {application.company} and its local
+                    history will be permanently removed.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onPress={() => void remove()}>
+                    Delete application
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialog>
+            </AlertDialogTrigger>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" isDisabled={saving}>
-                {saving ? <Loader2 className="animate-spin" /> : <CheckCircle2 />} Save changes
+                {saving ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <CheckCircle2 data-icon="inline-start" />
+                )}{" "}
+                Save changes
               </Button>
             </div>
           </div>
@@ -871,8 +1003,7 @@ export function ApplicationCard({
       className="group rounded-lg border bg-card shadow-xs transition hover:border-primary/35 hover:shadow-md active:cursor-grabbing"
       data-application-card={application.id}
     >
-      <Button
-        unstyled
+      <ButtonPrimitive
         className="w-full p-4 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         onPress={onOpen}
       >
@@ -926,19 +1057,19 @@ export function ApplicationCard({
           </span>
           <ChevronRight className="size-3.5 shrink-0 opacity-0 transition group-hover:opacity-100" />
         </div>
-      </Button>
+      </ButtonPrimitive>
     </article>
   );
 }
 
 export function EmptyPipeline({ scoped, onCreate }: { scoped: boolean; onCreate: () => void }) {
   return (
-    <Empty className="mx-auto my-10 max-w-lg border-none">
+    <Empty className="mx-auto my-10 max-w-lg">
       <EmptyHeader>
-        <EmptyMedia variant="icon" className="size-14 rounded-2xl border bg-card shadow-xs">
-          <BriefcaseBusiness className="size-6 text-primary" />
+        <EmptyMedia variant="icon">
+          <BriefcaseBusiness />
         </EmptyMedia>
-        <EmptyTitle className="text-xl">
+        <EmptyTitle>
           {scoped ? "No applications in this view" : "Build your private applications workspace"}
         </EmptyTitle>
         <EmptyDescription>
@@ -949,7 +1080,7 @@ export function EmptyPipeline({ scoped, onCreate }: { scoped: boolean; onCreate:
       </EmptyHeader>
       <EmptyContent>
         <Button onClick={onCreate}>
-          <Plus /> Add your first application
+          <Plus data-icon="inline-start" /> Add your first application
         </Button>
       </EmptyContent>
     </Empty>

@@ -2,6 +2,13 @@
 
 import { useMemo } from "react";
 import { BarChart3, MailCheck, Send, Trophy, Users } from "lucide-react";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { STATUS_DOT_CLASSES } from "@/features/applications/components/application-components";
 import { JOB_APPLICATION_STATUS_META } from "@/lib/job-applications";
 import type { ApplicationEvent, JobApplication } from "@/lib/job-applications";
@@ -63,16 +70,18 @@ export function InsightsView({
   if (!insights.submitted) {
     return (
       <div className="bg-muted/15 p-4">
-        <div className="mx-auto flex max-w-md flex-col items-center rounded-xl border border-dashed bg-card px-6 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
-            <BarChart3 className="size-5 text-primary" />
-          </span>
-          <h3 className="mt-4 text-base font-semibold">No insights yet</h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            Once you move applications to Applied and beyond, PrivaCV charts your response rate,
-            interview conversion, weekly pace, and time in each stage here.
-          </p>
-        </div>
+        <Empty className="mx-auto min-h-72 max-w-md">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BarChart3 />
+            </EmptyMedia>
+            <EmptyTitle>No insights yet</EmptyTitle>
+            <EmptyDescription>
+              Once you move applications to Applied and beyond, PrivaCV charts your response rate,
+              interview conversion, weekly pace, and time in each stage here.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -132,7 +141,12 @@ export function InsightsView({
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-muted-foreground">No submissions recorded yet.</p>
+          <Empty className="mt-4 min-h-32">
+            <EmptyHeader>
+              <EmptyTitle>No submissions recorded yet</EmptyTitle>
+              <EmptyDescription>Applied roles will appear in this weekly chart.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </section>
 

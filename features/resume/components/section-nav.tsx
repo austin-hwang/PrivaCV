@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button as ButtonPrimitive } from "react-aria-components";
 import { cn } from "@/lib/utils";
 
 export type SectionNavItem = { id: string; label: string };
@@ -114,8 +114,7 @@ export function SectionNav({
         {items.map((item) => {
           const active = item.id === activeId;
           return (
-            <Button
-              unstyled
+            <ButtonPrimitive
               key={item.id}
               data-nav-id={item.id}
               aria-current={active ? "true" : undefined}
@@ -128,7 +127,7 @@ export function SectionNav({
               )}
             >
               {item.label}
-            </Button>
+            </ButtonPrimitive>
           );
         })}
       </div>

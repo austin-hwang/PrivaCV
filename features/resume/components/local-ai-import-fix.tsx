@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, Loader2, Sparkles, X } from "lucide-react";
+import { AlertCircle, Check, Sparkles, X } from "lucide-react";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ChangeSummaryGrid } from "@/features/resume/components/version-changes";
 import {
@@ -70,7 +73,7 @@ export function LocalAIImportFix({
 
   return (
     <section
-      className="w-full space-y-3 rounded-lg border border-violet-200 bg-card p-4 shadow-xs dark:border-violet-500/40"
+      className="flex w-full flex-col gap-3 rounded-lg border border-brand/30 bg-card p-4 shadow-xs"
       aria-labelledby="local-ai-import-fix-title"
     >
       <div className="flex items-start justify-between gap-3">
@@ -79,8 +82,7 @@ export function LocalAIImportFix({
             id="local-ai-import-fix-title"
             className="flex items-center gap-2 text-sm font-semibold"
           >
-            <Sparkles className="size-4 text-violet-600 dark:text-violet-300" /> Fix import with
-            local AI
+            <Sparkles className="size-4 text-brand" /> Fix import with local AI
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {usingCurrentDraft
@@ -96,38 +98,42 @@ export function LocalAIImportFix({
           onClick={onClose}
           aria-label="Close AI import fix"
         >
-          <X />
+          <X data-icon="inline-start" />
         </Button>
       </div>
 
       {!ready ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed p-3">
-          <p className="text-sm text-muted-foreground">
+        <Alert>
+          <Sparkles />
+          <AlertTitle>Local model required</AlertTitle>
+          <AlertDescription>
             Load a local model first. The larger model is more dependable for full-resume mapping.
-          </p>
-          <Button type="button" variant="outline" size="sm" onClick={onOpenSetup}>
-            <Sparkles /> Open setup
-          </Button>
-        </div>
+          </AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={onOpenSetup}>
+              Open setup
+            </Button>
+          </AlertAction>
+        </Alert>
       ) : generating ? (
-        <div
-          className="flex items-center gap-2 rounded-md bg-muted/40 p-3 text-sm text-muted-foreground"
-          aria-live="polite"
-        >
-          <Loader2 className="size-4 animate-spin" /> Rebuilding resume fields locally… this takes
-          longer than a small edit.
-        </div>
+        <Alert aria-live="polite">
+          <Spinner />
+          <AlertTitle>Rebuilding resume fields locally</AlertTitle>
+          <AlertDescription>This takes longer than a small edit.</AlertDescription>
+        </Alert>
       ) : error ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
-          <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" /> {error}
-          </p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void repair()}>
-            Try again
-          </Button>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle />
+          <AlertTitle>Could not rebuild the import</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void repair()}>
+              Try again
+            </Button>
+          </AlertAction>
+        </Alert>
       ) : proposal ? (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Proposed mapping
@@ -148,12 +154,17 @@ export function LocalAIImportFix({
               The model did not find a meaningful structural change.
             </p>
           )}
-          <Textarea
-            readOnly
-            value={resumePlainText(proposal)}
-            aria-label="AI import proposal as plain text"
-            className="max-h-72 min-h-40 resize-y bg-background font-mono text-xs leading-relaxed"
-          />
+          <Field>
+            <FieldLabel className="sr-only" htmlFor="ai-import-proposal">
+              AI import proposal as plain text
+            </FieldLabel>
+            <Textarea
+              id="ai-import-proposal"
+              readOnly
+              value={resumePlainText(proposal)}
+              className="max-h-72 min-h-40 resize-y bg-background font-mono text-xs leading-relaxed"
+            />
+          </Field>
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
@@ -161,7 +172,7 @@ export function LocalAIImportFix({
               onClick={() => onApply(proposal)}
               isDisabled={!changes.length}
             >
-              <Check /> Apply corrected draft
+              <Check data-icon="inline-start" /> Apply corrected draft
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => void repair()}>
               Run again

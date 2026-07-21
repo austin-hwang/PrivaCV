@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { SiteFooter } from "@/components/site-footer";
 import { type GuideMeta, guidePath } from "@/lib/guides";
 import { SITE_NAME, absoluteUrl } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 type RelatedLink = { href: string; label: string };
 
@@ -106,11 +108,7 @@ export function GuideLayout({
             Build or import your resume in PrivaCV, review the exact text an applicant tracking
             system reads, and export a clean PDF or Word file. Everything stays in your browser.
           </p>
-          <Link
-            className="mt-4 inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-            href="/"
-            prefetch={false}
-          >
+          <Link className={cn(buttonVariants({ size: "lg" }), "mt-4")} href="/" prefetch={false}>
             Open the editor
           </Link>
         </div>

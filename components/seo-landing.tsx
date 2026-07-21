@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_NAME, absoluteUrl } from "@/lib/site";
 
@@ -75,11 +76,7 @@ export function SeoLanding({
         <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">{lede}</p>
 
         <div className="mt-6">
-          <Link
-            className="inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-            href={ctaHref}
-            prefetch={false}
-          >
+          <Link className={buttonVariants({ size: "lg" })} href={ctaHref} prefetch={false}>
             {ctaLabel}
           </Link>
         </div>

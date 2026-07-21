@@ -8,6 +8,7 @@ import {
   type FocusEvent,
   type KeyboardEvent,
 } from "react";
+import { Button as ButtonPrimitive } from "react-aria-components";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -270,8 +271,7 @@ function EntryDateControl({
 
   return (
     <PopoverTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button
-        unstyled
+      <ButtonPrimitive
         aria-label="Edit dates"
         className={cn(
           "resume-entry-date-control resume-entry-date-trigger",
@@ -279,7 +279,7 @@ function EntryDateControl({
         )}
       >
         {label || "Add dates"}
-      </Button>
+      </ButtonPrimitive>
       <Popover className="w-72 p-3" placement="bottom end" aria-label="Edit dates">
         <DateRangeField idPrefix={idPrefix} entry={entry} onChange={onChange} />
       </Popover>

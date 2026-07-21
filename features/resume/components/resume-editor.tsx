@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { FEEDBACK_URL } from "@/lib/site";
 import { clearStoredJobPipelineData } from "@/lib/job-application-db";
 import { ResumeDesignControls } from "@/features/resume/components/design-controls";
@@ -437,7 +437,7 @@ export function ResumeEditor() {
         className="flex min-h-dvh items-center justify-center gap-2 border-b bg-card text-sm text-muted-foreground"
         role="status"
       >
-        <Loader2 className="animate-spin" /> Loading your private workspace
+        <Spinner /> Loading your private workspace
       </div>
     );
   }

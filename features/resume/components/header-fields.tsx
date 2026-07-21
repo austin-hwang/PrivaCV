@@ -22,8 +22,10 @@ import {
 } from "lucide-react";
 import { FieldGroup, TextField } from "@/features/resume/components/editor-fields";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
+import { Toggle } from "@/components/ui/toggle";
 import {
   HEADER_LINK_ICON_OPTIONS,
   personNameParts,
@@ -50,9 +52,17 @@ const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
   link: LinkIcon,
 };
 
-function HeaderLinkIcon({ icon }: { icon: HeaderLinkIconId }) {
+function HeaderLinkIcon({
+  icon,
+  "data-icon": dataIcon,
+}: {
+  icon: HeaderLinkIconId;
+  "data-icon"?: "inline-start" | "inline-end";
+}) {
   const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
-  return <Icon aria-hidden="true" className={cn("size-4", `lucide-${icon}`)} />;
+  return (
+    <Icon aria-hidden="true" data-icon={dataIcon} className={cn("size-4", `lucide-${icon}`)} />
+  );
 }
 
 function HeaderLinkIconPicker({
@@ -73,12 +83,13 @@ function HeaderLinkIconPicker({
   return (
     <PopoverTrigger isOpen={open} onOpenChange={setOpen}>
       <Button
-        unstyled
+        variant="secondary"
+        size="icon"
         id={id}
         aria-label={`${label} icon — ${currentLabel}`}
-        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        className="shrink-0"
       >
-        <HeaderLinkIcon icon={value} />
+        <HeaderLinkIcon icon={value} data-icon="inline-start" />
       </Button>
       <Popover
         className="grid w-auto grid-cols-4 gap-1 p-1.5"
@@ -86,21 +97,20 @@ function HeaderLinkIconPicker({
         aria-label={`${label} icon options`}
       >
         {HEADER_LINK_ICON_OPTIONS.map((option) => (
-          <Button
-            unstyled
+          <Toggle
             key={option.id}
+            title={option.label}
             aria-label={option.label}
-            onPress={() => {
+            isSelected={option.id === value}
+            variant="outline"
+            onChange={() => {
               onChange(option.id);
               setOpen(false);
             }}
-            className={cn(
-              "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
-              option.id === value && "bg-muted text-foreground ring-1 ring-ring",
-            )}
+            className="size-9 p-0"
           >
-            <HeaderLinkIcon icon={option.id} />
-          </Button>
+            <HeaderLinkIcon icon={option.id} data-icon="inline-start" />
+          </Toggle>
         ))}
       </Popover>
     </PopoverTrigger>
@@ -268,7 +278,7 @@ export function ResumeHeaderFields({
             className="h-8"
             onClick={onAddLink}
           >
-            <Plus /> Add link
+            <Plus data-icon="inline-start" /> Add link
           </Button>
         </div>
         {state.headerLinks.length ? (
@@ -287,10 +297,10 @@ export function ResumeHeaderFields({
                     label={fieldLabel}
                     onChange={(icon) => onUpdateLink(link.id, { icon })}
                   />
-                  <div className="min-w-0 flex-1">
-                    <label className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>
+                  <Field className="min-w-0 flex-1">
+                    <FieldLabel className="sr-only" htmlFor={`field-header-link-${link.id}-url`}>
                       {fieldLabel} URL
-                    </label>
+                    </FieldLabel>
                     <Input
                       id={`field-header-link-${link.id}-url`}
                       type="url"
@@ -299,21 +309,20 @@ export function ResumeHeaderFields({
                       spellCheck={false}
                       value={link.url}
                       placeholder="github.com/janedoe"
-                      aria-label={`${fieldLabel} URL`}
                       onChange={(event) => onUpdateLink(link.id, { url: event.target.value })}
                     />
-                  </div>
+                  </Field>
                   <div className="flex shrink-0 items-center">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="destructive"
                       size="icon"
                       className="size-7"
                       isDisabled={index === 0}
                       aria-label={`Move ${fieldLabel} up`}
                       onClick={() => onMoveLink(index, -1)}
                     >
-                      <ArrowUp />
+                      <ArrowUp data-icon="inline-start" />
                     </Button>
                     <Button
                       type="button"
@@ -324,17 +333,17 @@ export function ResumeHeaderFields({
                       aria-label={`Move ${fieldLabel} down`}
                       onClick={() => onMoveLink(index, 1)}
                     >
-                      <ArrowDown />
+                      <ArrowDown data-icon="inline-start" />
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="size-7"
                       aria-label={`Remove ${fieldLabel}`}
                       onClick={() => onRemoveLink(link.id)}
                     >
-                      <Trash2 />
+                      <Trash2 data-icon="inline-start" />
                     </Button>
                   </div>
                 </div>

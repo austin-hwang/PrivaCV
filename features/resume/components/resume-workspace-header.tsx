@@ -27,12 +27,14 @@ import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor"
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toggleTheme } from "@/components/theme-toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 type ResumeWorkspaceHeaderProps = {
@@ -114,9 +116,9 @@ export function ResumeWorkspaceHeader({
             title="Open resume library"
             className="hidden max-w-52 gap-1.5 px-2 lg:inline-flex"
           >
-            <Library aria-hidden="true" />
+            <Library data-icon="inline-start" aria-hidden="true" />
             <span className="truncate">{activeResumeLabel}</span>
-            <ChevronDown className="size-3.5" aria-hidden="true" />
+            <ChevronDown data-icon="inline-end" aria-hidden="true" />
           </Button>
         ) : null
       }
@@ -131,7 +133,7 @@ export function ResumeWorkspaceHeader({
             aria-controls="tools-panel"
             className="gap-2"
           >
-            <SlidersHorizontal />
+            <SlidersHorizontal data-icon="inline-start" />
             <span className="hidden sm:inline">Tools</span>
             {hasContent ? (
               <span
@@ -146,115 +148,119 @@ export function ResumeWorkspaceHeader({
           </Button>
           <DropdownMenuTrigger>
             <Button type="button" aria-label="Export">
-              <Download /> <span className="hidden sm:inline">Export</span>
-              <ChevronDown className="hidden size-3.5 sm:block" />
+              <Download data-icon="inline-start" /> <span className="hidden sm:inline">Export</span>
+              <ChevronDown data-icon="inline-end" className="hidden sm:block" />
             </Button>
             <DropdownMenu>
-              <DropdownMenuLabel>Export resume</DropdownMenuLabel>
-              <DropdownMenuItem onAction={requestExport} isDisabled={exportingPdf}>
-                <FileDown /> {exportingPdf ? "Generating PDF…" : "Export PDF"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onAction={requestDocxExport} isDisabled={!hasContent}>
-                <FileText /> Export Word (.docx)
-              </DropdownMenuItem>
-              <DropdownMenuItem onAction={saveMarkdown} isDisabled={!hasContent}>
-                <FileCode /> Export Markdown (.md)
-              </DropdownMenuItem>
-              <DropdownMenuItem onAction={saveJson}>
-                <FileJson /> Export JSON
-              </DropdownMenuItem>
-              <DropdownMenuItem onAction={() => setTextReviewOpen(true)} isDisabled={!hasContent}>
-                <ClipboardCopy /> Copy resume text
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Export resume</DropdownMenuLabel>
+                <DropdownMenuItem onAction={requestExport} isDisabled={exportingPdf}>
+                  <FileDown /> {exportingPdf ? "Generating PDF…" : "Export PDF"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={requestDocxExport} isDisabled={!hasContent}>
+                  <FileText /> Export Word (.docx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={saveMarkdown} isDisabled={!hasContent}>
+                  <FileCode /> Export Markdown (.md)
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={saveJson}>
+                  <FileJson /> Export JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={() => setTextReviewOpen(true)} isDisabled={!hasContent}>
+                  <ClipboardCopy /> Copy resume text
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenu>
           </DropdownMenuTrigger>
           <DropdownMenuTrigger>
             <Button type="button" variant="outline" size="icon" aria-label="More actions">
-              <MoreHorizontal />
+              <MoreHorizontal data-icon="inline-start" />
             </Button>
             <DropdownMenu>
-              <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-              <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
-                {isDarkTheme ? <Sun /> : <Moon />}{" "}
-                {isDarkTheme ? "Use light mode" : "Use dark mode"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Resume</DropdownMenuLabel>
-              {resumeLibrary.length ? (
-                <DropdownMenuItem onAction={() => setLibraryOpen(true)}>
-                  <Library /> Resume library
-                  {resumeLibrary.length > 1 ? ` (${resumeLibrary.length})` : ""}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
+                  {isDarkTheme ? <Sun /> : <Moon />}{" "}
+                  {isDarkTheme ? "Use light mode" : "Use dark mode"}
                 </DropdownMenuItem>
-              ) : null}
-              {isCompact ? (
-                <DropdownMenuItem onAction={() => window.location.assign("/applications")}>
-                  <BriefcaseBusiness /> Applications
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Resume</DropdownMenuLabel>
+                {resumeLibrary.length ? (
+                  <DropdownMenuItem onAction={() => setLibraryOpen(true)}>
+                    <Library /> Resume library
+                    {resumeLibrary.length > 1 ? ` (${resumeLibrary.length})` : ""}
+                  </DropdownMenuItem>
+                ) : null}
+                {isCompact ? (
+                  <DropdownMenuItem onAction={() => window.location.assign("/applications")}>
+                    <BriefcaseBusiness /> Applications
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Import resume</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onAction={() => importFileInputRef.current?.click()}
+                  isDisabled={isImporting}
+                >
+                  <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
                 </DropdownMenuItem>
-              ) : null}
+                <DropdownMenuItem onAction={() => setTextImportOpen(true)}>
+                  <ClipboardPaste /> Paste resume text
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={() => jsonInputRef.current?.click()}>
+                  <FileJson /> Open saved JSON
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Import resume</DropdownMenuLabel>
-              <DropdownMenuItem
-                onAction={() => importFileInputRef.current?.click()}
-                isDisabled={isImporting}
-              >
-                <Upload /> {isImporting ? "Importing" : "Upload PDF or Word"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onAction={() => setTextImportOpen(true)}>
-                <ClipboardPaste /> Paste resume text
-              </DropdownMenuItem>
-              <DropdownMenuItem onAction={() => jsonInputRef.current?.click()}>
-                <FileJson /> Open saved JSON
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Workspace data</DropdownMenuLabel>
-              <DropdownMenuItem onAction={loadSample}>
-                <FileText /> Sample
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                onAction={() => setDestructiveAction("clear")}
-              >
-                <RotateCcw /> Clear resume
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                onAction={() => setDestructiveAction("delete-all")}
-              >
-                <Trash2 /> Delete all data
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Workspace data</DropdownMenuLabel>
+                <DropdownMenuItem onAction={loadSample}>
+                  <FileText /> Sample
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onAction={() => setDestructiveAction("clear")}
+                >
+                  <RotateCcw /> Clear resume
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onAction={() => setDestructiveAction("delete-all")}
+                >
+                  <Trash2 /> Delete all data
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenu>
           </DropdownMenuTrigger>
         </>
       }
       secondary={
         <div className="border-t px-4 py-2 lg:hidden">
-          <div
-            className="grid grid-cols-2 rounded-md border bg-muted/30 p-1"
+          <ToggleGroup
             aria-label="Resume workspace view"
+            variant="outline"
+            spacing={0}
+            selectionMode="single"
+            selectedKeys={[mobileWorkspaceView]}
+            onSelectionChange={(keys) => {
+              const selected = [...keys][0];
+              if (selected === "editor" || selected === "preview") {
+                setMobileWorkspaceView(selected);
+              }
+            }}
+            className="grid w-full grid-cols-2"
           >
-            <Button
-              id="mobile-editor-tab"
-              type="button"
-              size="sm"
-              variant={mobileWorkspaceView === "editor" ? "secondary" : "ghost"}
-              aria-pressed={mobileWorkspaceView === "editor"}
-              aria-controls="resume-editor-pane"
-              onClick={() => setMobileWorkspaceView("editor")}
-            >
-              <FileText /> Edit resume
-            </Button>
-            <Button
-              id="mobile-preview-tab"
-              type="button"
-              size="sm"
-              variant={mobileWorkspaceView === "preview" ? "secondary" : "ghost"}
-              aria-pressed={mobileWorkspaceView === "preview"}
-              aria-controls="resume-preview-pane"
-              onClick={() => setMobileWorkspaceView("preview")}
-            >
-              <Eye /> Preview
-            </Button>
-          </div>
+            <ToggleGroupItem id="mobile-editor-tab" size="sm" aria-controls="resume-editor-pane">
+              <FileText data-icon="inline-start" /> Edit resume
+            </ToggleGroupItem>
+            <ToggleGroupItem id="mobile-preview-tab" size="sm" aria-controls="resume-preview-pane">
+              <Eye data-icon="inline-start" /> Preview
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       }
     />

@@ -12,12 +12,14 @@ import {
   Trash2,
 } from "lucide-react";
 import type { DragEvent, ReactNode } from "react";
-import { ToggleButton } from "@/components/ui/toggle-button";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -150,7 +152,7 @@ export function ResumeSectionList({
     <section
       id="section-order-controls"
       tabIndex={-1}
-      className="scroll-mt-44 space-y-3 lg:scroll-mt-16"
+      className="flex scroll-mt-44 flex-col gap-3 lg:scroll-mt-16"
     >
       <div className="flex items-end justify-between gap-3">
         <div>
@@ -272,20 +274,22 @@ export function ResumeSectionList({
                   <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold tabular-nums text-muted-foreground">
                     {sectionIndex + 1}
                   </span>
-                  <Input
-                    id={`section-title-${section}`}
-                    value={sectionTitle}
-                    aria-label={
-                      sectionTitle.trim()
+                  <Field className="min-w-20 flex-1 gap-0">
+                    <FieldLabel className="sr-only" htmlFor={`section-title-${section}`}>
+                      {sectionTitle.trim()
                         ? `${sectionTitle} section title`
-                        : "Untitled section title"
-                    }
-                    onChange={(event) => updateSectionTitle(section, event.target.value)}
-                    className={cn(
-                      "h-8 min-w-20 flex-1 border-transparent bg-transparent px-2 text-sm font-semibold shadow-none hover:bg-muted/60 focus-visible:border-input focus-visible:bg-background",
-                      sectionHidden && "text-muted-foreground line-through",
-                    )}
-                  />
+                        : "Untitled section title"}
+                    </FieldLabel>
+                    <Input
+                      id={`section-title-${section}`}
+                      value={sectionTitle}
+                      onChange={(event) => updateSectionTitle(section, event.target.value)}
+                      className={cn(
+                        "h-8 border-transparent bg-transparent px-2 text-sm font-semibold shadow-none hover:bg-muted/60 focus-visible:border-input focus-visible:bg-background",
+                        sectionHidden && "text-muted-foreground line-through",
+                      )}
+                    />
+                  </Field>
                   {sectionCount > 0 ? (
                     <span
                       className="editor-pane-wide shrink-0 tabular-nums text-xs text-muted-foreground"
@@ -315,7 +319,8 @@ export function ResumeSectionList({
                         );
                       }}
                     >
-                      <Plus /> <span className="editor-pane-wide">Add</span>
+                      <Plus data-icon="inline-start" />{" "}
+                      <span className="editor-pane-wide">Add</span>
                     </Button>
                   ) : sectionFormat === "entries" ? (
                     <Button
@@ -329,7 +334,8 @@ export function ResumeSectionList({
                         addEntry(section);
                       }}
                     >
-                      <Plus /> <span className="editor-pane-wide">Add</span>
+                      <Plus data-icon="inline-start" />{" "}
+                      <span className="editor-pane-wide">Add</span>
                     </Button>
                   ) : null}
                   <TooltipTrigger>
@@ -346,7 +352,11 @@ export function ResumeSectionList({
                       aria-pressed={sectionHidden}
                       onClick={() => toggleSectionHidden(section)}
                     >
-                      {sectionHidden ? <EyeOff /> : <Eye />}
+                      {sectionHidden ? (
+                        <EyeOff data-icon="inline-start" />
+                      ) : (
+                        <Eye data-icon="inline-start" />
+                      )}
                     </Button>
                     <Tooltip>{sectionHidden ? "Show in resume" : "Hide from resume"}</Tooltip>
                   </TooltipTrigger>
@@ -358,36 +368,41 @@ export function ResumeSectionList({
                       className="size-8 shrink-0"
                       aria-label={`More actions for ${sectionDisplayTitle}`}
                     >
-                      <MoreHorizontal />
+                      <MoreHorizontal data-icon="inline-start" />
                     </Button>
                     <DropdownMenu>
-                      <DropdownMenuItem
-                        isDisabled={sectionIndex === 0}
-                        onAction={() => moveSection(section, -1)}
-                      >
-                        <ArrowUp /> Move section up
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        isDisabled={sectionIndex === state.sectionOrder.length - 1}
-                        onAction={() => moveSection(section, 1)}
-                      >
-                        <ArrowDown /> Move section down
-                      </DropdownMenuItem>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          isDisabled={sectionIndex === 0}
+                          onAction={() => moveSection(section, -1)}
+                        >
+                          <ArrowUp /> Move section up
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          isDisabled={sectionIndex === state.sectionOrder.length - 1}
+                          onAction={() => moveSection(section, 1)}
+                        >
+                          <ArrowDown /> Move section down
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onAction={() =>
-                          customSection
-                            ? removeCustomSection(section)
-                            : removeBuiltinSection(section)
-                        }
-                      >
-                        <Trash2 /> Remove section
-                      </DropdownMenuItem>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onAction={() =>
+                            customSection
+                              ? removeCustomSection(section)
+                              : removeBuiltinSection(section)
+                          }
+                        >
+                          <Trash2 /> Remove section
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                     </DropdownMenu>
                   </DropdownMenuTrigger>
                   <Button
-                    unstyled
+                    variant="ghost"
+                    size="icon"
                     onPress={() => toggleGroup(section)}
                     aria-expanded={!sectionCollapsed}
                     aria-label={
@@ -395,13 +410,11 @@ export function ResumeSectionList({
                         ? `Expand ${sectionDisplayTitle}`
                         : `Collapse ${sectionDisplayTitle}`
                     }
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                    className="shrink-0"
                   >
                     <ChevronRight
-                      className={cn(
-                        "size-4 transition-transform",
-                        !sectionCollapsed && "rotate-90",
-                      )}
+                      data-icon="inline-start"
+                      className={cn("transition-transform", !sectionCollapsed && "rotate-90")}
                     />
                   </Button>
                 </div>
@@ -409,10 +422,23 @@ export function ResumeSectionList({
             >
               <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
                 <span id={`section-format-${section}`}>Content format</span>
-                <div
-                  role="group"
+                <ToggleGroup
                   aria-labelledby={`section-format-${section}`}
-                  className="flex w-full overflow-x-auto rounded-md border border-input bg-background shadow-xs"
+                  variant="outline"
+                  spacing={0}
+                  selectionMode="single"
+                  selectedKeys={[sectionFormat]}
+                  onSelectionChange={(keys) => {
+                    const selected = [...keys][0];
+                    if (
+                      selected === "entries" ||
+                      selected === "tag-groups" ||
+                      selected === "text"
+                    ) {
+                      updateSectionFormat(section, selected);
+                    }
+                  }}
+                  className="w-full overflow-x-auto"
                 >
                   {(
                     [
@@ -420,25 +446,17 @@ export function ResumeSectionList({
                       { key: "tag-groups", label: "Tags" },
                       { key: "text", label: "Text" },
                     ] as const
-                  ).map((option, index) => (
-                    <ToggleButton
+                  ).map((option) => (
+                    <ToggleGroupItem
                       key={option.key}
-                      title={option.label}
-                      isSelected={sectionFormat === option.key}
+                      id={option.key}
                       aria-label={`${option.label} format`}
-                      onChange={() => updateSectionFormat(section, option.key)}
-                      className={cn(
-                        "min-w-fit flex-1 border-l px-2 py-2 text-xs font-medium transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                        index === 0 && "border-l-0",
-                        sectionFormat === option.key
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
+                      className="min-w-fit flex-1"
                     >
                       {option.label}
-                    </ToggleButton>
+                    </ToggleGroupItem>
                   ))}
-                </div>
+                </ToggleGroup>
                 <p className="text-[11px] font-normal leading-snug text-muted-foreground">
                   {sectionFormat === "tag-groups"
                     ? "Use labeled groups and removable tags for concise skills, tools, languages, or competencies."
@@ -507,7 +525,7 @@ export function ResumeSectionList({
                 focusEditorTarget(`section-title-${section}`);
               }}
             >
-              <Plus /> {SECTION_LABELS[section]}
+              <Plus data-icon="inline-start" /> {SECTION_LABELS[section]}
             </Button>
           ))}
           {CUSTOM_SECTION_PRESETS.map((title) => (
@@ -521,7 +539,7 @@ export function ResumeSectionList({
                 focusEditorTarget(`section-title-${id}`);
               }}
             >
-              <Plus /> {title}
+              <Plus data-icon="inline-start" /> {title}
             </Button>
           ))}
           <Button
@@ -534,7 +552,7 @@ export function ResumeSectionList({
               focusEditorTarget(`section-title-${id}`);
             }}
           >
-            <Plus /> Add custom section
+            <Plus data-icon="inline-start" /> Add custom section
           </Button>
         </div>
       </div>

@@ -9,13 +9,27 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useId, useState, type DragEvent, type ReactNode } from "react";
+import { Button as ButtonPrimitive } from "react-aria-components";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ToggleButton } from "@/components/ui/toggle-button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Field as UIField,
+  FieldLabel as UIFieldLabel,
+  FieldLegend as UIFieldLegend,
+  FieldSet as UIFieldSet,
+} from "@/components/ui/field";
+import { Toggle } from "@/components/ui/toggle";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   MONTH_ABBR,
   buildYearMonth,
@@ -87,14 +101,16 @@ export function FieldGroup({
               {actions}
               {collapsible ? (
                 <Button
-                  unstyled
+                  variant="ghost"
+                  size="icon"
                   onPress={onToggleCollapsed}
                   aria-expanded={!collapsed}
                   aria-label={collapsed ? "Expand section" : "Collapse section"}
-                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                  className="shrink-0"
                 >
                   <ChevronRight
-                    className={cn("size-4 transition-transform", !collapsed && "rotate-90")}
+                    data-icon="inline-start"
+                    className={cn("transition-transform", !collapsed && "rotate-90")}
                   />
                 </Button>
               ) : null}
@@ -104,7 +120,7 @@ export function FieldGroup({
       )}
       <div
         className={cn(
-          "space-y-3",
+          "flex flex-col gap-3",
           header && !collapsed && "mt-3 border-t pt-3",
           collapsed && "hidden",
         )}
@@ -135,11 +151,13 @@ export function TextField({
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   spellCheck?: boolean;
 }) {
+  const generatedId = useId();
+  const controlId = id ?? generatedId;
   return (
-    <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-      <label htmlFor={id}>{label}</label>
+    <UIField>
+      <UIFieldLabel htmlFor={controlId}>{label}</UIFieldLabel>
       <Input
-        id={id}
+        id={controlId}
         type={type}
         value={value}
         placeholder={placeholder}
@@ -148,7 +166,7 @@ export function TextField({
         spellCheck={spellCheck}
         onChange={(event) => onChange(event.target.value)}
       />
-    </div>
+    </UIField>
   );
 }
 
@@ -173,38 +191,42 @@ function monthYearLabel(value: string): string {
  * opens a small popover with a year navigator and a 12-month grid. Portaled to
  * escape the editor's overflow-clipping and the inline sheet popover. Resumes
  * are month/year granularity, so there is no day grid — a "Year only" action
- * covers education-style year ranges.
+ * covers education-style year ranges. End-date instances also offer Present
+ * as a non-date state within the same popover.
  */
 function MonthYearField({
   idPrefix,
   legend,
   value,
-  disabled,
+  present = false,
+  onPresentChange,
   onChange,
 }: {
   idPrefix: string;
   legend: string;
   value: string;
-  disabled?: boolean;
+  present?: boolean;
+  onPresentChange?: (present: boolean) => void;
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [navYear, setNavYear] = useState(() => yearMonthParts(value).year);
   const parts = yearMonthParts(value);
-  const label = monthYearLabel(value);
-  const selectedMonth = navYear === parts.year ? Number(parts.month) : 0;
+  const label = present ? "Present" : monthYearLabel(value);
+  const selectedMonth = !present && navYear === parts.year ? Number(parts.month) : 0;
 
   const stepYear = (delta: number) =>
     setNavYear((current) => String((Number(current) || new Date().getFullYear()) + delta));
 
   const select = (next: string) => {
+    if (present) onPresentChange?.(false);
     onChange(next);
     setOpen(false);
   };
 
   return (
-    <div className="grid gap-1">
-      <span className="text-[11px] font-medium text-muted-foreground">{legend}</span>
+    <UIField>
+      <UIFieldLabel htmlFor={`${idPrefix}-trigger`}>{legend}</UIFieldLabel>
       <PopoverTrigger
         isOpen={open}
         onOpenChange={(nextOpen) => {
@@ -215,13 +237,26 @@ function MonthYearField({
         <Button
           id={`${idPrefix}-trigger`}
           variant="outline"
-          isDisabled={disabled}
           aria-label={`${legend} date`}
           className="h-9 w-full justify-start px-2 font-normal"
         >
           {label || <span className="text-muted-foreground">Select</span>}
         </Button>
         <Popover className="w-56 gap-0 p-2" placement="bottom start">
+          {onPresentChange ? (
+            <Toggle
+              variant="outline"
+              size="sm"
+              className="mb-2 w-full"
+              isSelected={present}
+              onChange={(isSelected) => {
+                onPresentChange(isSelected);
+                setOpen(false);
+              }}
+            >
+              Present / ongoing
+            </Toggle>
+          ) : null}
           <div className="flex items-center justify-between gap-1 pb-1.5">
             <Button
               variant="ghost"
@@ -229,73 +264,71 @@ function MonthYearField({
               aria-label="Previous year"
               onClick={() => stepYear(-1)}
             >
-              <ChevronLeft />
+              <ChevronLeft data-icon="inline-start" />
             </Button>
-            <Input
-              aria-label={`${legend} year`}
-              value={navYear}
-              placeholder="Year"
-              inputMode="numeric"
-              maxLength={4}
-              spellCheck={false}
-              className="h-8 w-16 text-center"
-              onChange={(event) => setNavYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
-            />
+            <UIField className="w-16 gap-0">
+              <UIFieldLabel className="sr-only" htmlFor={`${idPrefix}-calendar-year`}>
+                {legend} year
+              </UIFieldLabel>
+              <Input
+                id={`${idPrefix}-calendar-year`}
+                value={navYear}
+                placeholder="Year"
+                inputMode="numeric"
+                maxLength={4}
+                spellCheck={false}
+                className="h-8 text-center"
+                onChange={(event) => setNavYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
+              />
+            </UIField>
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label="Next year"
               onClick={() => stepYear(1)}
             >
-              <ChevronRight />
+              <ChevronRight data-icon="inline-start" />
             </Button>
           </div>
           <div className="grid grid-cols-3 gap-1">
             {MONTH_ABBR.map((month, index) => (
-              <ToggleButton
+              <Toggle
                 key={month}
                 aria-label={`${month} ${navYear}`}
                 isSelected={selectedMonth === index + 1}
                 isDisabled={!navYear}
                 onChange={() => select(buildYearMonth(navYear, String(index + 1)))}
-                className={cn(
-                  "rounded-md px-1 py-1.5 text-xs hover:bg-muted disabled:opacity-40",
-                  selectedMonth === index + 1 &&
-                    "bg-primary text-primary-foreground hover:bg-primary",
-                )}
+                size="sm"
+                className="h-auto px-1 py-1.5 text-xs"
               >
                 {month}
-              </ToggleButton>
+              </Toggle>
             ))}
           </div>
           <div className="flex items-center justify-between pt-2">
             <Button
-              unstyled
+              variant="link"
+              size="xs"
               isDisabled={!navYear}
               onPress={() => select(buildYearMonth(navYear, ""))}
-              className="text-[11px] font-medium text-primary hover:underline disabled:opacity-40"
             >
               Year only
             </Button>
-            <Button
-              unstyled
-              onPress={() => select("")}
-              className="text-[11px] font-medium text-muted-foreground hover:underline"
-            >
+            <Button variant="link" size="xs" onPress={() => select("")}>
               Clear
             </Button>
           </div>
         </Popover>
       </PopoverTrigger>
-    </div>
+    </UIField>
   );
 }
 
 /**
- * Structured start/end date editor: month + year pickers, a "current" toggle
- * that disables the end date, and a free-text override for dates that don't fit
- * a month/year ("Expected 2026", "Summer 2021"). Shared by the form and the
- * inline sheet popover so both commit the same fields.
+ * Structured start/end date editor with a Present option inside the end-date
+ * popover and a free-text override for dates that don't fit a month/year
+ * ("Expected 2026", "Summer 2021"). Shared by the form and the inline sheet
+ * popover so both commit the same fields.
  */
 export function DateRangeField({
   idPrefix,
@@ -308,29 +341,42 @@ export function DateRangeField({
 }) {
   const [custom, setCustom] = useState(() => Boolean(entry.dateText.trim()));
   return (
-    <div className="grid gap-2 text-xs font-medium text-muted-foreground">
-      <div className="flex items-center justify-between gap-2">
-        <span>Dates</span>
-        <Button
-          unstyled
-          className="text-[11px] font-medium text-primary hover:underline"
-          onPress={() => {
-            if (custom) onChange("dateText", "");
-            setCustom((wasCustom) => !wasCustom);
-          }}
-        >
-          {custom ? "Use date pickers" : "Enter exact text"}
-        </Button>
-      </div>
+    <UIFieldSet className="gap-2">
+      <UIFieldLegend variant="label">Dates</UIFieldLegend>
+      <ToggleGroup
+        aria-label="Date entry mode"
+        variant="outline"
+        size="sm"
+        spacing={0}
+        className="w-fit self-end"
+        selectedKeys={[custom ? "text" : "structured"]}
+        disallowEmptySelection
+        onSelectionChange={(keys) => {
+          const mode = keys.values().next().value;
+          if (mode === "structured" && custom) {
+            onChange("dateText", "");
+            setCustom(false);
+          } else if (mode === "text" && !custom) {
+            setCustom(true);
+          }
+        }}
+      >
+        <ToggleGroupItem id="structured">Month &amp; year</ToggleGroupItem>
+        <ToggleGroupItem id="text">Exact text</ToggleGroupItem>
+      </ToggleGroup>
       {custom ? (
-        <Input
-          id={`${idPrefix}-dateText`}
-          aria-label="Date text"
-          value={entry.dateText}
-          placeholder="e.g. Expected 2026"
-          spellCheck={false}
-          onChange={(event) => onChange("dateText", event.target.value)}
-        />
+        <UIField>
+          <UIFieldLabel htmlFor={`${idPrefix}-dateText`} className="sr-only">
+            Date text
+          </UIFieldLabel>
+          <Input
+            id={`${idPrefix}-dateText`}
+            value={entry.dateText}
+            placeholder="e.g. Expected 2026"
+            spellCheck={false}
+            onChange={(event) => onChange("dateText", event.target.value)}
+          />
+        </UIField>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
@@ -342,23 +388,16 @@ export function DateRangeField({
             />
             <MonthYearField
               idPrefix={`${idPrefix}-end`}
-              legend={entry.current ? "End — Present" : "End"}
+              legend="End"
               value={entry.endDate}
-              disabled={entry.current}
+              present={entry.current}
+              onPresentChange={(present) => onChange("current", present)}
               onChange={(value) => onChange("endDate", value)}
             />
           </div>
-          <Checkbox
-            id={`${idPrefix}-current`}
-            isSelected={entry.current}
-            onChange={(isSelected) => onChange("current", isSelected)}
-            className="font-normal"
-          >
-            Current / ongoing
-          </Checkbox>
         </>
       )}
-    </div>
+    </UIFieldSet>
   );
 }
 
@@ -383,41 +422,39 @@ export function TextAreaField({
     content?: ReactNode;
   };
 }) {
+  const generatedId = useId();
+  const controlId = id ?? generatedId;
   return (
-    <div className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+    <UIField>
       <div className="flex items-center justify-between gap-2">
-        <label id={id ? `${id}-label` : undefined} htmlFor={id}>
+        <UIFieldLabel id={`${controlId}-label`} htmlFor={controlId}>
           {label}
-        </label>
+        </UIFieldLabel>
         {aiAssist ? (
           <Button
-            unstyled
+            variant="brand-outline"
+            size="icon-sm"
             title={value.trim() ? "Edit this text with local AI" : "Add text before using local AI"}
             onPress={aiAssist.onClick}
             isDisabled={!value.trim()}
             aria-expanded={aiAssist.expanded}
             aria-label="Open local AI text editor"
-            aria-describedby={id ? `${id}-label` : undefined}
-            data-ai-edit-for={id}
-            className={cn(
-              "inline-flex size-7 items-center justify-center rounded-md border text-violet-600 transition-colors hover:bg-violet-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 dark:text-violet-300 dark:hover:bg-violet-950/40",
-              aiAssist.expanded &&
-                "bg-violet-50 ring-1 ring-violet-200 dark:bg-violet-950/40 dark:ring-violet-500/40",
-            )}
+            aria-describedby={`${controlId}-label`}
+            data-ai-edit-for={controlId}
           >
-            <Sparkles className="size-3.5" />
+            <Sparkles data-icon="inline-start" />
           </Button>
         ) : null}
       </div>
       <Textarea
-        id={id}
+        id={controlId}
         value={value}
         placeholder={placeholder}
         spellCheck={spellCheck}
         onChange={(event) => onChange(event.target.value)}
       />
       {aiAssist?.expanded ? aiAssist.content : null}
-    </div>
+    </UIField>
   );
 }
 
@@ -482,8 +519,7 @@ function TagGroupRow({
       )}
     >
       <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
-        <Button
-          unstyled
+        <ButtonPrimitive
           data-tag-group-toggle=""
           aria-expanded={open}
           aria-label={`${open ? "Collapse" : "Expand"} ${group.label || "untitled"} tag group`}
@@ -491,6 +527,7 @@ function TagGroupRow({
           className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
         >
           <ChevronRight
+            data-icon="inline-start"
             className={cn(
               "size-4 shrink-0 text-muted-foreground transition-transform",
               open && "rotate-90",
@@ -503,7 +540,7 @@ function TagGroupRow({
             — {group.tags.length} {group.tags.length === 1 ? "tag" : "tags"}
             {group.tags.length ? ` · ${group.tags.slice(0, 3).join(", ")}` : ""}
           </span>
-        </Button>
+        </ButtonPrimitive>
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/tag-group:opacity-100 group-focus-within/tag-group:opacity-100">
           <span
             draggable
@@ -525,7 +562,7 @@ function TagGroupRow({
             isDisabled={index === 0}
             onClick={() => onMove(-1)}
           >
-            <ArrowUp className="size-3.5" />
+            <ArrowUp data-icon="inline-start" />
           </Button>
           <Button
             type="button"
@@ -537,7 +574,7 @@ function TagGroupRow({
             isDisabled={index === total - 1}
             onClick={() => onMove(1)}
           >
-            <ArrowDown className="size-3.5" />
+            <ArrowDown data-icon="inline-start" />
           </Button>
           <Button
             type="button"
@@ -547,68 +584,73 @@ function TagGroupRow({
             aria-label={`Remove ${group.label || "tag"} group`}
             onClick={onRemove}
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 data-icon="inline-start" />
           </Button>
         </div>
       </div>
       {open ? (
         <div className="grid gap-2 px-3 pb-3 pt-1">
-          <Input
-            id={`tag-group-${group.id}-label`}
-            value={group.label}
-            onChange={(event) => onChange({ ...group, label: event.target.value })}
-            placeholder="Group label (optional)"
-            aria-label="Tag group label"
-            className="h-8 text-xs"
-          />
+          <UIField>
+            <UIFieldLabel className="sr-only" htmlFor={`tag-group-${group.id}-label`}>
+              Tag group label
+            </UIFieldLabel>
+            <Input
+              id={`tag-group-${group.id}-label`}
+              value={group.label}
+              onChange={(event) => onChange({ ...group, label: event.target.value })}
+              placeholder="Group label (optional)"
+              className="h-8 text-xs"
+            />
+          </UIField>
           <div
             className="flex flex-wrap gap-1.5"
             aria-label={group.label ? `${group.label} tags` : "Tags"}
           >
             {group.tags.map((tag) => (
               <Button
-                unstyled
+                variant="secondary"
+                size="xs"
                 key={tag}
                 title="Remove tag"
                 onPress={() =>
                   onChange({ ...group, tags: group.tags.filter((candidate) => candidate !== tag) })
                 }
-                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-full"
                 aria-label={`Remove ${tag}`}
               >
                 {tag}
-                <X className="size-3" aria-hidden="true" />
+                <X data-icon="inline-end" aria-hidden="true" />
               </Button>
             ))}
           </div>
-          <div className="flex gap-2">
-            <Input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (
-                  (event.key === "Enter" || event.key === ",") &&
-                  !event.nativeEvent.isComposing
-                ) {
-                  event.preventDefault();
-                  addTag();
-                }
-              }}
-              placeholder="Add a skill, then press Enter"
-              aria-label={`Add tag to ${group.label || "group"}`}
-              className="h-8 text-xs"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8"
-              onClick={addTag}
-              isDisabled={!draft.trim()}
-            >
-              Add
-            </Button>
-          </div>
+          <UIField>
+            <UIFieldLabel className="sr-only" htmlFor={`tag-group-${group.id}-draft`}>
+              Add tag to {group.label || "group"}
+            </UIFieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id={`tag-group-${group.id}-draft`}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (
+                    (event.key === "Enter" || event.key === ",") &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    addTag();
+                  }
+                }}
+                placeholder="Add a skill, then press Enter"
+                className="text-xs"
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton variant="outline" onClick={addTag} isDisabled={!draft.trim()}>
+                  Add
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </UIField>
         </div>
       ) : null}
     </div>
@@ -667,9 +709,12 @@ export function TagGroupEditor({
   return (
     <div className="overflow-hidden rounded-md border bg-muted/10">
       {!groups.length ? (
-        <p className="p-3 text-xs text-muted-foreground">
-          No groups yet. Add one from the section header.
-        </p>
+        <Empty className="min-h-32">
+          <EmptyHeader>
+            <EmptyTitle>No groups yet</EmptyTitle>
+            <EmptyDescription>Add one from the section header.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : null}
       {groups.map((group, index) => {
         const open = openGroupIds.has(group.id) || (!group.label.trim() && !group.tags.length);
@@ -918,14 +963,14 @@ export function EntryList({
             }}
           >
             <div className="flex items-center gap-1 pr-1.5 hover:bg-muted/30">
-              <Button
-                unstyled
+              <ButtonPrimitive
                 data-entry-toggle=""
                 aria-expanded={open}
                 onPress={() => toggle(index, open)}
                 className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
               >
                 <ChevronRight
+                  data-icon="inline-start"
                   className={cn(
                     "size-4 shrink-0 text-muted-foreground transition-transform",
                     open && "rotate-90",
@@ -935,7 +980,7 @@ export function EntryList({
                 {secondary ? (
                   <span className="truncate text-xs text-muted-foreground">— {secondary}</span>
                 ) : null}
-              </Button>
+              </ButtonPrimitive>
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/entry:opacity-100 group-focus-within/entry:opacity-100">
                 <span
                   draggable
@@ -957,7 +1002,7 @@ export function EntryList({
                   isDisabled={index === 0}
                   onClick={() => onMove(section, index, -1)}
                 >
-                  <ArrowUp />
+                  <ArrowUp data-icon="inline-start" />
                 </Button>
                 <Button
                   type="button"
@@ -969,7 +1014,7 @@ export function EntryList({
                   isDisabled={index === entries.length - 1}
                   onClick={() => onMove(section, index, 1)}
                 >
-                  <ArrowDown />
+                  <ArrowDown data-icon="inline-start" />
                 </Button>
                 {section === "experience" ? (
                   <Button
@@ -981,7 +1026,7 @@ export function EntryList({
                     aria-label="Switch role and employer"
                     title="Swap job title and company"
                   >
-                    <ArrowLeftRight />
+                    <ArrowLeftRight data-icon="inline-start" />
                   </Button>
                 ) : null}
                 <Button
@@ -993,12 +1038,12 @@ export function EntryList({
                   title="Remove entry (Undo available)"
                   onClick={() => onRemove(section, index)}
                 >
-                  <Trash2 />
+                  <Trash2 data-icon="inline-start" />
                 </Button>
               </div>
             </div>
             {open ? (
-              <div className="space-y-3 px-3 pb-3 pt-1">
+              <div className="flex flex-col gap-3 px-3 pb-3 pt-1">
                 <TextField
                   id={`field-${section}-${index}-title`}
                   label={schema.title}

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Check } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import { APP_STAGE, SITE_NAME } from "@/lib/site";
+import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export type LocalSaveState = "loading" | "saving" | "saved" | "conflict";
@@ -37,7 +37,7 @@ export function LocalSaveStatus({ state }: { state: LocalSaveState }) {
       className="flex size-9 shrink-0 items-center justify-center gap-1.5 rounded-md border bg-background text-xs text-muted-foreground sm:h-8 sm:w-auto sm:px-2"
     >
       {state === "loading" || state === "saving" ? (
-        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        <Spinner aria-hidden="true" />
       ) : state === "conflict" ? (
         <AlertCircle className="size-3.5 text-warning" aria-hidden="true" />
       ) : (
@@ -84,12 +84,6 @@ export function ApplicationHeader({
               PrivaCV
             </span>
           </Link>
-          <Badge
-            variant="secondary"
-            className="hidden shrink-0 rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-widest sm:inline-flex"
-          >
-            {APP_STAGE}
-          </Badge>
           <WorkspaceSwitcher active={active} className="ml-1" />
           {context}
         </div>

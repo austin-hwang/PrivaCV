@@ -362,11 +362,36 @@ test("keeps an employer-first dated PDF header editable as the right role and em
   );
   await expect(page.getByLabel("Company", { exact: true }).first()).toHaveValue("Northstar Labs");
   // Dates are lifted into the structured date control on import: the start
-  // trigger shows the parsed month/year and "current" is checked.
+  // trigger shows the parsed month/year and the end trigger shows Present.
   await expect(page.getByRole("button", { name: "Start date", exact: true }).first()).toHaveText(
     "Feb 2022",
   );
-  await expect(page.getByLabel("Current / ongoing", { exact: true }).first()).toBeChecked();
+  const experienceEntry = page
+    .locator("[data-editor-entry]")
+    .filter({ hasText: "Senior Product Engineer" })
+    .first();
+  const dateFields = experienceEntry.getByRole("group", { name: "Dates" });
+  const endDate = dateFields.getByRole("button", { name: "End date", exact: true });
+  await expect(endDate).toHaveText("Present");
+  const dateEntryMode = dateFields.getByRole("radiogroup", { name: "Date entry mode" });
+  const monthYearMode = dateEntryMode.getByRole("radio", { name: "Month & year" });
+  const exactTextMode = dateEntryMode.getByRole("radio", { name: "Exact text" });
+  await expect(monthYearMode).toBeChecked();
+  await exactTextMode.click();
+  await expect(dateFields.getByPlaceholder("e.g. Expected 2026")).toBeVisible();
+  await monthYearMode.click();
+  await expect(endDate).toHaveText("Present");
+
+  await endDate.click();
+  const presentToggle = page.getByRole("button", { name: "Present / ongoing", exact: true });
+  await expect(presentToggle).toHaveAttribute("aria-pressed", "true");
+  const currentYear = new Date().getFullYear();
+  await page.getByRole("button", { name: `Jan ${currentYear}`, exact: true }).click();
+  await expect(endDate).toHaveText(`Jan ${currentYear}`);
+  await endDate.click();
+  await expect(presentToggle).toHaveAttribute("aria-pressed", "false");
+  await presentToggle.click();
+  await expect(endDate).toHaveText("Present");
   await expect(
     page
       .getByLabel("Responsibilities / achievements (one bullet per line)", { exact: true })

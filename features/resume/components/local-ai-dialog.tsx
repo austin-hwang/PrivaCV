@@ -1,13 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Cpu, Download, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Cpu, Download, Sparkles, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
+import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -191,7 +213,6 @@ export function LocalAIDialog({
   };
 
   const removeModel = async () => {
-    if (!window.confirm(`Remove ${selectedModel.label} model files from this browser?`)) return;
     setModelState("removing");
     setError(null);
     try {
@@ -222,7 +243,7 @@ export function LocalAIDialog({
         </div>
       </DialogHeader>
 
-      <Alert className="border-warning/40 bg-warning/10 pl-4">
+      <Alert variant="warning" className="pl-4">
         <AlertTitle>Local AI can vary by device</AlertTitle>
         <AlertDescription>
           Performance may be slower on some devices, and suggestions may be inaccurate. Review every
@@ -230,126 +251,141 @@ export function LocalAIDialog({
         </AlertDescription>
       </Alert>
 
-      <section className="space-y-3 rounded-lg border p-4" aria-labelledby="local-ai-setup-title">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 id="local-ai-setup-title" className="text-sm font-semibold">
-              Prepare a model
-            </h3>
-            <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-              Downloads an open-source model from Hugging Face and caches it in this browser.
-            </p>
-          </div>
-          <Badge
-            variant={modelState === "ready" ? "secondary" : "outline"}
-            className={modelState === "ready" ? "bg-success/15 text-success" : undefined}
-          >
-            {modelState === "ready"
-              ? "Ready"
-              : isCached
-                ? "Downloaded"
-                : modelState === "not-cached"
-                  ? "Not downloaded"
-                  : modelState === "loading"
-                    ? "Preparing"
-                    : modelState === "removing"
-                      ? "Removing"
-                      : modelState === "error"
-                        ? "Needs attention"
-                        : "Checking cache"}
-          </Badge>
-        </div>
-
-        <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-          Model
-          <Select
-            selectedKey={modelId}
-            isDisabled={modelSelectionBusy}
-            onSelectionChange={(key) => changeModel(String(key))}
-            aria-label="Model"
-            autoFocus
-          >
-            <SelectTrigger className="h-10">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LOCAL_AI_MODELS.map((model) => (
-                <SelectItem
-                  key={model.id}
-                  id={model.id}
-                  textValue={`${model.label} — ${model.memory}${model.recommended ? " — recommended" : ""}`}
-                >
-                  {model.label} — {model.memory}
-                  {model.recommended ? " — recommended" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
-        <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{selectedModel.label}:</span>{" "}
-          {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published
-          configuration.
-          {lowMemoryDevice && selectedModel.recommended ? (
-            <span className="ml-1 text-warning">If loading fails, try the lower-memory model.</span>
-          ) : null}
-        </div>
-
-        {modelState === "loading" ? (
-          <div className="space-y-1.5" aria-live="polite">
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full bg-primary transition-[width]"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {Math.round(progress * 100)}% · {progressText || "Downloading and loading model…"}
-            </p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
-        {deviceState === "unsupported" ? (
-          <p role="status" className="text-sm text-muted-foreground">
-            Local AI isn&apos;t available in this browser or on this device.
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            onClick={prepareModel}
-            isDisabled={deviceState !== "supported" || setupBusy || modelState === "ready"}
-          >
-            {modelState === "loading" ? (
-              <Loader2 className="animate-spin" />
-            ) : modelState === "ready" ? (
-              <Check />
-            ) : isCached ? (
-              <Cpu />
-            ) : (
-              <Download />
-            )}
-            {modelState === "loading"
-              ? "Preparing…"
-              : modelState === "ready"
-                ? "Model ready"
+      <Card aria-labelledby="local-ai-setup-title">
+        <CardHeader>
+          <CardTitle id="local-ai-setup-title">Prepare a model</CardTitle>
+          <CardDescription>
+            Downloads an open-source model from Hugging Face and caches it in this browser.
+          </CardDescription>
+          <CardAction>
+            <Badge variant={modelState === "ready" ? "secondary" : "outline"}>
+              {modelState === "ready"
+                ? "Ready"
                 : isCached
-                  ? "Load cached model"
-                  : "Download and load model"}
-          </Button>
-          {isCached ? (
-            <Button type="button" variant="outline" onClick={removeModel} isDisabled={setupBusy}>
-              <Trash2 /> Remove download
-            </Button>
+                  ? "Downloaded"
+                  : modelState === "not-cached"
+                    ? "Not downloaded"
+                    : modelState === "loading"
+                      ? "Preparing"
+                      : modelState === "removing"
+                        ? "Removing"
+                        : modelState === "error"
+                          ? "Needs attention"
+                          : "Checking cache"}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+
+        <CardContent className="flex flex-col gap-3">
+          <Field>
+            <FieldLabel>Model</FieldLabel>
+            <Select
+              selectedKey={modelId}
+              isDisabled={modelSelectionBusy}
+              onSelectionChange={(key) => changeModel(String(key))}
+              aria-label="Model"
+              autoFocus
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {LOCAL_AI_MODELS.map((model) => (
+                    <SelectItem
+                      key={model.id}
+                      id={model.id}
+                      textValue={`${model.label} — ${model.memory}${model.recommended ? " — recommended" : ""}`}
+                    >
+                      {model.label} — {model.memory}
+                      {model.recommended ? " — recommended" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              <span className="font-medium text-foreground">{selectedModel.label}:</span>{" "}
+              {selectedModel.description} {selectedModel.memory} at WebLLM&apos;s published
+              configuration.
+              {lowMemoryDevice && selectedModel.recommended ? (
+                <span className="ml-1 text-warning">
+                  If loading fails, try the lower-memory model.
+                </span>
+              ) : null}
+            </FieldDescription>
+          </Field>
+
+          {modelState === "loading" ? (
+            <div className="flex flex-col gap-1.5" aria-live="polite">
+              <Progress aria-label="Preparing local AI model" value={progress * 100} />
+              <p className="text-xs text-muted-foreground">
+                {Math.round(progress * 100)}% · {progressText || "Downloading and loading model…"}
+              </p>
+            </div>
           ) : null}
-        </div>
-      </section>
+
+          {error ? (
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertTitle>Local AI setup failed</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          {deviceState === "unsupported" ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              Local AI isn&apos;t available in this browser or on this device.
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={prepareModel}
+              isDisabled={deviceState !== "supported" || setupBusy || modelState === "ready"}
+            >
+              {modelState === "loading" ? (
+                <Spinner data-icon="inline-start" />
+              ) : modelState === "ready" ? (
+                <Check data-icon="inline-start" />
+              ) : isCached ? (
+                <Cpu data-icon="inline-start" />
+              ) : (
+                <Download data-icon="inline-start" />
+              )}
+              {modelState === "loading"
+                ? "Preparing…"
+                : modelState === "ready"
+                  ? "Model ready"
+                  : isCached
+                    ? "Load cached model"
+                    : "Download and load model"}
+            </Button>
+            {isCached ? (
+              <AlertDialogTrigger>
+                <Button type="button" variant="outline" isDisabled={setupBusy}>
+                  <Trash2 data-icon="inline-start" /> Remove download
+                </Button>
+                <AlertDialog>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove this model download?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {selectedModel.label} model files will be removed from this browser. You can
+                      download them again later.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onPress={() => void removeModel()}>
+                      Remove download
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialog>
+              </AlertDialogTrigger>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
     </Dialog>
   );
 }
