@@ -12,7 +12,10 @@ export function downloadFile(blob: Blob, filename: string) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // Firefox and WebKit can still be consuming the object URL after the
+  // synthetic click returns. Revoke it shortly afterward so downloads remain
+  // reliable without retaining generated files for the rest of the session.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function downloadJsonFile(data: unknown, filename: string) {

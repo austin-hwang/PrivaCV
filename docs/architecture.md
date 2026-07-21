@@ -24,6 +24,13 @@ Explicit aggregate event ────────────► Cloudflare Anal
 
 Optional local AI runs through WebLLM in the browser. Model artifacts use browser-managed caches and are deleted through the product's **Delete all data** control. Imports are parsed locally. Portable exports and backups are only created after an explicit user action.
 
+PDF export dynamically loads the browser-only vector renderer in
+`features/resume/lib/resume-pdf.tsx`. It embeds the selected open-source resume
+font, owns Letter page geometry and margins, and consumes the live preview's
+measured break targets so the downloaded file does not depend on browser print
+settings or silently repaginate approved content. Font assets and their SIL OFL
+licenses live in `public/fonts/resume/`.
+
 Changes to storage schemas must include a forward migration, normalization at the storage boundary, and browser tests that cover existing data. Never read or write these databases directly from components.
 
 ## Module responsibilities

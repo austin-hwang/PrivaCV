@@ -23,6 +23,7 @@
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.84",
     "@opennextjs/cloudflare": "^1.20.1",
+    "@react-pdf/renderer": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fflate": "^0.8.3",

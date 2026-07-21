@@ -259,6 +259,7 @@ export function useResumeEditor() {
     downloadPlainText,
     exportAnyway,
     exportCheckOpen,
+    exportingPdf,
     focusFromExportCheck,
     pendingExportFormat,
     requestDocxExport,
@@ -268,6 +269,7 @@ export function useResumeEditor() {
     setExportCheckOpen,
   } = useResumeExport({
     state,
+    printBreaks,
     plainText,
     failedChecks,
     importReview,
@@ -503,6 +505,7 @@ export function useResumeEditor() {
     existingVersionForSave,
     exportAnyway,
     exportCheckOpen,
+    exportingPdf,
     pendingExportFormat,
     exportFingerprint,
     failedChecks,

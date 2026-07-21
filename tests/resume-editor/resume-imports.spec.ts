@@ -523,16 +523,10 @@ test("suggests a recognizable filename when exporting a PDF", async ({ page }) =
   await page.reload();
   await loadSample(page);
 
-  await page.evaluate(() => {
-    window.print = () => {
-      document.documentElement.dataset.printTitle = document.title;
-      window.dispatchEvent(new Event("afterprint"));
-    };
-  });
-
+  const downloadPromise = page.waitForEvent("download");
   await exportPdf(page);
-  await expect(page.locator("html")).toHaveAttribute("data-print-title", "John_Doe_Resume");
-  await expect(page).toHaveTitle("PrivaCV: Free Private Resume Editor — No Sign-Up");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("John_Doe_Resume.pdf");
 });
 
 test("makes validated contact details actionable in the preview", async ({ page }) => {
@@ -566,7 +560,7 @@ test("makes validated contact details actionable in the preview", async ({ page 
   ).toBeTruthy();
 });
 
-test("routes the browser print shortcut through the export review", async ({ page }) => {
+test("routes the PDF keyboard shortcut through the export review", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();

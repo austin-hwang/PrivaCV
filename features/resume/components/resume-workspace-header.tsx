@@ -9,12 +9,12 @@ import {
   Download,
   Eye,
   FileCode,
+  FileDown,
   FileJson,
   FileText,
   Library,
   Moon,
   MoreHorizontal,
-  Printer,
   RotateCcw,
   SlidersHorizontal,
   Sun,
@@ -74,6 +74,7 @@ export function ResumeWorkspaceHeader({
 }: ResumeWorkspaceHeaderProps) {
   const {
     autosaveStatus,
+    exportingPdf,
     hasContent,
     isImporting,
     loadSample,
@@ -150,8 +151,8 @@ export function ResumeWorkspaceHeader({
             </Button>
             <DropdownMenu>
               <DropdownMenuLabel>Export resume</DropdownMenuLabel>
-              <DropdownMenuItem onAction={requestExport}>
-                <Printer /> Export PDF
+              <DropdownMenuItem onAction={requestExport} isDisabled={exportingPdf}>
+                <FileDown /> {exportingPdf ? "Generating PDF…" : "Export PDF"}
               </DropdownMenuItem>
               <DropdownMenuItem onAction={requestDocxExport} isDisabled={!hasContent}>
                 <FileText /> Export Word (.docx)

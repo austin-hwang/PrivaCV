@@ -1,5 +1,7 @@
 import {
   forwardRef,
+  useLayoutEffect,
+  useRef,
   useState,
   type ClipboardEvent,
   type CSSProperties,
@@ -205,6 +207,15 @@ function RichBody({
 }) {
   const html = renderRichContent(value, legacyFormat);
   const guideProps = guideLabel ? { "data-resume-guide-label": guideLabel } : {};
+  const editableRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const element = editableRef.current;
+    if (!editable || !element || document.activeElement === element) return;
+
+    const nextHtml = html || "<p><br></p>";
+    if (element.innerHTML !== nextHtml) element.innerHTML = nextHtml;
+  }, [editable, html, value]);
 
   if (!editable) {
     if (!html) return null;
@@ -221,6 +232,7 @@ function RichBody({
   return (
     <div
       key={value}
+      ref={editableRef}
       className={cn("resume-rich resume-editable", className)}
       contentEditable
       suppressContentEditableWarning
@@ -229,7 +241,6 @@ function RichBody({
       onBlur={(event: FocusEvent<HTMLElement>) =>
         onCommit?.(commitRichContent(event.currentTarget))
       }
-      dangerouslySetInnerHTML={{ __html: html || "<p><br></p>" }}
     />
   );
 }

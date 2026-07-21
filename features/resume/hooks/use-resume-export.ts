@@ -16,6 +16,7 @@ import { pdfDocumentTitle, safeResumeFilename } from "@/features/resume/lib/resu
 
 type UseResumeExportOptions = {
   state: ResumeState;
+  printBreaks: Array<{ targetId: string; spacer: number }>;
   plainText: string;
   failedChecks: ResumeCheck[];
   importReview: ImportReviewState | null;
@@ -25,6 +26,7 @@ type UseResumeExportOptions = {
 
 export function useResumeExport({
   state,
+  printBreaks,
   plainText,
   failedChecks,
   importReview,
@@ -32,6 +34,7 @@ export function useResumeExport({
   focusCheckTarget,
 }: UseResumeExportOptions) {
   const [exportCheckOpen, setExportCheckOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "docx">("pdf");
   const requestExportRef = useRef<() => void>(() => undefined);
 
@@ -101,15 +104,24 @@ export function useResumeExport({
     downloadDocxFile();
   };
 
-  const startPrintExport = () => {
-    const previousTitle = document.title;
-    const restoreTitle = () => {
-      document.title = previousTitle;
-    };
-    document.title = pdfDocumentTitle(state.name || "resume");
-    window.addEventListener("afterprint", restoreTitle, { once: true });
-    if (hasAnyContent(state)) trackResumeExport("pdf");
-    window.print();
+  const downloadPdfFile = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    flash("Generating PDF in your browser…");
+    try {
+      // Keep the PDF renderer and embedded-font machinery out of the editor's
+      // initial bundle. The generated file is vector text and never leaves the
+      // device; no browser print settings can alter its scale or margins.
+      const { resumePdfBlob } = await import("@/features/resume/lib/resume-pdf");
+      const blob = await resumePdfBlob(state, printBreaks);
+      downloadFile(blob, `${pdfDocumentTitle(state.name || "resume")}.pdf`);
+      if (hasAnyContent(state)) trackResumeExport("pdf");
+      flash("Saved PDF to downloads");
+    } catch {
+      flash("Could not generate PDF");
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const requestExport = () => {
@@ -118,7 +130,7 @@ export function useResumeExport({
       setExportCheckOpen(true);
       return;
     }
-    startPrintExport();
+    void downloadPdfFile();
   };
 
   requestExportRef.current = requestExport;
@@ -146,7 +158,7 @@ export function useResumeExport({
       downloadDocxFile();
       return;
     }
-    window.setTimeout(startPrintExport, 120);
+    window.setTimeout(() => void downloadPdfFile(), 120);
   };
 
   const focusFromExportCheck = (targetId: string) => {
@@ -160,6 +172,7 @@ export function useResumeExport({
     downloadPlainText,
     exportAnyway,
     exportCheckOpen,
+    exportingPdf,
     focusFromExportCheck,
     pendingExportFormat,
     requestDocxExport,

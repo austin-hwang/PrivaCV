@@ -750,12 +750,21 @@ html[data-resume-workspace="active"] .public-explainer {
      regardless of element backgrounds. Force a light scheme and white surfaces. */
   html,
   body {
+    /* Some print engines retain the desktop layout viewport instead of
+       reflowing it to the physical page. Constrain the complete print tree to
+       Letter width so they do not shrink an 8.5in resume to fit a much wider
+       app shell (which presented as roughly 66% scale and oversized margins). */
+    width: 8.5in !important;
+    min-width: 0 !important;
+    max-width: 8.5in !important;
     background: #fff !important;
     color-scheme: light !important;
   }
 
   .app-shell {
     display: block !important;
+    width: 8.5in !important;
+    max-width: 8.5in !important;
     height: auto !important;
   }
 
@@ -765,12 +774,15 @@ html[data-resume-workspace="active"] .public-explainer {
      sheet), and drop the drag handle. */
   [data-slot="resizable-panel-group"] {
     display: block !important;
+    width: 8.5in !important;
+    max-width: 8.5in !important;
     height: auto !important;
     overflow: visible !important;
   }
   [data-slot="resizable-panel"] {
     flex: 1 1 auto !important;
-    width: 100% !important;
+    width: 8.5in !important;
+    max-width: 8.5in !important;
     overflow: visible !important;
   }
   [data-slot="resizable-handle"] {
@@ -779,6 +791,8 @@ html[data-resume-workspace="active"] .public-explainer {
 
   .preview-pane {
     display: block !important;
+    width: 8.5in !important;
+    max-width: 8.5in !important;
     overflow: visible !important;
     padding: 0 !important;
     background: #fff !important;

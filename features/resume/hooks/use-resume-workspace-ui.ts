@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 import type { ResumeTemplateId } from "@/lib/resume";
 import type { VersionHistoryItem } from "@/lib/resume-workspace";
 import type { DestructiveResumeAction } from "@/features/resume/components/review-dialogs";
@@ -55,7 +62,10 @@ export function useResumeWorkspaceUI({
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [previewScale, setPreviewScale] = useState(1);
   const [sheetHeight, setSheetHeight] = useState(11 * 96);
-  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [previewWrapNode, setPreviewWrapNode] = useState<HTMLDivElement | null>(null);
+  const previewWrapRef = useCallback((node: HTMLDivElement | null) => {
+    setPreviewWrapNode(node);
+  }, []);
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
 
   useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
@@ -108,20 +118,23 @@ export function useResumeWorkspaceUI({
 
   const sheetWidthPx = 8.5 * 96;
   useEffect(() => {
-    const wrap = previewWrapRef.current;
+    const wrap = previewWrapNode;
     if (!wrap) return;
     const measure = () => {
       const available = wrap.clientWidth;
       if (available > 0) setPreviewScale(Math.min(1, Math.max(0.2, available / sheetWidthPx)));
       const sheet = resumeRef.current;
-      if (sheet) setSheetHeight(sheet.offsetHeight);
+      // A hidden mobile pane reports zero dimensions. Preserve the last real
+      // measurement until its replacement is visible instead of collapsing
+      // the frame and leaving a blank preview when the desktop layout returns.
+      if (sheet && sheet.offsetHeight > 0) setSheetHeight(sheet.offsetHeight);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(wrap);
     if (resumeRef.current) observer.observe(resumeRef.current);
     return () => observer.disconnect();
-  }, [loaded, resumeRef, sheetWidthPx]);
+  }, [loaded, previewWrapNode, resumeRef, sheetWidthPx]);
 
   const previewFrameStyle = {
     "--resume-preview-scale": previewScale,

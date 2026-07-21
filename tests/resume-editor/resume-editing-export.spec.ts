@@ -192,6 +192,63 @@ test("keeps the resume sheet to true Letter dimensions on screen and in print", 
   // double-margined and short resumes would spill onto a second page.
   expect(printDimensions.paddingTop).toBe("0px");
   expect(printDimensions.paddingBottom).toBe("0px");
+
+  // A wide screen viewport must not survive into the print tree. Browsers that
+  // preserve it shrink the whole page to fit, yielding ~66% scale and large
+  // side margins even though the sheet itself is correctly Letter-sized.
+  const printTreeWidths = await page.locator(".resume-sheet").evaluate((element) => ({
+    html: document.documentElement.getBoundingClientRect().width,
+    body: document.body.getBoundingClientRect().width,
+    shell: document.querySelector<HTMLElement>(".app-shell")?.getBoundingClientRect().width,
+    preview: document.querySelector<HTMLElement>("#resume-preview-pane")?.getBoundingClientRect()
+      .width,
+    sheet: element.getBoundingClientRect().width,
+  }));
+  for (const width of Object.values(printTreeWidths)) {
+    expect(width).toBeCloseTo(8.5 * 96, 0);
+  }
+});
+
+test("downloads a full-scale vector Letter PDF independent of print settings", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const downloadPromise = page.waitForEvent("download");
+  await exportPdf(page);
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("John_Doe_Resume.pdf");
+
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await readFile(path!)) }).promise;
+  expect(doc.numPages).toBe(1);
+
+  const pdfPage = await doc.getPage(1);
+  const viewport = pdfPage.getViewport({ scale: 1 });
+  expect(viewport.width).toBe(612);
+  expect(viewport.height).toBe(792);
+
+  const content = await pdfPage.getTextContent();
+  const textItems = content.items.filter((item) => "str" in item && item.str.trim());
+  const name = textItems.find((item) => "str" in item && item.str === "John Doe");
+  const summary = textItems.find(
+    (item) => "str" in item && item.str.startsWith("Product operations leader"),
+  );
+  expect(name && "transform" in name ? name.transform[0] : 0).toBeCloseTo(19, 1);
+  expect(name && "transform" in name ? name.transform[4] : 0).toBeCloseTo(36, 1);
+  expect(summary && "transform" in summary ? summary.transform[0] : 0).toBeCloseTo(9.5, 1);
+  expect(summary && "transform" in summary ? summary.transform[4] : 0).toBeCloseTo(36, 1);
+
+  const annotations = await pdfPage.getAnnotations();
+  expect(annotations.some((annotation) => annotation.url === "mailto:john.doe@example.com")).toBe(
+    true,
+  );
+  expect(
+    annotations.some((annotation) => annotation.url === "https://linkedin.com/in/johndoe"),
+  ).toBe(true);
 });
 
 test("never includes an open Design panel in the exported PDF", async ({ page }) => {
@@ -272,6 +329,59 @@ test("matches preview page count when print keeps a long role intact", async ({ 
   await page.emulateMedia({ media: "print" });
   const pdf = await page.pdf({ format: "Letter", preferCSSPageSize: true, printBackground: true });
   expect((pdf.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length).toBe(3);
+
+  // The app-owned PDF renderer must paginate to the same count as the live
+  // preview even though it no longer relies on the browser print pipeline.
+  await page.emulateMedia({ media: "screen" });
+  const downloadPromise = page.waitForEvent("download");
+  await exportPdf(page);
+  const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
+  if (await exportDialog.isVisible()) {
+    await exportDialog.getByRole("button", { name: /export anyway/i }).click();
+  }
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const generated = await pdfjs.getDocument({ data: new Uint8Array(await readFile(path!)) })
+    .promise;
+  expect(generated.numPages).toBe(3);
+});
+
+test("repaginates inline preview edits before the editor loses focus", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const details = Array.from(
+    { length: 22 },
+    (_, index) =>
+      `Led initiative ${index + 1} that improved a cross-functional customer workflow through careful design, validation, and delivery across stakeholders.`,
+  ).join("\n");
+  await setRichText(page.locator("#field-experience-0-details"), details, "bullet");
+  await expect(page.getByText("3 pages in preview", { exact: true })).toBeVisible();
+
+  const inlineDetails = page.locator(
+    '.resume-sheet [data-resume-entry-section="experience"][data-resume-entry-index="0"] .resume-entry-body[contenteditable="true"]',
+  );
+  await inlineDetails.focus();
+  await expect(inlineDetails).toBeFocused();
+
+  // Inline fields intentionally commit to app state on blur. Pagination still
+  // needs to follow the live DOM while the user is typing so stale spacer and
+  // guide elements cannot cut through the newly shortened content.
+  await inlineDetails.evaluate((element) => {
+    element.innerHTML = "<ul><li>Delivered one concise, measurable customer outcome.</li></ul>";
+    element.dispatchEvent(
+      new InputEvent("input", { bubbles: true, inputType: "deleteContentBackward" }),
+    );
+  });
+
+  await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
+  await expect(inlineDetails).toBeFocused();
+  await expect(page.locator(".resume-page-guide")).toHaveCount(0);
+  await expect(page.locator(".resume-print-break-before")).toHaveCount(0);
 });
 
 test("keeps the Skills section whole on the exported page the preview shows it on", async ({
@@ -334,6 +444,36 @@ test("keeps the Skills section whole on the exported page the preview shows it o
     expect(pageText[0]).not.toContain(normalizedMarker);
     expect(pageText[1]).toContain(normalizedMarker);
   }
+
+  await page.emulateMedia({ media: "screen" });
+  const downloadPromise = page.waitForEvent("download");
+  await exportPdf(page);
+  const exportDialog = page.getByRole("dialog", { name: /review before exporting/i });
+  if (await exportDialog.isVisible()) {
+    await exportDialog.getByRole("button", { name: /export anyway/i }).click();
+  }
+  const download = await downloadPromise;
+  const generatedPath = await download.path();
+  expect(generatedPath).toBeTruthy();
+  const generated = await pdfjs.getDocument({
+    data: new Uint8Array(await readFile(generatedPath!)),
+  }).promise;
+  expect(generated.numPages).toBe(2);
+  const generatedPageText = await Promise.all(
+    Array.from({ length: generated.numPages }, async (_, index) => {
+      const content = await (await generated.getPage(index + 1)).getTextContent();
+      return content.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .join("")
+        .replace(/\s+/g, "")
+        .toLocaleUpperCase();
+    }),
+  );
+  for (const marker of markers) {
+    const normalizedMarker = marker.replace(/\s+/g, "").toLocaleUpperCase();
+    expect(generatedPageText[0]).not.toContain(normalizedMarker);
+    expect(generatedPageText[1]).toContain(normalizedMarker);
+  }
 });
 
 test("recomputes the preview page count when the resume shrinks", async ({ page }) => {
@@ -355,10 +495,33 @@ test("recomputes the preview page count when the resume shrinks", async ({ page 
   // The compact-spacing helper only appears once the preview is multi-page.
   await expect(page.getByRole("button", { name: "Try compact spacing" })).toBeVisible();
 
+  // Crossing the responsive breakpoint replaces the preview DOM. Its size
+  // observer must follow the replacement instead of retaining the detached
+  // desktop sheet (which left the restored viewer blank or permanently tall).
+  await page.setViewportSize({ width: 800, height: 900 });
+  await expect(page.locator("#resume-preview-pane")).toBeHidden();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator(".resume-sheet")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator(".resume-sheet").evaluate((sheet) => sheet.getBoundingClientRect().width),
+    )
+    .toBeGreaterThan(0);
+
   // Shrinking the resume must drop the extra page — the sheet min-height (set
   // from the page count so full pages render) must not lock the count high.
   await setRichText(roleDetails, "Delivered one concise, measurable outcome.", "bullet");
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator(".resume-preview-sheet-frame").evaluate((frame) => {
+        const sheet = frame.querySelector<HTMLElement>(".resume-sheet");
+        return sheet
+          ? Math.abs(frame.getBoundingClientRect().height - sheet.getBoundingClientRect().height)
+          : Number.POSITIVE_INFINITY;
+      }),
+    )
+    .toBeLessThan(1);
 });
 
 test("offers reversible page-fit adjustments without changing resume content", async ({ page }) => {
@@ -398,20 +561,10 @@ test("offers reversible page-fit adjustments without changing resume content", a
   await expect(roleDetails).toContainText("Led initiative 1");
 });
 
-test("shows an export review before printing an unresolved resume", async ({ page }) => {
+test("shows an export review before downloading an unresolved resume", async ({ page }) => {
   await page.goto("/");
-  await page.evaluate(() => {
-    localStorage.clear();
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
+  await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.evaluate(() => {
-    window.print = () => {
-      window.localStorage.setItem("print-called", "true");
-    };
-  });
   await loadSample(page);
   await page.getByLabel("Phone").fill("");
 
@@ -429,8 +582,10 @@ test("shows an export review before printing an unresolved resume", async ({ pag
   await expect(page.getByRole("dialog", { name: /review before exporting/i })).toBeHidden();
 
   await exportPdf(page);
+  const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: /export anyway/i }).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("print-called"))).toBe("true");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("John_Doe_Resume.pdf");
 });
 
 test("adds, customizes, reorders, and persists header links with contact icons", async ({

@@ -26,7 +26,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 - Four clean, printable resume templates with type, spacing, heading, and accent controls
 - PDF and DOCX import with a deliberate field-by-field review flow
-- Local PDF, editable DOCX, plain-text, and JSON export
+- Deterministic local vector PDF, editable DOCX, plain-text, and JSON export
 - ATS-friendly plain-text review and resume checks for contact details, structure, density, and measurable evidence
 - Local browser autosave, named checkpoints, backups, restore points, and undo
 - Responsive editor and print layout with page-boundary guidance

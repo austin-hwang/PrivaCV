@@ -13,7 +13,11 @@ export function useResumePagination(state: ResumeState) {
   const resumeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let measureFrame: number | null = null;
+    let disposed = false;
+
     const measure = () => {
+      if (disposed) return;
       const sheet = resumeRef.current;
       if (!sheet) return;
       const pageHeightPx = 11 * 96;
@@ -130,10 +134,27 @@ export function useResumePagination(state: ResumeState) {
       );
     };
 
+    const scheduleMeasure = () => {
+      if (measureFrame !== null) window.cancelAnimationFrame(measureFrame);
+      measureFrame = window.requestAnimationFrame(() => {
+        measureFrame = null;
+        measure();
+      });
+    };
+
     measure();
-    document.fonts?.ready.then(measure).catch(() => undefined);
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    document.fonts?.ready.then(scheduleMeasure).catch(() => undefined);
+    window.addEventListener("resize", scheduleMeasure);
+
+    const sheet = resumeRef.current;
+    sheet?.addEventListener("input", scheduleMeasure);
+
+    return () => {
+      disposed = true;
+      if (measureFrame !== null) window.cancelAnimationFrame(measureFrame);
+      window.removeEventListener("resize", scheduleMeasure);
+      sheet?.removeEventListener("input", scheduleMeasure);
+    };
   }, [printBreaks, state]);
 
   return { pageCount, pageGuides, printBreaks, resumeRef };
