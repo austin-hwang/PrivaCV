@@ -143,7 +143,7 @@ test("keeps the phone preview faithful to the printed Letter layout", async ({ b
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await loadSample(page);
-  await page.getByRole("button", { name: /^preview$/i }).click();
+  await page.getByRole("radio", { name: /^preview$/i }).click();
 
   await expect(page.getByText("1 page in preview", { exact: true })).toBeVisible();
   const dimensions = await page.locator(".resume-sheet").evaluate((sheet) => ({

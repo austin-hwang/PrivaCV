@@ -737,7 +737,7 @@ test("switches between focused editor and preview views on a narrow screen", asy
   await expect(previewPane).toBeHidden();
   await page.getByLabel("Phone").fill("");
 
-  await page.getByRole("button", { name: /^preview$/i }).click();
+  await page.getByRole("radio", { name: /^preview$/i }).click();
   await expect(previewPane).toBeVisible();
   await expect(editorPane).toBeHidden();
   await expect(previewPane.getByText("1 page in preview", { exact: true })).toBeVisible();
@@ -750,7 +750,7 @@ test("switches between focused editor and preview views on a narrow screen", asy
   await expect(editorPane).toBeVisible();
   await expect(page.locator("#field-phone")).toBeFocused();
 
-  await page.getByRole("button", { name: /^preview$/i }).click();
+  await page.getByRole("radio", { name: /^preview$/i }).click();
   await expect(previewPane).toBeVisible();
   await page
     .getByRole("button", { name: /^edit resume$/i })

@@ -254,10 +254,10 @@ export function ResumeWorkspaceHeader({
             }}
             className="grid w-full grid-cols-2"
           >
-            <ToggleGroupItem id="mobile-editor-tab" size="sm" aria-controls="resume-editor-pane">
+            <ToggleGroupItem id="editor" size="sm" aria-controls="resume-editor-pane">
               <FileText data-icon="inline-start" /> Edit resume
             </ToggleGroupItem>
-            <ToggleGroupItem id="mobile-preview-tab" size="sm" aria-controls="resume-preview-pane">
+            <ToggleGroupItem id="preview" size="sm" aria-controls="resume-preview-pane">
               <Eye data-icon="inline-start" /> Preview
             </ToggleGroupItem>
           </ToggleGroup>

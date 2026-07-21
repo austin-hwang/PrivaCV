@@ -710,12 +710,12 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await loadSample(page);
 
   const skillsSection = page.locator('[data-editor-section="skills"]');
-  const skillsFormatPicker = skillsSection.getByRole("group", { name: "Content format" });
-  await expect(skillsFormatPicker.getByRole("button", { name: "Tags format" })).toHaveAttribute(
-    "aria-pressed",
+  const skillsFormatPicker = skillsSection.getByRole("radiogroup", { name: "Content format" });
+  await expect(skillsFormatPicker.getByRole("radio", { name: "Tags format" })).toHaveAttribute(
+    "aria-checked",
     "true",
   );
-  await expect(skillsFormatPicker.getByRole("button", { name: "Entries format" })).toBeVisible();
+  await expect(skillsFormatPicker.getByRole("radio", { name: "Entries format" })).toBeVisible();
   const addSkillsGroup = skillsSection.getByRole("button", { name: "Add group to Skills" });
   await expect(addSkillsGroup).toBeVisible();
   await expect(skillsSection.getByRole("button", { name: "Add group", exact: true })).toHaveCount(
@@ -728,7 +728,7 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await expect(newGroupLabel).toBeFocused();
   await expect(newGroupLabel).toHaveValue("Platforms");
   await expect(skillsSection.getByLabel("Add tag to Platforms")).toBeVisible();
-  await skillsFormatPicker.getByRole("button", { name: "Entries format" }).click();
+  await skillsFormatPicker.getByRole("radio", { name: "Entries format" }).click();
   await skillsSection.locator("#add-skills-entry").click();
   await page.locator("#field-skills-0-title").fill("Cloud platforms");
   await page.locator("#field-skills-0-subtitle").fill("AWS and Azure");
@@ -739,8 +739,8 @@ test("lets each section choose an ATS-readable content format", async ({ page })
   await page.getByRole("button", { name: /add custom section/i }).click();
   await page.getByLabel("New Section section title").fill("Certifications");
   const customSection = page.locator('[data-editor-section^="custom-"]').last();
-  const formatPicker = customSection.getByRole("group", { name: "Content format" });
-  await formatPicker.getByRole("button", { name: "Text format" }).click();
+  const formatPicker = customSection.getByRole("radiogroup", { name: "Content format" });
+  await formatPicker.getByRole("radio", { name: "Text format" }).click();
   const certificationBody = customSection.getByRole("textbox", { name: "Certifications content" });
   await setRichText(
     certificationBody,
@@ -1156,7 +1156,10 @@ test("starts relevant coursework as grouped tags and languages with proficiency 
   await loadSample(page);
 
   await page.getByRole("button", { name: /relevant coursework/i }).click();
-  await expect(page.getByLabel("Tags format").last()).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("radio", { name: "Tags format" }).last()).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
   await expect(page.getByLabel("Tag group label").last()).toBeVisible();
   await expect(page.getByLabel("Add tag to group")).toBeVisible();
 
