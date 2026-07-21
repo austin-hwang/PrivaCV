@@ -96,7 +96,7 @@ async function loadPdfJs() {
   // Keep parsing code and its worker on the app's own origin. Loading these
   // files from a CDN would make a sensitive local import depend on a third
   // party and would make the product's local-first promise less accurate.
-  pdfjsLib = (await import("pdfjs-dist")) as PdfJs;
+  pdfjsLib = (await import("@/lib/pdfjs-browser-runtime")) as PdfJs;
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
     import.meta.url,

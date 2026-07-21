@@ -50,6 +50,17 @@ const nextConfig: NextConfig = {
   // images unoptimized avoids broken article images while preserving responsive
   // dimensions, lazy loading, and the original generated PNG response.
   images: { unoptimized: true },
+  // PDF import/export only runs in response to browser actions. Next still
+  // compiles Client Components for server rendering, so importing the real
+  // renderers there would add their font/PDF engines to the Cloudflare Worker.
+  // Keep lightweight, fail-closed stubs in the server graph and replace them
+  // with the real packages only for browser-targeted bundles.
+  turbopack: {
+    resolveAlias: {
+      "@/lib/pdfjs-browser-runtime": { browser: "pdfjs-dist" },
+      "@/lib/react-pdf-browser-runtime": { browser: "@react-pdf/renderer" },
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -44,8 +44,8 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
-      - name: Build production application
-        run: pnpm build
+      - name: Build and validate Cloudflare deployment
+        run: pnpm check:deploy
 
   browser-tests:
     name: Browser tests

@@ -1,4 +1,4 @@
-import { Document, Font, Link, Page, Text, View, pdf } from "@react-pdf/renderer";
+import { Document, Font, Link, Page, Text, View, pdf } from "@/lib/react-pdf-browser-runtime";
 import {
   contactHref,
   entryHasContent,

@@ -5,6 +5,8 @@
   "description": "PrivaCV — private, local-first tools for resumes and job applications.",
   "scripts": {
     "build": "next build",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "check:deploy": "pnpm build:cloudflare && node scripts/check-worker-size.mjs",
     "dev": "next dev",
     "start": "next start",
     "lint": "oxlint --report-unused-disable-directives .",
@@ -15,9 +17,9 @@
     "test": "vitest run",
     "test:public-resumes": "node scripts/fetch-public-resume-fixtures.mjs && PLAYWRIGHT_PUBLIC_RESUMES=1 playwright test tests/public-resume-import.spec.ts",
     "test:e2e": "playwright test",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "preview": "pnpm build:cloudflare && opennextjs-cloudflare preview",
+    "deploy": "pnpm build:cloudflare && opennextjs-cloudflare deploy",
+    "upload": "pnpm build:cloudflare && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
