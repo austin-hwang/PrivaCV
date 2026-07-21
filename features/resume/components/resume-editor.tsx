@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 import { FEEDBACK_URL } from "@/lib/site";
@@ -423,6 +423,10 @@ export function ResumeEditor() {
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
+  // Remembers the user's editor/preview split (panel id → percent) so it
+  // survives the panel group remounting when the layout viewport crosses the lg
+  // breakpoint — which printing does by shrinking the viewport to page width.
+  const workspaceLayoutRef = useRef<Record<string, number> | undefined>(undefined);
 
   if (!loaded) {
     // Reserve the full workspace height while loading so the SEO explainer below
@@ -502,7 +506,17 @@ export function ResumeEditor() {
       />
       <main className="app-shell min-h-[calc(100vh-73px)] lg:h-[calc(100vh-73px)]">
         {isDesktop ? (
-          <ResizablePanelGroup className="h-full">
+          <ResizablePanelGroup
+            className="h-full"
+            // Restore the user's split after the group remounts. Printing (and
+            // any window resize across the lg breakpoint) narrows the layout
+            // viewport below 1024px, which unmounts the desktop panels; without a
+            // remembered layout they would snap back to 50/50 afterward.
+            defaultLayout={workspaceLayoutRef.current}
+            onLayoutChanged={(layout, meta) => {
+              if (meta.isUserInteraction) workspaceLayoutRef.current = layout;
+            }}
+          >
             {!editorCollapsed ? (
               <>
                 <ResizablePanel key="editor" id="editor-pane" defaultSize="50" minSize={340}>

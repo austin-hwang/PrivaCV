@@ -12,13 +12,19 @@ import { cn } from "@/lib/utils";
 
 function TooltipTrigger({
   delay = 0,
+  closeDelay = 0,
   children,
   ...props
 }: React.ComponentProps<typeof TooltipTriggerPrimitive>) {
   const [trigger, tooltip] = React.Children.toArray(children);
 
   return (
-    <TooltipTriggerPrimitive data-slot="tooltip-trigger" delay={delay} {...props}>
+    <TooltipTriggerPrimitive
+      data-slot="tooltip-trigger"
+      delay={delay}
+      closeDelay={closeDelay}
+      {...props}
+    >
       <Focusable>{trigger as React.ComponentProps<typeof Focusable>["children"]}</Focusable>
       {tooltip}
     </TooltipTriggerPrimitive>

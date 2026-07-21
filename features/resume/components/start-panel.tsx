@@ -103,7 +103,7 @@ export function StartPanel({
                 <FileText /> <span className="min-w-0">Start a blank resume</span>{" "}
                 <ChevronDown className="ml-auto shrink-0" />
               </Button>
-              <DropdownMenu className="w-full min-w-64">
+              <DropdownMenu className="min-w-64">
                 <DropdownMenuLabel>Choose a layout</DropdownMenuLabel>
                 {RESUME_TEMPLATES.map((template) => (
                   <DropdownMenuItem

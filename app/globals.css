@@ -736,12 +736,22 @@ html[data-resume-workspace="active"] .public-explainer {
 @media print {
   .app-chrome,
   .editor-pane,
-  [data-print-exclude] {
+  [data-print-exclude],
+  /* Sonner renders toasts in a body-level portal that isn't inside any of the
+     print-excluded containers, so hide it explicitly or an active toast prints
+     onto the exported page. */
+  [data-sonner-toaster] {
     display: none !important;
   }
 
+  /* Print on a light canvas even when the app is in dark mode. Chrome paints the
+     @page margin band (the top/bottom page inset) from the document's
+     color-scheme, so a dark scheme renders those margins as black bars
+     regardless of element backgrounds. Force a light scheme and white surfaces. */
+  html,
   body {
-    background: #fff;
+    background: #fff !important;
+    color-scheme: light !important;
   }
 
   .app-shell {
@@ -756,10 +766,12 @@ html[data-resume-workspace="active"] .public-explainer {
   [data-slot="resizable-panel-group"] {
     display: block !important;
     height: auto !important;
+    overflow: visible !important;
   }
   [data-slot="resizable-panel"] {
     flex: 1 1 auto !important;
     width: 100% !important;
+    overflow: visible !important;
   }
   [data-slot="resizable-handle"] {
     display: none !important;
