@@ -8,7 +8,14 @@ const distName = ".next-electron";
 const distDirectory = path.join(repositoryRoot, distName);
 const standaloneDirectory = path.join(distDirectory, "standalone");
 const nextEnvironmentPath = path.join(repositoryRoot, "next-env.d.ts");
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const pnpmScript = process.env.npm_execpath;
+const windowsFallback = process.platform === "win32" && !pnpmScript;
+const pnpmCommand = pnpmScript
+  ? process.execPath
+  : windowsFallback
+    ? (process.env.ComSpec ?? "cmd.exe")
+    : "pnpm";
+const pnpmArgs = pnpmScript ? [pnpmScript] : windowsFallback ? ["/d", "/s", "/c", "pnpm"] : [];
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -24,7 +31,7 @@ function run(command, args, options = {}) {
 await rm(distDirectory, { force: true, recursive: true });
 const nextEnvironment = await readFile(nextEnvironmentPath);
 try {
-  await run(pnpmCommand, ["exec", "next", "build"], {
+  await run(pnpmCommand, [...pnpmArgs, "exec", "next", "build"], {
     cwd: repositoryRoot,
     env: {
       ...process.env,

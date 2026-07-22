@@ -3,11 +3,22 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const pnpmScript = process.env.npm_execpath;
+const windowsFallback = process.platform === "win32" && !pnpmScript;
+const pnpmCommand = pnpmScript
+  ? process.execPath
+  : windowsFallback
+    ? (process.env.ComSpec ?? "cmd.exe")
+    : "pnpm";
+const pnpmArgs = pnpmScript
+  ? [pnpmScript, "dev"]
+  : windowsFallback
+    ? ["/d", "/s", "/c", "pnpm", "dev"]
+    : ["dev"];
 const developmentUrl = "http://127.0.0.1:3000";
 let shuttingDown = false;
 
-const next = spawn(pnpmCommand, ["dev"], {
+const next = spawn(pnpmCommand, pnpmArgs, {
   env: { ...process.env, PRIVACV_DESKTOP_APP: "1" },
   stdio: "inherit",
 });
