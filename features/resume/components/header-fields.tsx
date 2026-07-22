@@ -5,23 +5,27 @@ import {
   ArrowDown,
   ArrowUp,
   BriefcaseBusiness,
-  Calendar,
+  CalendarDays,
   Camera,
-  Code,
-  Code2,
+  ChevronRight,
+  CircleDotDashed,
+  CircleSlash2,
+  Component,
+  ContactRound,
+  GitBranch,
   GitFork,
   Globe2,
   Link as LinkIcon,
   MessageCircle,
-  Newspaper,
-  Palette,
+  NotebookPen,
   Plus,
-  Shapes,
+  SquareCode,
   Trash2,
   Video,
 } from "lucide-react";
 import { FieldGroup, TextField } from "@/features/resume/components/editor-fields";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
@@ -35,20 +39,20 @@ import {
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
-const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
+const HEADER_LINK_ICONS: Record<Exclude<HeaderLinkIconId, "none">, typeof Globe2> = {
   website: Globe2,
-  linkedin: BriefcaseBusiness,
-  github: Code2,
+  linkedin: ContactRound,
+  github: GitBranch,
   gitlab: GitFork,
   twitter: MessageCircle,
   instagram: Camera,
   youtube: Video,
-  dribbble: Palette,
-  figma: Shapes,
+  dribbble: CircleDotDashed,
+  figma: Component,
   portfolio: BriefcaseBusiness,
-  blog: Newspaper,
-  calendar: Calendar,
-  code: Code,
+  blog: NotebookPen,
+  calendar: CalendarDays,
+  code: SquareCode,
   link: LinkIcon,
 };
 
@@ -59,10 +63,11 @@ function HeaderLinkIcon({
   icon: HeaderLinkIconId;
   "data-icon"?: "inline-start" | "inline-end";
 }) {
+  if (icon === "none") {
+    return <CircleSlash2 aria-hidden="true" data-icon={dataIcon} className="lucide-none" />;
+  }
   const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
-  return (
-    <Icon aria-hidden="true" data-icon={dataIcon} className={cn("size-4", `lucide-${icon}`)} />
-  );
+  return <Icon aria-hidden="true" data-icon={dataIcon} className={`lucide-${icon}`} />;
 }
 
 function HeaderLinkIconPicker({
@@ -109,7 +114,7 @@ function HeaderLinkIconPicker({
             }}
             className="size-9 p-0"
           >
-            <HeaderLinkIcon icon={option.id} data-icon="inline-start" />
+            <HeaderLinkIcon icon={option.id} />
           </Toggle>
         ))}
       </Popover>
@@ -140,12 +145,26 @@ function NameParts({
   onUpdateField: (field: HeaderTextField, value: string) => void;
 }) {
   const derived = personNameParts(state);
+  const [open, setOpen] = useState(false);
   return (
-    <details className="rounded-md border bg-muted/10 px-3 py-2">
-      <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+    <Collapsible
+      isExpanded={open}
+      onExpandedChange={setOpen}
+      className="rounded-md border bg-muted/10"
+    >
+      <Button
+        slot="trigger"
+        variant="ghost"
+        size="sm"
+        className="w-full justify-between rounded-md px-3 text-muted-foreground"
+      >
         Name parts — used for application forms
-      </summary>
-      <div className="editor-pane-grid mt-2 grid gap-3">
+        <ChevronRight
+          data-icon="inline-end"
+          className={cn("transition-transform", open && "rotate-90")}
+        />
+      </Button>
+      <CollapsibleContent className="editor-pane-grid grid gap-3 px-3 pb-3 pt-1 [&[hidden]]:p-0">
         <TextField
           id="field-first-name"
           label="First"
@@ -173,8 +192,8 @@ function NameParts({
           spellCheck={false}
           onChange={(value) => onUpdateField("lastName", value)}
         />
-      </div>
-    </details>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -204,7 +223,7 @@ export function ResumeHeaderFields({
       id="edit-header"
       title="Header"
       reviewRegion
-      className={cn(active && "rounded-md bg-brand-soft/10 px-3 pt-3 ring-1 ring-brand/40")}
+      className={cn(active && "border-l-2 border-l-muted-foreground/40 pl-3")}
       groupId="header"
       collapsible
       collapsed={collapsed}

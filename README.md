@@ -89,6 +89,30 @@ The current release workflow targets macOS on Apple silicon and Windows x64.
 Archives are unsigned until platform credentials are configured, so macOS
 Gatekeeper or Windows SmartScreen may warn when opening them.
 
+### Opening an unsigned macOS build
+
+The current macOS archive is unsigned and unnotarized. After downloading it,
+macOS may incorrectly report that `PrivaCV` is damaged. If the archive came
+from this repository's GitHub Release, extract it, move `PrivaCV.app` to
+`/Applications`, and remove the quarantine attribute:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/PrivaCV.app"
+open "/Applications/PrivaCV.app"
+```
+
+Only bypass Gatekeeper for a build you trust. The current release targets Apple
+silicon; `uname -m` should print `arm64`. A locally built production app can be
+opened without using the downloaded archive:
+
+```sh
+pnpm desktop:package
+open "$(pwd)/out/PrivaCV-darwin-arm64/PrivaCV.app"
+```
+
+Once releases are signed with an Apple Developer ID and notarized by Apple,
+users will no longer need this workaround.
+
 ### Desktop releases
 
 Desktop releases are built on GitHub from version tags. Update the version in

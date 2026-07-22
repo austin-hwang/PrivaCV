@@ -131,6 +131,7 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
 
   await expect(page).toHaveTitle("Private Job Application Tracker | PrivaCV");
   await expect(page.getByRole("heading", { name: "Applications", exact: true })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Search applications" })).toBeVisible();
   await expect(page.locator("[data-local-save-status]")).toHaveAccessibleName("Saved locally");
   const workspaceNav = page.getByRole("navigation", { name: "Workspace" });
   await expect(workspaceNav.getByRole("link", { name: "Resume" })).toHaveAttribute("href", "/");
@@ -166,12 +167,21 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
   await expect(page.getByText("1 application in this view")).toBeVisible();
   await expect.poll(() => applicationMetrics).toEqual([{ event: "job_application_created" }]);
 
+  await page.getByRole("radio", { name: "List view" }).click();
+  const applicationsTable = page.getByRole("grid", { name: "Job applications" });
+  await expect(applicationsTable).toBeVisible();
+  await expect(
+    applicationsTable.getByRole("row").filter({ hasText: "Senior Product Designer" }),
+  ).toBeVisible();
+  await page.getByRole("radio", { name: "Board view" }).click();
+
   await page.getByRole("button", { name: /Senior Product Designer/ }).click();
   const detailDialog = page.getByRole("dialog", { name: "Senior Product Designer" });
   await detailDialog.getByRole("button", { name: "Status" }).click();
   await page.getByRole("option", { name: "Applied" }).click();
   await detailDialog.getByLabel("Next action").fill("Follow up with the recruiter");
-  await detailDialog.getByLabel("Due date").fill("2026-07-25");
+  await detailDialog.getByRole("button", { name: "Due date" }).click();
+  await page.getByRole("gridcell", { name: "Saturday, July 25, 2026" }).click();
   await detailDialog.getByRole("button", { name: "Save changes" }).click();
 
   const appliedColumn = page.getByRole("region", { name: "Applied applications" });

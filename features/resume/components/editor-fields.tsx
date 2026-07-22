@@ -10,8 +10,8 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useId, useState, type DragEvent, type ReactNode } from "react";
-import { Button as ButtonPrimitive } from "react-aria-components";
 import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Field as UIField,
@@ -74,6 +74,55 @@ export function FieldGroup({
   onToggleCollapsed?: () => void;
   card?: boolean;
 }) {
+  if (card) {
+    return (
+      <Card
+        id={id}
+        role="region"
+        aria-label={typeof title === "string" ? `${title} section` : undefined}
+        size="sm"
+        data-review-region={reviewRegion ? "" : undefined}
+        data-field-group={groupId}
+        className={cn("scroll-mt-44 transition-colors lg:scroll-mt-16", className)}
+      >
+        <CardHeader>
+          {header ? (
+            <>
+              <CardTitle className="sr-only">{title}</CardTitle>
+              {header}
+            </>
+          ) : (
+            <>
+              <CardTitle className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {title}
+              </CardTitle>
+              <CardAction className="flex items-center gap-1">
+                {actions}
+                {collapsible ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onPress={onToggleCollapsed}
+                    aria-expanded={!collapsed}
+                    aria-label={collapsed ? "Expand section" : "Collapse section"}
+                  >
+                    <ChevronRight
+                      data-icon="inline-start"
+                      className={cn("transition-transform", !collapsed && "rotate-90")}
+                    />
+                  </Button>
+                ) : null}
+              </CardAction>
+            </>
+          )}
+        </CardHeader>
+        <CardContent className={cn("flex flex-col gap-3", collapsed && "hidden")}>
+          {children}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <section
       id={id}
@@ -81,8 +130,8 @@ export function FieldGroup({
       data-field-group={groupId}
       className={cn(
         "scroll-mt-44 transition-colors lg:scroll-mt-16",
-        card ? "rounded-lg border bg-background p-3" : "border-b last:border-b-0",
-        !card && (collapsed ? "pb-3" : "pb-5"),
+        "border-b last:border-b-0",
+        collapsed ? "pb-3" : "pb-5",
         className,
       )}
     >
@@ -513,25 +562,23 @@ function TagGroupRow({
       onDrop={onDrop}
       className={cn(
         "scroll-mt-44 border-b transition-colors last:border-b-0 lg:scroll-mt-16",
-        active && "bg-brand-soft/10 ring-1 ring-inset ring-brand/30",
+        active && "bg-muted/30",
         dragging && "opacity-45 ring-2 ring-inset ring-muted-foreground/20",
         dropTarget && "bg-primary/5 ring-2 ring-inset ring-primary/25",
       )}
     >
       <div className="group/tag-group flex items-center gap-1 pr-1.5 hover:bg-muted/30">
-        <ButtonPrimitive
+        <Button
+          variant="ghost"
           data-tag-group-toggle=""
           aria-expanded={open}
           aria-label={`${open ? "Collapse" : "Expand"} ${group.label || "untitled"} tag group`}
           onPress={onToggle}
-          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
+          className="h-auto min-w-0 flex-1 justify-start rounded-none px-2 py-2 text-left"
         >
           <ChevronRight
             data-icon="inline-start"
-            className={cn(
-              "size-4 shrink-0 text-muted-foreground transition-transform",
-              open && "rotate-90",
-            )}
+            className={cn("text-muted-foreground transition-transform", open && "rotate-90")}
           />
           <span className="shrink-0 truncate text-sm font-medium">
             {group.label.trim() || "Untitled group"}
@@ -540,7 +587,7 @@ function TagGroupRow({
             — {group.tags.length} {group.tags.length === 1 ? "tag" : "tags"}
             {group.tags.length ? ` · ${group.tags.slice(0, 3).join(", ")}` : ""}
           </span>
-        </ButtonPrimitive>
+        </Button>
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/tag-group:opacity-100 group-focus-within/tag-group:opacity-100">
           <span
             draggable
@@ -963,24 +1010,22 @@ export function EntryList({
             }}
           >
             <div className="flex items-center gap-1 pr-1.5 hover:bg-muted/30">
-              <ButtonPrimitive
+              <Button
+                variant="ghost"
                 data-entry-toggle=""
                 aria-expanded={open}
                 onPress={() => toggle(index, open)}
-                className="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-2 text-left"
+                className="h-auto min-w-0 flex-1 justify-start rounded-none px-2 py-2 text-left"
               >
                 <ChevronRight
                   data-icon="inline-start"
-                  className={cn(
-                    "size-4 shrink-0 text-muted-foreground transition-transform",
-                    open && "rotate-90",
-                  )}
+                  className={cn("text-muted-foreground transition-transform", open && "rotate-90")}
                 />
                 <span className="shrink-0 truncate text-sm font-medium">{primary}</span>
                 {secondary ? (
                   <span className="truncate text-xs text-muted-foreground">— {secondary}</span>
                 ) : null}
-              </ButtonPrimitive>
+              </Button>
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/entry:opacity-100 group-focus-within/entry:opacity-100">
                 <span
                   draggable

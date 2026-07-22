@@ -55,6 +55,14 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   DropdownMenu,
   DropdownMenuGroup,
   DropdownMenuItem,
@@ -391,12 +399,15 @@ export function JobPipeline() {
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
               {showListControls ? (
                 <Field className="min-w-0 sm:w-72">
-                  <FieldLabel className="sr-only">Search applications</FieldLabel>
+                  <FieldLabel htmlFor="application-search" className="sr-only">
+                    Search applications
+                  </FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
-                      <Search />
+                      <Search aria-hidden="true" />
                     </InputGroupAddon>
                     <InputGroupInput
+                      id="application-search"
                       type="search"
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
@@ -540,55 +551,50 @@ export function JobPipeline() {
               onExport={(result) => (result.ok ? toast.success : toast.error)(result.message)}
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[880px] text-left text-sm">
-                <thead className="border-b bg-muted/25 text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Role</th>
-                    <th className="px-4 py-3 font-medium">Company</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Next action</th>
-                    <th className="px-4 py-3 font-medium">Due</th>
-                    <th className="px-4 py-3 font-medium">Updated</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {visibleApplications.map((application) => (
-                    <tr key={application.id} className="transition hover:bg-muted/25">
-                      <td className="px-4 py-3">
-                        <Button
-                          variant="link"
-                          className="h-auto p-0"
-                          onPress={() => setSelectedId(application.id)}
-                        >
-                          {application.role}
-                        </Button>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{application.company}</td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={application.status} />
-                      </td>
-                      <td className="max-w-64 truncate px-4 py-3 text-muted-foreground">
-                        {application.nextAction || "—"}
-                      </td>
-                      <td
-                        className={cn(
-                          "whitespace-nowrap px-4 py-3",
-                          isApplicationOverdue(application)
-                            ? "text-destructive"
-                            : "text-muted-foreground",
-                        )}
+            <Table aria-label="Job applications" className="min-w-[880px]">
+              <TableHeader className="bg-muted/25 text-xs text-muted-foreground">
+                <TableHead isRowHeader>Role</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Next action</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Updated</TableHead>
+              </TableHeader>
+              <TableBody>
+                {visibleApplications.map((application) => (
+                  <TableRow key={application.id}>
+                    <TableCell>
+                      <Button
+                        variant="link"
+                        className="h-auto p-0"
+                        onPress={() => setSelectedId(application.id)}
                       >
-                        {formatApplicationDate(application.nextActionAt, "—")}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {formatApplicationDate(application.updatedAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        {application.role}
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{application.company}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={application.status} />
+                    </TableCell>
+                    <TableCell className="max-w-64 truncate text-muted-foreground">
+                      {application.nextAction || "—"}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        isApplicationOverdue(application)
+                          ? "text-destructive"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {formatApplicationDate(application.nextActionAt, "—")}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatApplicationDate(application.updatedAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </section>
 

@@ -1,4 +1,5 @@
 import { absoluteUrl } from "@/lib/site";
+import { GUIDES, guidePath } from "@/lib/guides";
 
 export function GET() {
   const home = absoluteUrl("/") ?? "/";
@@ -9,9 +10,16 @@ export function GET() {
   const templates = absoluteUrl("/resume-templates") ?? "/resume-templates";
   const pdfToDocx = absoluteUrl("/pdf-to-docx-resume") ?? "/pdf-to-docx-resume";
   const plainText = absoluteUrl("/plain-text-resume") ?? "/plain-text-resume";
+  const comparison = absoluteUrl("/resume-builder-comparison") ?? "/resume-builder-comparison";
   const jobTracker = absoluteUrl("/job-application-tracker") ?? "/job-application-tracker";
   const jobSankey = absoluteUrl("/job-search-sankey") ?? "/job-search-sankey";
   const applications = absoluteUrl("/applications") ?? "/applications";
+  const guidesHub = absoluteUrl("/guides") ?? "/guides";
+  // Sourced from the shared GUIDES registry so new guides appear automatically.
+  const guideLinks = GUIDES.map((guide) => {
+    const url = absoluteUrl(guidePath(guide.slug)) ?? guidePath(guide.slug);
+    return `- [${guide.title}](${url}): ${guide.description}`;
+  }).join("\n");
   const body = `# PrivaCV
 
 > A private, browser-based resume editor and job application tracker for creating, tailoring, reviewing, exporting, and organizing a job search.
@@ -39,11 +47,17 @@ PrivaCV does not require an account, subscription, watermark, or resume upload. 
 - [Resume templates](${templates}): clean, ATS-friendly, text-based templates
 - [PDF to DOCX resume](${pdfToDocx}): convert a PDF resume into an editable Word file
 - [Plain-text resume](${plainText}): create a plain-text resume for online applications
+- [Resume builder comparison](${comparison}): how PrivaCV compares to other resume builders on privacy, cost, and exports
 - [Private job application tracker](${jobTracker}): track applications, follow-ups, resumes, interviews, and outcomes locally
 - [Job search Sankey generator](${jobSankey}): automatically visualize the application funnel and export it as PNG
 - [Open the private application workspace](${applications}): the no-account tracker application
 - [About PrivaCV](${about}): product and ATS-friendly-resume details
 - [Privacy](${privacy}): local-first data handling
+
+## Guides
+
+- [Resume guides](${guidesHub}): hub of long-form resume and job-search guides
+${guideLinks}
 `;
 
   return new Response(body, {

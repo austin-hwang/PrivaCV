@@ -31,9 +31,17 @@ import {
   type FormEvent,
   type ReactElement,
 } from "react";
-import { Button as ButtonPrimitive } from "react-aria-components";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +68,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker, DateTimePicker } from "@/components/ui/date-picker";
 import {
   Field as FieldRoot,
   FieldDescription,
@@ -361,10 +370,11 @@ function ApplicationFields({
               />
             </Field>
             <Field label="Due date" hint="— optional">
-              <Input
-                type="date"
+              <DatePicker
+                aria-label="Due date"
                 value={form.nextActionAt}
-                onChange={(event) => setField("nextActionAt", event.target.value)}
+                onChange={(value) => setField("nextActionAt", value)}
+                placeholder="Pick a due date"
               />
             </Field>
           </FieldGroup>
@@ -381,7 +391,7 @@ function ApplicationFields({
 
       <Field label="Job description snapshot" hint="— saved on this device">
         <Textarea
-          className="min-h-40"
+          className="min-h-40 max-h-80 overflow-y-auto"
           value={form.jobDescription}
           onChange={(event) => setField("jobDescription", event.target.value)}
           placeholder="Paste the job description before the posting disappears..."
@@ -643,12 +653,12 @@ function ActivityComposer({
           <FieldLabel className="sr-only" htmlFor="activity-when">
             When
           </FieldLabel>
-          <Input
+          <DateTimePicker
             id="activity-when"
-            type="datetime-local"
-            className="h-9"
+            aria-label="When"
             value={when}
-            onChange={(event) => setWhen(event.target.value)}
+            onChange={setWhen}
+            placeholder="Pick a date & time"
           />
         </FieldRoot>
         {editing ? (
@@ -996,36 +1006,35 @@ export function ApplicationCard({
 }) {
   const overdue = isApplicationOverdue(application);
   return (
-    <article
+    <Card
+      role="article"
+      size="sm"
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className="group rounded-lg border bg-card shadow-xs transition hover:border-primary/35 hover:shadow-md active:cursor-grabbing"
+      className="group relative transition hover:ring-primary/35 hover:shadow-md active:cursor-grabbing"
       data-application-card={application.id}
     >
-      <ButtonPrimitive
-        className="w-full p-4 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-        onPress={onOpen}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold">{application.role}</h3>
-            <p className="mt-1 truncate text-sm text-muted-foreground">{application.company}</p>
-            {application.resumeLabel ? (
-              <p className="mt-1 truncate text-[11px] text-primary">
-                Resume · {application.resumeLabel}
-              </p>
-            ) : null}
-          </div>
+      <CardHeader>
+        <CardTitle className="truncate">{application.role}</CardTitle>
+        <CardDescription className="min-w-0">
+          <p className="truncate">{application.company}</p>
+          {application.resumeLabel ? (
+            <p className="mt-1 truncate text-xs text-primary">Resume · {application.resumeLabel}</p>
+          ) : null}
+        </CardDescription>
+        <CardAction>
           <GripVertical
-            className="mt-0.5 size-4 shrink-0 text-muted-foreground/40 transition group-hover:text-muted-foreground"
+            className="size-4 text-muted-foreground/40 transition group-hover:text-muted-foreground"
             aria-hidden="true"
           />
-        </div>
-        {application.nextAction || application.nextActionAt ? (
+        </CardAction>
+      </CardHeader>
+      {application.nextAction || application.nextActionAt ? (
+        <CardContent>
           <div
             className={cn(
-              "mt-4 rounded-md border px-2.5 py-2",
+              "rounded-md border px-2.5 py-2",
               overdue ? "border-destructive/30 bg-destructive/5" : "bg-muted/35",
             )}
           >
@@ -1044,21 +1053,28 @@ export function ApplicationCard({
               </p>
             ) : null}
           </div>
-        ) : null}
-        <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-          <span className="flex min-w-0 items-center gap-1 truncate">
-            {application.location ? (
-              <>
-                <MapPin className="size-3" /> {application.location}
-              </>
-            ) : (
-              <>Updated {formatApplicationDate(application.updatedAt)}</>
-            )}
-          </span>
-          <ChevronRight className="size-3.5 shrink-0 opacity-0 transition group-hover:opacity-100" />
-        </div>
-      </ButtonPrimitive>
-    </article>
+        </CardContent>
+      ) : null}
+      <CardFooter className="justify-between gap-2 bg-transparent text-xs text-muted-foreground">
+        <span className="flex min-w-0 items-center gap-1 truncate">
+          {application.location ? (
+            <>
+              <MapPin className="size-3" /> {application.location}
+            </>
+          ) : (
+            <>Updated {formatApplicationDate(application.updatedAt)}</>
+          )}
+        </span>
+        <ChevronRight className="size-3.5 shrink-0 opacity-0 transition group-hover:opacity-100" />
+      </CardFooter>
+      <Button
+        type="button"
+        variant="ghost"
+        aria-label={`Open ${application.role} at ${application.company}`}
+        className="absolute inset-0 z-10 h-full w-full rounded-xl p-0 hover:bg-transparent focus-visible:ring-inset"
+        onPress={onOpen}
+      />
+    </Card>
   );
 }
 

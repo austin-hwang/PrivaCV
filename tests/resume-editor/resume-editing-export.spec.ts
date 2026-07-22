@@ -640,8 +640,36 @@ test("adds, customizes, reorders, and persists header links with contact icons",
   await iconButton.click();
   const iconMenu = page.locator('[data-slot="popover-content"]');
   const iconOptions = iconMenu.getByRole("button").filter({ has: page.locator("svg") });
-  await expect(iconOptions).toHaveCount(14);
+  await expect(iconOptions).toHaveCount(15);
+  const iconGeometry = await iconOptions.evaluateAll((options) =>
+    options.map((option) => {
+      const optionBox = option.getBoundingClientRect();
+      const icon = option.querySelector("svg");
+      const iconBox = icon?.getBoundingClientRect();
+      return {
+        centerOffset: iconBox
+          ? {
+              x: iconBox.left + iconBox.width / 2 - (optionBox.left + optionBox.width / 2),
+              y: iconBox.top + iconBox.height / 2 - (optionBox.top + optionBox.height / 2),
+            }
+          : { x: 999, y: 999 },
+        size: iconBox ? { width: iconBox.width, height: iconBox.height } : null,
+        glyph: icon?.innerHTML ?? "",
+      };
+    }),
+  );
+  expect(
+    iconGeometry.every(
+      ({ centerOffset }) => Math.abs(centerOffset.x) < 1 && Math.abs(centerOffset.y) < 1,
+    ),
+  ).toBe(true);
+  expect(iconGeometry.every(({ size }) => size?.width === 16 && size.height === 16)).toBe(true);
+  expect(new Set(iconGeometry.map(({ glyph }) => glyph)).size).toBe(iconGeometry.length);
   await expect(iconMenu.getByRole("button", { name: "Automatic" })).toHaveCount(0);
+  await iconMenu.getByRole("button", { name: "No icon" }).click();
+  await expect(github.locator("svg")).toHaveCount(0);
+  await expect(newLink.getByLabel(/GitHub icon — No icon/i).locator(".lucide-none")).toBeVisible();
+  await iconButton.click();
   await iconMenu.getByRole("button", { name: "Portfolio / work" }).click();
   await expect(github.locator(".lucide-briefcase-business")).toBeVisible();
   await newLink.getByRole("button", { name: /move github up/i }).click();

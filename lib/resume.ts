@@ -436,6 +436,7 @@ export const customSectionSchema = z.object({
 export type CustomSection = z.infer<typeof customSectionSchema>;
 
 export const HEADER_LINK_ICON_OPTIONS = [
+  { id: "none", label: "No icon" },
   { id: "website", label: "Website" },
   { id: "linkedin", label: "LinkedIn" },
   { id: "github", label: "GitHub" },

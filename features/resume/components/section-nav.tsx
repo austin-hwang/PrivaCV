@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button as ButtonPrimitive } from "react-aria-components";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type SectionNavItem = { id: string; label: string };
@@ -114,20 +114,17 @@ export function SectionNav({
         {items.map((item) => {
           const active = item.id === activeId;
           return (
-            <ButtonPrimitive
+            <Button
               key={item.id}
+              variant={active ? "secondary" : "ghost"}
+              size="xs"
               data-nav-id={item.id}
-              aria-current={active ? "true" : undefined}
+              aria-current={active ? "page" : undefined}
               onPress={() => jump(item.id)}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-transparent bg-muted text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground",
-              )}
+              className="shrink-0 rounded-full"
             >
               {item.label}
-            </ButtonPrimitive>
+            </Button>
           );
         })}
       </div>

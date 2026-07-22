@@ -12,6 +12,9 @@ importers:
 
   .:
     dependencies:
+      '@internationalized/date':
+        specifier: ^3.12.2
+        version: 3.12.2
       '@mlc-ai/web-llm':
         specifier: ^0.2.84
         version: 0.2.84

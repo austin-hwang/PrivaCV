@@ -44,6 +44,32 @@ test("keeps the editor interactive while development security headers are active
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
 });
 
+test("does not reserve disclosure padding when name parts are collapsed", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const trigger = page.getByRole("button", { name: /Name parts/ });
+  const collapsible = trigger.locator("..");
+  const content = collapsible.locator('[data-slot="collapsible-content"]');
+
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(content).toHaveCSS("padding", "0px");
+  await expect
+    .poll(async () => {
+      const [rootBox, triggerBox] = await Promise.all([
+        collapsible.boundingBox(),
+        trigger.boundingBox(),
+      ]);
+      return rootBox && triggerBox ? rootBox.height - triggerBox.height : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThanOrEqual(2);
+
+  await trigger.click();
+  await expect(page.getByLabel("First")).toBeVisible();
+});
+
 test("starts a fresh resume from the onboarding without hiding the editor", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -124,6 +150,22 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
 
   // Header, headings, and density sit under the panel's Advanced disclosure.
   await page.getByRole("button", { name: /^Advanced/ }).click();
+
+  const themeGroups = ["Header", "Density", "Section headings", "Bullet style"].map((name) =>
+    page.getByRole("radiogroup", { name }),
+  );
+  const themeToggleSizes = await Promise.all(
+    themeGroups.map(async (group) => {
+      const box = await group.getByRole("radio").first().boundingBox();
+      return box ? { width: box.width, height: box.height } : null;
+    }),
+  );
+  expect(themeToggleSizes.every(Boolean)).toBe(true);
+  const widths = themeToggleSizes.map((size) => size?.width ?? 0);
+  const heights = themeToggleSizes.map((size) => size?.height ?? 0);
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+
   await page.getByRole("radio", { name: "Plain", exact: true }).click();
   await expect(sheet).toHaveAttribute("data-heading", "plain");
   await page.getByRole("radio", { name: "Compact", exact: true }).click();

@@ -49,6 +49,7 @@ function ThemeSegment<T extends string>({
       <ToggleGroup
         aria-label={label}
         variant="outline"
+        size="default"
         spacing={0}
         selectionMode="single"
         selectedKeys={[value]}
@@ -56,10 +57,10 @@ function ThemeSegment<T extends string>({
           const selected = [...keys][0];
           if (selected != null) onChange(String(selected) as T);
         }}
-        className="w-full"
+        className="grid w-full grid-cols-4"
       >
         {options.map((option) => (
-          <ToggleGroupItem key={option.value} id={option.value} className="min-w-0 flex-1">
+          <ToggleGroupItem key={option.value} id={option.value} className="w-full min-w-0">
             {option.label}
           </ToggleGroupItem>
         ))}
@@ -156,7 +157,7 @@ export function ResumeDesignControls({
                   key={accent.id}
                   id={accent.id}
                   aria-label={accent.label}
-                  className="size-7 min-w-0 rounded-full border p-0 transition-transform hover:scale-110 data-selected:ring-2 data-selected:ring-ring data-selected:ring-offset-1"
+                  className="size-7 min-w-0 rounded-full border p-0 transition-transform hover:scale-110 data-selected:ring-2 data-selected:ring-ring data-selected:ring-inset"
                   style={{ backgroundColor: accent.value, borderColor: "rgb(0 0 0 / 12%)" }}
                 />
               );
@@ -195,7 +196,7 @@ export function ResumeDesignControls({
 
       {advancedOpen ? (
         <div className="grid gap-4 rounded-md border bg-muted/20 p-3">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4">
             <ThemeSegment
               label="Header"
               value={state.theme.headerAlign}

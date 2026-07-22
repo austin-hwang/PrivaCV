@@ -39,7 +39,7 @@ import type { ExportChange, HeaderLink, ResumeTemplateId } from "@/lib/resume";
 import type { ImportCoverageItem } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
 
-const ACTIVE_SECTION_CLASS = "rounded-md bg-brand-soft/10 px-3 pt-3 ring-1 ring-brand/40";
+const ACTIVE_SECTION_CLASS = "border-l-2 border-l-muted-foreground/40 pl-3";
 const HEADER_FIELD_IDS = [
   "field-name",
   "field-title",

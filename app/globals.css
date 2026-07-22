@@ -657,14 +657,14 @@ html[data-desktop-app="true"] .public-explainer {
   /* Use background-color (not the `background` shorthand) so the
      `background-clip: content-box` set on a broken element is preserved — the
      shorthand would reset it to border-box and paint across the page break. */
-  background-color: hsl(var(--brand) / 0.06);
+  background-color: hsl(var(--brand) / 0.035);
 }
 
 .resume-preview-active {
   /* background-color (not shorthand): keep any `background-clip: content-box`
      from .resume-print-break-before so the highlight doesn't span the break. */
-  background-color: hsl(var(--brand) / 0.09);
-  box-shadow: 0 0 0 3px hsl(var(--brand) / 0.22);
+  background-color: hsl(var(--brand) / 0.04);
+  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.18);
 }
 
 /* Inline (WYSIWYG) editing: text runs on the sheet become directly editable.
@@ -679,13 +679,13 @@ html[data-desktop-app="true"] .public-explainer {
 }
 
 .resume-editable:hover {
-  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.22);
+  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.16);
 }
 
 .resume-editable:focus,
 .resume-editable:focus-within {
-  background: hsl(var(--brand) / 0.09);
-  box-shadow: 0 0 0 2px hsl(var(--brand) / 0.22);
+  background: hsl(var(--brand) / 0.04);
+  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.22);
 }
 
 .resume-editable:empty::before,
@@ -696,7 +696,7 @@ html[data-desktop-app="true"] .public-explainer {
 
 .resume-preview-section-active:not(:has(.resume-preview-active)) {
   border-radius: 2px;
-  box-shadow: 0 0 0 3px hsl(var(--brand) / 0.14);
+  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.12);
 }
 
 .resume-empty {

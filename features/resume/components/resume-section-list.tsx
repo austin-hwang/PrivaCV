@@ -48,7 +48,7 @@ import {
 } from "@/lib/resume";
 import { cn } from "@/lib/utils";
 
-const ACTIVE_SECTION_CLASS = "rounded-md bg-brand-soft/10 px-3 pt-3 ring-1 ring-brand/40";
+const ACTIVE_SECTION_CLASS = "border-l-2 border-l-muted-foreground/40";
 
 type ResumeEditorController = ReturnType<typeof useResumeEditor>;
 type ResumeWorkspaceUI = ReturnType<typeof useResumeWorkspaceUI>;
@@ -424,7 +424,7 @@ export function ResumeSectionList({
                 <span id={`section-format-${section}`}>Content format</span>
                 <ToggleGroup
                   aria-labelledby={`section-format-${section}`}
-                  variant="outline"
+                  variant="subtle"
                   spacing={0}
                   selectionMode="single"
                   selectedKeys={[sectionFormat]}
@@ -438,7 +438,7 @@ export function ResumeSectionList({
                       updateSectionFormat(section, selected);
                     }
                   }}
-                  className="w-full overflow-x-auto"
+                  className="w-full overflow-x-auto border border-input"
                 >
                   {(
                     [
@@ -451,7 +451,7 @@ export function ResumeSectionList({
                       key={option.key}
                       id={option.key}
                       aria-label={`${option.label} format`}
-                      className="min-w-fit flex-1"
+                      className="min-w-fit flex-1 border-l-border first:border-l-transparent"
                     >
                       {option.label}
                     </ToggleGroupItem>

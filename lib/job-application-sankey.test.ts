@@ -51,6 +51,16 @@ function transition(
   };
 }
 
+function interview(applicationId: string, order: number): ApplicationEvent {
+  return {
+    id: `interview-${applicationId}-${order}`,
+    applicationId,
+    type: "interview",
+    title: `Round ${order}`,
+    occurredAt: `2026-07-${String(10 + order).padStart(2, "0")}T12:00:00.000Z`,
+  };
+}
+
 describe("job search Sankey", () => {
   it("reconstructs direct outcomes and interview-to-offer journeys", () => {
     const applications = [
@@ -73,17 +83,19 @@ describe("job search Sankey", () => {
 
     expect(data.total).toBe(4);
     expect(data.excluded).toBe(1);
+    // A status transition into interviewing counts as a first round even with no
+    // interview event logged.
     expect(links).toEqual(
       new Map([
         ["applications:awaiting", 1],
         ["applications:rejected", 1],
-        ["applications:interviewing", 2],
-        ["interviewing:rejected", 1],
-        ["interviewing:offer", 1],
+        ["applications:round-1", 2],
+        ["round-1:rejected", 1],
+        ["round-1:offer", 1],
         ["offer:accepted", 1],
       ]),
     );
-    expect(data.nodes.find((node) => node.id === "interviewing")?.count).toBe(2);
+    expect(data.nodes.find((node) => node.id === "round-1")?.count).toBe(2);
     expect(data.nodes.find((node) => node.id === "accepted")?.count).toBe(1);
   });
 
@@ -91,10 +103,88 @@ describe("job search Sankey", () => {
     const data = buildJobSankeyData([application("accepted", "accepted")], []);
 
     expect(data.links).toEqual([
-      { source: "applications", target: "interviewing", value: 1 },
-      { source: "interviewing", target: "offer", value: 1 },
+      { source: "applications", target: "round-1", value: 1 },
+      { source: "round-1", target: "offer", value: 1 },
       { source: "offer", target: "accepted", value: 1 },
     ]);
+  });
+
+  it("builds one node per interview round and splits an offer decline from earlier withdrawals", () => {
+    const applications = [
+      application("late-decline", "withdrawn"),
+      application("early-withdraw", "withdrawn"),
+    ];
+    const events = [
+      interview("late-decline", 1),
+      interview("late-decline", 2),
+      transition("late-decline", "interviewing", "offer", 3),
+      interview("early-withdraw", 1),
+      transition("early-withdraw", "interviewing", "withdrawn", 2),
+    ];
+
+    const data = buildJobSankeyData(applications, events);
+    const links = new Map(data.links.map((link) => [`${link.source}:${link.target}`, link.value]));
+
+    expect(links).toEqual(
+      new Map([
+        ["applications:round-1", 2],
+        ["round-1:round-2", 1],
+        ["round-2:offer", 1],
+        ["offer:declined", 1],
+        ["round-1:withdrawn", 1],
+      ]),
+    );
+    // Declined (offer stage) and withdrawn (earlier) are distinct outcome nodes.
+    expect(data.nodes.find((node) => node.id === "declined")?.count).toBe(1);
+    expect(data.nodes.find((node) => node.id === "withdrawn")?.count).toBe(1);
+    // round-2 sits one column deeper than round-1.
+    const roundOne = data.nodes.find((node) => node.id === "round-1");
+    const roundTwo = data.nodes.find((node) => node.id === "round-2");
+    expect(roundTwo?.column).toBe((roundOne?.column ?? 0) + 1);
+  });
+
+  it("converges matching results from different rounds into shared terminal nodes", () => {
+    const applications = [
+      application("direct-no-response", "no_response"),
+      application("late-no-response", "no_response"),
+      application("short-offer", "accepted"),
+      application("late-offer", "accepted"),
+    ];
+    const events = [
+      interview("late-no-response", 1),
+      interview("late-no-response", 2),
+      interview("late-no-response", 3),
+      interview("late-offer", 1),
+      interview("late-offer", 2),
+      interview("late-offer", 3),
+    ];
+
+    const data = buildJobSankeyData(applications, events);
+    const noResponses = data.nodes.filter((node) => node.label === "No response");
+    const offers = data.nodes.filter((node) => node.label === "Offers");
+    const columns = new Map(data.nodes.map((node) => [node.id, node.column]));
+    const links = new Map(data.links.map((link) => [`${link.source}:${link.target}`, link.value]));
+
+    expect(noResponses).toHaveLength(1);
+    expect(noResponses[0].count).toBe(2);
+    expect(offers).toHaveLength(1);
+    expect(offers[0].count).toBe(2);
+    expect(links.get("applications:no_response")).toBe(1);
+    expect(links.get("round-3:no_response")).toBe(1);
+    expect(links.get("round-1:offer")).toBe(1);
+    expect(links.get("round-3:offer")).toBe(1);
+    expect(columns.get("offer")).toBe(4);
+    expect(columns.get("no_response")).toBe(5);
+    expect(columns.get("accepted")).toBe(5);
+
+    const layout = buildJobSankeyLayout(data);
+    const positioned = new Map(layout.nodes.map((node) => [node.id, node]));
+    const sourceBottom = positioned.get("applications")!.y + positioned.get("applications")!.height;
+    expect(layout.width).toBe(1200);
+    ["round-1", "round-2", "round-3", "offer"].forEach((id) => {
+      const node = positioned.get(id)!;
+      expect(node.y + node.height).toBeCloseTo(sourceBottom);
+    });
   });
 
   it("connects every ribbon exactly to its source and target node", () => {

@@ -12,7 +12,16 @@ export type JobSankeyLayoutOptions = {
   chartHeight: number;
   nodeWidth: number;
   nodeGap: number;
-  columnX: readonly [number, number, number, number];
+  /** Left/right x of the first and last columns; inner columns are spaced evenly. */
+  columnLeft: number;
+  columnRight: number;
+  /**
+   * Minimum horizontal gap between columns. When a deep funnel would compress
+   * columns below this, the canvas widens instead so labels stay legible.
+   */
+  columnGap?: number;
+  /** Smallest node height, so single-application outcomes stay visible. */
+  minNodeHeight?: number;
 };
 
 export type PositionedJobSankeyNode = JobSankeyNode & {
@@ -38,30 +47,70 @@ export const DEFAULT_JOB_SANKEY_LAYOUT: JobSankeyLayoutOptions = {
   chartTop: 142,
   chartHeight: 430,
   nodeWidth: 22,
-  nodeGap: 18,
-  columnX: [72, 398, 724, 1030],
+  nodeGap: 28,
+  columnLeft: 110,
+  // Edge labels use the outer margins; intermediate labels sit below their
+  // nodes so even a six-round funnel can stay on the original compact canvas.
+  columnRight: 1010,
+  columnGap: 0,
+  minNodeHeight: 5,
 };
 
-/** Shared Sankey geometry for the live chart, PNG export, and public artwork. */
+/**
+ * Shared Sankey geometry for the live chart, PNG export, and public artwork.
+ * The returned `width`/`height` are authoritative for rendering and export.
+ */
 export function buildJobSankeyLayout(
   data: JobSankeyData,
   options: JobSankeyLayoutOptions = DEFAULT_JOB_SANKEY_LAYOUT,
 ) {
-  const columns = [0, 1, 2, 3].map((column) => data.nodes.filter((node) => node.column === column));
+  const maxColumn = Math.max(0, data.maxColumn);
+  const rightMargin = options.width - options.columnRight;
+  const evenSpacing = maxColumn === 0 ? 0 : (options.columnRight - options.columnLeft) / maxColumn;
+  // Custom artwork can request a minimum gap, but the default layout divides
+  // the fixed canvas evenly and places intermediate labels below their nodes.
+  const spacing = Math.max(evenSpacing, options.columnGap ?? 0);
+  const columnRight = options.columnLeft + spacing * maxColumn;
+  const width = columnRight + rightMargin;
+  const columnX = (column: number) => options.columnLeft + spacing * column;
+  const minNodeHeight = options.minNodeHeight ?? 0;
+  const columns = Array.from({ length: maxColumn + 1 }, (_unused, column) =>
+    data.nodes.filter((node) => node.column === column),
+  );
   const largestGapCount = Math.max(0, ...columns.map((nodes) => nodes.length - 1));
   const scale = data.total
     ? (options.chartHeight - largestGapCount * options.nodeGap) / data.total
     : 0;
+  const nodeHeight = (count: number) => (count > 0 ? Math.max(count * scale, minNodeHeight) : 0);
   const nodes: PositionedJobSankeyNode[] = [];
+
+  // Stack dead-end outcomes before continuing round/offer nodes. This groups
+  // exit branches together and reduces ribbon crossings between phases.
+  const sourceIds = new Set(data.links.map((link) => link.source));
+  columns.forEach((columnNodes) =>
+    columnNodes.sort((left, right) => {
+      const sourceOrder = (sourceIds.has(left.id) ? 1 : 0) - (sourceIds.has(right.id) ? 1 : 0);
+      return sourceOrder || right.count - left.count || left.label.localeCompare(right.label);
+    }),
+  );
+
+  // The source node establishes a shared lower baseline. Rounds and Offers sit
+  // on that baseline, producing the compact descending staircase seen in
+  // traditional job-search Sankeys as the surviving cohort gets smaller.
+  const sourceHeight = nodeHeight(data.total);
+  const processBottom = options.chartTop + (options.chartHeight + sourceHeight) / 2;
 
   columns.forEach((columnNodes, column) => {
     const contentHeight =
-      columnNodes.reduce((sum, node) => sum + node.count * scale, 0) +
+      columnNodes.reduce((sum, node) => sum + nodeHeight(node.count), 0) +
       Math.max(0, columnNodes.length - 1) * options.nodeGap;
-    let y = options.chartTop + (options.chartHeight - contentHeight) / 2;
+    let y =
+      column > 0 && column < maxColumn && columnNodes.length === 1
+        ? processBottom - nodeHeight(columnNodes[0].count)
+        : options.chartTop + (options.chartHeight - contentHeight) / 2;
     columnNodes.forEach((node) => {
-      const height = node.count * scale;
-      nodes.push({ ...node, x: options.columnX[column], y, width: options.nodeWidth, height });
+      const height = nodeHeight(node.count);
+      nodes.push({ ...node, x: columnX(column), y, width: options.nodeWidth, height });
       y += height + options.nodeGap;
     });
   });
@@ -132,5 +181,5 @@ export function buildJobSankeyLayout(
       ];
     });
 
-  return { ...options, nodes, links };
+  return { ...options, width, columnRight, nodes, links };
 }

@@ -117,6 +117,7 @@ const cards: Record<string, SocialCard> = {
 const socialSankeyData: JobSankeyData = {
   total: 84,
   excluded: 7,
+  maxColumn: 3,
   nodes: [
     { id: "applications", label: "Applications", count: 84, column: 0, color: "#2563eb" },
     { id: "interviewing", label: "Interviews", count: 31, column: 1, color: "#7c3aed" },
@@ -143,7 +144,8 @@ const socialSankeyLayoutOptions: JobSankeyLayoutOptions = {
   chartHeight: 255,
   nodeWidth: 16,
   nodeGap: 20,
-  columnX: [30, 164, 278, 362],
+  columnLeft: 30,
+  columnRight: 362,
 };
 
 const socialSankeyLayout = buildJobSankeyLayout(socialSankeyData, socialSankeyLayoutOptions);

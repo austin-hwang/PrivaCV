@@ -13,20 +13,21 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import {
   BriefcaseBusiness,
-  Calendar,
+  CalendarDays,
   Camera,
-  Code,
-  Code2,
+  CircleDotDashed,
+  Component,
+  ContactRound,
+  GitBranch,
   GitFork,
   Globe2,
   Link as LinkIcon,
   Mail,
   MapPin,
   MessageCircle,
-  Newspaper,
-  Palette,
+  NotebookPen,
   Phone,
-  Shapes,
+  SquareCode,
   Video,
 } from "lucide-react";
 import {
@@ -567,25 +568,26 @@ function ContactIcon({ field }: { field: "email" | "phone" | "location" }) {
   return <Icon aria-hidden="true" className="resume-contact-icon" />;
 }
 
-const HEADER_LINK_ICONS: Record<HeaderLinkIconId, typeof Globe2> = {
+const HEADER_LINK_ICONS: Record<Exclude<HeaderLinkIconId, "none">, typeof Globe2> = {
   website: Globe2,
-  linkedin: BriefcaseBusiness,
-  github: Code2,
+  linkedin: ContactRound,
+  github: GitBranch,
   gitlab: GitFork,
   twitter: MessageCircle,
   instagram: Camera,
   youtube: Video,
-  dribbble: Palette,
-  figma: Shapes,
+  dribbble: CircleDotDashed,
+  figma: Component,
   portfolio: BriefcaseBusiness,
-  blog: Newspaper,
-  calendar: Calendar,
-  code: Code,
+  blog: NotebookPen,
+  calendar: CalendarDays,
+  code: SquareCode,
   link: LinkIcon,
 };
 
 function HeaderLinkIcon({ link }: { link: Pick<HeaderLink, "icon" | "label" | "url"> }) {
   const icon = resolveHeaderLinkIcon(link);
+  if (icon === "none") return null;
   const Icon = HEADER_LINK_ICONS[icon] ?? Globe2;
   return <Icon aria-hidden="true" className={cn("resume-contact-icon", `lucide-${icon}`)} />;
 }

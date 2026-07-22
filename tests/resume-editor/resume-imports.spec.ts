@@ -669,10 +669,13 @@ test("connects grouped preview lines to their editor groups in view-only mode", 
   const analysisToggle = skillsEditor.getByRole("button", { name: "Expand Analysis tag group" });
   const previewGroup = page.locator('.resume-sheet [aria-label="Edit Analysis group in Skills"]');
 
-  // Focusing a grouped editor row highlights both that row and its containing section.
+  // Focusing a grouped editor row keeps the active location visible without stacking
+  // blue fills and rings across the row, section card, and preview.
   await analysisToggle.click();
-  await expect(skillsCard).toHaveClass(/ring-brand/);
-  await expect(analysisRow).toHaveClass(/ring-brand/);
+  await expect(skillsCard).toHaveClass(/border-l-muted-foreground/);
+  await expect(skillsCard).not.toHaveClass(/bg-brand-soft|ring-brand/);
+  await expect(analysisRow).toHaveClass(/bg-muted\/30/);
+  await expect(analysisRow).not.toHaveClass(/ring-brand/);
   await expect(previewGroup).toHaveClass(/resume-preview-active/);
   await skillsEditor.getByRole("button", { name: "Collapse Analysis tag group" }).click();
   await expect(page.getByLabel("Add tag to Analysis")).toBeHidden();

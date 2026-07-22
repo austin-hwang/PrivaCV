@@ -14,8 +14,6 @@ import {
 import type { JobSankeyData } from "@/lib/job-application-sankey";
 import { buildJobSankeyLayout, DEFAULT_JOB_SANKEY_LAYOUT } from "@/lib/job-sankey-layout";
 
-const { width: VIEW_WIDTH, height: VIEW_HEIGHT } = DEFAULT_JOB_SANKEY_LAYOUT;
-
 function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -25,7 +23,7 @@ function downloadBlob(blob: Blob, fileName: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-async function svgToPng(svg: SVGSVGElement, fileName: string) {
+async function svgToPng(svg: SVGSVGElement, fileName: string, width: number, height: number) {
   const source = new XMLSerializer().serializeToString(svg);
   const svgUrl = URL.createObjectURL(new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
   try {
@@ -36,12 +34,12 @@ async function svgToPng(svg: SVGSVGElement, fileName: string) {
       image.src = svgUrl;
     });
     const canvas = document.createElement("canvas");
-    canvas.width = VIEW_WIDTH * 2;
-    canvas.height = VIEW_HEIGHT * 2;
+    canvas.width = width * 2;
+    canvas.height = height * 2;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Image export is unavailable in this browser.");
     context.scale(2, 2);
-    context.drawImage(image, 0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+    context.drawImage(image, 0, 0, width, height);
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (result) =>
@@ -78,6 +76,8 @@ export function JobPipelineSankey({
       await svgToPng(
         svgRef.current,
         `privacv-job-search-sankey-${new Date().toISOString().slice(0, 10)}.png`,
+        layout.width,
+        layout.height,
       );
       onExport({ ok: true, message: "Sankey image downloaded" });
     } catch (error) {
@@ -125,10 +125,13 @@ export function JobPipelineSankey({
       <div className="overflow-x-auto rounded-xl border bg-white shadow-xs">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-          width={VIEW_WIDTH}
-          height={VIEW_HEIGHT}
+          viewBox={`0 0 ${layout.width} ${layout.height}`}
+          width={layout.width}
+          height={layout.height}
           className="h-auto min-w-[760px] w-full"
+          style={
+            layout.width > DEFAULT_JOB_SANKEY_LAYOUT.width ? { minWidth: layout.width } : undefined
+          }
           role="img"
           aria-labelledby="job-sankey-title job-sankey-description"
           xmlns="http://www.w3.org/2000/svg"
@@ -137,7 +140,7 @@ export function JobPipelineSankey({
           <desc id="job-sankey-description">
             {data.total} submitted applications flowing through interviews, offers, and outcomes.
           </desc>
-          <rect width={VIEW_WIDTH} height={VIEW_HEIGHT} fill="#ffffff" />
+          <rect width={layout.width} height={layout.height} fill="#ffffff" />
           <text
             x="72"
             y="55"
@@ -158,7 +161,7 @@ export function JobPipelineSankey({
             {data.total} submitted {data.total === 1 ? "application" : "applications"} · {date}
           </text>
           <text
-            x="1128"
+            x={layout.width - 72}
             y="55"
             textAnchor="end"
             fill="#2563eb"
@@ -169,7 +172,7 @@ export function JobPipelineSankey({
             PrivaCV
           </text>
           <text
-            x="1128"
+            x={layout.width - 72}
             y="82"
             textAnchor="end"
             fill="#64748b"
@@ -196,6 +199,17 @@ export function JobPipelineSankey({
           ))}
           {layout.nodes.map((node) => {
             const percentage = Math.round((node.count / data.total) * 100);
+            const isFirstColumn = node.column === 0;
+            const isLastColumn = node.column === data.maxColumn;
+            const labelX = isFirstColumn
+              ? node.x - 10
+              : isLastColumn
+                ? node.x + node.width + 10
+                : node.x + node.width / 2;
+            const labelY =
+              isFirstColumn || isLastColumn
+                ? node.y + node.height / 2 - 3
+                : node.y + node.height + 17;
             return (
               <g key={node.id}>
                 <rect
@@ -207,10 +221,9 @@ export function JobPipelineSankey({
                   fill={node.color}
                 />
                 <text
-                  x={node.column === 3 ? node.x - 10 : node.x + node.width + 10}
-                  y={node.y + node.height / 2}
-                  textAnchor={node.column === 3 ? "end" : "start"}
-                  dominantBaseline="middle"
+                  x={labelX}
+                  y={labelY}
+                  textAnchor={isFirstColumn ? "end" : isLastColumn ? "start" : "middle"}
                   fill="#0f172a"
                   stroke="#ffffff"
                   strokeWidth="5"
@@ -220,14 +233,14 @@ export function JobPipelineSankey({
                   fontWeight="600"
                 >
                   {node.label}
-                  <tspan dx="6" fill="#475569" fontWeight="500">
+                  <tspan x={labelX} dy="16" fill="#475569" fontWeight="500">
                     {node.count} · {percentage}%
                   </tspan>
                 </text>
               </g>
             );
           })}
-          <line x1="72" x2="1128" y1="620" y2="620" stroke="#e2e8f0" />
+          <line x1="72" x2={layout.width - 72} y1="620" y2="620" stroke="#e2e8f0" />
           <text
             x="72"
             y="650"

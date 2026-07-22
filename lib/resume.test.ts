@@ -541,6 +541,11 @@ describe("resume helpers", () => {
     );
     expect(resolveHeaderLinkIcon(state.headerLinks[0])).toBe("linkedin");
     expect(resolveHeaderLinkIcon({ ...state.headerLinks[0], icon: "portfolio" })).toBe("portfolio");
+    expect(
+      normalizeResume({
+        headerLinks: [{ id: "plain", label: "Portfolio", url: "example.com", icon: "none" }],
+      }).headerLinks[0].icon,
+    ).toBe("none");
     expect(inferHeaderLinkIcon("GitLab gitlab.com/ada")).toBe("gitlab");
   });
 
