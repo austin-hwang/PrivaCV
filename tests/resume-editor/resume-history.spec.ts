@@ -90,12 +90,12 @@ test("forks autosave into a separate slot before loading another saved version",
     .toEqual({ activeName: "John Doe", autosaveNames: ["Ada Lovelace"] });
 
   versions = await openVersions(page);
-  const previousAutosave = versions.locator("li", { hasText: "Autosave · Ada Lovelace" });
-  await expect(previousAutosave.getByText("Autosaved", { exact: true })).toBeVisible();
+  const previousAutosave = versions.locator("li", { hasText: "Auto · Ada Lovelace" });
+  await expect(previousAutosave.getByText("Auto", { exact: true })).toBeVisible();
   await expect(previousAutosave).toContainText(
     "Preserved automatically before loading Clean baseline.",
   );
-  await previousAutosave.getByRole("button", { name: "Select Autosave · Ada Lovelace" }).click();
+  await previousAutosave.getByRole("button", { name: "Select Auto · Ada Lovelace" }).click();
   await versions.getByRole("button", { name: "Confirm restore" }).click();
   await expect(page.getByLabel("Full Name")).toHaveValue("Ada Lovelace");
 });

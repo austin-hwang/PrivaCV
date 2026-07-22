@@ -237,7 +237,7 @@ export function useResumeHistory({
     if (resumeExportFingerprint(state) === resumeExportFingerprint(nextState)) return;
     saveAutomaticCheckpoint({
       idPrefix: "autosave-slot",
-      label: `Autosave · ${versionLabel(state)}`,
+      label: `Auto · ${versionLabel(state)}`,
       note: `Preserved automatically before loading ${destinationLabel}.`,
     });
   };

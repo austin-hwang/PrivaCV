@@ -293,13 +293,12 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave.getByText("Saving", { exact: true })).toBeVisible();
   await expect(libraryButton.locator(".animate-spin")).toHaveCount(0);
 
-  const autosaveEntry = versions.getByRole("listitem").filter({ hasText: "Autosave copy" }).first();
+  const autosaveEntry = versions
+    .getByRole("listitem")
+    .filter({ hasText: "Auto · John Doe" })
+    .first();
   await expect(autosaveEntry).toBeVisible();
-  // The freshest autosave is also the live draft, so it reads "Live draft" until a
-  // later save supersedes it and it becomes "Autosaved". Either marker confirms the
-  // autosave surfaced as an automatic version — asserting only "Autosaved" races the
-  // debounce on slower (production) servers.
-  await expect(autosaveEntry.getByText(/Autosaved|Live draft/)).toBeVisible();
+  await expect(autosaveEntry.getByText("Auto", { exact: true })).toBeVisible();
 });
 
 test("creates a deduplicated periodic checkpoint after sustained editing", async ({ page }) => {
@@ -359,7 +358,7 @@ test("creates a deduplicated periodic checkpoint after sustained editing", async
 
   const versions = await openVersions(page);
   const automatic = versions.locator("li", { hasText: "Auto · John Doe" });
-  await expect(automatic.getByText("Automatic", { exact: true })).toBeVisible();
+  await expect(automatic.getByText("Auto", { exact: true })).toBeVisible();
   await expect(automatic).toContainText(
     "Saved automatically after 10 minutes of continued editing.",
   );

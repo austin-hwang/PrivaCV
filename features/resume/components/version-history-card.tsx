@@ -25,10 +25,21 @@ import {
 import {
   formatCheckpointTime,
   isAutomaticCheckpointId,
+  versionLabel,
   versionHeadline,
   type VersionHistoryItem,
 } from "@/lib/resume-workspace";
 import { cn } from "@/lib/utils";
+
+function historyItemLabel(item: VersionHistoryItem) {
+  if (item.id === "autosave-copy") return `Auto · ${versionLabel(item.state)}`;
+  if (item.id.startsWith("autosave-slot-")) {
+    return item.label.startsWith("Autosave ·")
+      ? item.label.replace(/^Autosave ·/, "Auto ·")
+      : item.label;
+  }
+  return item.label;
+}
 
 /** A compact, in-workspace timeline for the resume currently being edited. */
 export function VersionHistoryCard({
@@ -85,7 +96,7 @@ export function VersionHistoryCard({
     () =>
       normalizedQuery
         ? allVersions.filter((item) =>
-            [item.label, item.note, item.state.name, item.state.title]
+            [historyItemLabel(item), item.note, item.state.name, item.state.title]
               .filter((value): value is string => Boolean(value))
               .some((value) => value.toLocaleLowerCase().includes(normalizedQuery)),
           )
@@ -330,6 +341,7 @@ export function VersionHistoryCard({
                 {visibleVersions.map((item) => {
                   const index = allVersions.findIndex((candidate) => candidate.id === item.id);
                   const selected = index === clampedIndex;
+                  const displayLabel = historyItemLabel(item);
                   const isCurrentDraft = item.id === "current-draft";
                   const isAutosave =
                     item.id === "autosave-copy" || item.id.startsWith("autosave-slot-");
@@ -347,14 +359,14 @@ export function VersionHistoryCard({
                         aria-hidden="true"
                       />
                       <Toggle
-                        aria-label={`Select ${item.label}`}
+                        aria-label={`Select ${displayLabel}`}
                         isSelected={selected}
                         onChange={() => selectVersion(item)}
                         variant="subtle"
                         className="h-auto w-full items-start justify-start whitespace-normal px-2 py-1.5 text-left"
                       >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xs font-medium">{item.label}</span>
+                          <span className="block truncate text-xs font-medium">{displayLabel}</span>
                           <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
                             {formatCheckpointTime(item.savedAt)}
                           </span>
@@ -370,12 +382,12 @@ export function VersionHistoryCard({
                           ) : null}
                           {!isCurrentDraft && isAutosave ? (
                             <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                              Autosaved
+                              Auto
                             </span>
                           ) : null}
                           {!isCurrentDraft && !isAutosave && isAutomatic ? (
                             <span className="mt-1 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                              Automatic
+                              Auto
                             </span>
                           ) : null}
                         </span>
@@ -415,7 +427,9 @@ export function VersionHistoryCard({
                   />
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-1.5">
-                      <p className="truncate text-xs font-semibold">{selectedVersion.label}</p>
+                      <p className="truncate text-xs font-semibold">
+                        {historyItemLabel(selectedVersion)}
+                      </p>
                       {selectedVersion.id === "current-draft" ? (
                         <Badge variant="outline" className="h-4 px-1 text-[8px]">
                           Current

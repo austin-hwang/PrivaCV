@@ -34,7 +34,7 @@ import {
   type ResumeTheme,
 } from "@/lib/resume";
 import { clearAllLocalAIData } from "@/lib/local-ai-engine";
-import { buildImportCoverage, type VersionHistoryItem } from "@/lib/resume-workspace";
+import { buildImportCoverage, versionLabel, type VersionHistoryItem } from "@/lib/resume-workspace";
 
 const LocalAIInlineEdit = dynamic(
   () =>
@@ -138,7 +138,7 @@ export function ResumeEditor() {
       ? {
           id: "autosave-copy",
           savedAt: editor.autosavedAt,
-          label: "Autosave copy",
+          label: `Auto · ${versionLabel(editor.autosavedState)}`,
           fingerprint: resumeExportFingerprint(editor.autosavedState),
           state: editor.autosavedState,
           importReview,
