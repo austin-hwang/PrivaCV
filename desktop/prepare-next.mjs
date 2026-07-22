@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,5 +53,25 @@ await cp(path.join(repositoryRoot, "public"), path.join(standaloneDirectory, "pu
 const packagedStaticDirectory = path.join(standaloneDirectory, distName, "static");
 await mkdir(path.dirname(packagedStaticDirectory), { recursive: true });
 await cp(path.join(distDirectory, "static"), packagedStaticDirectory, { recursive: true });
+
+// Next preserves pnpm's dependency symlinks in standalone output. Forge's
+// Windows ZIP maker cannot traverse the equivalent directory junctions. Build
+// a conventional flat node_modules from pnpm's virtual store so the packaged
+// server has ordinary directories and Node can still resolve every dependency.
+const sourceNodeModules = path.join(standaloneDirectory, "node_modules");
+const flattenedNodeModules = path.join(distDirectory, "node_modules-flat");
+await cp(path.join(sourceNodeModules, ".pnpm", "node_modules"), flattenedNodeModules, {
+  dereference: true,
+  recursive: true,
+});
+for (const entry of await readdir(sourceNodeModules, { withFileTypes: true })) {
+  if (entry.name === ".pnpm") continue;
+  await cp(path.join(sourceNodeModules, entry.name), path.join(flattenedNodeModules, entry.name), {
+    dereference: true,
+    recursive: true,
+  });
+}
+await rm(sourceNodeModules, { force: true, recursive: true });
+await rename(flattenedNodeModules, sourceNodeModules);
 
 console.log(`Prepared Electron server at ${path.relative(repositoryRoot, standaloneDirectory)}`);
