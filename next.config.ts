@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+const isElectronBuild = process.env.ELECTRON_BUILD === "1";
 const developmentScriptSource = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
 
 const contentSecurityPolicy = [
@@ -42,6 +43,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The Electron development window uses the explicit loopback address while
+  // Next's dev server advertises localhost. Allow only that equivalent origin
+  // so HMR assets are accepted inside the desktop window.
+  allowedDevOrigins: ["127.0.0.1"],
+  // Electron packages a minimal local Next server so the existing App Router,
+  // route handlers, and WebLLM model proxy keep working without a network
+  // connection. Web and Cloudflare builds retain their existing output shape.
+  output: isElectronBuild ? "standalone" : undefined,
   // Let release checks use an isolated cache while a local dev server is open.
   // Production keeps Next's normal `.next` output unless explicitly overridden.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",

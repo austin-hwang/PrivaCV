@@ -52,6 +52,39 @@ pnpm dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
+## Run as a desktop app
+
+The Electron development command starts Next.js and opens the local app in a
+sandboxed desktop window:
+
+```sh
+pnpm desktop:dev
+```
+
+Create an offline production application bundle for the current platform:
+
+```sh
+pnpm desktop:package
+```
+
+The packaged application is written to `out/`. Resume and application data
+remain in Electron's local browser storage. Local AI also runs on-device, but a
+model still needs to be downloaded once before it can be used offline.
+
+### Desktop releases
+
+Desktop releases are built on GitHub from version tags. Update the version in
+`package.json`, commit the change, then push the matching tag:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+GitHub Actions builds and smoke-tests Apple-silicon macOS and x64 Windows ZIPs,
+then attaches them to a draft GitHub Release. Review the draft before publishing
+it. These archives are unsigned until platform signing credentials are added.
+
 ## Quality checks
 
 ```sh

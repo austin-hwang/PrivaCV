@@ -1,13 +1,24 @@
 packages:
   - .
 
+# Electron Forge requires its packaging tools to be visible from the project
+# root. Keep hoisting limited to Forge instead of switching the whole workspace
+# to pnpm's hoisted node linker.
+publicHoistPattern:
+  - "@electron-forge/*"
+
 overrides:
+  # Electron Forge currently pins Electron's node-gyp fork through a Git URL.
+  # Resolve the same maintained fork from npm so installs keep the workspace's
+  # no-Git-transitive-dependencies supply-chain policy intact.
+  "@electron/node-gyp": 10.2.0-electron.2
   postcss: 8.5.20
 
 allowBuilds:
   # pdfjs-dist declares canvas for optional Node-side rendering. The browser-only
   # importer does not use it, so keep its native install script disabled.
   canvas: false
+  electron: true
   esbuild: true
   sharp: true
   unrs-resolver: true
@@ -16,6 +27,7 @@ allowBuilds:
   workerd: true
 
 onlyBuiltDependencies:
+  - electron
   - esbuild
   - sharp
   - unrs-resolver
@@ -31,3 +43,4 @@ minimumReleaseAgeExclude:
   - "@radix-ui/react-portal@1.1.14"
   - "@radix-ui/react-presence@1.1.8"
   - "@radix-ui/react-use-controllable-state@1.2.4"
+  - electron@43.2.0

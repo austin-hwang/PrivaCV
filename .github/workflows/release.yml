@@ -1,0 +1,95 @@
+name: Desktop release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build (for example, v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS (Apple silicon)
+            runner: macos-15
+            artifact: privacv-macos-arm64
+            asset-path: out/make/zip/darwin/arm64/*.zip
+          - label: Windows (x64)
+            runner: windows-2025
+            artifact: privacv-windows-x64
+            asset-path: out/make/zip/win32/x64/*.zip
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify tag matches package version
+        run: node -e "const expected = 'v' + require('./package.json').version; if (process.env.RELEASE_TAG !== expected) throw new Error('Release tag ' + process.env.RELEASE_TAG + ' must match ' + expected);"
+
+      - name: Build desktop archive
+        run: pnpm desktop:make
+
+      - name: Smoke-test packaged app
+        run: pnpm desktop:smoke
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.asset-path }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  release:
+    name: Create draft release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download desktop archives
+        uses: actions/download-artifact@v7
+        with:
+          pattern: privacv-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create draft GitHub release
+        run: gh release create "$RELEASE_TAG" release-assets/* --verify-tag --draft --generate-notes --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
