@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, readlink, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,6 +26,39 @@ function run(command, args, options = {}) {
       else reject(new Error(`${command} exited with ${signal || `code ${code}`}.`));
     });
   });
+}
+
+async function copyDirectoryWithoutLinks(source, destination) {
+  await mkdir(destination, { recursive: true });
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    const sourcePath = path.join(source, entry.name);
+    const destinationPath = path.join(destination, entry.name);
+    if (entry.isSymbolicLink()) {
+      const target = await readlink(sourcePath);
+      await copyDirectoryWithoutLinks(path.resolve(source, target), destinationPath);
+    } else if (entry.isDirectory()) {
+      await copyDirectoryWithoutLinks(sourcePath, destinationPath);
+    } else {
+      await cp(sourcePath, destinationPath);
+    }
+  }
+}
+
+async function copyNodeModulesEntries(source, destination, ignoredNames = new Set()) {
+  await mkdir(destination, { recursive: true });
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    if (ignoredNames.has(entry.name)) continue;
+    const sourcePath = path.join(source, entry.name);
+    const destinationPath = path.join(destination, entry.name);
+    if (entry.isSymbolicLink()) {
+      const target = await readlink(sourcePath);
+      await copyDirectoryWithoutLinks(path.resolve(source, target), destinationPath);
+    } else if (entry.isDirectory()) {
+      await copyDirectoryWithoutLinks(sourcePath, destinationPath);
+    } else {
+      await cp(sourcePath, destinationPath);
+    }
+  }
 }
 
 await rm(distDirectory, { force: true, recursive: true });
@@ -60,17 +93,11 @@ await cp(path.join(distDirectory, "static"), packagedStaticDirectory, { recursiv
 // server has ordinary directories and Node can still resolve every dependency.
 const sourceNodeModules = path.join(standaloneDirectory, "node_modules");
 const flattenedNodeModules = path.join(distDirectory, "node_modules-flat");
-await cp(path.join(sourceNodeModules, ".pnpm", "node_modules"), flattenedNodeModules, {
-  dereference: true,
-  recursive: true,
-});
-for (const entry of await readdir(sourceNodeModules, { withFileTypes: true })) {
-  if (entry.name === ".pnpm") continue;
-  await cp(path.join(sourceNodeModules, entry.name), path.join(flattenedNodeModules, entry.name), {
-    dereference: true,
-    recursive: true,
-  });
-}
+await copyNodeModulesEntries(
+  path.join(sourceNodeModules, ".pnpm", "node_modules"),
+  flattenedNodeModules,
+);
+await copyNodeModulesEntries(sourceNodeModules, flattenedNodeModules, new Set([".pnpm"]));
 await rm(sourceNodeModules, { force: true, recursive: true });
 await rename(flattenedNodeModules, sourceNodeModules);
 
