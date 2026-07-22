@@ -81,10 +81,10 @@ export function GuideLayout({
           </Link>
         </nav>
 
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {SITE_NAME} Guide
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">{guide.title}</h1>
+        <p className="mt-6 text-sm font-medium text-primary">A {SITE_NAME} field guide</p>
+        <h1 className="mt-4 font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          {guide.title}
+        </h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Last updated {formatUpdated(guide.updated)}
         </p>

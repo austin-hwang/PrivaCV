@@ -61,6 +61,7 @@ export default function JobApplicationTrackerPage() {
   return (
     <>
       <SeoLanding
+        context="Job-search workspace"
         h1="A free, private job application tracker"
         lede={description}
         ctaLabel="Track your applications"
@@ -96,6 +97,7 @@ export default function JobApplicationTrackerPage() {
             body: "Export a spreadsheet-ready CSV or a complete JSON backup. Import the backup later on another browser when you choose.",
           },
         ]}
+        cardLayout="ledger"
         prose={[
           {
             heading: "A job tracker without another account",
@@ -112,6 +114,7 @@ export default function JobApplicationTrackerPage() {
             ],
           },
         ]}
+        faqHeading="Data, backups, and workflow"
         faqItems={faqItems}
         related={[
           { href: "/job-search-sankey", label: "Job search Sankey generator" },

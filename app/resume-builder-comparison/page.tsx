@@ -7,7 +7,6 @@ import { breadcrumbJsonLd, faqJsonLd, type FaqItem } from "@/components/seo-land
 import { SiteFooter } from "@/components/site-footer";
 import { COMPARISON_LAST_VERIFIED } from "@/lib/competitors";
 import { createPageMetadata } from "@/lib/seo";
-import { SITE_NAME } from "@/lib/site";
 
 const title = "Resume Builder Comparison: Free vs Paid Tools";
 const description =
@@ -46,10 +45,8 @@ export default function ResumeBuilderComparisonPage() {
   return (
     <>
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {SITE_NAME}
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">
+        <p className="text-sm font-medium text-primary">Independent feature comparison</p>
+        <h1 className="mt-4 font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
           PrivaCV vs Zety, Resume.io, Teal, Rezi &amp; Canva
         </h1>
         <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
@@ -73,9 +70,7 @@ export default function ResumeBuilderComparisonPage() {
 
         <section className="mt-12">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Feature &amp; pricing comparison
-            </h2>
+            <h2 className="font-serif text-2xl font-bold">Feature &amp; pricing comparison</h2>
             <span className="shrink-0 text-xs text-muted-foreground">
               Last verified {COMPARISON_LAST_VERIFIED}
             </span>
@@ -91,7 +86,7 @@ export default function ResumeBuilderComparisonPage() {
         </section>
 
         <section className="mt-12 max-w-3xl text-base leading-relaxed text-muted-foreground">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          <h2 className="font-serif text-2xl font-bold text-foreground">
             How to read this comparison
           </h2>
           <p className="mt-3">
@@ -116,7 +111,7 @@ export default function ResumeBuilderComparisonPage() {
         </section>
 
         <section className="mt-12 border-t pt-10">
-          <h2 className="text-2xl font-semibold tracking-tight">Frequently asked questions</h2>
+          <h2 className="font-serif text-2xl font-bold">Questions people ask before choosing</h2>
           <dl className="mt-6 grid gap-x-10 gap-y-7 md:grid-cols-2">
             {faqItems.map((item) => (
               <div key={item.question}>

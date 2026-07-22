@@ -34,12 +34,13 @@ export const metadata: Metadata = createPageMetadata({
 export default function FreeResumeBuilderPage() {
   return (
     <SeoLanding
+      context="Resume workspace"
       h1="A free resume builder that works in your browser"
       lede={description}
       ctaLabel="Build your resume free"
       heroImage={{
-        src: "/social/free-resume-builder",
-        alt: "PrivaCV editor beside an ATS-friendly resume preview",
+        src: "/images/editor-workbench.png",
+        alt: "The actual PrivaCV editor beside its printable resume preview",
       }}
       breadcrumb={{ name: title, path: "/free-resume-builder" }}
       cards={[
@@ -60,6 +61,7 @@ export default function FreeResumeBuilderPage() {
           body: "Plain, text-based templates and a plain-text preview help your resume come through correctly in an applicant tracking system.",
         },
       ]}
+      cardLayout="evidence"
       prose={[
         {
           heading: "Why a free, private resume builder",
@@ -69,6 +71,7 @@ export default function FreeResumeBuilderPage() {
           ],
         },
       ]}
+      faqHeading="Before you start building"
       faqItems={faqItems}
       related={[
         { href: "/resume-templates", label: "Resume templates" },

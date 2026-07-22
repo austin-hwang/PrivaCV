@@ -35,6 +35,7 @@ export const metadata: Metadata = createPageMetadata({
 export default function ResumeTemplatesPage() {
   return (
     <SeoLanding
+      context="Resume templates"
       h1="Clean, ATS-friendly resume templates"
       lede={description}
       ctaLabel="Start with a template"
@@ -47,6 +48,7 @@ export default function ResumeTemplatesPage() {
           alt: `${template.label} ATS-friendly resume template preview`,
         },
       }))}
+      cardLayout="gallery"
       prose={[
         {
           heading: "How to choose a resume template",
@@ -55,6 +57,7 @@ export default function ResumeTemplatesPage() {
           ],
         },
       ]}
+      faqHeading="Choosing and using a template"
       faqItems={faqItems}
       related={[
         { href: "/ats-resume-checker", label: "ATS resume checker" },

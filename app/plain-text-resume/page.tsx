@@ -34,6 +34,7 @@ export const metadata: Metadata = createPageMetadata({
 export default function PlainTextResumePage() {
   return (
     <SeoLanding
+      context="Plain-text export"
       h1="Create a clean plain-text resume"
       lede={description}
       ctaLabel="Build a plain-text resume"
@@ -56,6 +57,7 @@ export default function PlainTextResumePage() {
           body: "It comes straight from your structured resume, so the text stays clean, ordered, and easy to read.",
         },
       ]}
+      cardLayout="evidence"
       prose={[
         {
           heading: "When to use a plain-text resume",
@@ -65,6 +67,7 @@ export default function PlainTextResumePage() {
           ],
         },
       ]}
+      faqHeading="Plain-text resume questions"
       faqItems={faqItems}
       related={[
         { href: "/ats-resume-checker", label: "ATS resume checker" },

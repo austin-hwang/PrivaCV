@@ -16,10 +16,10 @@ export default function PrivacyPage() {
   return (
     <>
       <main className="mx-auto max-w-3xl px-6 py-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {SITE_NAME}
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">Privacy, in plain language</h1>
+        <p className="text-sm font-medium text-primary">How {SITE_NAME} handles your data</p>
+        <h1 className="mt-4 font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Privacy, in plain language
+        </h1>
         <div className="mt-10 grid gap-8 text-base leading-relaxed text-muted-foreground">
           <section>
             <h2 className="text-2xl font-semibold text-foreground">

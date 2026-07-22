@@ -1,5 +1,7 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { ResumeEditor } from "@/features/resume";
+import { Separator } from "@/components/ui/separator";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "@/lib/site";
 
@@ -97,40 +99,41 @@ export default function Home() {
         <>
           <section className="public-explainer app-chrome border-t px-4 py-16 lg:px-6">
             <div className="mx-auto max-w-5xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                {SITE_NAME}
-              </p>
-              <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
+              <p className="text-sm font-medium text-primary">Private resume workspace</p>
+              <h1 className="mt-4 max-w-3xl font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
                 A free, private resume editor that runs in your browser
               </h1>
               <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted-foreground">
                 {SITE_DESCRIPTION}
               </p>
 
-              <div className="mt-10 grid gap-5 sm:grid-cols-2">
-                {features.map((feature) => (
-                  <article key={feature.title} className="rounded-lg border bg-card p-5">
-                    <h2 className="font-semibold">
-                      {feature.href ? (
-                        <Link className="underline-offset-4 hover:underline" href={feature.href}>
-                          {feature.title}
-                        </Link>
-                      ) : (
-                        feature.title
-                      )}
-                    </h2>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                      {feature.body}
-                    </p>
-                  </article>
+              <div className="mt-10">
+                <Separator />
+                {features.map((feature, index) => (
+                  <Fragment key={feature.title}>
+                    <article className="grid gap-2 py-5 sm:grid-cols-[14rem_1fr] sm:gap-8">
+                      <h2 className="font-serif text-lg font-bold">
+                        {feature.href ? (
+                          <Link className="underline-offset-4 hover:underline" href={feature.href}>
+                            {feature.title}
+                          </Link>
+                        ) : (
+                          feature.title
+                        )}
+                      </h2>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {feature.body}
+                      </p>
+                    </article>
+                    {index < features.length - 1 ? <Separator /> : null}
+                  </Fragment>
                 ))}
+                <Separator />
               </div>
 
               <div className="mt-12 grid gap-10 md:grid-cols-2">
                 <section>
-                  <h2 className="text-2xl font-semibold tracking-tight">
-                    How the resume editor works
-                  </h2>
+                  <h2 className="font-serif text-2xl font-bold">How the resume editor works</h2>
                   <ol className="mt-4 grid list-decimal gap-2 pl-5 text-base leading-relaxed text-muted-foreground">
                     {steps.map((step) => (
                       <li key={step}>{step}</li>
@@ -138,7 +141,7 @@ export default function Home() {
                   </ol>
                 </section>
                 <section>
-                  <h2 className="text-2xl font-semibold tracking-tight">Common questions</h2>
+                  <h2 className="font-serif text-2xl font-bold">Common questions</h2>
                   <dl className="mt-4 grid gap-5">
                     {faqs.map((faq) => (
                       <div key={faq.q}>

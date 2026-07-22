@@ -59,6 +59,7 @@ export default function JobSearchSankeyPage() {
   return (
     <>
       <SeoLanding
+        context="Search visualization"
         h1="Make a Sankey diagram from your job search"
         lede={description}
         ctaLabel="Create your job search Sankey"
@@ -94,6 +95,7 @@ export default function JobSearchSankeyPage() {
             body: "Application history stays in browser storage. The SVG diagram and PNG are generated locally rather than sent to an image service.",
           },
         ]}
+        cardLayout="evidence"
         prose={[
           {
             heading: "How the automatic job-search funnel works",
@@ -110,6 +112,7 @@ export default function JobSearchSankeyPage() {
             ],
           },
         ]}
+        faqHeading="How the chart is built"
         faqItems={faqItems}
         related={[
           { href: "/job-application-tracker", label: "Private job application tracker" },

@@ -33,6 +33,7 @@ export const metadata: Metadata = createPageMetadata({
 export default function PdfToDocxResumePage() {
   return (
     <SeoLanding
+      context="PDF to editable document"
       h1="Convert a PDF resume to an editable Word file"
       lede={description}
       ctaLabel="Convert your PDF resume"
@@ -55,6 +56,7 @@ export default function PdfToDocxResumePage() {
           body: "Download a clean Word document you can keep updating. No locked PDF, no watermark.",
         },
       ]}
+      cardLayout="process"
       prose={[
         {
           heading: "Why convert a PDF resume to Word",
@@ -64,6 +66,7 @@ export default function PdfToDocxResumePage() {
           ],
         },
       ]}
+      faqHeading="Conversion questions"
       faqItems={faqItems}
       related={[
         { href: "/plain-text-resume", label: "Plain-text resume" },

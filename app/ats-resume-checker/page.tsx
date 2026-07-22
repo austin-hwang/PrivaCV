@@ -34,6 +34,7 @@ export const metadata: Metadata = createPageMetadata({
 export default function AtsResumeCheckerPage() {
   return (
     <SeoLanding
+      context="ATS review"
       h1="ATS resume checker that runs in your browser"
       lede={description}
       ctaLabel="Check your resume in the editor"
@@ -56,6 +57,7 @@ export default function AtsResumeCheckerPage() {
           body: "Spot sections that are too crowded and bullets with no real numbers behind them, so every line earns its spot.",
         },
       ]}
+      cardLayout="ledger"
       prose={[
         {
           heading: "What makes a resume ATS-friendly",
@@ -64,6 +66,7 @@ export default function AtsResumeCheckerPage() {
           ],
         },
       ]}
+      faqHeading="What this checker can and cannot promise"
       faqItems={faqItems}
       related={[
         { href: "/guides/ats-friendly-resume", label: "Guide: ATS-friendly resume" },

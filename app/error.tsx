@@ -20,10 +20,8 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         className="w-full max-w-md rounded-xl border bg-card p-8 shadow-xs"
         aria-labelledby="error-title"
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          PrivaCV
-        </p>
-        <h1 id="error-title" className="mt-3 text-2xl font-semibold tracking-tight">
+        <p className="text-sm font-medium text-primary">PrivaCV workspace</p>
+        <h1 id="error-title" className="mt-4 font-serif text-2xl font-bold">
           The editor needs a refresh.
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">

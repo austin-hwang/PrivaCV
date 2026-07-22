@@ -25,11 +25,11 @@ const COMPANY = [
  * "related" links live in the page body; this is the consistent navigation. */
 export function SiteFooter() {
   const groups = [
-    { title: "Resume tools", links: RESUME_TOOLS },
-    { title: "Job search", links: JOB_SEARCH_TOOLS },
+    { title: "Build and check", links: RESUME_TOOLS },
     {
-      title: "Guides",
+      title: "Track and learn",
       links: [
+        ...JOB_SEARCH_TOOLS,
         { href: "/guides", label: "All resume guides" },
         ...GUIDES.map((guide) => ({
           href: guidePath(guide.slug),
@@ -37,18 +37,29 @@ export function SiteFooter() {
         })),
       ],
     },
-    { title: "PrivaCV", links: COMPANY },
+    { title: "Project", links: COMPANY },
   ];
 
   return (
     <footer className="border-t">
-      <div className="mx-auto max-w-5xl px-6 py-12">
-        <nav className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4" aria-label="Footer">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 lg:grid-cols-[minmax(14rem,0.85fr)_minmax(0,2fr)]">
+        <div>
+          <Link
+            href="/"
+            prefetch={false}
+            className="font-serif text-xl font-bold text-foreground transition-opacity hover:opacity-80"
+          >
+            {SITE_NAME}
+          </Link>
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+            Resume editing and job-search tracking that stays on this device, with no account or
+            cloud database.
+          </p>
+        </div>
+        <nav className="grid gap-8 sm:grid-cols-3" aria-label="Footer">
           {groups.map((group) => (
             <div key={group.title}>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                {group.title}
-              </h2>
+              <h2 className="font-serif text-sm font-bold">{group.title}</h2>
               <ul className="mt-3 grid gap-2 text-sm">
                 {group.links.map((link) => (
                   <li key={link.href}>
@@ -64,16 +75,6 @@ export function SiteFooter() {
             </div>
           ))}
         </nav>
-        <p className="mt-10 text-xs text-muted-foreground">
-          <Link
-            href="/"
-            prefetch={false}
-            className="font-semibold text-foreground transition-opacity hover:opacity-80"
-          >
-            {SITE_NAME}
-          </Link>
-          <span> · Private, ATS-friendly resume editing that stays in your browser.</span>
-        </p>
       </div>
     </footer>
   );

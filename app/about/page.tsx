@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
+import { Separator } from "@/components/ui/separator";
 import { createPageMetadata } from "@/lib/seo";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
@@ -49,38 +50,40 @@ export default function AboutPage() {
   return (
     <>
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {SITE_NAME}
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">
+        <p className="text-sm font-medium text-primary">About {SITE_NAME}</p>
+        <h1 className="mt-4 font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
           A resume editor that keeps the work in your browser
         </h1>
         <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
           {SITE_DESCRIPTION}
         </p>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          <article className="rounded-lg border bg-card p-5">
-            <h2 className="font-semibold">Private by default</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        <div className="mt-10">
+          <Separator />
+          <article className="grid gap-2 py-5 sm:grid-cols-[15rem_1fr] sm:gap-8">
+            <h2 className="font-serif text-lg font-bold">Private by default</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Edit, import, save versions, and export locally. PrivaCV does not require you to
               upload a resume to use the editor.
             </p>
           </article>
-          <article className="rounded-lg border bg-card p-5">
-            <h2 className="font-semibold">Built for readable resumes</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          <Separator />
+          <article className="grid gap-2 py-5 sm:grid-cols-[15rem_1fr] sm:gap-8">
+            <h2 className="font-serif text-lg font-bold">Built for readable resumes</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Use clean text-based templates, preview the PDF layout, and inspect the exact plain
               text that application systems can read.
             </p>
           </article>
-          <article className="rounded-lg border bg-card p-5">
-            <h2 className="font-semibold">Make each application intentional</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          <Separator />
+          <article className="grid gap-2 py-5 sm:grid-cols-[15rem_1fr] sm:gap-8">
+            <h2 className="font-serif text-lg font-bold">Make each application intentional</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Tailor and export the right resume, then privately track the role, next action,
               interviews, and outcome in your browser.
             </p>
           </article>
+          <Separator />
         </div>
 
         <div className="mt-12 grid gap-10 text-base leading-relaxed text-muted-foreground md:grid-cols-2">
