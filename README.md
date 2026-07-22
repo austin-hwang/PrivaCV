@@ -19,7 +19,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 - **Private by default.** Edit a resume without creating an account or sending it to a hosted resume database.
 - **Built for readable applications.** Use clean templates, preview the printed layout, and review the exact plain text before applying.
 - **Flexible import and export.** Start from scratch or import PDF, DOCX, pasted text, JSON, or a saved backup. Export PDF, editable DOCX, plain text, and JSON.
-- **Tailor with confidence.** Review checks, manage browser-only versions, and omit lower-relevance bullets without deleting the source material.
+- **Tailor with confidence.** Review checks, manage device-local versions, and omit lower-relevance bullets without deleting the source material.
 - **Track the whole search.** Move applications through a Linear-inspired pipeline, keep immutable submission snapshots, and export a Sankey diagram for sharing.
 
 ## Highlights
@@ -28,7 +28,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 - PDF and DOCX import with a deliberate field-by-field review flow
 - Deterministic local vector PDF, editable DOCX, plain-text, and JSON export
 - ATS-friendly plain-text review and resume checks for contact details, structure, density, and measurable evidence
-- Local browser autosave, named checkpoints, backups, restore points, and undo
+- Device-local autosave, named checkpoints, backups, restore points, and undo
 - Responsive editor and print layout with page-boundary guidance
 - Optional local AI assistance that runs in the browser after a person explicitly prepares a model
 - IndexedDB application pipeline with status history, next actions, job snapshots, submitted-resume snapshots, CSV/JSON backup, and restore
@@ -36,7 +36,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 ## Privacy
 
-PrivaCV is local-first. Resume and job-search information is processed and stored in browser IndexedDB databases, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to the browser; resume text is not sent to an AI API. Exports, inline-AI request/acceptance actions, and successful application creations record anonymous aggregate events without resume content, application data, prompts, generated text, or identity or device identifiers.
+PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The hosted web app records anonymous aggregate export, local-AI, and application-creation events without resume content, application data, prompts, generated text, or identity or device identifiers. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
 
 See the live [privacy page](https://privacv.app/privacy) or its [source](app/privacy/page.tsx) for the plain-language explanation. Please read the privacy requirements in [CONTRIBUTING.md](CONTRIBUTING.md) before adding storage, network requests, fixtures, or telemetry.
 
@@ -54,8 +54,8 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 ## Run as a desktop app
 
-The Electron development command starts Next.js and opens the local app in a
-sandboxed desktop window:
+The Electron development command starts Next.js and opens the two product
+workspaces in a sandboxed desktop window:
 
 ```sh
 pnpm desktop:dev
@@ -67,9 +67,27 @@ Create an offline production application bundle for the current platform:
 pnpm desktop:package
 ```
 
-The packaged application is written to `out/`. Resume and application data
-remain in Electron's local browser storage. Local AI also runs on-device, but a
-model still needs to be downloaded once before it can be used offline.
+Create the platform distributable and run the packaged-app smoke test:
+
+```sh
+pnpm desktop:make
+pnpm desktop:smoke
+```
+
+Bundles and distributable ZIPs are written to `out/`. The packaged app starts a
+loopback-only Next.js server and stores resume and application data in its own
+Electron profile. The resume and applications workspaces work offline. Local AI
+also runs on-device, but each model must be downloaded once before that model can
+be used offline.
+
+Desktop builds omit the public-site explainer, structured SEO data, Ko-fi widget,
+and public landing pages. Public resume routes redirect to the resume workspace;
+tracker landing pages redirect to the applications workspace. The hosted web app
+continues to serve those public pages normally.
+
+The current release workflow targets macOS on Apple silicon and Windows x64.
+Archives are unsigned until platform credentials are configured, so macOS
+Gatekeeper or Windows SmartScreen may warn when opening them.
 
 ### Desktop releases
 
@@ -81,9 +99,10 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-GitHub Actions builds and smoke-tests Apple-silicon macOS and x64 Windows ZIPs,
-then attaches them to a draft GitHub Release. Review the draft before publishing
-it. These archives are unsigned until platform signing credentials are added.
+GitHub Actions verifies that the tag matches `package.json`, builds and
+smoke-tests Apple-silicon macOS and x64 Windows ZIPs, then attaches them to a
+draft GitHub Release. Review the draft before publishing it. The workflow uses
+GitHub's repository-scoped token; signing credentials are separate and optional.
 
 ## Quality checks
 
@@ -94,6 +113,13 @@ pnpm format:check
 pnpm test
 pnpm test:e2e
 pnpm build
+```
+
+Changes to the desktop shell or packaging should also run:
+
+```sh
+pnpm desktop:make
+pnpm desktop:smoke
 ```
 
 Install Chromium once before the browser suite:
@@ -157,9 +183,10 @@ WHERE blob1 = 'job_application_created';
 
 | Path          | Purpose                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------- |
-| `app/`        | Next.js routes, metadata, public pages, and global styles                                   |
-| `components/` | Resume editor, application pipeline, shared product shell, and UI primitives                |
-| `hooks/`      | Client-side workflow coordination and persistence                                           |
+| `app/`        | Next.js routes, metadata, public pages, route handlers, and global styles                   |
+| `features/`   | Resume and applications workspaces plus shared product-shell composition                    |
+| `components/` | Cross-feature components and product-agnostic UI primitives                                 |
+| `desktop/`    | Electron main process, development launcher, Next.js packager, assets, and smoke test       |
 | `lib/`        | Resume/application domains, IndexedDB adapters, imports, exports, checks, and Sankey layout |
 | `tests/`      | Playwright browser coverage and opt-in integration fixture metadata                         |
 | `docs/`       | Architecture and maintainer documentation                                                   |
@@ -172,4 +199,4 @@ Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), use sy
 
 ## Technology
 
-Next.js · React · TypeScript · Tailwind CSS · Radix UI · Zod · Vitest · Playwright · Cloudflare/OpenNext
+Next.js · React · TypeScript · Tailwind CSS · Radix UI · Zod · Vitest · Playwright · Electron · Electron Forge · Cloudflare/OpenNext

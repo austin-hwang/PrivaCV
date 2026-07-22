@@ -7,7 +7,10 @@ const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const developmentUrl = "http://127.0.0.1:3000";
 let shuttingDown = false;
 
-const next = spawn(pnpmCommand, ["dev"], { stdio: "inherit" });
+const next = spawn(pnpmCommand, ["dev"], {
+  env: { ...process.env, PRIVACV_DESKTOP_APP: "1" },
+  stdio: "inherit",
+});
 let electron = null;
 
 function terminate(child) {

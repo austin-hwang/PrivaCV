@@ -37,8 +37,12 @@ try {
     return {
       cacheStorage: "caches" in window,
       databaseAvailable,
+      desktopMarker: document.documentElement.dataset.desktopApp,
+      hasKofiLink: Boolean(document.querySelector('a[href*="ko-fi.com"]')),
+      hasStructuredData: Boolean(document.querySelector('script[type="application/ld+json"]')),
       localStorage: localStorage.getItem("privacv-electron-smoke"),
       origin: window.location.origin,
+      publicExplainers: document.querySelectorAll(".public-explainer").length,
       title: document.title,
       webGpu: "gpu" in navigator,
     };
@@ -50,6 +54,29 @@ try {
   if (!runtime.databaseAvailable || runtime.localStorage !== "ready") {
     throw new Error("Desktop browser storage is unavailable.");
   }
+  if (
+    runtime.desktopMarker !== "true" ||
+    runtime.hasKofiLink ||
+    runtime.hasStructuredData ||
+    runtime.publicExplainers !== 0
+  ) {
+    throw new Error("The desktop app exposed public-site or SEO content.");
+  }
+
+  await window.goto(`${runtime.origin}/about`);
+  await window.waitForLoadState("domcontentloaded");
+  if (new URL(window.url()).pathname !== "/") {
+    throw new Error("Desktop public pages must redirect to the resume workspace.");
+  }
+
+  await window.goto(`${runtime.origin}/job-search-sankey`);
+  await window.waitForLoadState("domcontentloaded");
+  if (new URL(window.url()).pathname !== "/applications") {
+    throw new Error("Desktop tracker landing pages must redirect to the applications workspace.");
+  }
+
+  await window.goto(runtime.origin);
+  await window.waitForLoadState("domcontentloaded");
 
   await window.getByRole("button", { name: /^more actions$/i }).click();
   await window.getByRole("menuitem", { name: /^sample$/i }).click();

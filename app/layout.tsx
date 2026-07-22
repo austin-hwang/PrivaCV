@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, THEME_STORAGE_KEY } from "@/lib/site";
 import { STORAGE_KEY } from "@/lib/resume-workspace";
 
+const isDesktopApp = process.env.PRIVACV_DESKTOP_APP === "1";
+
 // Applied before first paint so there's no flash: default to night mode, and
 // only fall back to light when the person has explicitly chosen it.
 const themeInitScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t==="light"){document.documentElement.classList.remove("dark");}else{document.documentElement.classList.add("dark");}}catch(e){document.documentElement.classList.add("dark");}})();`;
@@ -14,7 +16,9 @@ const themeInitScript = `(function(){try{var t=localStorage.getItem(${JSON.strin
 // SEO explainer will be hidden. Marking the document active before first paint
 // avoids a large layout shift when that hiding would otherwise happen after
 // hydration. New visitors (no saved draft) still see the explainer as the landing.
-const workspaceInitScript = `(function(){try{var d=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(d&&d.length>2&&d!=="null"){document.documentElement.dataset.resumeWorkspace="active";}}catch(e){}})();`;
+const workspaceInitScript = isDesktopApp
+  ? `document.documentElement.dataset.resumeWorkspace="active";`
+  : `(function(){try{var d=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(d&&d.length>2&&d!=="null"){document.documentElement.dataset.resumeWorkspace="active";}}catch(e){}})();`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -65,7 +69,7 @@ const carlito = Carlito({
   preload: false,
 });
 
-export const metadata: Metadata = {
+const webMetadata: Metadata = {
   metadataBase: SITE_URL,
   title: {
     default: "PrivaCV: Free Private Resume Editor — No Sign-Up",
@@ -108,6 +112,20 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const desktopMetadata: Metadata = {
+  title: SITE_NAME,
+  description: "Private, local-first resume editing and job application tracking.",
+  applicationName: SITE_NAME,
+  category: "BusinessApplication",
+  icons: {
+    icon: [{ url: "/icon", type: "image/png", sizes: "96x96" }],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
+  robots: { index: false, follow: false },
+};
+
+export const metadata = isDesktopApp ? desktopMetadata : webMetadata;
+
 export const viewport: Viewport = {
   colorScheme: "dark light",
   themeColor: "#16181d",
@@ -117,7 +135,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-desktop-app={isDesktopApp ? "true" : undefined}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: workspaceInitScript }} />
@@ -126,7 +144,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${inter.variable} ${merriweather.variable} ${gelasio.variable} ${tinos.variable} ${arimo.variable} ${carlito.variable}`}
       >
         {children}
-        <KofiWidget />
+        {!isDesktopApp && <KofiWidget />}
         <Toaster position="bottom-center" />
       </body>
     </html>

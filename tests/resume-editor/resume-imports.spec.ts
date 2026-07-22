@@ -545,11 +545,11 @@ test("copies application fields when the browser rejects async clipboard access"
     .first()
     .click();
 
+  await expect(page.getByText("Copied job title")).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute(
     "data-fallback-copy",
     "Product Operations Manager",
   );
-  await expect(page.getByText("Copied job title")).toBeVisible();
 });
 
 test("suggests a recognizable filename when exporting a PDF", async ({ page }) => {

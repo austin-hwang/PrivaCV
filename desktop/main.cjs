@@ -90,6 +90,7 @@ async function startProductionServer() {
       NODE_ENV: "production",
       NEXT_TELEMETRY_DISABLED: "1",
       PORT: String(DESKTOP_PORT),
+      PRIVACV_DESKTOP_APP: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

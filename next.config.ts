@@ -1,7 +1,22 @@
 import type { NextConfig } from "next";
 
 const isElectronBuild = process.env.ELECTRON_BUILD === "1";
+const isDesktopApp = process.env.PRIVACV_DESKTOP_APP === "1";
 const developmentScriptSource = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
+const desktopRedirects = [
+  { source: "/about", destination: "/" },
+  { source: "/ats-resume-checker", destination: "/" },
+  { source: "/free-resume-builder", destination: "/" },
+  { source: "/guides/:path*", destination: "/" },
+  { source: "/job-application-tracker", destination: "/applications" },
+  { source: "/job-search-sankey", destination: "/applications" },
+  { source: "/pdf-to-docx-resume", destination: "/" },
+  { source: "/plain-text-resume", destination: "/" },
+  { source: "/privacy", destination: "/" },
+  { source: "/resume-builder-comparison", destination: "/" },
+  { source: "/resume-templates", destination: "/" },
+].map((redirect) => ({ ...redirect, permanent: false }));
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -72,6 +87,9 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  async redirects() {
+    return isDesktopApp ? desktopRedirects : [];
   },
 };
 

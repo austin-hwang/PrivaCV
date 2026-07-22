@@ -31,6 +31,7 @@ try {
       ELECTRON_BUILD: "1",
       NEXT_DIST_DIR: distName,
       NEXT_TELEMETRY_DISABLED: "1",
+      PRIVACV_DESKTOP_APP: "1",
     },
   });
 } finally {

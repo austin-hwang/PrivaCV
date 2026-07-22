@@ -90,14 +90,24 @@ export function ResumeEditorOverlays({ editor }: { editor: ReturnType<typeof use
   undoRef.current = undoRemoval;
   useEffect(() => {
     if (!toast) return;
-    // A single fixed Sonner id means each editor toast replaces the previous
-    // one in place instead of stacking, matching the app's one-toast model (and
-    // keeping a single "Undo" action on screen at a time).
+    // Dismiss the previous editor toast, then use the state event's id for the
+    // replacement. Reusing an id while Sonner is animating an old toast out can
+    // retain its stale action button.
+    sonnerToast.dismiss();
+    const sonnerId = `resume-editor-toast-${toast.id}`;
     sonnerToast(toast.message, {
-      id: "resume-editor-toast",
+      id: sonnerId,
       duration: toast.action === "undo" ? 5000 : 1600,
       ...(toast.action === "undo"
-        ? { action: { label: "Undo", onClick: () => undoRef.current() } }
+        ? {
+            action: {
+              label: "Undo",
+              onClick: () => {
+                undoRef.current();
+                sonnerToast.dismiss(sonnerId);
+              },
+            },
+          }
         : {}),
     });
   }, [toast]);

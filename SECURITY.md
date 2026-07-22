@@ -2,7 +2,7 @@
 
 ## Supported version
 
-PrivaCV is currently maintained from the latest `main` branch and the production deployment at <https://privacv.app>. There are no separately supported release branches yet.
+PrivaCV is currently maintained from the latest `main` branch and the production deployment at <https://privacv.app>. Published desktop releases, when available, support only the latest version. Draft or unsigned desktop artifacts are test builds, and there are no separately supported release branches yet.
 
 ## Reporting a vulnerability
 
@@ -14,4 +14,4 @@ If private vulnerability reporting is unavailable, contact the repository owner 
 
 ## Scope
 
-Reports about unintended network transmission, browser-storage isolation, import parsing, cross-site scripting, exported-document injection, Cloudflare endpoints, or sensitive-data exposure are especially valuable. Reports based solely on data a user explicitly exports or clears are generally out of scope unless PrivaCV misrepresents the behavior.
+Reports about unintended network transmission, browser or Electron-profile storage isolation, import parsing, cross-site scripting, exported-document injection, Cloudflare endpoints, Electron navigation or permission boundaries, exposure of the loopback server, or sensitive-data exposure are especially valuable. Reports based solely on data a user explicitly exports or clears are generally out of scope unless PrivaCV misrepresents the behavior. Expected operating-system warnings for explicitly unsigned draft builds are also out of scope.

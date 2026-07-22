@@ -7,7 +7,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = createPageMetadata({
   title: "Privacy",
   description:
-    "See what PrivaCV keeps in your browser, what anonymous metrics contain, and when optional local AI model downloads occur.",
+    "See what PrivaCV keeps on your device, what anonymous web metrics contain, and when optional local AI model downloads occur.",
   path: "/privacy",
   socialImage: "privacy",
 });
@@ -23,19 +23,21 @@ export default function PrivacyPage() {
         <div className="mt-10 grid gap-8 text-base leading-relaxed text-muted-foreground">
           <section>
             <h2 className="text-2xl font-semibold text-foreground">
-              Your resume and job search stay in your browser
+              Your resume and job search stay on your device
             </h2>
             <p className="mt-3">
               PrivaCV runs as a local-first editor. Resume drafts, saved versions, applications,
               notes, timeline events, job descriptions, and submitted-resume snapshots are stored in
-              your browser&apos;s IndexedDB databases. PrivaCV does not require an account or upload
-              this information to a PrivaCV server.
+              IndexedDB in your browser profile or the desktop app&apos;s Electron profile. PrivaCV
+              does not require an account or upload this information to a PrivaCV server. The
+              website and desktop app use separate profiles, so use a JSON backup to move data
+              between them.
             </p>
           </section>
           <section>
             <h2 className="text-2xl font-semibold text-foreground">Files you choose to import</h2>
             <p className="mt-3">
-              PDF, DOCX, JSON, and pasted resume content are used by the editor in the browser.
+              PDF, DOCX, JSON, and pasted resume content are used by the editor on your device.
               Review imported content before exporting because document formats can contain layout
               artifacts that need correction.
             </p>
@@ -43,26 +45,27 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-semibold text-foreground">Optional local AI</h2>
             <p className="mt-3">
-              If you explicitly prepare a local AI model, the browser downloads model files from the
-              listed model hosts. The model runs locally in the browser; PrivaCV does not send your
-              resume text to an AI API for that feature.
+              If you explicitly prepare a local AI model, PrivaCV downloads model files from the
+              listed model hosts into the current browser or desktop profile. The model runs locally
+              in that profile; PrivaCV does not send your resume text to an AI API for that feature.
             </p>
           </section>
           <section>
             <h2 className="text-2xl font-semibold text-foreground">Anonymous aggregate metrics</h2>
             <p className="mt-3">
-              PrivaCV records limited aggregate metrics for resume exports, local-AI usage
-              milestones, and the number of applications created. These metrics never include
+              The hosted web app records limited aggregate metrics for resume exports, local-AI
+              usage milestones, and the number of applications created. These metrics never include
               company names, roles, job descriptions, notes, URLs, resume content, prompts,
-              generated text, or account or device identifiers.
+              generated text, or account or device identifiers. Packaged desktop builds resolve the
+              same event calls locally and do not submit them.
             </p>
           </section>
           <section>
             <h2 className="text-2xl font-semibold text-foreground">Your control</h2>
             <p className="mt-3">
               You can save portable JSON backups, export the job pipeline as CSV, delete individual
-              applications, or delete all saved browser data. If you share a device, export or back
-              up anything you want to keep before deleting local data.
+              applications, or delete all saved data from the current profile. If you share a
+              device, export or back up anything you want to keep before deleting local data.
             </p>
           </section>
         </div>
