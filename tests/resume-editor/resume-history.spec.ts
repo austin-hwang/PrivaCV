@@ -524,9 +524,11 @@ test("finds a saved checkpoint by its name, note, or resume identity", async ({ 
   await saveDialog.getByLabel("Checkpoint name").fill("Cloud leadership focus");
   await saveDialog.getByLabel(/^Note/).fill("Tailored for the Stripe platform engineering role.");
   await saveDialog.getByRole("button", { name: /save checkpoint/i }).click();
+  await expect(saveDialog).toBeHidden();
 
   const search = versions.getByLabel("Find a checkpoint");
   await search.fill("stripe");
+  await expect(search).toHaveValue("stripe");
   await expect(versions.getByText(/Showing 1 of \d+/)).toBeVisible();
   await expect(versions.getByText("Cloud leadership focus", { exact: true })).toBeVisible();
   await expect(versions.getByText("Platform baseline", { exact: true })).toBeHidden();
