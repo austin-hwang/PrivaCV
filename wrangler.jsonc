@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": "custom-worker.ts",
-  "name": "resume-editor",
+  "name": "privacv",
   "routes": [
     {
       "pattern": "privacv.app",
@@ -21,12 +21,26 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "resume-editor",
+      "service": "privacv",
     },
   ],
   "images": {
     "binding": "IMAGES",
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HANDOFF_ROOMS",
+        "class_name": "WebRTCHandoffRoom",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1-handoff-rooms",
+      "new_sqlite_classes": ["WebRTCHandoffRoom"],
+    },
+  ],
   "analytics_engine_datasets": [
     {
       "binding": "EXPORT_METRICS",

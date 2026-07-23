@@ -1,5 +1,5 @@
 {
-  "name": "resume-editor",
+  "name": "privacv",
   "version": "0.1.0",
   "private": true,
   "description": "PrivaCV — private, local-first tools for resumes and job applications.",
@@ -39,6 +39,7 @@
     "lucide-react": "^1.25.0",
     "next": "^16.2.10",
     "pdfjs-dist": "6.1.200",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.7",
     "react-aria-components": "^1.19.0",
     "react-dom": "^19.2.7",

@@ -36,7 +36,7 @@ const contentSecurityPolicy = [
   // huggingface/hf.co hosts serve WebLLM's model manifest/weights; the beacon
   // reports anonymous RUM to cloudflareinsights.com. Keeping the list explicit
   // preserves the local editor's narrow network boundary.
-  "connect-src 'self' https://huggingface.co https://*.hf.co https://*.xethub.hf.co https://raw.githubusercontent.com https://cloudflareinsights.com",
+  "connect-src 'self' https://privacv.app https://huggingface.co https://*.hf.co https://*.xethub.hf.co https://raw.githubusercontent.com https://cloudflareinsights.com",
   "frame-src 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",

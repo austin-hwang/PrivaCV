@@ -240,6 +240,7 @@ export function useResumeEditor() {
     openJson,
     openResumeFile,
     openTextImport,
+    openTransferredResume,
     toggleImportReviewItem,
   } = useResumeImport({
     state,
@@ -530,6 +531,7 @@ export function useResumeEditor() {
     openJson,
     openResumeFile,
     openTextImport,
+    openTransferredResume,
     openVersionHistoryBackup,
     openVersionSave,
     pageCount,

@@ -359,6 +359,8 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /resume library/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: /continue on another device/i })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /upload pdf or word/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /paste resume text/i })).toBeFocused();

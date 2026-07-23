@@ -72,6 +72,16 @@ export function useResumeImport({
     }
   };
 
+  const openTransferredResume = (incoming: ResumeState) => {
+    const nextState = normalizeResume(incoming);
+    forkAutosaveBeforeLoading(nextState, "a resume from another device");
+    saveRecoveryPoint("Before opening a resume from another device");
+    setState(nextState);
+    setImportReview(null);
+    setDraftSourceVersionId(null);
+    flash("Opened resume from another device");
+  };
+
   const openPdf = async (file: File | undefined) => {
     if (!file) return;
     const previousState = state;
@@ -167,6 +177,7 @@ export function useResumeImport({
     openJson,
     openResumeFile,
     openTextImport,
+    openTransferredResume,
     toggleImportReviewItem,
   };
 }

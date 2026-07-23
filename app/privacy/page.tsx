@@ -7,7 +7,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = createPageMetadata({
   title: "Privacy",
   description:
-    "See what PrivaCV keeps on your device, what anonymous web metrics contain, and when optional local AI model downloads occur.",
+    "See what PrivaCV keeps on your device, how optional device handoff works, what anonymous web metrics contain, and when local AI downloads occur.",
   path: "/privacy",
   socialImage: "privacy",
 });
@@ -48,6 +48,22 @@ export default function PrivacyPage() {
               If you explicitly prepare a local AI model, PrivaCV downloads model files from the
               listed model hosts into the current browser or desktop profile. The model runs locally
               in that profile; PrivaCV does not send your resume text to an AI API for that feature.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-2xl font-semibold text-foreground">
+              Optional device-to-device handoff
+            </h2>
+            <p className="mt-3">
+              If you explicitly use the experimental Continue on another device feature, the first
+              browser creates a QR link containing a temporary room ID and an encryption key in the
+              link fragment. A Cloudflare signaling room retains only encrypted WebRTC connection
+              details for up to five minutes and cannot decrypt them. The active resume is not sent
+              to or stored in that room; it transfers over the encrypted WebRTC data channel after
+              the devices connect. The browsers also contact Cloudflare&apos;s STUN service, which
+              processes network metadata such as IP addresses and ports but cannot read the resume
+              payload. Anyone with the temporary QR link could attempt to join the transfer, so show
+              it only to the intended device.
             </p>
           </section>
           <section>

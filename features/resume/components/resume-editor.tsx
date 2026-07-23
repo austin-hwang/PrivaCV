@@ -496,6 +496,7 @@ export function ResumeEditor() {
         checksReady={checksReady}
         checksLength={checks.length}
         setLibraryOpen={setLibraryOpen}
+        setHandoffOpen={workspaceUI.setHandoffOpen}
         setTextReviewOpen={setTextReviewOpen}
         setTextImportOpen={setTextImportOpen}
         setDestructiveAction={setDestructiveAction}

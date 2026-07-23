@@ -15,6 +15,7 @@ import {
 } from "@/features/resume/components/resume-navigator";
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import type { useResumeWorkspaceUI } from "@/features/resume/hooks/use-resume-workspace-ui";
+import { WebRTCHandoffDialog } from "@/features/resume/components/webrtc-handoff-dialog";
 
 const LocalAIDialog = dynamic(
   () =>
@@ -64,6 +65,8 @@ export function ResumeWorkspaceDialogs({
     checksReviewOpen,
     destructiveAction,
     libraryOpen,
+    handoffOpen,
+    handoffInvitation,
     localAIEnabled,
     localAIOpen,
     navigatorOpen,
@@ -75,6 +78,8 @@ export function ResumeWorkspaceDialogs({
     setDestructiveAction,
     setHistoryPreviewItem,
     setLibraryOpen,
+    setHandoffOpen,
+    setHandoffInvitation,
     setLocalAIOpen,
     setNavigatorOpen,
     setNavigatorQuery,
@@ -153,6 +158,15 @@ export function ResumeWorkspaceDialogs({
         onDuplicate={editor.duplicateResume}
         onRename={editor.renameResume}
         onDelete={editor.deleteResume}
+      />
+
+      <WebRTCHandoffDialog
+        open={handoffOpen}
+        onOpenChange={setHandoffOpen}
+        invitation={handoffInvitation}
+        onInvitationConsumed={() => setHandoffInvitation(null)}
+        state={state}
+        onOpenReceivedResume={editor.openTransferredResume}
       />
 
       <GuidedReview

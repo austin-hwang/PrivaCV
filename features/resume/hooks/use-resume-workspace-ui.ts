@@ -11,6 +11,7 @@ import {
 import type { ResumeTemplateId } from "@/lib/resume";
 import type { VersionHistoryItem } from "@/lib/resume-workspace";
 import type { DestructiveResumeAction } from "@/features/resume/components/review-dialogs";
+import { readWebRTCHandoffInvitationFromHash } from "@/lib/webrtc-handoff-signaling";
 
 export type LocalAIInlineTarget = {
   id: string;
@@ -39,6 +40,8 @@ export function useResumeWorkspaceUI({
   const [toolsOpen, setToolsOpen] = useState(false);
   const [checksReviewOpen, setChecksReviewOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const [handoffInvitation, setHandoffInvitation] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyPreviewItem, setHistoryPreviewItem] = useState<VersionHistoryItem | null>(null);
   const [reviewTour, setReviewTour] = useState<ReviewTourState | null>(null);
@@ -69,6 +72,19 @@ export function useResumeWorkspaceUI({
   const workspaceHasStarted = hasContent || blankWorkspaceOpen;
 
   useEffect(() => setIsDarkTheme(document.documentElement.classList.contains("dark")), []);
+
+  useEffect(() => {
+    const openInvitation = () => {
+      const invitation = readWebRTCHandoffInvitationFromHash(window.location.hash);
+      if (!invitation) return;
+      setHandoffInvitation(invitation);
+      setHandoffOpen(true);
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    };
+    openInvitation();
+    window.addEventListener("hashchange", openInvitation);
+    return () => window.removeEventListener("hashchange", openInvitation);
+  }, []);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 640px)");
@@ -156,6 +172,8 @@ export function useResumeWorkspaceUI({
     editorCollapsed,
     historyOpen,
     historyPreviewItem,
+    handoffOpen,
+    handoffInvitation,
     inlineEdit,
     isDarkTheme,
     libraryOpen,
@@ -185,6 +203,8 @@ export function useResumeWorkspaceUI({
     setEditorCollapsed,
     setHistoryOpen,
     setHistoryPreviewItem,
+    setHandoffOpen,
+    setHandoffInvitation,
     setInlineEdit,
     setIsDarkTheme,
     setLibraryOpen,
