@@ -1,6 +1,7 @@
 const INVITATION_PREFIX = "PCV3.";
 const LEGACY_INVITATION_PREFIX = "PCV2.";
 const SIGNALING_PATH = "/api/handoff/signal";
+const TURN_CREDENTIALS_PATH = "/api/handoff/ice";
 const MAX_ENCRYPTED_SIGNAL_CHARACTERS = 100_000;
 const PAIRING_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const PAIRING_CODE_CHARACTERS = 16;
@@ -13,6 +14,10 @@ export type WebRTCHandoffInvitation = {
 };
 
 type SignalingRole = "sender" | "receiver";
+
+export const WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.cloudflare.com:3478" },
+];
 
 function bytesToBase64Url(bytes: Uint8Array) {
   let binary = "";
@@ -212,6 +217,45 @@ function roomUrl(roomId: string, role?: SignalingRole) {
   return url;
 }
 
+function turnCredentialsUrl(roomId: string) {
+  return new URL(`${TURN_CREDENTIALS_PATH}/${roomId}`, signalingOrigin());
+}
+
+function isIceServer(value: unknown): value is RTCIceServer {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const server = value as Record<string, unknown>;
+  const urlsValid =
+    typeof server.urls === "string" ||
+    (Array.isArray(server.urls) &&
+      server.urls.length > 0 &&
+      server.urls.every((url) => typeof url === "string"));
+  return (
+    urlsValid &&
+    (server.username === undefined || typeof server.username === "string") &&
+    (server.credential === undefined || typeof server.credential === "string")
+  );
+}
+
+export async function loadWebRTCHandoffIceServers(invitation?: WebRTCHandoffInvitation) {
+  if (!invitation) return WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS;
+  try {
+    const response = await fetch(turnCredentialsUrl(invitation.roomId), {
+      method: "POST",
+      cache: "no-store",
+    });
+    if (!response.ok) return WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS;
+    const body = (await response.json()) as { iceServers?: unknown };
+    if (!Array.isArray(body.iceServers) || !body.iceServers.length) {
+      return WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS;
+    }
+    return body.iceServers.every(isIceServer)
+      ? body.iceServers
+      : WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS;
+  } catch {
+    return WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS;
+  }
+}
+
 export async function publishWebRTCHandoffSignal(
   invitation: WebRTCHandoffInvitation,
   role: SignalingRole,
@@ -223,6 +267,10 @@ export async function publishWebRTCHandoffSignal(
     body: JSON.stringify({ role, signal }),
   });
   if (!response.ok) throw new Error("The temporary connection room is unavailable.");
+}
+
+export function reserveWebRTCHandoffRoom(invitation: WebRTCHandoffInvitation) {
+  return publishWebRTCHandoffSignal(invitation, "sender", "reservation");
 }
 
 export async function waitForWebRTCHandoffSignal(

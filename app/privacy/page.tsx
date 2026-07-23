@@ -65,9 +65,12 @@ export default function PrivacyPage() {
               events, job-description snapshots, and submitted-resume snapshots. That selected data
               is not sent to or stored in the signaling room; it transfers over the encrypted WebRTC
               data channel after the devices connect. The browsers also contact Cloudflare&apos;s
-              STUN service, which processes network metadata such as IP addresses and ports but
-              cannot read the transferred payload. Anyone with the temporary QR link or pairing code
-              could attempt to join the transfer, so show it only to the intended device.
+              STUN service, which processes network metadata such as IP addresses and ports. When a
+              direct connection is blocked, Cloudflare&apos;s TURN service can relay the encrypted
+              WebRTC packets using a ten-minute credential. TURN processes the encrypted packet
+              bytes and connection metadata but cannot read the transferred payload. Anyone with the
+              temporary QR link or pairing code could attempt to join the transfer, so show it only
+              to the intended device.
             </p>
           </section>
           <section>

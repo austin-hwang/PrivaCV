@@ -59,8 +59,10 @@ import {
   decryptWebRTCHandoffSignal,
   encryptWebRTCHandoffSignal,
   formatWebRTCHandoffPairingCode,
+  loadWebRTCHandoffIceServers,
   parseWebRTCHandoffInvitation,
   publishWebRTCHandoffSignal,
+  reserveWebRTCHandoffRoom,
   waitForWebRTCHandoffSignal,
   type WebRTCHandoffInvitation,
 } from "@/lib/webrtc-handoff-signaling";
@@ -93,15 +95,11 @@ type HandoffPhase =
   | "sent"
   | "error";
 
-const ICE_CONFIGURATION: RTCConfiguration = {
-  iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
-};
-
-function createHandoffPeer() {
+function createHandoffPeer(iceServers: RTCIceServer[]) {
   if (typeof RTCPeerConnection === "undefined") {
     throw new Error("This browser does not support direct device handoff.");
   }
-  return new RTCPeerConnection(ICE_CONFIGURATION);
+  return new RTCPeerConnection({ iceServers });
 }
 
 function waitForIceGathering(peer: RTCPeerConnection, timeoutMs = 15_000) {
@@ -261,8 +259,8 @@ export function WebRTCHandoffDialog({
     });
   };
 
-  const prepareSender = async () => {
-    const peer = createHandoffPeer();
+  const prepareSender = async (iceServers: RTCIceServer[]) => {
+    const peer = createHandoffPeer(iceServers);
     const channel = peer.createDataChannel(WEBRTC_HANDOFF_CHANNEL, { ordered: true });
     const includeResume = transferSelection === "resume" || transferSelection === "both";
     const includeApplications =
@@ -302,21 +300,39 @@ export function WebRTCHandoffDialog({
     reset("send");
     setPhase("creating-invite");
     try {
-      const peer = await prepareSender();
+      const room = await createWebRTCHandoffInvitation();
+      roomRef.current = room;
+      setPairingCode(room.pairingCode ?? "");
+      let relayReady = true;
+      try {
+        await reserveWebRTCHandoffRoom(room);
+      } catch {
+        relayReady = false;
+      }
+      const iceServers = relayReady
+        ? await loadWebRTCHandoffIceServers(room)
+        : await loadWebRTCHandoffIceServers();
+      const peer = await prepareSender(iceServers);
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       await waitForIceGathering(peer);
       if (!peer.localDescription) throw new Error("The device invite could not be created.");
       const offerCode = encodeWebRTCHandoffSignal("offer", peer.localDescription);
-      setInviteCode(offerCode);
 
-      const room = await createWebRTCHandoffInvitation();
-      roomRef.current = room;
-      setPairingCode(room.pairingCode ?? "");
       const encryptedOffer = await encryptWebRTCHandoffSignal(offerCode, room.key);
+      if (!relayReady) {
+        setInviteCode(offerCode);
+        setManualOpen(true);
+        setError(
+          "The pairing service is unavailable. You can still exchange the advanced codes below.",
+        );
+        setPhase("waiting-response");
+        return;
+      }
       try {
         await publishWebRTCHandoffSignal(room, "sender", encryptedOffer);
       } catch {
+        setInviteCode(offerCode);
         setManualOpen(true);
         setError(
           "The pairing service is unavailable. You can still exchange the advanced codes below.",
@@ -325,6 +341,7 @@ export function WebRTCHandoffDialog({
         return;
       }
 
+      setInviteCode(offerCode);
       setQrUrl(createWebRTCHandoffUrl(room, destinationOrigin()));
       setPhase("waiting-scan");
       const controller = new AbortController();
@@ -363,7 +380,7 @@ export function WebRTCHandoffDialog({
 
   const prepareReceiver = async (offerCode: string, room?: WebRTCHandoffInvitation) => {
     const signal = parseWebRTCHandoffSignal(offerCode, "offer");
-    const peer = createHandoffPeer();
+    const peer = createHandoffPeer(await loadWebRTCHandoffIceServers(room));
     peerRef.current = peer;
     watchConnection(peer);
     peer.addEventListener("datachannel", (event) => {

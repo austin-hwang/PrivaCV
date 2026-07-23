@@ -14,6 +14,11 @@ import {
   WEBRTC_HANDOFF_SIGNALING_PATH,
   type WebRTCHandoffRoomRecord,
 } from "./lib/webrtc-handoff-signaling-server";
+import {
+  handleWebRTCTurnCredentials,
+  WEBRTC_TURN_CREDENTIALS_PATH,
+  type WebRTCTurnEnv,
+} from "./lib/webrtc-turn-server";
 
 const MODEL_PROXY_PREFIX = "/api/local-ai/models/";
 const MODEL_CACHE_PATH_VERSIONS = new Set(["webllm-cache-v2", "webllm-cache-v2-qwen3"]);
@@ -50,7 +55,8 @@ type HandoffRoomState = { storage: HandoffRoomStorage };
 
 type WorkerEnv = ExportMetricsEnv &
   InlineAIMetricsEnv &
-  JobApplicationMetricsEnv & { HANDOFF_ROOMS?: HandoffRoomNamespace };
+  JobApplicationMetricsEnv &
+  WebRTCTurnEnv & { HANDOFF_ROOMS?: HandoffRoomNamespace };
 
 export class WebRTCHandoffRoom extends DurableObject<WorkerEnv> {
   private readonly roomState: HandoffRoomState;
@@ -186,6 +192,33 @@ async function proxyModelFile(request: Request) {
 const worker = {
   async fetch(request: Request, env: WorkerEnv, ctx: WorkerContext) {
     const pathname = new URL(request.url).pathname;
+    if (pathname.startsWith(WEBRTC_TURN_CREDENTIALS_PATH)) {
+      const roomId = pathname.slice(WEBRTC_TURN_CREDENTIALS_PATH.length);
+      if (request.method !== "OPTIONS") {
+        if (!env.HANDOFF_ROOMS) {
+          return new Response("Device handoff is unavailable.", {
+            status: 503,
+            headers: { "Cache-Control": "no-store" },
+          });
+        }
+        const roomUrl = new URL(`${WEBRTC_HANDOFF_SIGNALING_PATH}${roomId}`, request.url);
+        roomUrl.searchParams.set("role", "receiver");
+        const roomRequest = new Request(roomUrl, {
+          method: "GET",
+          headers: request.headers.get("origin")
+            ? { Origin: request.headers.get("origin")! }
+            : undefined,
+        });
+        const roomResponse = await env.HANDOFF_ROOMS.getByName(roomId).fetch(roomRequest);
+        if (roomResponse.status !== 200) {
+          return new Response("Active handoff room not found.", {
+            status: 404,
+            headers: { "Cache-Control": "no-store" },
+          });
+        }
+      }
+      return handleWebRTCTurnCredentials(request, roomId, env);
+    }
     if (pathname.startsWith(WEBRTC_HANDOFF_SIGNALING_PATH)) {
       const roomId = pathname.slice(WEBRTC_HANDOFF_SIGNALING_PATH.length);
       if (!env.HANDOFF_ROOMS) {

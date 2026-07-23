@@ -37,7 +37,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 ## Privacy
 
-PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The optional experimental device handoff sends a selected resume, application pipeline, or both directly over an encrypted WebRTC data channel after the user scans a private QR link. A short-lived Cloudflare room holds only encrypted connection details for up to five minutes; its decryption key stays in the link fragment, and the transferred data is never uploaded to the room. Cloudflare's STUN service sees connection metadata but not the transferred payload. The hosted web app records anonymous aggregate export, local-AI, and application-creation events without resume content, application data, prompts, generated text, or identity or device identifiers. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
+PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The optional experimental device handoff sends a selected resume, application pipeline, or both over an encrypted WebRTC data channel after the user scans a private QR link. A short-lived Cloudflare room holds only encrypted connection details for up to five minutes; its decryption key stays in the link fragment, and the transferred data is never uploaded to the room. Cloudflare's STUN service sees connection metadata, and TURN may relay encrypted packet bytes when a direct connection is unavailable; neither can read the transferred payload. The hosted web app records anonymous aggregate export, local-AI, and application-creation events without resume content, application data, prompts, generated text, or identity or device identifiers. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
 
 See the live [privacy page](https://privacv.app/privacy) or its [source](app/privacy/page.tsx) for the plain-language explanation. Please read the privacy requirements in [CONTRIBUTING.md](CONTRIBUTING.md) before adding storage, network requests, fixtures, or telemetry.
 
@@ -52,6 +52,17 @@ pnpm dev
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+Device handoff uses direct WebRTC first and can fall back to Cloudflare Realtime TURN. Create a TURN
+key, then configure its server-only values without exposing them to the browser bundle:
+
+```sh
+pnpm exec wrangler secret put TURN_KEY_ID
+pnpm exec wrangler secret put TURN_KEY_API_TOKEN
+```
+
+The app issues ten-minute credentials only for an active handoff room. Copy `.dev.vars.example` to
+`.dev.vars` to test TURN locally; `.dev.vars` is ignored by Git.
 
 ## Run as a desktop app
 

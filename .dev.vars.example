@@ -1,0 +1,4 @@
+# Cloudflare Realtime TURN server key. Configure production values with
+# `wrangler secret put`; never commit the actual token.
+TURN_KEY_ID=
+TURN_KEY_API_TOKEN=
