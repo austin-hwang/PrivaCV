@@ -116,7 +116,7 @@ export function ResumePreviewPane({
     <section
       id="resume-preview-pane"
       className={cn(
-        "preview-pane overflow-y-auto bg-stage p-4 lg:max-h-[calc(100vh-73px)] lg:p-7",
+        "preview-pane overflow-y-auto bg-stage p-4 pb-28 md:pb-4 lg:max-h-[calc(100vh-73px)] lg:p-7",
         mobileWorkspaceView !== "preview" && "mobile-workspace-hidden",
       )}
       aria-label="Resume preview"

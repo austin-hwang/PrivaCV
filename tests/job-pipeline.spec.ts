@@ -77,16 +77,40 @@ test("keeps every application view reachable on small screens", async ({ browser
   const page = await context.newPage();
   await page.goto("/applications");
 
-  const viewScroller = page.getByRole("region", { name: "Application view options" });
-  await expect(viewScroller).toBeVisible();
-  await expect
-    .poll(() => viewScroller.evaluate((element) => element.scrollWidth - element.clientWidth))
-    .toBeGreaterThan(0);
+  const mobileNavigation = page.getByRole("navigation", { name: "Application workspace" });
+  await expect(mobileNavigation).toBeVisible();
+  await expect(mobileNavigation.getByRole("radio", { name: "Pipeline" })).toBeChecked();
 
-  await page.getByRole("radio", { name: "Sankey view" }).click();
-  await expect(page.getByRole("radio", { name: "Sankey view" })).toBeChecked();
-  expect(await viewScroller.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  const viewScroller = page.getByRole("region", { name: "Application view options" });
+  await expect(viewScroller).toBeHidden();
+
+  await mobileNavigation.getByRole("radio", { name: "Flow" }).click();
+  await expect(mobileNavigation.getByRole("radio", { name: "Flow" })).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+
+  await context.close();
+});
+
+test("uses a touch-first pipeline and quick status moves on phones", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await page.goto("/applications");
+
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Load sample applications" }).click();
+
+  const applicationCard = page
+    .locator('[data-application-card="application-sample-aster"]')
+    .filter({ visible: true });
+  await expect(applicationCard).toBeVisible();
+  await applicationCard.getByRole("button", { name: "Move" }).click();
+
+  const moveDrawer = page.getByRole("dialog", { name: "Move application" });
+  await expect(moveDrawer).toContainText("Staff Product Designer");
+  await moveDrawer.getByRole("radio", { name: "Applied" }).click();
+  await expect(moveDrawer).toBeHidden();
+  await expect(applicationCard.getByText("Applied", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 
   await context.close();
 });

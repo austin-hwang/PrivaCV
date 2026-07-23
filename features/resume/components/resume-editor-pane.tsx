@@ -148,7 +148,7 @@ export function ResumeEditorPane({
           setActiveTarget(target.id);
       }}
       className={cn(
-        "editor-pane relative overflow-visible border-b p-4 pb-16 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto lg:border-b-0 lg:px-6 lg:pb-6 lg:pt-0",
+        "editor-pane relative overflow-visible border-b p-4 pb-28 md:pb-16 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto lg:border-b-0 lg:px-6 lg:pb-6 lg:pt-0",
         mobileWorkspaceView !== "editor" && "mobile-workspace-hidden",
         editorCollapsed && "lg:hidden",
       )}

@@ -44,6 +44,38 @@ test("keeps the editor interactive while development security headers are active
   await expect(page.getByLabel("Full Name")).toHaveValue("John Doe");
 });
 
+test("uses focused edit, preview, and section navigation modes on phones", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await loadSample(page);
+
+  const mobileNavigation = page.getByRole("navigation", { name: "Resume workspace" });
+  await expect(mobileNavigation).toBeVisible();
+  await expect(mobileNavigation.getByRole("radio", { name: "Edit" })).toBeChecked();
+  await expect(page.getByLabel("Resume editor")).toBeVisible();
+
+  await mobileNavigation.getByRole("radio", { name: "Preview" }).click();
+  await expect(page.getByLabel("Resume preview")).toBeVisible();
+  await expect(page.getByLabel("Resume editor")).toBeHidden();
+
+  // The Next.js development toolbar occupies the bottom-left corner only in
+  // the test server; force the app control so the production interaction is
+  // exercised instead of the dev-only overlay.
+  await mobileNavigation
+    .getByRole("button", { name: "Open resume sections" })
+    .dispatchEvent("click");
+  const navigator = page.getByRole("dialog", { name: "Navigate resume" });
+  await expect(navigator.getByLabel("Search resume fields")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(navigator).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+
+  await context.close();
+});
+
 test("does not reserve disclosure padding when name parts are collapsed", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

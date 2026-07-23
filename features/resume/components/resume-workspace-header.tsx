@@ -239,7 +239,7 @@ export function ResumeWorkspaceHeader({
         </>
       }
       secondary={
-        <div className="border-t px-4 py-2 lg:hidden">
+        <div className="hidden border-t px-4 py-2 md:block lg:hidden">
           <ToggleGroup
             aria-label="Resume workspace view"
             variant="outline"

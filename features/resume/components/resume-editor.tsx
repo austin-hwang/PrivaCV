@@ -10,6 +10,7 @@ import { ResumeWorkspaceHeader } from "@/features/resume/components/resume-works
 import { ResumePreviewPane } from "@/features/resume/components/resume-preview-pane";
 import { ResumeWorkspaceDialogs } from "@/features/resume/components/resume-workspace-dialogs";
 import { ResumeEditorPane } from "@/features/resume/components/resume-editor-pane";
+import { ResumeMobileNavigation } from "@/features/resume/components/resume-mobile-navigation";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 import {
@@ -536,6 +537,16 @@ export function ResumeEditor() {
           </>
         )}
       </main>
+
+      {!printing ? (
+        <ResumeMobileNavigation
+          view={mobileWorkspaceView}
+          onViewChange={setMobileWorkspaceView}
+          onOpenSections={() => setNavigatorOpen(true)}
+          onOpenTools={() => setToolsOpen((open) => !open)}
+          toolsOpen={toolsOpen}
+        />
+      ) : null}
 
       <ResumeWorkspaceDialogs
         editor={editor}

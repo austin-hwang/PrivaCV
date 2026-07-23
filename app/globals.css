@@ -94,11 +94,22 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    position: relative;
   }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+}
+
+.mobile-workspace-nav {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 767px) {
+  body:has(.mobile-workspace-nav) .kofi-widget {
+    display: none;
   }
 }
 

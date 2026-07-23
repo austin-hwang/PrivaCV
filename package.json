@@ -29,6 +29,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@base-ui/react": "^1.6.0",
     "@internationalized/date": "^3.12.2",
     "@mlc-ai/web-llm": "^0.2.84",
     "@opennextjs/cloudflare": "^1.20.1",

@@ -2,6 +2,13 @@
 
 import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -10,6 +17,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Kbd } from "@/components/ui/kbd";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export type ResumeNavigatorItem = {
   id: string;
@@ -33,6 +41,7 @@ export function ResumeNavigator({
   onQueryChange: (query: string) => void;
   onSelect: (id: string) => void;
 }) {
+  const isMobile = useIsMobile();
   const choose = (id: string) => {
     onOpenChange(false);
     onQueryChange("");
@@ -49,26 +58,17 @@ export function ResumeNavigator({
     return terms.every((term) => haystack.includes(term));
   };
 
-  return (
-    <Dialog
-      isOpen={open}
-      onOpenChange={(nextOpen) => {
-        onOpenChange(nextOpen);
-        if (!nextOpen) onQueryChange("");
-      }}
-      className="max-w-xl gap-0 overflow-hidden p-0"
-    >
-      <DialogHeader className="sr-only">
-        <DialogTitle>Navigate resume</DialogTitle>
-        <DialogDescription>
-          Search for a resume field and move focus directly to it.
-        </DialogDescription>
-      </DialogHeader>
+  const handleOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+    if (!nextOpen) onQueryChange("");
+  };
+  const command = (
+    <>
       <Command
         filter={matchesQuery}
         inputValue={query}
         onInputChange={onQueryChange}
-        className="bg-transparent"
+        className="min-h-0 bg-transparent"
       >
         <div className="border-b">
           <CommandInput
@@ -108,6 +108,38 @@ export function ResumeNavigator({
           <span>review and print</span>
         </span>
       </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange} showSwipeHandle>
+        <DrawerContent className="h-[min(42rem,calc(100dvh-3rem))]">
+          <DrawerHeader className="sr-only">
+            <DrawerTitle>Navigate resume</DrawerTitle>
+            <DrawerDescription>
+              Search for a resume field and move focus directly to it.
+            </DrawerDescription>
+          </DrawerHeader>
+          {command}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog
+      isOpen={open}
+      onOpenChange={handleOpenChange}
+      className="max-w-xl gap-0 overflow-hidden p-0"
+    >
+      <DialogHeader className="sr-only">
+        <DialogTitle>Navigate resume</DialogTitle>
+        <DialogDescription>
+          Search for a resume field and move focus directly to it.
+        </DialogDescription>
+      </DialogHeader>
+      {command}
     </Dialog>
   );
 }

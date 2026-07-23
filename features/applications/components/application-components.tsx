@@ -891,10 +891,14 @@ export function ApplicationDetailDialog({
   };
 
   return (
-    <Dialog isOpen={Boolean(application)} onOpenChange={onOpenChange} className="max-w-5xl p-0">
+    <Dialog
+      isOpen={Boolean(application)}
+      onOpenChange={onOpenChange}
+      className="max-w-5xl p-0 max-sm:top-0 max-sm:left-0 max-sm:flex max-sm:h-dvh max-sm:max-h-dvh max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:flex-col max-sm:gap-0 max-sm:rounded-none max-sm:ring-0"
+    >
       {application ? (
-        <form onSubmit={submit}>
-          <DialogHeader className="border-b px-6 py-5 pr-12">
+        <form onSubmit={submit} className="flex h-full min-h-0 flex-col">
+          <DialogHeader className="shrink-0 border-b px-4 py-4 pr-12 sm:px-6 sm:py-5">
             <div className="flex flex-wrap items-center gap-2">
               <DialogTitle className="text-xl">{application.role}</DialogTitle>
               <StatusBadge status={application.status} />
@@ -914,8 +918,8 @@ export function ApplicationDetailDialog({
               ) : null}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="p-6">
+          <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="p-4 sm:p-6">
               <ApplicationFields
                 form={form}
                 setField={setField}
@@ -924,7 +928,7 @@ export function ApplicationDetailDialog({
                 requiredErrors={requiredErrors}
               />
             </div>
-            <aside className="border-t bg-muted/20 p-6 lg:border-l lg:border-t-0">
+            <aside className="border-t bg-muted/20 p-4 sm:p-6 lg:border-l lg:border-t-0">
               <h3 className="text-sm font-semibold">Activity</h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Log interviews, calls, and follow-ups. Each saves on this device on its own.
@@ -952,7 +956,7 @@ export function ApplicationDetailDialog({
           {formError && !requiredErrors?.company && !requiredErrors?.role ? (
             <FieldError className="mx-6 mb-3">{formError}</FieldError>
           ) : null}
-          <div className="flex flex-col-reverse gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex shrink-0 flex-col-reverse gap-3 border-t bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
             <AlertDialogTrigger>
               <Button type="button" variant="destructive" isDisabled={saving}>
                 <Trash2 data-icon="inline-start" /> Delete application
@@ -998,21 +1002,28 @@ export function ApplicationCard({
   onOpen,
   onDragStart,
   onDragEnd,
+  showStatus = false,
+  onMove,
 }: {
   application: JobApplication;
   onOpen: () => void;
-  onDragStart: (event: DragEvent<HTMLElement>) => void;
-  onDragEnd: () => void;
+  onDragStart?: (event: DragEvent<HTMLElement>) => void;
+  onDragEnd?: () => void;
+  showStatus?: boolean;
+  onMove?: () => void;
 }) {
   const overdue = isApplicationOverdue(application);
   return (
     <Card
       role="article"
       size="sm"
-      draggable
+      draggable={Boolean(onDragStart)}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className="group relative transition hover:ring-primary/35 hover:shadow-md active:cursor-grabbing"
+      className={cn(
+        "group relative transition hover:ring-primary/35 hover:shadow-md",
+        onDragStart && "active:cursor-grabbing",
+      )}
       data-application-card={application.id}
     >
       <CardHeader>
@@ -1024,10 +1035,14 @@ export function ApplicationCard({
           ) : null}
         </CardDescription>
         <CardAction>
-          <GripVertical
-            className="size-4 text-muted-foreground/40 transition group-hover:text-muted-foreground"
-            aria-hidden="true"
-          />
+          {showStatus ? (
+            <StatusBadge status={application.status} />
+          ) : (
+            <GripVertical
+              className="size-4 text-muted-foreground/40 transition group-hover:text-muted-foreground"
+              aria-hidden="true"
+            />
+          )}
         </CardAction>
       </CardHeader>
       {application.nextAction || application.nextActionAt ? (
@@ -1065,7 +1080,19 @@ export function ApplicationCard({
             <>Updated {formatApplicationDate(application.updatedAt)}</>
           )}
         </span>
-        <ChevronRight className="size-3.5 shrink-0 opacity-0 transition group-hover:opacity-100" />
+        {onMove ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            className="relative z-20 shrink-0"
+            onPress={onMove}
+          >
+            Move
+          </Button>
+        ) : (
+          <ChevronRight className="size-3.5 shrink-0 opacity-0 transition group-hover:opacity-100" />
+        )}
       </CardFooter>
       <Button
         type="button"

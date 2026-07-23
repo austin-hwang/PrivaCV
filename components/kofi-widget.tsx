@@ -13,7 +13,7 @@ export function KofiWidget() {
       rel="noopener noreferrer"
       aria-label="Support PrivaCV on Ko-fi"
       title="Support PrivaCV on Ko-fi"
-      className="fixed bottom-4 right-4 z-50 flex size-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg ring-1 ring-foreground/10 transition hover:scale-105 hover:shadow-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 print:hidden"
+      className="kofi-widget fixed bottom-4 right-4 z-50 flex size-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg ring-1 ring-foreground/10 transition hover:scale-105 hover:shadow-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 print:hidden"
     >
       <Coffee className="size-5" aria-hidden="true" />
     </a>

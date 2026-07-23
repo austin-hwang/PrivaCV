@@ -39,6 +39,10 @@ import {
 import { JobPipelineSankey } from "@/features/applications/components/job-pipeline-sankey";
 import { RemindersView } from "@/features/applications/components/reminders-view";
 import { InsightsView } from "@/features/applications/components/insights-view";
+import {
+  ApplicationMobileNavigation,
+  type MobileApplicationView,
+} from "@/features/applications/components/application-mobile-navigation";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -53,6 +57,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -116,6 +127,7 @@ export function JobPipeline() {
   const [createOpen, setCreateOpen] = useState(false);
   const [handoffOpen, setHandoffOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropStatus, setDropStatus] = useState<JobApplicationStatus | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
@@ -128,6 +140,8 @@ export function JobPipeline() {
 
   const selectedApplication =
     pipeline.data.applications.find((application) => application.id === selectedId) ?? null;
+  const movingApplication =
+    pipeline.data.applications.find((application) => application.id === movingId) ?? null;
   const selectedJobDescription = selectedId
     ? (pipeline.jobSnapshotsByApplication.get(selectedId)?.description ?? "")
     : "";
@@ -294,6 +308,21 @@ export function JobPipeline() {
                 <DropdownMenuItem onAction={() => setHandoffOpen(true)}>
                   <Smartphone /> Continue on another device
                 </DropdownMenuItem>
+                <DropdownMenuItem onAction={() => importInputRef.current?.click()}>
+                  <Upload /> Import backup
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onAction={exportCsv}
+                  isDisabled={!pipeline.data.applications.length}
+                >
+                  <Download /> Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onAction={exportJson}
+                  isDisabled={!pipeline.data.applications.length}
+                >
+                  <Archive /> Export backup
+                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Appearance</DropdownMenuLabel>
@@ -307,11 +336,11 @@ export function JobPipeline() {
         }
       />
 
-      <main className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6 lg:py-8">
+      <main className="mx-auto max-w-[1600px] px-4 py-5 pb-28 md:pb-6 lg:px-6 lg:py-8">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Applications</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-2 hidden max-w-2xl text-sm leading-relaxed text-muted-foreground sm:block">
               A private view of every opportunity, next step, interview, and outcome. Everything
               here stays in this browser.
             </p>
@@ -324,12 +353,18 @@ export function JobPipeline() {
               className="sr-only"
               onChange={importBackup}
             />
-            <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
+            <Button
+              type="button"
+              variant="outline"
+              className="hidden md:inline-flex"
+              onClick={() => importInputRef.current?.click()}
+            >
               <Upload data-icon="inline-start" /> Import backup
             </Button>
             <Button
               type="button"
               variant="outline"
+              className="hidden md:inline-flex"
               onClick={exportCsv}
               isDisabled={!pipeline.data.applications.length}
             >
@@ -338,19 +373,24 @@ export function JobPipeline() {
             <Button
               type="button"
               variant="outline"
+              className="hidden md:inline-flex"
               onClick={exportJson}
               isDisabled={!pipeline.data.applications.length}
             >
               <Archive data-icon="inline-start" /> Backup
             </Button>
-            <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Button
+              type="button"
+              className="h-11 flex-1 md:h-8 md:flex-none"
+              onClick={() => setCreateOpen(true)}
+            >
               <Plus data-icon="inline-start" /> Add application
             </Button>
           </div>
         </div>
 
         <section
-          className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-3 xl:grid-cols-6"
+          className="mt-5 flex gap-px overflow-x-auto rounded-lg border bg-border md:mt-7 md:grid md:grid-cols-3 xl:grid-cols-6"
           aria-label="Applications summary"
         >
           {[
@@ -363,7 +403,7 @@ export function JobPipeline() {
           ].map((item) => (
             <div
               key={item.label}
-              className="flex min-w-0 items-center justify-between gap-3 bg-card px-4 py-3"
+              className="flex min-w-36 items-center justify-between gap-3 bg-card px-4 py-3 md:min-w-0"
             >
               <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                 <item.icon className="size-3.5 shrink-0" />
@@ -404,7 +444,12 @@ export function JobPipeline() {
                     { id: "all", label: "All" },
                   ] as const
                 ).map((item) => (
-                  <ToggleGroupItem key={item.id} id={item.id} size="sm">
+                  <ToggleGroupItem
+                    key={item.id}
+                    id={item.id}
+                    size="sm"
+                    className="h-11 px-4 md:h-8"
+                  >
                     {item.label}
                   </ToggleGroupItem>
                 ))}
@@ -424,7 +469,7 @@ export function JobPipeline() {
                   <FieldLabel htmlFor="application-search" className="sr-only">
                     Search applications
                   </FieldLabel>
-                  <InputGroup>
+                  <InputGroup className="h-11 md:h-8">
                     <InputGroupAddon>
                       <Search aria-hidden="true" />
                     </InputGroupAddon>
@@ -439,7 +484,7 @@ export function JobPipeline() {
                 </Field>
               ) : null}
               <ScrollArea
-                className="w-full min-w-0 sm:flex-1 lg:w-auto lg:flex-none"
+                className="hidden w-full min-w-0 md:block md:flex-1 lg:w-auto lg:flex-none"
                 role="region"
                 aria-label="Application view options"
                 tabIndex={0}
@@ -499,43 +544,24 @@ export function JobPipeline() {
               onLoadSample={() => void loadSample()}
             />
           ) : view === "board" ? (
-            <div className="overflow-x-auto bg-muted/15 p-4">
-              <div className="grid min-w-max grid-flow-col auto-cols-[minmax(260px,280px)] gap-3 xl:auto-cols-[minmax(250px,1fr)]">
+            <>
+              <div className="flex flex-col gap-5 bg-muted/15 p-3 lg:hidden">
                 {visibleStatuses.map((status) => {
                   const applications = visibleApplications.filter(
                     (application) => application.status === status,
                   );
+                  if (!applications.length) return null;
                   return (
                     <section
                       key={status}
-                      className={cn(
-                        "min-h-112 rounded-lg border bg-muted/20 p-3 transition-colors",
-                        dropStatus === status && "border-primary/50 bg-primary/5",
-                      )}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        event.dataTransfer.dropEffect = "move";
-                        setDropStatus(status);
-                      }}
-                      onDragLeave={(event) => {
-                        if (!event.currentTarget.contains(event.relatedTarget as Node))
-                          setDropStatus(null);
-                      }}
-                      onDrop={(event) => dropApplication(event, status)}
+                      className="flex flex-col gap-2.5"
                       aria-label={`${JOB_APPLICATION_STATUS_META[status].label} applications`}
                     >
-                      <div className="flex items-start justify-between gap-3 px-1 pb-3">
-                        <div>
-                          <h2 className="flex items-center gap-2 text-sm font-semibold">
-                            <span
-                              className={cn("size-2 rounded-full", STATUS_DOT_CLASSES[status])}
-                            />
-                            {JOB_APPLICATION_STATUS_META[status].label}
-                          </h2>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {JOB_APPLICATION_STATUS_META[status].description}
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-between gap-3 px-1">
+                        <h2 className="flex items-center gap-2 text-sm font-semibold">
+                          <span className={cn("size-2 rounded-full", STATUS_DOT_CLASSES[status])} />
+                          {JOB_APPLICATION_STATUS_META[status].label}
+                        </h2>
                         <Badge variant="secondary" className="tabular-nums">
                           {applications.length}
                         </Badge>
@@ -545,29 +571,86 @@ export function JobPipeline() {
                           <ApplicationCard
                             key={application.id}
                             application={application}
+                            showStatus
                             onOpen={() => setSelectedId(application.id)}
-                            onDragStart={(event) => {
-                              setDraggedId(application.id);
-                              event.dataTransfer.effectAllowed = "move";
-                              event.dataTransfer.setData("text/plain", application.id);
-                            }}
-                            onDragEnd={() => {
-                              setDraggedId(null);
-                              setDropStatus(null);
-                            }}
+                            onMove={() => setMovingId(application.id)}
                           />
                         ))}
-                        {!applications.length ? (
-                          <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs text-muted-foreground">
-                            Drop an application here
-                          </div>
-                        ) : null}
                       </div>
                     </section>
                   );
                 })}
               </div>
-            </div>
+              <div className="hidden overflow-x-auto bg-muted/15 p-4 lg:block">
+                <div className="grid min-w-max grid-flow-col auto-cols-[minmax(260px,280px)] gap-3 xl:auto-cols-[minmax(250px,1fr)]">
+                  {visibleStatuses.map((status) => {
+                    const applications = visibleApplications.filter(
+                      (application) => application.status === status,
+                    );
+                    return (
+                      <section
+                        key={status}
+                        className={cn(
+                          "min-h-112 rounded-lg border bg-muted/20 p-3 transition-colors",
+                          dropStatus === status && "border-primary/50 bg-primary/5",
+                        )}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          setDropStatus(status);
+                        }}
+                        onDragLeave={(event) => {
+                          if (!event.currentTarget.contains(event.relatedTarget as Node))
+                            setDropStatus(null);
+                        }}
+                        onDrop={(event) => dropApplication(event, status)}
+                        aria-label={`${JOB_APPLICATION_STATUS_META[status].label} applications`}
+                      >
+                        <div className="flex items-start justify-between gap-3 px-1 pb-3">
+                          <div>
+                            <h2 className="flex items-center gap-2 text-sm font-semibold">
+                              <span
+                                className={cn("size-2 rounded-full", STATUS_DOT_CLASSES[status])}
+                              />
+                              {JOB_APPLICATION_STATUS_META[status].label}
+                            </h2>
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                              {JOB_APPLICATION_STATUS_META[status].description}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="tabular-nums">
+                            {applications.length}
+                          </Badge>
+                        </div>
+                        <div className="grid gap-2.5">
+                          {applications.map((application) => (
+                            <ApplicationCard
+                              key={application.id}
+                              application={application}
+                              onOpen={() => setSelectedId(application.id)}
+                              onDragStart={(event) => {
+                                setDraggedId(application.id);
+                                event.dataTransfer.effectAllowed = "move";
+                                event.dataTransfer.setData("text/plain", application.id);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedId(null);
+                                setDropStatus(null);
+                              }}
+                            />
+                          ))}
+                          {!applications.length ? (
+                            <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs text-muted-foreground">
+                              Drop an application here
+                            </div>
+                          ) : null}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           ) : view === "sankey" ? (
             <JobPipelineSankey
               data={sankeyData}
@@ -656,6 +739,58 @@ export function JobPipeline() {
           </div>
         </div>
       </main>
+
+      <ApplicationMobileNavigation
+        view={(view === "list" ? "board" : view) as MobileApplicationView}
+        onViewChange={(nextView) => {
+          if (nextView === "sankey") setScope("all");
+          setView(nextView);
+        }}
+      />
+
+      <Drawer
+        open={movingApplication !== null}
+        onOpenChange={(open) => {
+          if (!open) setMovingId(null);
+        }}
+        showSwipeHandle
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Move application</DrawerTitle>
+            <DrawerDescription>
+              {movingApplication
+                ? `Choose the next stage for ${movingApplication.role} at ${movingApplication.company}.`
+                : "Choose the next application stage."}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <ToggleGroup
+              aria-label="Application status"
+              variant="outline"
+              selectionMode="single"
+              selectedKeys={movingApplication ? [movingApplication.status] : []}
+              onSelectionChange={(keys) => {
+                const selected = [...keys][0];
+                if (!selected || !movingApplication) return;
+                void moveApplication(
+                  movingApplication.id,
+                  String(selected) as JobApplicationStatus,
+                );
+                setMovingId(null);
+              }}
+              className="grid w-full grid-cols-2 gap-2"
+            >
+              {JOB_APPLICATION_STATUSES.map((status) => (
+                <ToggleGroupItem key={status} id={status} className="h-11 justify-start gap-2 px-3">
+                  <span className={cn("size-2 rounded-full", STATUS_DOT_CLASSES[status])} />
+                  {JOB_APPLICATION_STATUS_META[status].label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       <AlertDialog
         isOpen={pendingBackup !== null}
