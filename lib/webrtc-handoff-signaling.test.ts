@@ -7,7 +7,47 @@ import {
   encryptWebRTCHandoffSignal,
   parseWebRTCHandoffInvitation,
   readWebRTCHandoffInvitationFromHash,
+  waitForWebRTCHandoffIceGathering,
 } from "@/lib/webrtc-handoff-signaling";
+
+type IceCandidateListener = (event: Pick<RTCPeerConnectionIceEvent, "candidate">) => void;
+
+function createGatheringPeer(sdp = "v=0\r\n") {
+  const candidateListeners = new Set<IceCandidateListener>();
+  const stateListeners = new Set<() => void>();
+  let localDescription: RTCSessionDescriptionInit = { type: "offer", sdp };
+  const peer = {
+    iceGatheringState: "gathering",
+    get localDescription() {
+      return localDescription;
+    },
+    addEventListener(type: string, listener: IceCandidateListener | (() => void)) {
+      if (type === "icecandidate") candidateListeners.add(listener as IceCandidateListener);
+      else stateListeners.add(listener as () => void);
+    },
+    removeEventListener(type: string, listener: IceCandidateListener | (() => void)) {
+      if (type === "icecandidate") candidateListeners.delete(listener as IceCandidateListener);
+      else stateListeners.delete(listener as () => void);
+    },
+  } as Pick<
+    RTCPeerConnection,
+    "addEventListener" | "iceGatheringState" | "localDescription" | "removeEventListener"
+  >;
+  return {
+    peer,
+    addCandidate(type: RTCIceCandidateType) {
+      localDescription = {
+        type: "offer",
+        sdp: `${localDescription.sdp}a=candidate:1 1 udp 1 192.0.2.1 5000 typ ${type}\r\n`,
+      };
+      for (const listener of candidateListeners) {
+        listener({
+          candidate: { candidate: `candidate:1 1 udp 1 192.0.2.1 5000 typ ${type}`, type },
+        } as Pick<RTCPeerConnectionIceEvent, "candidate">);
+      }
+    },
+  };
+}
 
 describe("WebRTC handoff invitations", () => {
   it("round-trips a short pairing code through a URL fragment", async () => {
@@ -59,6 +99,31 @@ describe("WebRTC handoff invitations", () => {
     const encrypted = await encryptWebRTCHandoffSignal("PCV1.offer", first.key);
     await expect(decryptWebRTCHandoffSignal(encrypted, second.key)).rejects.toThrow(
       "could not be verified",
+    );
+  });
+
+  it("finishes ICE gathering as soon as a relay candidate is usable", async () => {
+    const { peer, addCandidate } = createGatheringPeer();
+    const gathering = waitForWebRTCHandoffIceGathering(peer, 1_000);
+
+    addCandidate("relay");
+
+    await expect(gathering).resolves.toBeUndefined();
+  });
+
+  it("uses gathered direct candidates when a TURN transport does not finish", async () => {
+    const { peer } = createGatheringPeer(
+      "v=0\r\na=candidate:1 1 udp 1 192.0.2.1 5000 typ srflx\r\n",
+    );
+
+    await expect(waitForWebRTCHandoffIceGathering(peer, 1)).resolves.toBeUndefined();
+  });
+
+  it("fails ICE gathering when the browser finds no candidate", async () => {
+    const { peer } = createGatheringPeer();
+
+    await expect(waitForWebRTCHandoffIceGathering(peer, 1)).rejects.toThrow(
+      "Could not prepare a device connection",
     );
   });
 });

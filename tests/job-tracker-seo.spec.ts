@@ -48,7 +48,12 @@ test("publishes crawlable tracker and Sankey pages while keeping the workspace p
   await expect
     .poll(() => sankeyHero.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBe(1200);
-  await expect(page.getByRole("heading", { name: "Job search", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "How the automatic job-search funnel works",
+      exact: true,
+    }),
+  ).toBeVisible();
 
   await page.goto("/applications");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");

@@ -107,10 +107,9 @@ test("keeps mobile editing focused while keeping utilities in the tools drawer",
   const tools = page.getByRole("dialog", { name: /^tools$/i });
   await expect(tools).toBeVisible();
   await expect(tools).toHaveCSS("overflow-y", "auto");
-  await expect(tools.getByRole("heading", { name: "Tools" }).locator("..").locator("..")).toHaveCSS(
-    "position",
-    "static",
-  );
+  await expect(
+    tools.getByRole("heading", { name: "Tools", exact: true }).locator("..").locator(".."),
+  ).toHaveCSS("position", "static");
   await expect(tools.getByRole("button", { name: /resume review/i })).toContainText(
     "Ready to export",
   );

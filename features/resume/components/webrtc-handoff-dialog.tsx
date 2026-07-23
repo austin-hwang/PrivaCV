@@ -63,6 +63,7 @@ import {
   parseWebRTCHandoffInvitation,
   publishWebRTCHandoffSignal,
   reserveWebRTCHandoffRoom,
+  waitForWebRTCHandoffIceGathering,
   waitForWebRTCHandoffSignal,
   type WebRTCHandoffInvitation,
 } from "@/lib/webrtc-handoff-signaling";
@@ -100,26 +101,6 @@ function createHandoffPeer(iceServers: RTCIceServer[]) {
     throw new Error("This browser does not support direct device handoff.");
   }
   return new RTCPeerConnection({ iceServers });
-}
-
-function waitForIceGathering(peer: RTCPeerConnection, timeoutMs = 15_000) {
-  if (peer.iceGatheringState === "complete") return Promise.resolve();
-  return new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("Could not prepare a device connection. Check your network and try again."));
-    }, timeoutMs);
-    const onStateChange = () => {
-      if (peer.iceGatheringState !== "complete") return;
-      cleanup();
-      resolve();
-    };
-    const cleanup = () => {
-      window.clearTimeout(timeout);
-      peer.removeEventListener("icegatheringstatechange", onStateChange);
-    };
-    peer.addEventListener("icegatheringstatechange", onStateChange);
-  });
 }
 
 function errorMessage(error: unknown) {
@@ -254,7 +235,9 @@ export function WebRTCHandoffDialog({
   const watchConnection = (peer: RTCPeerConnection) => {
     peer.addEventListener("connectionstatechange", () => {
       if (peer.connectionState === "failed") {
-        fail(new Error("The devices could not connect directly. Try the same Wi-Fi network."));
+        fail(
+          new Error("The devices could not connect. Check both devices' networks and try again."),
+        );
       }
     });
   };
@@ -315,7 +298,7 @@ export function WebRTCHandoffDialog({
       const peer = await prepareSender(iceServers);
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      await waitForIceGathering(peer);
+      await waitForWebRTCHandoffIceGathering(peer);
       if (!peer.localDescription) throw new Error("The device invite could not be created.");
       const offerCode = encodeWebRTCHandoffSignal("offer", peer.localDescription);
 
@@ -400,7 +383,7 @@ export function WebRTCHandoffDialog({
     await peer.setRemoteDescription(signal.description);
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
-    await waitForIceGathering(peer);
+    await waitForWebRTCHandoffIceGathering(peer);
     if (!peer.localDescription) throw new Error("The device response could not be created.");
     const answerCode = encodeWebRTCHandoffSignal("answer", peer.localDescription);
     setResponseCode(answerCode);

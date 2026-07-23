@@ -19,6 +19,67 @@ export const WEBRTC_HANDOFF_FALLBACK_ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.cloudflare.com:3478" },
 ];
 
+type IceGatheringPeer = Pick<
+  RTCPeerConnection,
+  "addEventListener" | "iceGatheringState" | "localDescription" | "removeEventListener"
+>;
+
+function descriptionHasCandidate(peer: IceGatheringPeer, type?: RTCIceCandidateType) {
+  const sdp = peer.localDescription?.sdp ?? "";
+  if (!/^a=candidate:/mu.test(sdp)) return false;
+  return type ? new RegExp(`\\btyp ${type}\\b`, "u").test(sdp) : true;
+}
+
+export function waitForWebRTCHandoffIceGathering(peer: IceGatheringPeer, timeoutMs = 15_000) {
+  if (peer.iceGatheringState === "complete" || descriptionHasCandidate(peer, "relay")) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    let candidateSeen = descriptionHasCandidate(peer);
+    let relaySettleTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      if (relaySettleTimeout !== undefined) clearTimeout(relaySettleTimeout);
+      peer.removeEventListener("icecandidate", onCandidate);
+      peer.removeEventListener("icegatheringstatechange", onStateChange);
+    };
+    const finish = () => {
+      cleanup();
+      resolve();
+    };
+    const onCandidate = (event: RTCPeerConnectionIceEvent) => {
+      if (!event.candidate) {
+        finish();
+        return;
+      }
+      candidateSeen = true;
+      const type =
+        event.candidate.type ??
+        (/\btyp relay\b/u.test(event.candidate.candidate) ? "relay" : undefined);
+      if (type === "relay" && relaySettleTimeout === undefined) {
+        relaySettleTimeout = setTimeout(finish, 0);
+      }
+    };
+    const onStateChange = () => {
+      if (peer.iceGatheringState === "complete") finish();
+    };
+    const timeout = setTimeout(() => {
+      if (candidateSeen || descriptionHasCandidate(peer)) {
+        finish();
+        return;
+      }
+      cleanup();
+      reject(new Error("Could not prepare a device connection. Check your network and try again."));
+    }, timeoutMs);
+
+    peer.addEventListener("icecandidate", onCandidate);
+    peer.addEventListener("icegatheringstatechange", onStateChange);
+    if (peer.iceGatheringState === "complete" || descriptionHasCandidate(peer, "relay")) finish();
+  });
+}
+
 function bytesToBase64Url(bytes: Uint8Array) {
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 0x8000) {
