@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearStoredJobPipelineData,
+  createJobPipelineBackup,
   createStoredApplicationEvent,
   createStoredJobApplication,
   deleteStoredApplicationEvent,
@@ -23,6 +24,7 @@ import type {
   JobApplicationStatus,
   JobPipelineData,
 } from "@/lib/job-applications";
+import { createSampleJobPipeline } from "@/lib/job-application-sample";
 
 const EMPTY_PIPELINE: JobPipelineData = {
   applications: [],
@@ -144,6 +146,12 @@ export function useJobPipeline() {
     [mutate],
   );
 
+  const loadSample = useCallback(
+    () =>
+      mutate(() => restoreJobPipelineBackup(createJobPipelineBackup(createSampleJobPipeline()))),
+    [mutate],
+  );
+
   const clearPipeline = useCallback(() => mutate(clearStoredJobPipelineData), [mutate]);
 
   const jobSnapshotsByApplication = useMemo(
@@ -180,6 +188,7 @@ export function useJobPipeline() {
     deleteActivity,
     clearPipeline,
     restoreBackup,
+    loadSample,
     refresh,
   };
 }

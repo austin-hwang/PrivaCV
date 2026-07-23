@@ -359,8 +359,6 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /resume library/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
-  await expect(page.getByRole("menuitem", { name: /continue on another device/i })).toBeFocused();
-  await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /upload pdf or word/i })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: /paste resume text/i })).toBeFocused();
@@ -382,6 +380,7 @@ test("keeps import, export, and secondary toolbar actions usable from the keyboa
 
   await expect(page.getByRole("menuitem", { name: /use light mode/i })).toBeFocused();
   await expect(page.getByRole("menuitem", { name: /copy for applications/i })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: /continue on another device/i })).toHaveCount(0);
   await expect(page.getByRole("menuitem", { name: /open saved json/i })).toHaveCount(1);
   await page.keyboard.press("End");
   await expect(page.getByRole("menuitem", { name: /delete all data/i })).toBeFocused();

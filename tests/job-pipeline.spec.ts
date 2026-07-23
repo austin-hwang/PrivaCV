@@ -41,6 +41,37 @@ test("switches between the resume and application workspaces", async ({ page }) 
   await expect(page).toHaveURL(/\/applications$/);
 });
 
+test("loads a realistic sample pipeline without duplicating it", async ({ page }) => {
+  await page.goto("/applications");
+  await page.getByRole("button", { name: "Load sample" }).click();
+
+  await expect(page.getByText("13 applications in this view")).toBeVisible();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Continue on another device" }).click();
+  const handoff = page.getByRole("dialog", { name: "Continue on another device" });
+  await expect(handoff.getByText("13 applications are available on this device.")).toBeVisible();
+  await expect(handoff.getByRole("radio", { name: "Applications" })).toBeChecked();
+  await handoff.locator('button[data-slot="button"][slot="close"]').click();
+
+  await expect(
+    page.getByRole("button", { name: /Open Staff Product Designer at Aster Cloud/i }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /Open Staff Product Designer at Aster Cloud/i }).click();
+  const detail = page.getByRole("dialog", { name: "Staff Product Designer" });
+  await expect(detail.getByText("Recruiter screen", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Hiring-manager interview", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Portfolio review", { exact: true })).toBeVisible();
+  await detail.getByRole("button", { name: "Close" }).click();
+
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Load sample applications" }).click();
+  await expect(page.getByText("13 applications in this view")).toBeVisible();
+  await page.reload();
+  await expect(
+    page.locator('section[aria-label="Applications summary"]').getByText("13", { exact: true }),
+  ).toBeVisible();
+});
+
 test("keeps every application view reachable on small screens", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 320, height: 720 } });
   const page = await context.newPage();

@@ -56,14 +56,18 @@ export default function PrivacyPage() {
             </h2>
             <p className="mt-3">
               If you explicitly use the experimental Continue on another device feature, the first
-              browser creates a QR link containing a temporary room ID and an encryption key in the
-              link fragment. A Cloudflare signaling room retains only encrypted WebRTC connection
-              details for up to five minutes and cannot decrypt them. The active resume is not sent
-              to or stored in that room; it transfers over the encrypted WebRTC data channel after
-              the devices connect. The browsers also contact Cloudflare&apos;s STUN service, which
-              processes network metadata such as IP addresses and ports but cannot read the resume
-              payload. Anyone with the temporary QR link could attempt to join the transfer, so show
-              it only to the intended device.
+              browser creates a private random secret shown as a short pairing code and included in
+              the QR link fragment. The browsers derive the temporary room ID and encryption key
+              from that secret; only the derived room ID is sent to the signaling service. A
+              Cloudflare signaling room retains only encrypted WebRTC connection details for up to
+              five minutes and cannot decrypt them. You choose whether to transfer the active
+              resume, the application pipeline, or both. Application transfers can include timeline
+              events, job-description snapshots, and submitted-resume snapshots. That selected data
+              is not sent to or stored in the signaling room; it transfers over the encrypted WebRTC
+              data channel after the devices connect. The browsers also contact Cloudflare&apos;s
+              STUN service, which processes network metadata such as IP addresses and ports but
+              cannot read the transferred payload. Anyone with the temporary QR link or pairing code
+              could attempt to join the transfer, so show it only to the intended device.
             </p>
           </section>
           <section>

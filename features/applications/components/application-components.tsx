@@ -1078,7 +1078,15 @@ export function ApplicationCard({
   );
 }
 
-export function EmptyPipeline({ scoped, onCreate }: { scoped: boolean; onCreate: () => void }) {
+export function EmptyPipeline({
+  scoped,
+  onCreate,
+  onLoadSample,
+}: {
+  scoped: boolean;
+  onCreate: () => void;
+  onLoadSample: () => void;
+}) {
   return (
     <Empty className="mx-auto my-10 max-w-lg">
       <EmptyHeader>
@@ -1095,9 +1103,16 @@ export function EmptyPipeline({ scoped, onCreate }: { scoped: boolean; onCreate:
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button onClick={onCreate}>
-          <Plus data-icon="inline-start" /> Add your first application
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button onClick={onCreate}>
+            <Plus data-icon="inline-start" /> Add your first application
+          </Button>
+          {!scoped ? (
+            <Button variant="outline" onClick={onLoadSample}>
+              <FileText data-icon="inline-start" /> Load sample
+            </Button>
+          ) : null}
+        </div>
       </EmptyContent>
     </Empty>
   );

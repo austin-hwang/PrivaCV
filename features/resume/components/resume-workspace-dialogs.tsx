@@ -141,6 +141,10 @@ export function ResumeWorkspaceDialogs({
           setToolsOpen(false);
           setNavigatorOpen(true);
         }}
+        onOpenHandoff={() => {
+          setToolsOpen(false);
+          setHandoffOpen(true);
+        }}
         feedbackUrl={feedbackUrl}
       />
 

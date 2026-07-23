@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ClipboardCheck, ClipboardCopy, Cpu, MessageSquarePlus, Search, X } from "lucide-react";
+import {
+  ClipboardCheck,
+  ClipboardCopy,
+  Cpu,
+  MessageSquarePlus,
+  Search,
+  Smartphone,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { useResumeEditor } from "@/features/resume/hooks/use-resume-editor";
 
@@ -16,6 +25,7 @@ export function ReviewDrawer({
   onOpenLocalAI,
   localAIEnabled,
   onOpenNavigator,
+  onOpenHandoff,
   feedbackUrl,
 }: {
   editor: ReturnType<typeof useResumeEditor>;
@@ -26,6 +36,7 @@ export function ReviewDrawer({
   onOpenLocalAI: () => void;
   localAIEnabled: boolean;
   onOpenNavigator: () => void;
+  onOpenHandoff: () => void;
   feedbackUrl: string | null;
 }) {
   const { checks, hasContent, passedChecks } = editor;
@@ -82,8 +93,11 @@ export function ReviewDrawer({
         </Button>
       </div>
 
-      <div className="px-4 py-5">
-        <section aria-label="Tools">
+      <div className="flex flex-col gap-5 px-4 py-5">
+        <section aria-labelledby="resume-tools-heading">
+          <h3 id="resume-tools-heading" className="mb-2 text-xs font-medium text-muted-foreground">
+            Resume tools
+          </h3>
           <div className="grid gap-2">
             {hasContent ? (
               <Button
@@ -174,6 +188,29 @@ export function ReviewDrawer({
               </a>
             ) : null}
           </div>
+        </section>
+        <Separator />
+        <section aria-labelledby="transfer-tools-heading">
+          <h3
+            id="transfer-tools-heading"
+            className="mb-2 text-xs font-medium text-muted-foreground"
+          >
+            Transfer
+          </h3>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto w-full justify-start gap-3 whitespace-normal py-3 text-left"
+            onClick={onOpenHandoff}
+          >
+            <Smartphone data-icon="inline-start" />
+            <span>
+              <span className="block text-sm font-semibold">Continue on another device</span>
+              <span className="block text-xs font-normal text-muted-foreground">
+                Scan a private QR code to move your resume and application data to another browser.
+              </span>
+            </span>
+          </Button>
         </section>
       </div>
     </div>

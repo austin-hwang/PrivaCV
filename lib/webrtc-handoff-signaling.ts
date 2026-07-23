@@ -1,10 +1,15 @@
-const INVITATION_PREFIX = "PCV2.";
+const INVITATION_PREFIX = "PCV3.";
+const LEGACY_INVITATION_PREFIX = "PCV2.";
 const SIGNALING_PATH = "/api/handoff/signal";
 const MAX_ENCRYPTED_SIGNAL_CHARACTERS = 100_000;
+const PAIRING_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const PAIRING_CODE_CHARACTERS = 16;
+const PAIRING_SECRET_BYTES = 10;
 
 export type WebRTCHandoffInvitation = {
   roomId: string;
   key: Uint8Array;
+  pairingCode?: string;
 };
 
 type SignalingRole = "sender" | "receiver";
@@ -24,21 +29,98 @@ function base64UrlToBytes(value: string) {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
-export function createWebRTCHandoffInvitation(): WebRTCHandoffInvitation {
-  const room = crypto.getRandomValues(new Uint8Array(16));
-  const key = crypto.getRandomValues(new Uint8Array(32));
-  return { roomId: bytesToBase64Url(room), key };
+function pairingSecretToCode(secret: Uint8Array) {
+  let bits = 0;
+  let value = 0;
+  let code = "";
+  for (const byte of secret) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      code += PAIRING_ALPHABET[(value >>> bits) & 31];
+    }
+  }
+  return code;
+}
+
+function pairingCodeToSecret(code: string) {
+  let bits = 0;
+  let value = 0;
+  const bytes: number[] = [];
+  for (const character of code) {
+    const index = PAIRING_ALPHABET.indexOf(character);
+    if (index < 0) throw new Error("Invalid pairing code");
+    value = (value << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((value >>> bits) & 255);
+    }
+  }
+  if (bytes.length !== PAIRING_SECRET_BYTES) throw new Error("Invalid pairing code");
+  return Uint8Array.from(bytes);
+}
+
+function normalizePairingCode(value: string) {
+  const withoutPrefix = value
+    .trim()
+    .toUpperCase()
+    .replace(/^PCV3[.\s:-]*/u, "");
+  return withoutPrefix
+    .replaceAll("O", "0")
+    .replaceAll("I", "1")
+    .replaceAll("L", "1")
+    .replace(/[\s-]/gu, "");
+}
+
+export function formatWebRTCHandoffPairingCode(value: string) {
+  const normalized = normalizePairingCode(value).slice(0, PAIRING_CODE_CHARACTERS);
+  return normalized.match(/.{1,4}/gu)?.join("-") ?? "";
+}
+
+async function invitationFromPairingSecret(secret: Uint8Array): Promise<WebRTCHandoffInvitation> {
+  const source = new Uint8Array(secret.byteLength);
+  source.set(secret);
+  const material = await crypto.subtle.importKey("raw", source.buffer, "HKDF", false, [
+    "deriveBits",
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: new TextEncoder().encode("privacv-device-handoff-v3"),
+      info: new TextEncoder().encode("room-and-signal-key"),
+    },
+    material,
+    384,
+  );
+  const derived = new Uint8Array(bits);
+  const compactCode = pairingSecretToCode(secret);
+  return {
+    roomId: bytesToBase64Url(derived.slice(0, 16)),
+    key: derived.slice(16, 48),
+    pairingCode: formatWebRTCHandoffPairingCode(compactCode),
+  };
+}
+
+export async function createWebRTCHandoffInvitation(): Promise<WebRTCHandoffInvitation> {
+  const secret = crypto.getRandomValues(new Uint8Array(PAIRING_SECRET_BYTES));
+  return invitationFromPairingSecret(secret);
 }
 
 export function encodeWebRTCHandoffInvitation(invitation: WebRTCHandoffInvitation) {
-  return `${INVITATION_PREFIX}${invitation.roomId}.${bytesToBase64Url(invitation.key)}`;
+  if (invitation.pairingCode) {
+    return `${INVITATION_PREFIX}${normalizePairingCode(invitation.pairingCode)}`;
+  }
+  return `${LEGACY_INVITATION_PREFIX}${invitation.roomId}.${bytesToBase64Url(invitation.key)}`;
 }
 
-export function parseWebRTCHandoffInvitation(value: string): WebRTCHandoffInvitation {
+function parseLegacyInvitation(value: string): WebRTCHandoffInvitation {
   const [prefix, roomId, encodedKey, ...extra] = value.trim().split(".");
 
   if (
-    prefix !== INVITATION_PREFIX.slice(0, -1) ||
+    prefix !== LEGACY_INVITATION_PREFIX.slice(0, -1) ||
     extra.length ||
     !roomId ||
     !/^[A-Za-z\d_-]{22}$/u.test(roomId) ||
@@ -51,6 +133,24 @@ export function parseWebRTCHandoffInvitation(value: string): WebRTCHandoffInvita
   const key = base64UrlToBytes(encodedKey);
   if (key.byteLength !== 32) throw new Error("This private transfer link is not supported.");
   return { roomId, key };
+}
+
+export async function parseWebRTCHandoffInvitation(
+  value: string,
+): Promise<WebRTCHandoffInvitation> {
+  if (value.trim().startsWith(LEGACY_INVITATION_PREFIX)) return parseLegacyInvitation(value);
+  const code = normalizePairingCode(value);
+  if (
+    code.length !== PAIRING_CODE_CHARACTERS ||
+    [...code].some((character) => !PAIRING_ALPHABET.includes(character))
+  ) {
+    throw new Error("This pairing code is damaged or incomplete.");
+  }
+  try {
+    return await invitationFromPairingSecret(pairingCodeToSecret(code));
+  } catch {
+    throw new Error("This pairing code is damaged or incomplete.");
+  }
 }
 
 export function createWebRTCHandoffUrl(invitation: WebRTCHandoffInvitation, origin: string) {

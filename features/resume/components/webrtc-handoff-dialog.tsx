@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Clipboard,
   Copy,
+  FileText,
   Link2,
   QrCode,
   Send,
@@ -38,11 +39,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { copyText } from "@/lib/browser-files";
+import {
+  createJobPipelineBackup,
+  loadJobPipelineData,
+  restoreJobPipelineBackup,
+} from "@/lib/job-application-db";
+import type { JobPipelineData } from "@/lib/job-applications";
 import type { ResumeState } from "@/lib/resume";
 import {
   closeWebRTCHandoffRoom,
@@ -50,6 +58,7 @@ import {
   createWebRTCHandoffUrl,
   decryptWebRTCHandoffSignal,
   encryptWebRTCHandoffSignal,
+  formatWebRTCHandoffPairingCode,
   parseWebRTCHandoffInvitation,
   publishWebRTCHandoffSignal,
   waitForWebRTCHandoffSignal,
@@ -64,10 +73,12 @@ import {
   receiveWebRTCHandoffPayload,
   sendWebRTCHandoffPayload,
   waitForWebRTCHandoffAcknowledgement,
+  type WebRTCHandoffTransfer,
 } from "@/lib/webrtc-handoff";
 import { cn } from "@/lib/utils";
 
 type HandoffMode = "send" | "receive";
+type TransferSelection = "resume" | "applications" | "both";
 type HandoffPhase =
   | "idle"
   | "creating-invite"
@@ -134,16 +145,16 @@ function statusCopy(phase: HandoffPhase, mode: HandoffMode) {
     case "connecting":
       return "Connecting the two devices…";
     case "transferring":
-      return mode === "send" ? "Sending the resume directly…" : "Receiving the resume directly…";
+      return mode === "send" ? "Sending the selected data directly…" : "Receiving data directly…";
     case "received":
-      return "Resume received and verified.";
+      return "Data received and verified.";
     case "sent":
-      return "Resume delivered and verified by the other device.";
+      return "Data delivered and verified by the other device.";
     case "error":
       return "The handoff needs attention.";
     default:
       return mode === "send"
-        ? "Create a QR code to send this resume."
+        ? "Choose what to send, then create a QR or pairing code."
         : "Scan a transfer QR or use a manual invite code.";
   }
 }
@@ -161,24 +172,32 @@ export function WebRTCHandoffDialog({
   onInvitationConsumed,
   state,
   onOpenReceivedResume,
+  onDataReceived,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invitation: string | null;
   onInvitationConsumed: () => void;
-  state: ResumeState;
-  onOpenReceivedResume: (state: ResumeState) => void;
+  state: ResumeState | null;
+  onOpenReceivedResume?: (state: ResumeState) => void;
+  onDataReceived?: () => void;
 }) {
   const [mode, setMode] = useState<HandoffMode>("send");
   const [phase, setPhase] = useState<HandoffPhase>("idle");
   const [inviteCode, setInviteCode] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairingInput, setPairingInput] = useState("");
   const [responseCode, setResponseCode] = useState("");
   const [incomingCode, setIncomingCode] = useState("");
   const [qrUrl, setQrUrl] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [receivedResume, setReceivedResume] = useState<ResumeState | null>(null);
+  const [transferSelection, setTransferSelection] = useState<TransferSelection>(
+    state ? "resume" : "applications",
+  );
+  const [jobPipeline, setJobPipeline] = useState<JobPipelineData | null>(null);
+  const [receivedTransfer, setReceivedTransfer] = useState<WebRTCHandoffTransfer | null>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<RTCDataChannel | null>(null);
   const roomRef = useRef<WebRTCHandoffInvitation | null>(null);
@@ -204,16 +223,29 @@ export function WebRTCHandoffDialog({
     setMode(nextMode);
     setPhase("idle");
     setInviteCode("");
+    setPairingCode("");
+    setPairingInput("");
     setResponseCode("");
     setIncomingCode("");
     setQrUrl("");
     setManualOpen(false);
     setProgress(0);
     setError(null);
-    setReceivedResume(null);
+    setReceivedTransfer(null);
   };
 
   useEffect(() => () => closeConnection(), []);
+
+  useEffect(() => {
+    if (!open) return;
+    void loadJobPipelineData()
+      .then((data) => {
+        setJobPipeline(data);
+        if (data.applications.length) setTransferSelection(state ? "both" : "applications");
+        else if (state) setTransferSelection("resume");
+      })
+      .catch(() => setJobPipeline(null));
+  }, [open, state]);
 
   const fail = (cause: unknown) => {
     if (cause instanceof DOMException && cause.name === "AbortError") return;
@@ -229,10 +261,17 @@ export function WebRTCHandoffDialog({
     });
   };
 
-  const prepareSender = () => {
+  const prepareSender = async () => {
     const peer = createHandoffPeer();
     const channel = peer.createDataChannel(WEBRTC_HANDOFF_CHANNEL, { ordered: true });
-    const payload = createWebRTCHandoffPayload(state);
+    const includeResume = transferSelection === "resume" || transferSelection === "both";
+    const includeApplications =
+      transferSelection === "applications" || transferSelection === "both";
+    const latestPipeline = includeApplications ? await loadJobPipelineData() : null;
+    const payload = createWebRTCHandoffPayload({
+      resume: includeResume ? state : null,
+      jobPipeline: includeApplications ? latestPipeline : null,
+    });
     peerRef.current = peer;
     channelRef.current = channel;
     watchConnection(peer);
@@ -263,7 +302,7 @@ export function WebRTCHandoffDialog({
     reset("send");
     setPhase("creating-invite");
     try {
-      const peer = prepareSender();
+      const peer = await prepareSender();
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       await waitForIceGathering(peer);
@@ -271,14 +310,17 @@ export function WebRTCHandoffDialog({
       const offerCode = encodeWebRTCHandoffSignal("offer", peer.localDescription);
       setInviteCode(offerCode);
 
-      const room = createWebRTCHandoffInvitation();
+      const room = await createWebRTCHandoffInvitation();
       roomRef.current = room;
+      setPairingCode(room.pairingCode ?? "");
       const encryptedOffer = await encryptWebRTCHandoffSignal(offerCode, room.key);
       try {
         await publishWebRTCHandoffSignal(room, "sender", encryptedOffer);
       } catch {
         setManualOpen(true);
-        setError("The QR service is unavailable. You can still exchange the manual codes below.");
+        setError(
+          "The pairing service is unavailable. You can still exchange the advanced codes below.",
+        );
         setPhase("waiting-response");
         return;
       }
@@ -300,7 +342,7 @@ export function WebRTCHandoffDialog({
         } catch (cause) {
           if (cause instanceof DOMException && cause.name === "AbortError") return;
           setManualOpen(true);
-          setError(`${errorMessage(cause)} You can still use the manual codes below.`);
+          setError(`${errorMessage(cause)} You can still use the advanced codes below.`);
           setPhase("waiting-response");
         }
       })();
@@ -332,7 +374,7 @@ export function WebRTCHandoffDialog({
         onProgress: setProgress,
         onPayload: (payload) => {
           const transfer = parseWebRTCHandoffPayload(payload);
-          setReceivedResume(transfer.state);
+          setReceivedTransfer(transfer);
           setPhase("received");
         },
         onError: fail,
@@ -356,7 +398,7 @@ export function WebRTCHandoffDialog({
     closeConnection();
     setError(null);
     setResponseCode("");
-    setReceivedResume(null);
+    setReceivedTransfer(null);
     setProgress(0);
     setPhase("creating-response");
     try {
@@ -371,7 +413,7 @@ export function WebRTCHandoffDialog({
     reset("receive");
     setPhase("joining-room");
     try {
-      const room = parseWebRTCHandoffInvitation(encodedInvitation);
+      const room = await parseWebRTCHandoffInvitation(encodedInvitation);
       roomRef.current = room;
       const controller = new AbortController();
       signalingAbortRef.current = controller;
@@ -446,8 +488,8 @@ export function WebRTCHandoffDialog({
           <Badge variant="secondary">Experimental</Badge>
         </div>
         <DialogDescription>
-          Scan once to transfer the active resume directly between two open browsers. No account or
-          cloud resume storage is required.
+          Scan once to transfer a resume, job applications, or both directly between two open
+          browsers. No account or cloud storage is required.
         </DialogDescription>
       </DialogHeader>
 
@@ -464,10 +506,10 @@ export function WebRTCHandoffDialog({
         className="grid w-full grid-cols-2"
       >
         <ToggleGroupItem id="send">
-          <Send data-icon="inline-start" /> Send this resume
+          <Send data-icon="inline-start" /> Send data
         </ToggleGroupItem>
         <ToggleGroupItem id="receive">
-          <Smartphone data-icon="inline-start" /> Receive a resume
+          <Smartphone data-icon="inline-start" /> Receive data
         </ToggleGroupItem>
       </ToggleGroup>
 
@@ -475,9 +517,9 @@ export function WebRTCHandoffDialog({
         <ShieldCheck />
         <AlertTitle>Both devices must stay open</AlertTitle>
         <AlertDescription>
-          The QR link contains a private encryption key. PrivaCV temporarily relays only encrypted
-          connection details; the resume moves through the encrypted WebRTC connection and is never
-          stored in the transfer room.
+          The QR link and pairing code contain a private secret. PrivaCV temporarily relays only
+          encrypted connection details; your selected data moves through the encrypted WebRTC
+          connection and is never stored in the transfer room.
         </AlertDescription>
       </Alert>
 
@@ -503,8 +545,8 @@ export function WebRTCHandoffDialog({
       ) : null}
 
       {phase === "transferring" ? (
-        <Progress value={progress} aria-label="Resume transfer progress">
-          <ProgressLabel>Resume transfer</ProgressLabel>
+        <Progress value={progress} aria-label="Device transfer progress">
+          <ProgressLabel>Device transfer</ProgressLabel>
           <ProgressValue />
         </Progress>
       ) : null}
@@ -512,13 +554,55 @@ export function WebRTCHandoffDialog({
       {mode === "send" ? (
         <FieldGroup>
           {!inviteCode ? (
-            <Button type="button" onClick={() => void createInvite()} isDisabled={busy}>
+            <Field>
+              <FieldLabel>Include in this transfer</FieldLabel>
+              <ToggleGroup
+                aria-label="Data to transfer"
+                selectionMode="single"
+                selectedKeys={[transferSelection]}
+                onSelectionChange={(keys) => {
+                  const selected = [...keys][0];
+                  if (selected === "resume" || selected === "applications" || selected === "both")
+                    setTransferSelection(selected);
+                }}
+                variant="outline"
+                spacing={0}
+                className="grid w-full grid-cols-3"
+              >
+                <ToggleGroupItem id="resume" isDisabled={!state}>
+                  <FileText data-icon="inline-start" /> Resume
+                </ToggleGroupItem>
+                <ToggleGroupItem id="applications" isDisabled={!jobPipeline?.applications.length}>
+                  <Clipboard data-icon="inline-start" /> Applications
+                </ToggleGroupItem>
+                <ToggleGroupItem id="both" isDisabled={!state || !jobPipeline?.applications.length}>
+                  <Send data-icon="inline-start" /> Both
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <FieldDescription>
+                {jobPipeline?.applications.length
+                  ? `${jobPipeline.applications.length} applications are available on this device.`
+                  : "There are no job applications on this device yet."}
+              </FieldDescription>
+            </Field>
+          ) : null}
+          {!inviteCode ? (
+            <Button
+              type="button"
+              onClick={() => void createInvite()}
+              isDisabled={
+                busy ||
+                (transferSelection === "resume" && !state) ||
+                (transferSelection === "applications" && !jobPipeline?.applications.length) ||
+                (transferSelection === "both" && (!state || !jobPipeline?.applications.length))
+              }
+            >
               {phase === "creating-invite" ? (
                 <Spinner data-icon="inline-start" />
               ) : (
                 <QrCode data-icon="inline-start" />
               )}
-              Create transfer QR code
+              Create transfer
             </Button>
           ) : (
             <>
@@ -539,7 +623,7 @@ export function WebRTCHandoffDialog({
                       bgColor="#ffffff"
                       fgColor="#171717"
                       role="img"
-                      aria-label="Private resume transfer QR code"
+                      aria-label="Private device transfer QR code"
                     />
                   </CardContent>
                   <CardFooter className="flex flex-wrap justify-center gap-2">
@@ -565,11 +649,38 @@ export function WebRTCHandoffDialog({
                 </Card>
               ) : null}
 
+              {pairingCode ? (
+                <Field>
+                  <FieldLabel htmlFor="webrtc-handoff-pairing-code">
+                    Or enter this pairing code
+                  </FieldLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      id="webrtc-handoff-pairing-code"
+                      value={pairingCode}
+                      readOnly
+                      className="font-mono text-base font-semibold tracking-wider"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void copyValue(pairingCode, "Pairing code")}
+                    >
+                      <Copy data-icon="inline-start" /> Copy
+                    </Button>
+                  </div>
+                  <FieldDescription>
+                    On the other device, open PrivaCV, choose Receive data, and enter this code. It
+                    expires after five minutes.
+                  </FieldDescription>
+                </Field>
+              ) : null}
+
               <Collapsible isExpanded={manualOpen} onExpandedChange={setManualOpen}>
                 <CollapsibleTrigger
                   className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-full")}
                 >
-                  <ChevronDown data-icon="inline-start" /> Use manual codes instead
+                  <ChevronDown data-icon="inline-start" /> Advanced: exchange long codes
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-3">
                   <FieldGroup>
@@ -584,7 +695,7 @@ export function WebRTCHandoffDialog({
                         className="min-h-24 font-mono text-xs"
                       />
                       <FieldDescription>
-                        On the other device, choose Receive a resume and paste the invite.
+                        On the other device, choose Receive data and paste the invite.
                       </FieldDescription>
                     </Field>
                     <Button
@@ -609,7 +720,7 @@ export function WebRTCHandoffDialog({
                 onClick={() => void createInvite()}
                 isDisabled={busy}
               >
-                Create new link
+                Create new transfer
               </Button>
             </>
           )}
@@ -627,36 +738,73 @@ export function WebRTCHandoffDialog({
           ) : (
             <>
               <Field>
-                <FieldLabel htmlFor="webrtc-handoff-invite">Invite code</FieldLabel>
-                <Textarea
-                  id="webrtc-handoff-invite"
-                  value={incomingCode}
-                  onChange={(event) => setIncomingCode(event.target.value)}
-                  placeholder="Paste the invite from the device with your resume"
-                  className="min-h-24 font-mono text-xs"
+                <FieldLabel htmlFor="webrtc-handoff-pairing-input">Pairing code</FieldLabel>
+                <Input
+                  id="webrtc-handoff-pairing-input"
+                  value={pairingInput}
+                  onChange={(event) =>
+                    setPairingInput(formatWebRTCHandoffPairingCode(event.target.value))
+                  }
+                  placeholder="XXXX-XXXX-XXXX-XXXX"
+                  autoComplete="one-time-code"
+                  inputMode="text"
+                  className="font-mono text-base font-semibold tracking-wider uppercase"
                 />
+                <FieldDescription>
+                  Enter the code shown on the sending device. It expires after five minutes.
+                </FieldDescription>
               </Field>
-              {!responseCode ? (
-                <Button
-                  type="button"
-                  onClick={() => void createResponse()}
-                  isDisabled={!incomingCode.trim() || busy}
+              <Button
+                type="button"
+                onClick={() => void joinPrivateLink(pairingInput)}
+                isDisabled={pairingInput.replaceAll("-", "").length !== 16 || busy}
+              >
+                <Link2 data-icon="inline-start" />
+                Connect devices
+              </Button>
+
+              <Collapsible isExpanded={manualOpen} onExpandedChange={setManualOpen}>
+                <CollapsibleTrigger
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-full")}
                 >
-                  {phase === "creating-response" ? (
-                    <Spinner data-icon="inline-start" />
-                  ) : (
-                    <Clipboard data-icon="inline-start" />
-                  )}
-                  Create response
-                </Button>
-              ) : (
-                <>
-                  {signalField(responseCode, "Response code")}
-                  <FieldDescription>
-                    Send this response to the first device and choose Connect and send there.
-                  </FieldDescription>
-                </>
-              )}
+                  <ChevronDown data-icon="inline-start" /> Advanced: use long invite codes
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="webrtc-handoff-invite">Invite code</FieldLabel>
+                      <Textarea
+                        id="webrtc-handoff-invite"
+                        value={incomingCode}
+                        onChange={(event) => setIncomingCode(event.target.value)}
+                        placeholder="Paste the long invite from your other device"
+                        className="min-h-24 font-mono text-xs"
+                      />
+                    </Field>
+                    {!responseCode ? (
+                      <Button
+                        type="button"
+                        onClick={() => void createResponse()}
+                        isDisabled={!incomingCode.trim() || busy}
+                      >
+                        {phase === "creating-response" ? (
+                          <Spinner data-icon="inline-start" />
+                        ) : (
+                          <Clipboard data-icon="inline-start" />
+                        )}
+                        Create response
+                      </Button>
+                    ) : (
+                      <>
+                        {signalField(responseCode, "Response code")}
+                        <FieldDescription>
+                          Send this response to the first device and choose Connect and send there.
+                        </FieldDescription>
+                      </>
+                    )}
+                  </FieldGroup>
+                </CollapsibleContent>
+              </Collapsible>
             </>
           )}
 
@@ -666,13 +814,27 @@ export function WebRTCHandoffDialog({
             </Button>
           ) : null}
 
-          {receivedResume ? (
+          {receivedTransfer ? (
             <Alert>
               <CheckCircle2 />
-              <AlertTitle>{receivedResume.name.trim() || "Untitled resume"}</AlertTitle>
+              <AlertTitle>Ready to save on this device</AlertTitle>
               <AlertDescription>
-                {receivedResume.title.trim() || "Resume received"}. Opening it creates a recovery
-                point for the resume currently on this device.
+                {[
+                  receivedTransfer.resume
+                    ? receivedTransfer.resume.name.trim() || "Untitled resume"
+                    : null,
+                  receivedTransfer.jobPipeline
+                    ? `${receivedTransfer.jobPipeline.applications.length} applications`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" and ")}
+                .{" "}
+                {receivedTransfer.resume && receivedTransfer.jobPipeline
+                  ? "Applications merge with records already here. Opening the resume creates a recovery point for the current resume."
+                  : receivedTransfer.jobPipeline
+                    ? "These applications merge with records already on this device."
+                    : "Opening it creates a recovery point for the current resume."}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -683,16 +845,33 @@ export function WebRTCHandoffDialog({
         <Button type="button" variant="outline" slot="close">
           Close
         </Button>
-        {mode === "receive" && receivedResume ? (
+        {mode === "receive" && receivedTransfer ? (
           <Button
             type="button"
-            onClick={() => {
-              onOpenReceivedResume(receivedResume);
-              onOpenChange(false);
-              reset("receive");
+            onClick={async () => {
+              try {
+                if (receivedTransfer.jobPipeline) {
+                  await restoreJobPipelineBackup(
+                    createJobPipelineBackup(receivedTransfer.jobPipeline),
+                  );
+                }
+                if (receivedTransfer.resume) onOpenReceivedResume?.(receivedTransfer.resume);
+                onDataReceived?.();
+                toast.success(
+                  receivedTransfer.resume && receivedTransfer.jobPipeline
+                    ? "Resume and applications saved"
+                    : receivedTransfer.jobPipeline
+                      ? "Applications saved"
+                      : "Resume saved",
+                );
+                onOpenChange(false);
+                reset("receive");
+              } catch (cause) {
+                fail(cause);
+              }
             }}
           >
-            <Smartphone data-icon="inline-start" /> Open received resume
+            <Smartphone data-icon="inline-start" /> Save received data
           </Button>
         ) : null}
       </DialogFooter>

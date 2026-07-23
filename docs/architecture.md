@@ -9,11 +9,12 @@ Hosted Next.js routes ──────────────► metadata, gu
 
 Resume workspace ──► resume domain ─► IndexedDB: privacv-resume-workspace
        │                    ├────────► PDF, DOCX, text, and JSON exports
-       │                    ├────────► optional WebRTC active-resume handoff
+       │                    ├────────► optional WebRTC device-data handoff
        │                    └────────► optional in-browser WebLLM model
        │
 Applications workspace ─► application domain ─► IndexedDB: privacv-job-pipeline
                                       ├────────► CSV/JSON backups
+                                      ├────────► optional WebRTC device-data handoff
                                       └────────► Sankey PNG export
 
 Hosted web event ────────────────────► Cloudflare Analytics Engine
@@ -36,7 +37,7 @@ Desktop mode has a deliberately smaller information architecture. `/` and `/appl
 
 Optional local AI runs through WebLLM in the browser engine. Model artifacts use profile-managed caches and are deleted through the product's **Delete all data** control. Imports are parsed locally. Portable exports and backups are only created after an explicit user action. The website and Electron app use separate browser profiles, so data does not automatically move between them; use JSON backups when moving data between installations.
 
-The experimental **Continue on another device** flow transfers only the active resume between two browsers that the user keeps open. The sending browser creates a random room ID and AES-GCM key, places both in a QR link fragment, and encrypts its compressed WebRTC offer before publishing it. A Cloudflare Durable Object stores the opaque offer and answer for at most five minutes; the fragment key is not included in the page or signaling HTTP requests. After signaling, the browsers contact Cloudflare's public STUN service to discover a direct route and send the compressed resume over an ordered WebRTC data channel. The resume never enters the signaling room. Manual compressed offer and answer codes remain available as a fallback. There is no TURN fallback, so restrictive networks can prevent the devices from connecting.
+The experimental **Continue on another device** flow transfers a selected active resume, application pipeline, or both between two browsers that the user keeps open. Pipeline transfers include applications, lifecycle events, job-description snapshots, and submitted-resume snapshots, and merge with unrelated records on the receiving device. The sending browser creates an 80-bit secret displayed as a 16-character pairing code. HKDF derives a random-looking room ID and 256-bit AES-GCM key from that secret; the QR fragment carries the same compact code. Only the derived room ID reaches the signaling service, so the pairing secret and encryption key remain off the relay. A Cloudflare Durable Object stores the opaque encrypted offer and answer for at most five minutes. After signaling, the browsers contact Cloudflare's public STUN service to discover a direct route and send the compressed selected data over an ordered WebRTC data channel. The resume and application data never enter the signaling room. Legacy private links and manual compressed offer and answer codes remain available as fallbacks. There is no TURN fallback, so restrictive networks can prevent the devices from connecting. Version 2 transfer payloads accept version 1 resume-only payloads for backward compatibility.
 
 PDF export dynamically loads the browser-only vector renderer in
 `features/resume/lib/resume-pdf.tsx`. It embeds the selected open-source resume
@@ -64,7 +65,7 @@ Resume browser tests live in capability suites under `tests/resume-editor/` and 
 
 ## Network boundary
 
-The editor and tracker do not upload resume or application data. Hosted network activity is limited to ordinary page/assets requests, an explicit optional model download, the explicit WebRTC handoff's encrypted short-lived signaling and STUN connection discovery, external links a user opens, and anonymous aggregate event endpoints. The signaling room processes a random room ID, encrypted offer and answer, expiry time, and ordinary request metadata; STUN processes connection metadata such as IP addresses and ports. Neither receives the resume payload. Metrics accept fixed event names and formats only; they must never accept arbitrary resume, application, prompt, generated-text, identity, or device fields.
+The editor and tracker do not upload resume or application data. Hosted network activity is limited to ordinary page/assets requests, an explicit optional model download, the explicit WebRTC handoff's encrypted short-lived signaling and STUN connection discovery, external links a user opens, and anonymous aggregate event endpoints. The signaling room processes a random room ID, encrypted offer and answer, expiry time, and ordinary request metadata; STUN processes connection metadata such as IP addresses and ports. Neither receives the resume or application payload. Metrics accept fixed event names and formats only; they must never accept arbitrary resume, application, prompt, generated-text, identity, or device fields.
 
 In Electron, page, asset, API, and export-metric requests resolve against the bundled loopback server. The packaged metric handlers are no-ops, so desktop usage events do not leave the device. Optional model preparation still downloads model files from the allowlisted hosts; device handoff explicitly contacts `privacv.app` for encrypted signaling and the STUN service for its peer connection; and explicit external links still require network access. Core editing, local storage, imports, and exports work without internet access.
 

@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   RotateCcw,
   SlidersHorizontal,
-  Smartphone,
   Sun,
   Trash2,
   Upload,
@@ -48,7 +47,6 @@ type ResumeWorkspaceHeaderProps = {
   checksReady: boolean;
   checksLength: number;
   setLibraryOpen: Dispatch<SetStateAction<boolean>>;
-  setHandoffOpen: Dispatch<SetStateAction<boolean>>;
   setTextReviewOpen: Dispatch<SetStateAction<boolean>>;
   setTextImportOpen: Dispatch<SetStateAction<boolean>>;
   setDestructiveAction: Dispatch<SetStateAction<DestructiveResumeAction | null>>;
@@ -68,7 +66,6 @@ export function ResumeWorkspaceHeader({
   checksReady,
   checksLength,
   setLibraryOpen,
-  setHandoffOpen,
   setTextReviewOpen,
   setTextImportOpen,
   setDestructiveAction,
@@ -196,9 +193,6 @@ export function ResumeWorkspaceHeader({
                     {resumeLibrary.length > 1 ? ` (${resumeLibrary.length})` : ""}
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem onAction={() => setHandoffOpen(true)}>
-                  <Smartphone /> Continue on another device
-                </DropdownMenuItem>
                 {isCompact ? (
                   <DropdownMenuItem onAction={() => window.location.assign("/applications")}>
                     <BriefcaseBusiness /> Applications

@@ -31,12 +31,13 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 - Device-local autosave, named checkpoints, backups, restore points, and undo
 - Responsive editor and print layout with page-boundary guidance
 - Optional local AI assistance that runs in the browser after a person explicitly prepares a model
-- IndexedDB application pipeline with status history, next actions, job snapshots, submitted-resume snapshots, CSV/JSON backup, and restore
+- IndexedDB application pipeline with status history, next actions, job snapshots, submitted-resume snapshots, a realistic sample pipeline, CSV/JSON backup, and restore
+- Optional QR or short-code WebRTC handoff for a resume, application pipeline, or both
 - Connected Sankey visualization with downloadable PNG output
 
 ## Privacy
 
-PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The optional experimental device handoff sends the active resume directly over an encrypted WebRTC data channel after the user scans a private QR link. A short-lived Cloudflare room holds only encrypted connection details for up to five minutes; its decryption key stays in the link fragment, and the resume is never uploaded to the room. Cloudflare's STUN service sees connection metadata but not the resume payload. The hosted web app records anonymous aggregate export, local-AI, and application-creation events without resume content, application data, prompts, generated text, or identity or device identifiers. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
+PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The optional experimental device handoff sends a selected resume, application pipeline, or both directly over an encrypted WebRTC data channel after the user scans a private QR link. A short-lived Cloudflare room holds only encrypted connection details for up to five minutes; its decryption key stays in the link fragment, and the transferred data is never uploaded to the room. Cloudflare's STUN service sees connection metadata but not the transferred payload. The hosted web app records anonymous aggregate export, local-AI, and application-creation events without resume content, application data, prompts, generated text, or identity or device identifiers. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
 
 See the live [privacy page](https://privacv.app/privacy) or its [source](app/privacy/page.tsx) for the plain-language explanation. Please read the privacy requirements in [CONTRIBUTING.md](CONTRIBUTING.md) before adding storage, network requests, fixtures, or telemetry.
 

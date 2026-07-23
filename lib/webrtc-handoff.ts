@@ -1,4 +1,10 @@
 import { compressSync, decompressSync, strFromU8, strToU8 } from "fflate";
+import {
+  JOB_PIPELINE_BACKUP_FORMAT,
+  JOB_PIPELINE_BACKUP_VERSION,
+  parseJobPipelineBackup,
+} from "@/lib/job-application-db";
+import type { JobPipelineData } from "@/lib/job-applications";
 import { normalizeResume, type ResumeState } from "@/lib/resume";
 
 export const WEBRTC_HANDOFF_SIGNAL_PREFIX = "PCV1.";
@@ -10,8 +16,10 @@ const MAX_SIGNAL_CHARACTERS = 100_000;
 
 const SIGNAL_FORMAT = "privacv-webrtc-signal";
 const SIGNAL_VERSION = 1;
-const TRANSFER_FORMAT = "privacv-webrtc-resume-transfer";
-const TRANSFER_VERSION = 1;
+const LEGACY_TRANSFER_FORMAT = "privacv-webrtc-resume-transfer";
+const LEGACY_TRANSFER_VERSION = 1;
+const TRANSFER_FORMAT = "privacv-webrtc-device-transfer";
+const TRANSFER_VERSION = 2;
 const MESSAGE_PROTOCOL = "privacv-webrtc-transfer-v1";
 
 export type WebRTCHandoffSignal = {
@@ -26,7 +34,13 @@ export type WebRTCHandoffTransfer = {
   format: typeof TRANSFER_FORMAT;
   version: typeof TRANSFER_VERSION;
   sentAt: string;
-  state: ResumeState;
+  resume?: ResumeState;
+  jobPipeline?: JobPipelineData;
+};
+
+export type WebRTCHandoffPayloadInput = {
+  resume?: ResumeState | null;
+  jobPipeline?: JobPipelineData | null;
 };
 
 type TransferStartMessage = {
@@ -134,12 +148,14 @@ export function parseWebRTCHandoffSignal(
   return parsed as WebRTCHandoffSignal;
 }
 
-export function createWebRTCHandoffPayload(state: ResumeState) {
+export function createWebRTCHandoffPayload({ resume, jobPipeline }: WebRTCHandoffPayloadInput) {
+  if (!resume && !jobPipeline) throw new Error("Choose data to include in the device handoff.");
   const transfer: WebRTCHandoffTransfer = {
     format: TRANSFER_FORMAT,
     version: TRANSFER_VERSION,
     sentAt: new Date().toISOString(),
-    state: normalizeResume(state),
+    ...(resume ? { resume: normalizeResume(resume) } : {}),
+    ...(jobPipeline ? { jobPipeline } : {}),
   };
   return compressSync(strToU8(JSON.stringify(transfer)));
 }
@@ -149,24 +165,57 @@ export function parseWebRTCHandoffPayload(payload: Uint8Array): WebRTCHandoffTra
   try {
     parsed = JSON.parse(strFromU8(decompressSync(payload)));
   } catch {
-    throw new Error("The transferred resume is damaged or incomplete.");
+    throw new Error("The transferred data is damaged or incomplete.");
   }
 
+  if (
+    isRecord(parsed) &&
+    parsed.format === LEGACY_TRANSFER_FORMAT &&
+    parsed.version === LEGACY_TRANSFER_VERSION &&
+    typeof parsed.sentAt === "string" &&
+    isRecord(parsed.state)
+  ) {
+    return {
+      format: TRANSFER_FORMAT,
+      version: TRANSFER_VERSION,
+      sentAt: parsed.sentAt,
+      resume: normalizeResume(parsed.state),
+    };
+  }
   if (
     !isRecord(parsed) ||
     parsed.format !== TRANSFER_FORMAT ||
     parsed.version !== TRANSFER_VERSION ||
     typeof parsed.sentAt !== "string" ||
-    !isRecord(parsed.state)
+    (!isRecord(parsed.resume) && !isRecord(parsed.jobPipeline))
   ) {
-    throw new Error("This transferred resume format is not supported.");
+    throw new Error("This transferred data format is not supported.");
+  }
+
+  let jobPipeline: JobPipelineData | undefined;
+  if (isRecord(parsed.jobPipeline)) {
+    const backup = parseJobPipelineBackup(
+      JSON.stringify({
+        ...parsed.jobPipeline,
+        format: JOB_PIPELINE_BACKUP_FORMAT,
+        version: JOB_PIPELINE_BACKUP_VERSION,
+        exportedAt: parsed.sentAt,
+      }),
+    );
+    jobPipeline = {
+      applications: backup.applications,
+      events: backup.events,
+      jobSnapshots: backup.jobSnapshots,
+      resumeSnapshots: backup.resumeSnapshots,
+    };
   }
 
   return {
     format: TRANSFER_FORMAT,
     version: TRANSFER_VERSION,
     sentAt: parsed.sentAt,
-    state: normalizeResume(parsed.state),
+    ...(isRecord(parsed.resume) ? { resume: normalizeResume(parsed.resume) } : {}),
+    ...(jobPipeline ? { jobPipeline } : {}),
   };
 }
 
@@ -187,7 +236,7 @@ function waitForBufferedAmount(channel: RTCDataChannel) {
     };
     const onClose = () => {
       cleanup();
-      reject(new Error("The device connection closed before the resume finished sending."));
+      reject(new Error("The device connection closed before the data finished sending."));
     };
     const cleanup = () => {
       channel.removeEventListener("bufferedamountlow", onLow);
@@ -205,7 +254,7 @@ export async function sendWebRTCHandoffPayload(
 ) {
   if (channel.readyState !== "open") throw new Error("The device connection is not ready.");
   if (payload.byteLength > WEBRTC_HANDOFF_MAX_PAYLOAD_BYTES) {
-    throw new Error("This resume is too large for a direct device handoff.");
+    throw new Error("This data is too large for a direct device handoff.");
   }
   const start: TransferStartMessage = {
     protocol: MESSAGE_PROTOCOL,

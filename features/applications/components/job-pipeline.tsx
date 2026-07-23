@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   CircleDot,
   Download,
+  FileText,
   GitBranch,
   KanbanSquare,
   LayoutList,
@@ -16,6 +17,7 @@ import {
   Moon,
   Plus,
   Search,
+  Smartphone,
   Sun,
   Upload,
   UserRound,
@@ -73,6 +75,7 @@ import { toggleTheme } from "@/components/theme-toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useJobPipeline } from "@/features/applications/hooks/use-job-pipeline";
 import { useResumeSources } from "@/features/applications/hooks/use-resume-sources";
+import { WebRTCHandoffDialog } from "@/features/resume";
 import { createJobPipelineBackup, parseJobPipelineBackup } from "@/lib/job-application-db";
 import { buildJobSankeyData } from "@/lib/job-application-sankey";
 import { remindersToIcs, type ReminderItem } from "@/lib/job-reminders";
@@ -111,6 +114,7 @@ export function JobPipeline() {
   const [scope, setScope] = useState<PipelineScope>("active");
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropStatus, setDropStatus] = useState<JobApplicationStatus | null>(null);
@@ -253,6 +257,15 @@ export function JobPipeline() {
       toast.error("The application data could not be deleted.");
     }
   };
+  const loadSample = async () => {
+    try {
+      await pipeline.loadSample();
+      setScope("all");
+      toast.success("Loaded 13 sample applications");
+    } catch {
+      toast.error("The sample applications could not be loaded.");
+    }
+  };
 
   return (
     <div className="min-h-dvh bg-stage">
@@ -273,6 +286,15 @@ export function JobPipeline() {
               <MoreHorizontal data-icon="inline-start" />
             </Button>
             <DropdownMenu>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Data</DropdownMenuLabel>
+                <DropdownMenuItem onAction={() => void loadSample()}>
+                  <FileText /> Load sample applications
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={() => setHandoffOpen(true)}>
+                  <Smartphone /> Continue on another device
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Appearance</DropdownMenuLabel>
                 <DropdownMenuItem onAction={() => setIsDarkTheme(toggleTheme())}>
@@ -474,6 +496,7 @@ export function JobPipeline() {
             <EmptyPipeline
               scoped={Boolean(pipeline.data.applications.length)}
               onCreate={() => setCreateOpen(true)}
+              onLoadSample={() => void loadSample()}
             />
           ) : view === "board" ? (
             <div className="overflow-x-auto bg-muted/15 p-4">
@@ -690,6 +713,14 @@ export function JobPipeline() {
         onDeleteActivity={pipeline.deleteActivity}
         resumeSources={resumeSources.sources}
         attachedSnapshot={selectedResumeSnapshot}
+      />
+      <WebRTCHandoffDialog
+        open={handoffOpen}
+        onOpenChange={setHandoffOpen}
+        invitation={null}
+        onInvitationConsumed={() => undefined}
+        state={resumeSources.byKey.get(resumeSources.defaultSourceKey)?.state ?? null}
+        onDataReceived={() => void pipeline.refresh()}
       />
     </div>
   );

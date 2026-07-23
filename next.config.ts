@@ -95,4 +95,16 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-import("@opennextjs/cloudflare").then((m) => m.initOpenNextCloudflareForDev());
+// Next development uses local route handlers, including an in-memory handoff
+// room store. Load a binding-free Wrangler config so OpenNext can provide its
+// development context without trying to instantiate production-only Durable
+// Objects from `custom-worker.ts` inside the Next.js worker.
+if (process.env.NODE_ENV === "development") {
+  import("@opennextjs/cloudflare").then((module) =>
+    module.initOpenNextCloudflareForDev({
+      configPath: "./wrangler.dev.jsonc",
+      persist: false,
+      remoteBindings: false,
+    }),
+  );
+}
