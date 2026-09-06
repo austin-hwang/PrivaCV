@@ -3,7 +3,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { importResumeDocxWithSource } from "@/lib/docx-import";
 import { importResumePdfWithSource, importResumeTextWithSource } from "@/lib/pdf-import";
-import { normalizeResume, type ResumeState } from "@/lib/resume";
+import { normalizeResume, parseResumeJson, type ResumeState } from "@/lib/resume";
 import {
   buildImportReview,
   importReviewProgress,
@@ -60,7 +60,7 @@ export function useResumeImport({
   const openJson = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const nextState = normalizeResume(JSON.parse(await file.text()));
+      const nextState = parseResumeJson(await file.text());
       forkAutosaveBeforeLoading(nextState, file.name);
       saveRecoveryPoint(`Before opening ${file.name}`);
       setState(nextState);

@@ -33,8 +33,10 @@ import {
   STATUS_DOT_CLASSES,
   StatusBadge,
   applicationDataFromForm,
+  applicationUpdateFromForm,
   resumeLinkFromSource,
   type ApplicationForm,
+  type ApplicationFormBaseline,
 } from "@/features/applications/components/application-components";
 import { JobPipelineSankey } from "@/features/applications/components/job-pipeline-sankey";
 import { RemindersView } from "@/features/applications/components/reminders-view";
@@ -178,10 +180,14 @@ export function JobPipeline() {
         : JOB_APPLICATION_STATUSES;
   const showListControls = view === "board" || view === "list";
 
-  const saveApplication = async (applicationId: string, form: ApplicationForm) => {
+  const saveApplication = async (
+    applicationId: string,
+    form: ApplicationForm,
+    baseline: ApplicationFormBaseline,
+  ) => {
     await pipeline.updateApplication(
       applicationId,
-      applicationDataFromForm(form, resumeSources.byKey.get(form.resumeSourceKey)),
+      applicationUpdateFromForm(form, baseline, resumeSources.byKey.get(form.resumeSourceKey)),
     );
     toast.success("Application saved");
   };
@@ -390,7 +396,7 @@ export function JobPipeline() {
         </div>
 
         <section
-          className="mt-5 flex gap-px overflow-x-auto rounded-lg border bg-border md:mt-7 md:grid md:grid-cols-3 xl:grid-cols-6"
+          className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:mt-7 md:grid-cols-3 xl:grid-cols-6"
           aria-label="Applications summary"
         >
           {[
@@ -403,11 +409,11 @@ export function JobPipeline() {
           ].map((item) => (
             <div
               key={item.label}
-              className="flex min-w-36 items-center justify-between gap-3 bg-card px-4 py-3 md:min-w-0"
+              className="flex min-w-0 items-center justify-between gap-2 bg-card px-3 py-3 md:px-4"
             >
               <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                 <item.icon className="size-3.5 shrink-0" />
-                <span className="truncate text-xs font-medium">{item.label}</span>
+                <span className="text-xs font-medium">{item.label}</span>
               </div>
               <p className="text-lg font-semibold tabular-nums">{item.value}</p>
             </div>

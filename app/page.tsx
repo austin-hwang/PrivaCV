@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { ResumeEditor } from "@/features/resume";
+import { VisitorMetrics } from "@/components/visitor-metrics";
 import { Separator } from "@/components/ui/separator";
 import { SiteFooter } from "@/components/site-footer";
 import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "@/lib/site";
@@ -95,6 +96,7 @@ export default function Home() {
   return (
     <>
       <ResumeEditor />
+      {!isDesktopApp && <VisitorMetrics workspace="resume" />}
       {!isDesktopApp && (
         <>
           <section className="public-explainer app-chrome border-t px-4 py-16 lg:px-6">

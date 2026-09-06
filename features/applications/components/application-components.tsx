@@ -87,7 +87,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import type { ResumeSourceOption } from "@/features/applications/hooks/use-resume-sources";
-import type { ApplicationActivityInput, ApplicationActivityUpdate } from "@/lib/job-application-db";
+import type {
+  ApplicationActivityInput,
+  ApplicationActivityUpdate,
+  JobApplicationUpdate,
+} from "@/lib/job-application-db";
 import {
   APPLICATION_ACTIVITY_META,
   APPLICATION_ACTIVITY_TYPES,
@@ -122,6 +126,34 @@ export type ApplicationForm = {
   jobDescription: string;
   resumeSourceKey: string;
 };
+
+export type ApplicationFormBaseline = { form: ApplicationForm; application: JobApplication };
+
+export function applicationUpdateFromForm(
+  form: ApplicationForm,
+  baseline: ApplicationFormBaseline,
+  source: ResumeSourceOption | undefined,
+): JobApplicationUpdate {
+  const update: JobApplicationUpdate = {};
+  const expected: NonNullable<JobApplicationUpdate["expected"]> = {};
+  for (const key of Object.keys(form) as Array<keyof ApplicationForm>) {
+    if (key === "resumeSourceKey" || form[key] === baseline.form[key]) continue;
+    Object.assign(update, { [key]: form[key] });
+    Object.assign(expected, { [key]: baseline.form[key] });
+  }
+  if (form.resumeSourceKey !== baseline.form.resumeSourceKey) {
+    Object.assign(update, resumeLinkFromSource(source));
+    expected.resumeId = baseline.application.resumeId;
+    expected.resumeCheckpointId = baseline.application.resumeCheckpointId;
+  } else if (update.status !== undefined && source) {
+    // A status change can capture a submitted copy, but must not replace a
+    // working-resume selection changed elsewhere while the form was open.
+    update.resumeSnapshot = resumeLinkFromSource(source).resumeSnapshot;
+    expected.resumeId = baseline.application.resumeId;
+    expected.resumeCheckpointId = baseline.application.resumeCheckpointId;
+  }
+  return { ...update, expected };
+}
 
 const EMPTY_APPLICATION_FORM: ApplicationForm = {
   company: "",
@@ -592,9 +624,9 @@ function ActivityComposer({
       className="grid gap-2 rounded-lg border bg-card p-3"
       data-invalid={Boolean(error) || undefined}
     >
-      <div className="grid grid-cols-[7rem_1fr] gap-2">
+      <FieldGroup className="gap-3">
         <FieldRoot>
-          <FieldLabel className="sr-only">Activity type</FieldLabel>
+          <FieldLabel>Activity type</FieldLabel>
           <Select
             aria-label="Activity type"
             selectedKey={type}
@@ -615,9 +647,7 @@ function ActivityComposer({
           </Select>
         </FieldRoot>
         <FieldRoot data-invalid={Boolean(error && !title.trim()) || undefined}>
-          <FieldLabel className="sr-only" htmlFor="activity-title">
-            Activity title
-          </FieldLabel>
+          <FieldLabel htmlFor="activity-title">Activity title</FieldLabel>
           <Input
             id="activity-title"
             aria-invalid={Boolean(error && !title.trim()) || undefined}
@@ -635,7 +665,7 @@ function ActivityComposer({
             placeholder={APPLICATION_ACTIVITY_META[type].placeholder}
           />
         </FieldRoot>
-      </div>
+      </FieldGroup>
       <FieldRoot>
         <FieldLabel className="sr-only" htmlFor="activity-details">
           Activity details
@@ -811,7 +841,11 @@ export function ApplicationDetailDialog({
   events: ApplicationEvent[];
   saving: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (applicationId: string, update: ApplicationForm) => Promise<unknown>;
+  onSave: (
+    applicationId: string,
+    update: ApplicationForm,
+    baseline: ApplicationFormBaseline,
+  ) => Promise<unknown>;
   onDelete: (applicationId: string) => Promise<unknown>;
   onLogActivity: (applicationId: string, input: ApplicationActivityInput) => Promise<unknown>;
   onUpdateActivity: (eventId: string, update: ApplicationActivityUpdate) => Promise<unknown>;
@@ -823,6 +857,7 @@ export function ApplicationDetailDialog({
   const [formError, setFormError] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<ApplicationEvent | null>(null);
   const loadedApplicationId = useRef<string | null>(null);
+  const baselineRef = useRef<ApplicationFormBaseline | null>(null);
   useEffect(() => {
     if (!application) {
       loadedApplicationId.current = null;
@@ -833,7 +868,7 @@ export function ApplicationDetailDialog({
     if (loadedApplicationId.current === application.id) return;
     loadedApplicationId.current = application.id;
     setEditingEvent(null);
-    setForm({
+    const initialForm: ApplicationForm = {
       company: application.company,
       role: application.role,
       status: application.status,
@@ -853,7 +888,9 @@ export function ApplicationDetailDialog({
             source.resumeId === application.resumeId &&
             source.checkpointId === application.resumeCheckpointId,
         )?.key ?? "",
-    });
+    };
+    baselineRef.current = { form: initialForm, application };
+    setForm(initialForm);
     setFormError(null);
   }, [application, jobDescription, resumeSources]);
   const setField = <Key extends keyof ApplicationForm>(key: Key, value: ApplicationForm[Key]) =>
@@ -872,7 +909,8 @@ export function ApplicationDetailDialog({
       return;
     }
     try {
-      await onSave(application.id, form);
+      if (!baselineRef.current) return;
+      await onSave(application.id, form, baselineRef.current);
       onOpenChange(false);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "The application could not be saved.");
@@ -956,7 +994,10 @@ export function ApplicationDetailDialog({
           {formError && !requiredErrors?.company && !requiredErrors?.role ? (
             <FieldError className="mx-6 mb-3">{formError}</FieldError>
           ) : null}
-          <div className="flex shrink-0 flex-col-reverse gap-3 border-t bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+          <div
+            data-mobile-action-bar
+            className="flex shrink-0 flex-col-reverse gap-3 border-t bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4"
+          >
             <AlertDialogTrigger>
               <Button type="button" variant="destructive" isDisabled={saving}>
                 <Trash2 data-icon="inline-start" /> Delete application

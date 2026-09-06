@@ -108,6 +108,10 @@
 }
 
 @media (max-width: 767px) {
+  [data-sonner-toaster][data-y-position="bottom"] {
+    bottom: var(--workspace-toast-bottom, max(1rem, env(safe-area-inset-bottom)));
+  }
+
   body:has(.mobile-workspace-nav) .kofi-widget {
     display: none;
   }

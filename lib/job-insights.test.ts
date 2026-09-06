@@ -40,6 +40,19 @@ function statusEvent(
 }
 
 describe("buildJobInsights", () => {
+  it("keeps interview-to-offer conversion within the interviewed population", () => {
+    const applications = [
+      application({ id: "a", status: "offer", appliedAt: "2026-06-02T00:00:00Z" }),
+      application({ id: "b", status: "offer", appliedAt: "2026-06-03T00:00:00Z" }),
+    ];
+    const insights = buildJobInsights(applications, [
+      statusEvent("a", "interviewing", "2026-06-02T00:00:00Z"),
+    ]);
+    expect(insights.offered).toBe(2);
+    expect(insights.offeredAfterInterview).toBe(1);
+    expect(insights.offerRate).toBe(1);
+    expect(buildJobInsights(applications, []).offerRate).toBeNull();
+  });
   it("computes response, interview, and offer conversion from stages ever reached", () => {
     const applications = [
       // Applied and now rejected, but did interview -> counts as responded + interviewed.

@@ -3,6 +3,7 @@
 import openNextWorker from "./.open-next/worker.js";
 import { DurableObject } from "cloudflare:workers";
 import { handleExportMetric, type ExportMetricsEnv } from "./lib/export-metrics-server";
+import { handleVisitorMetric, type VisitorMetricsEnv } from "./lib/visitor-metrics-server";
 import { handleInlineAIMetric, type InlineAIMetricsEnv } from "./lib/inline-ai-metrics-server";
 import {
   handleJobApplicationMetric,
@@ -54,6 +55,7 @@ type HandoffRoomStorage = {
 type HandoffRoomState = { storage: HandoffRoomStorage };
 
 type WorkerEnv = ExportMetricsEnv &
+  VisitorMetricsEnv &
   InlineAIMetricsEnv &
   JobApplicationMetricsEnv &
   WebRTCTurnEnv & { HANDOFF_ROOMS?: HandoffRoomNamespace };
@@ -229,6 +231,8 @@ const worker = {
       }
       return env.HANDOFF_ROOMS.getByName(roomId).fetch(request);
     }
+    const visitorMetricResponse = await handleVisitorMetric(request, env);
+    if (visitorMetricResponse) return visitorMetricResponse;
     const metricResponse = await handleExportMetric(request, env);
     if (metricResponse) return metricResponse;
     const inlineAIMetricResponse = await handleInlineAIMetric(request, env);

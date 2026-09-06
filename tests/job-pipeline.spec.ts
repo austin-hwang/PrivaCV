@@ -172,6 +172,7 @@ test("keeps light-mode selections visually distinct and readable", async ({ page
 });
 
 test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-19T12:00:00Z"));
   // The detail dialog is a tall, vertically-centered RAC modal (no internal
   // scroll). Give it a viewport tall enough that its top fields (Status) stay
   // on-screen so the Select trigger is clickable. Width is unchanged so the
@@ -220,7 +221,11 @@ test("tracks a job application lifecycle in IndexedDB", async ({ page }) => {
 
   await expect(page.getByRole("button", { name: /Senior Product Designer/ })).toBeVisible();
   await expect(page.getByText("1 application in this view")).toBeVisible();
-  await expect.poll(() => applicationMetrics).toEqual([{ event: "job_application_created" }]);
+  await expect
+    .poll(() => applicationMetrics)
+    .toEqual([
+      { event: "job_application_created", visitorId: expect.stringMatching(/^[0-9a-f-]{36}$/) },
+    ]);
 
   await page.getByRole("radio", { name: "List view" }).click();
   const applicationsTable = page.getByRole("grid", { name: "Job applications" });

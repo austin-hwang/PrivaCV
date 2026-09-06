@@ -110,7 +110,7 @@ export function InsightsView({
         <StatTile
           label="Offer rate"
           value={formatPercent(insights.offerRate)}
-          hint={`${insights.offered} of ${insights.interviewed} interviewed`}
+          hint={`${insights.offeredAfterInterview} of ${insights.interviewed} interviewed · ${insights.offered} offers total`}
           icon={Trophy}
         />
       </section>

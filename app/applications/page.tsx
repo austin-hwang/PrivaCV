@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JobPipeline } from "@/features/applications";
+import { VisitorMetrics } from "@/components/visitor-metrics";
 import { createPageMetadata } from "@/lib/seo";
 
 const title = "Private Job Application Tracker";
@@ -17,5 +18,10 @@ export const metadata: Metadata = {
 };
 
 export default function ApplicationsPage() {
-  return <JobPipeline />;
+  return (
+    <>
+      <JobPipeline />
+      {process.env.PRIVACV_DESKTOP_APP !== "1" && <VisitorMetrics workspace="job_applications" />}
+    </>
+  );
 }

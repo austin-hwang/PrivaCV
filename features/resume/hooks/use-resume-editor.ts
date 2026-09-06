@@ -1,5 +1,7 @@
 "use client";
 
+import { VISITOR_STORAGE_KEY } from "@/lib/visitor-metrics";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { downloadJsonFile } from "@/lib/browser-files";
 import { clearResumeWorkspace } from "@/lib/resume-db";
@@ -392,6 +394,8 @@ export function useResumeEditor() {
     }
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(VISITOR_STORAGE_KEY);
+      localStorage.removeItem("privacv-daily-visitor-v1");
       localStorage.removeItem("resume-editor-data-v1");
       localStorage.removeItem(IMPORT_REVIEW_KEY);
       localStorage.removeItem(RESUME_LIBRARY_KEY);

@@ -29,6 +29,7 @@ export type JobInsights = {
   interviewed: number;
   interviewRate: number | null;
   offered: number;
+  offeredAfterInterview: number;
   offerRate: number | null;
   perWeek: WeeklyCount[];
   stageDurations: StageDuration[];
@@ -97,6 +98,7 @@ export function buildJobInsights(
   let responded = 0;
   let interviewed = 0;
   let offered = 0;
+  let offeredAfterInterview = 0;
 
   for (const application of applications) {
     const appEvents = eventsByApplication.get(application.id) ?? [];
@@ -108,7 +110,10 @@ export function buildJobInsights(
       submitted += 1;
       if (RESPONSE_STATUSES.some((status) => reached.has(status))) responded += 1;
       if (reached.has("interviewing")) interviewed += 1;
-      if (OFFER_STATUSES.some((status) => reached.has(status))) offered += 1;
+      if (OFFER_STATUSES.some((status) => reached.has(status))) {
+        offered += 1;
+        if (reached.has("interviewing")) offeredAfterInterview += 1;
+      }
       const week = weekStartOf(localDateOf(application.appliedAt));
       if (week) weekTotals.set(week, (weekTotals.get(week) ?? 0) + 1);
     }
@@ -132,7 +137,8 @@ export function buildJobInsights(
     interviewed,
     interviewRate: submitted ? interviewed / submitted : null,
     offered,
-    offerRate: interviewed ? offered / interviewed : null,
+    offeredAfterInterview,
+    offerRate: interviewed ? offeredAfterInterview / interviewed : null,
     perWeek: buildWeeklySeries(weekTotals, today, maxWeeks),
     stageDurations: JOB_APPLICATION_STATUSES.map((status) => {
       const bucket = durationTotals.get(status);

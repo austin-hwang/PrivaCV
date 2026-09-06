@@ -25,12 +25,63 @@ function useDocumentTheme(): "light" | "dark" {
   return theme;
 }
 
+/** Leave room for the visible navigation or modal actions, including safe-area padding. */
+function useBottomActionOffset() {
+  const [offset, setOffset] = React.useState(16);
+  React.useEffect(() => {
+    let frame = 0;
+    const observed = new Set<Element>();
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bars = document.querySelectorAll(".mobile-workspace-nav, [data-mobile-action-bar]");
+        observed.forEach((element) => {
+          if (!element.isConnected) {
+            resize.unobserve(element);
+            observed.delete(element);
+          }
+        });
+        let height = 0;
+        bars.forEach((bar) => {
+          if (!observed.has(bar)) {
+            observed.add(bar);
+            resize.observe(bar);
+          }
+          const rect = bar.getBoundingClientRect();
+          if (
+            rect.height &&
+            rect.bottom >= window.innerHeight - 2 &&
+            rect.top < window.innerHeight
+          ) {
+            height = Math.max(height, window.innerHeight - rect.top);
+          }
+        });
+        setOffset(height + 16);
+      });
+    };
+    const resize = new ResizeObserver(measure);
+    const mutation = new MutationObserver(measure);
+    mutation.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      mutation.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  return offset;
+}
+
 function Toaster({ ...props }: ToasterProps) {
   const theme = useDocumentTheme();
+  const bottomOffset = useBottomActionOffset();
   return (
     <Sonner
       theme={theme}
       className="toaster group"
+      mobileOffset={{ bottom: bottomOffset }}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
@@ -45,6 +96,7 @@ function Toaster({ ...props }: ToasterProps) {
           "--normal-text": "hsl(var(--popover-foreground))",
           "--normal-border": "hsl(var(--border))",
           "--border-radius": "var(--radius)",
+          "--workspace-toast-bottom": `${bottomOffset}px`,
         } as React.CSSProperties
       }
       {...props}

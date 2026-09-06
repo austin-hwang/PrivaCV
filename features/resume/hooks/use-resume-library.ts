@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import { saveCheckpointHistories, saveResumeLibrary } from "@/lib/resume-db";
+import { saveResumeLibrary } from "@/lib/resume-db";
 import { emptyState, normalizeResume, type ResumeState } from "@/lib/resume";
 import {
   ACTIVE_RESUME_KEY,
@@ -65,11 +65,14 @@ export function useResumeLibrary({
       } catch {
         // IndexedDB remains authoritative when the compatibility mirror fails.
       }
-      void saveResumeLibrary(library, nextActiveId)
+      void saveResumeLibrary(library, nextActiveId, resumeLibrary)
         .then(confirmStorageAvailable)
-        .catch(reportStorageIssue);
+        .catch((error: unknown) => {
+          reportStorageIssue();
+          flash(error instanceof Error ? error.message : "The resume library could not be saved.");
+        });
     },
-    [activeResumeId, confirmStorageAvailable, reportStorageIssue],
+    [activeResumeId, confirmStorageAvailable, reportStorageIssue, resumeLibrary, flash],
   );
 
   const libraryWithCurrentDraft = useCallback(
@@ -112,7 +115,7 @@ export function useResumeLibrary({
 
   const createResume = () => {
     const now = new Date().toISOString();
-    const id = `resume-${Date.now().toString(36)}`;
+    const id = `resume-${crypto.randomUUID()}`;
     const nextState = emptyState();
     const nextItem: ResumeLibraryItem = {
       id,
@@ -150,7 +153,7 @@ export function useResumeLibrary({
         : resumeLibrary.find((item) => item.id === resumeId);
     if (!source) return;
     const now = new Date().toISOString();
-    const id = `resume-${Date.now().toString(36)}`;
+    const id = `resume-${crypto.randomUUID()}`;
     const copy: ResumeLibraryItem = {
       ...source,
       id,
@@ -160,7 +163,9 @@ export function useResumeLibrary({
       state: normalizeResume(source.state),
     };
     forkAutosaveBeforeLoading(copy.state, copy.label);
-    const library = [...libraryWithCurrentDraft(), copy];
+    // The copy is independent, including when the original changed or was
+    // deleted elsewhere while this tab still has an unsaved draft open.
+    const library = [...resumeLibrary, copy];
     persistResumeLibrary(library, id);
     setResumeLibrary(library);
     setActiveResumeId(id);
@@ -221,7 +226,7 @@ export function useResumeLibrary({
       } catch {
         // IndexedDB remains authoritative when the compatibility mirror fails.
       }
-      void saveCheckpointHistories(next).then(confirmStorageAvailable).catch(reportStorageIssue);
+      // Removing the resume also removes its checkpoints in the same transaction.
       return next;
     });
     if (deletingActive) {

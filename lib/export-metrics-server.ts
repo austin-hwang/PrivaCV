@@ -1,4 +1,5 @@
 import { EXPORT_FORMATS, EXPORT_METRIC_PATH, type ResumeExportFormat } from "./export-metrics";
+import { VISITOR_ID_PATTERN } from "./visitor-metrics";
 
 type AnalyticsPoint = {
   blobs?: string[];
@@ -42,8 +43,19 @@ export async function handleExportMetric(
   }
 
   let format: ResumeExportFormat;
+  let visitorId: string | undefined;
+  if (request.headers.get("dnt") === "1" || request.headers.get("sec-gpc") === "1")
+    return new Response(null, { status: 204, headers: noStoreHeaders });
   try {
-    const body = (await request.json()) as { format?: unknown };
+    const body = (await request.json()) as { format?: unknown; visitorId?: unknown };
+    if (!body || Object.keys(body).some((key) => key !== "format" && key !== "visitorId"))
+      throw new Error("Invalid metric");
+    if (
+      body.visitorId !== undefined &&
+      (typeof body.visitorId !== "string" || !VISITOR_ID_PATTERN.test(body.visitorId))
+    )
+      throw new Error("Invalid visitor");
+    visitorId = body.visitorId as string | undefined;
     if (typeof body.format !== "string" || !allowedFormats.has(body.format))
       throw new Error("Invalid format");
     format = body.format as ResumeExportFormat;
@@ -51,12 +63,11 @@ export async function handleExportMetric(
     return new Response("Invalid metric.", { status: 400, headers: noStoreHeaders });
   }
 
-  // Analytics Engine writes are non-blocking. The index keeps all export
-  // events in one sampling group; blob2 remains available for format totals.
+  // Old clients remain aggregate-only; identified events sample by browser ID.
   env.EXPORT_METRICS?.writeDataPoint({
-    blobs: ["resume_export", format],
+    blobs: visitorId ? ["resume_export", format, visitorId] : ["resume_export", format],
     doubles: [1],
-    indexes: ["resume_export"],
+    indexes: [visitorId ?? "resume_export"],
   });
 
   return new Response(null, { status: 204, headers: noStoreHeaders });

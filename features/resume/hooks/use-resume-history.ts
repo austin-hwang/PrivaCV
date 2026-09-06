@@ -103,7 +103,7 @@ export function useResumeHistory({
       }
       setCheckpointHistoryByResume(nextByResume);
       try {
-        await saveCheckpointHistories(nextByResume);
+        await saveCheckpointHistories(nextByResume, checkpointHistoryByResume);
         confirmStorageAvailable();
         return true;
       } catch {

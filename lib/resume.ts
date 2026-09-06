@@ -908,6 +908,44 @@ function normalizeEntry(entry: unknown): ResumeEntry {
   return backfillEntryDates({ ...blankEntry(), ...(entry as Partial<ResumeEntry>) });
 }
 
+/** Validate user-selected JSON before applying the more permissive storage migration. */
+export function parseResumeJson(text: string): ResumeState {
+  const data: unknown = JSON.parse(text);
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Choose a PrivaCV resume JSON file.");
+  }
+  const record = data as Record<string, unknown>;
+  const resumeFields = [
+    "name",
+    "title",
+    "email",
+    "phone",
+    "location",
+    "website",
+    "summary",
+    "skills",
+  ];
+  const entryFields = ["experience", "education", "projects", "skillEntries", "customSections"];
+  const recognized =
+    ["summary", "skills"].some((key) => typeof record[key] === "string") ||
+    entryFields.some((key) => Array.isArray(record[key]));
+  if (
+    !recognized ||
+    resumeFields.some((key) => key in record && typeof record[key] !== "string") ||
+    entryFields.some(
+      (key) =>
+        key in record &&
+        (!Array.isArray(record[key]) ||
+          record[key].some(
+            (entry: unknown) => !entry || typeof entry !== "object" || Array.isArray(entry),
+          )),
+    )
+  ) {
+    throw new Error("Choose a PrivaCV resume JSON file.");
+  }
+  return normalizeResume(data);
+}
+
 export function normalizeResume(data: unknown): ResumeState {
   const parsed = resumeSchema.catch(emptyState()).parse(data);
   const headerLinks = normalizeHeaderLinks(

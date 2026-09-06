@@ -40,6 +40,10 @@ export type JobApplicationUpdate = Partial<
 > & {
   jobDescription?: string;
   resumeSnapshot?: ResumeSnapshotInput;
+  /** Original values for fields being edited; checked inside the write transaction. */
+  expected?: Partial<Omit<JobApplication, "id" | "createdAt" | "updatedAt">> & {
+    jobDescription?: string;
+  };
 };
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -189,16 +193,42 @@ export async function createStoredJobApplication(draft: JobApplicationDraft) {
 
 export async function updateStoredJobApplication(
   applicationId: string,
-  update: JobApplicationUpdate,
+  input: JobApplicationUpdate,
 ) {
+  const { expected, ...update } = input;
   const database = await openJobPipelineDatabase();
-  const existing = await requestResult(
-    database
-      .transaction(APPLICATIONS_STORE, "readonly")
-      .objectStore(APPLICATIONS_STORE)
-      .get(applicationId) as IDBRequest<JobApplication | undefined>,
-  );
-  if (!existing) throw new Error("This application no longer exists.");
+  const stores = [APPLICATIONS_STORE, EVENTS_STORE, JOB_SNAPSHOTS_STORE, RESUME_SNAPSHOTS_STORE];
+  const transaction = database.transaction(stores, "readwrite");
+  const completion = transactionComplete(transaction);
+  const [existing, existingSnapshot] = await Promise.all([
+    requestResult(
+      transaction.objectStore(APPLICATIONS_STORE).get(applicationId) as IDBRequest<
+        JobApplication | undefined
+      >,
+    ),
+    requestResult(
+      transaction.objectStore(JOB_SNAPSHOTS_STORE).get(applicationId) as IDBRequest<
+        JobSnapshot | undefined
+      >,
+    ),
+  ]);
+  const rejectChange = async (message: string): Promise<never> => {
+    transaction.abort();
+    await completion.catch(() => undefined);
+    throw new Error(message);
+  };
+  if (!existing) return rejectChange("This application no longer exists.");
+  for (const field of Object.keys(expected ?? {}) as Array<
+    keyof NonNullable<JobApplicationUpdate["expected"]>
+  >) {
+    const current =
+      field === "jobDescription" ? (existingSnapshot?.description ?? "") : existing[field];
+    if (current !== expected?.[field] && current !== update[field]) {
+      return rejectChange(
+        "This application changed in another tab. Close and reopen it to review the latest values before saving your edits.",
+      );
+    }
+  }
 
   const now = new Date().toISOString();
   const requestedStatus = isJobApplicationStatus(update.status) ? update.status : existing.status;
@@ -206,6 +236,7 @@ export async function updateStoredJobApplication(
   const updated: JobApplication = {
     ...transitioned,
     ...update,
+    status: requestedStatus,
     id: existing.id,
     company: update.company?.trim() ?? existing.company,
     role: update.role?.trim() ?? existing.role,
@@ -238,19 +269,6 @@ export async function updateStoredJobApplication(
       : null;
   if (capturedResume) updated.resumeSnapshotId = capturedResume.id;
 
-  const stores = [APPLICATIONS_STORE, EVENTS_STORE];
-  if (typeof update.jobDescription === "string" || update.sourceUrl !== undefined)
-    stores.push(JOB_SNAPSHOTS_STORE);
-  if (capturedResume) stores.push(RESUME_SNAPSHOTS_STORE);
-  const existingSnapshot = stores.includes(JOB_SNAPSHOTS_STORE)
-    ? await requestResult(
-        database
-          .transaction(JOB_SNAPSHOTS_STORE, "readonly")
-          .objectStore(JOB_SNAPSHOTS_STORE)
-          .get(applicationId) as IDBRequest<JobSnapshot | undefined>,
-      )
-    : undefined;
-  const transaction = database.transaction(stores, "readwrite");
   transaction.objectStore(APPLICATIONS_STORE).put(updated);
 
   if (updated.status !== existing.status) {
@@ -279,7 +297,7 @@ export async function updateStoredJobApplication(
     );
   }
 
-  if (stores.includes(JOB_SNAPSHOTS_STORE)) {
+  if (typeof update.jobDescription === "string" || update.sourceUrl !== undefined) {
     const snapshotStore = transaction.objectStore(JOB_SNAPSHOTS_STORE);
     const description = update.jobDescription ?? existingSnapshot?.description ?? "";
     if (description.trim() || updated.sourceUrl) {
@@ -295,7 +313,7 @@ export async function updateStoredJobApplication(
     }
   }
 
-  await transactionComplete(transaction);
+  await completion;
   return updated;
 }
 
@@ -340,12 +358,11 @@ export type ApplicationActivityInput = {
 
 export type ApplicationActivityUpdate = Partial<ApplicationActivityInput>;
 
-async function requireApplication(database: IDBDatabase, applicationId: string) {
+async function requireApplication(transaction: IDBTransaction, applicationId: string) {
   const existing = await requestResult(
-    database
-      .transaction(APPLICATIONS_STORE, "readonly")
-      .objectStore(APPLICATIONS_STORE)
-      .get(applicationId) as IDBRequest<JobApplication | undefined>,
+    transaction.objectStore(APPLICATIONS_STORE).get(applicationId) as IDBRequest<
+      JobApplication | undefined
+    >,
   );
   if (!existing) throw new Error("This application no longer exists.");
   return existing;
@@ -360,16 +377,17 @@ export async function createStoredApplicationEvent(
   const title = input.title.trim();
   if (!title) throw new Error("Add a short title for this activity.");
   const database = await openJobPipelineDatabase();
-  const existing = await requireApplication(database, applicationId);
+  const transaction = database.transaction([EVENTS_STORE, APPLICATIONS_STORE], "readwrite");
+  const completion = transactionComplete(transaction);
+  const existing = await requireApplication(transaction, applicationId);
   const now = new Date().toISOString();
   const event = createApplicationEvent(applicationId, input.type, title, {
     occurredAt: input.occurredAt?.trim() || now,
     ...(input.detail?.trim() ? { detail: input.detail.trim() } : {}),
   });
-  const transaction = database.transaction([EVENTS_STORE, APPLICATIONS_STORE], "readwrite");
   transaction.objectStore(EVENTS_STORE).add(event);
   transaction.objectStore(APPLICATIONS_STORE).put({ ...existing, updatedAt: now });
-  await transactionComplete(transaction);
+  await completion;
   return event;
 }
 
@@ -378,11 +396,10 @@ export async function updateStoredApplicationEvent(
   update: ApplicationActivityUpdate,
 ) {
   const database = await openJobPipelineDatabase();
+  const transaction = database.transaction([EVENTS_STORE, APPLICATIONS_STORE], "readwrite");
+  const completion = transactionComplete(transaction);
   const existing = await requestResult(
-    database
-      .transaction(EVENTS_STORE, "readonly")
-      .objectStore(EVENTS_STORE)
-      .get(eventId) as IDBRequest<ApplicationEvent | undefined>,
+    transaction.objectStore(EVENTS_STORE).get(eventId) as IDBRequest<ApplicationEvent | undefined>,
   );
   if (!existing) throw new Error("This activity no longer exists.");
   if (!isApplicationActivityType(existing.type))
@@ -403,17 +420,15 @@ export async function updateStoredApplicationEvent(
   };
 
   const application = await requestResult(
-    database
-      .transaction(APPLICATIONS_STORE, "readonly")
-      .objectStore(APPLICATIONS_STORE)
-      .get(existing.applicationId) as IDBRequest<JobApplication | undefined>,
+    transaction.objectStore(APPLICATIONS_STORE).get(existing.applicationId) as IDBRequest<
+      JobApplication | undefined
+    >,
   );
   const now = new Date().toISOString();
-  const transaction = database.transaction([EVENTS_STORE, APPLICATIONS_STORE], "readwrite");
   transaction.objectStore(EVENTS_STORE).put(updated);
   if (application)
     transaction.objectStore(APPLICATIONS_STORE).put({ ...application, updatedAt: now });
-  await transactionComplete(transaction);
+  await completion;
   return updated;
 }
 

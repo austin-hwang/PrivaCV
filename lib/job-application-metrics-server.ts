@@ -43,25 +43,32 @@ export async function handleJobApplicationMetric(
     return new Response("Invalid metric.", { status: 400, headers: noStoreHeaders });
   }
 
+  let visitorId: string | undefined;
+  if (request.headers.get("dnt") === "1" || request.headers.get("sec-gpc") === "1")
+    return new Response(null, { status: 204, headers: noStoreHeaders });
   try {
-    const body = (await request.json()) as { event?: unknown };
+    const body = (await request.json()) as { event?: unknown; visitorId?: unknown };
     if (
       !body ||
       typeof body !== "object" ||
       Array.isArray(body) ||
-      Object.keys(body).length !== 1 ||
+      Object.keys(body).some((key) => key !== "event" && key !== "visitorId") ||
+      (body.visitorId !== undefined &&
+        (typeof body.visitorId !== "string" || !VISITOR_ID_PATTERN.test(body.visitorId))) ||
       body.event !== JOB_APPLICATION_CREATED_EVENT
     )
       throw new Error("Invalid event");
+    visitorId = body.visitorId as string | undefined;
   } catch {
     return new Response("Invalid metric.", { status: 400, headers: noStoreHeaders });
   }
 
   env.JOB_APPLICATION_METRICS?.writeDataPoint({
-    blobs: [JOB_APPLICATION_CREATED_EVENT],
+    blobs: visitorId ? [JOB_APPLICATION_CREATED_EVENT, visitorId] : [JOB_APPLICATION_CREATED_EVENT],
     doubles: [1],
-    indexes: ["job_applications"],
+    indexes: [visitorId ?? "job_applications"],
   });
 
   return new Response(null, { status: 204, headers: noStoreHeaders });
 }
+import { VISITOR_ID_PATTERN } from "./visitor-metrics";

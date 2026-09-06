@@ -280,11 +280,25 @@ test("makes local autosave visible while an edited resume is being stored", asyn
   await expect(autosave).toHaveAccessibleName(/saved locally/i);
   await expect(autosave.getByText("Saved", { exact: true })).toBeVisible();
 
-  // Open history before starting the edit. On a busy CI runner, opening the
-  // panel after the edit can take longer than the 400ms debounce, by which
-  // point the previous autosave has correctly become the current draft and is
-  // no longer shown as a separate history point.
+  // Hold a competing transaction so the pending-save UI is observable even
+  // when normal IndexedDB writes finish between browser assertions.
   const versions = await openVersions(page);
+  await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve) => {
+      const request = indexedDB.open("privacv-resume-workspace");
+      request.onsuccess = () => resolve(request.result);
+    });
+    sessionStorage.setItem("hold-resume-save", "1");
+    const transaction = database.transaction("resumes", "readwrite");
+    const hold = () => {
+      const request = transaction.objectStore("resumes").get("hold");
+      request.onsuccess = () => {
+        if (sessionStorage.getItem("hold-resume-save")) hold();
+      };
+    };
+    transaction.oncomplete = () => database.close();
+    hold();
+  });
   const summary = page.getByRole("textbox", { name: "Professional Summary" });
   await summary.fill("A local-first product engineer who ships dependable tools.");
   await summary.press("Tab");
@@ -299,6 +313,8 @@ test("makes local autosave visible while an edited resume is being stored", asyn
     .first();
   await expect(autosaveEntry).toBeVisible();
   await expect(autosaveEntry.getByText("Auto", { exact: true })).toBeVisible();
+  await page.evaluate(() => sessionStorage.removeItem("hold-resume-save"));
+  await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
 });
 
 test("creates a deduplicated periodic checkpoint after sustained editing", async ({ page }) => {

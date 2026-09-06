@@ -37,7 +37,7 @@ PrivaCV helps job seekers create, tailor, review, and export clean, text-based r
 
 ## Privacy
 
-PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The optional experimental device handoff sends a selected resume, application pipeline, or both over an encrypted WebRTC data channel after the user scans a private QR link. A short-lived Cloudflare room holds only encrypted connection details for up to five minutes; its decryption key stays in the link fragment, and the transferred data is never uploaded to the room. Cloudflare's STUN service sees connection metadata, and TURN may relay encrypted packet bytes when a direct connection is unavailable; neither can read the transferred payload. The hosted web app records anonymous aggregate export, local-AI, and application-creation events without resume content, application data, prompts, generated text, or identity or device identifiers. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
+PrivaCV is local-first. Resume and job-search information is processed and stored in IndexedDB in the browser profile or Electron app profile, not in a hosted application database. If a user explicitly enables local AI, model files are downloaded to that local profile; resume text is not sent to an AI API. The optional experimental device handoff sends a selected resume, application pipeline, or both over an encrypted WebRTC data channel after the user scans a private QR link. A short-lived Cloudflare room holds only encrypted connection details for up to five minutes; its decryption key stays in the link fragment, and the transferred data is never uploaded to the room. Cloudflare's STUN service sees connection metadata, and TURN may relay encrypted packet bytes when a direct connection is unavailable; neither can read the transferred payload. The hosted web app records limited product metrics without resume content, application data, prompts, or generated text. Workspace visits, resume exports, and application-creation events include a random persistent browser-profile ID, allowing repeat usage to be counted across days; local-AI metrics have no visitor ID. Packaged desktop builds use local no-op metric endpoints and do not submit those events.
 
 See the live [privacy page](https://privacv.app/privacy) or its [source](app/privacy/page.tsx) for the plain-language explanation. Please read the privacy requirements in [CONTRIBUTING.md](CONTRIBUTING.md) before adding storage, network requests, fixtures, or telemetry.
 
@@ -182,9 +182,13 @@ NEXT_PUBLIC_SITE_URL=https://privacv.app
 
 Use [.env.example](.env.example) as the starting point.
 
-### Anonymous product metrics
+### Product metrics
 
-Production deploys include a Cloudflare Analytics Engine dataset named `privacv_exports`. It records only `resume_export` and the format. To inspect the total and format breakdown through the Analytics Engine SQL API:
+Daily reach is counted separately for the resume workspace (`/`) and job application workspace (`/applications`); public information pages are not tracked. This uses the separate `privacv_visitors` Analytics Engine dataset and `VISITOR_METRICS` Worker binding. The web client sends only a random persistent browser-profile identifier, UTC date, and workspace category (`resume` or `job_applications`) to `/api/metrics/visitors`; it shares the identifier across tabs and sessions without daily rotation; clearing local data resets it. No account, resume content, URL, referrer, IP address, or fingerprint enters this dataset. GPC/DNT and blocked storage suppress collection; desktop builds omit the tracker. This estimates unique browser profiles across a selected period, not individual people or physical devices. The same ID is attached to each resume export and manually created job application event.
+
+The binding is included in `wrangler.jsonc` and becomes active on the next Cloudflare deployment. Local Next.js runs return 204 without recording anything. See [visitor analytics setup and queries](docs/visitor-analytics.md) for how to read the counts.
+
+Production deploys include a Cloudflare Analytics Engine dataset named `privacv_exports`. It records `resume_export`, the format, and the visitor ID (`blob3`), also used as `index1` for sampling. To inspect the total and format breakdown through the Analytics Engine SQL API:
 
 ```sql
 SELECT SUM(_sample_interval) AS exports
@@ -194,7 +198,7 @@ WHERE blob1 = 'resume_export';
 SELECT blob2 AS format, SUM(_sample_interval) AS exports
 FROM privacv_exports
 WHERE blob1 = 'resume_export'
-GROUP BY blob2
+GROUP BY blob2, blob3
 ORDER BY exports DESC;
 ```
 
@@ -207,7 +211,7 @@ GROUP BY blob1
 ORDER BY events DESC;
 ```
 
-Successful, manually created application records use `privacv_job_applications`. Imports, edits, status changes, reloads, and migrations do not increment this metric:
+Successful, manually created application records use `privacv_job_applications`; each event carries its visitor ID in `blob2` and `index1`. Imports, edits, status changes, reloads, and migrations do not increment this metric:
 
 ```sql
 SELECT SUM(_sample_interval) AS applications_tracked

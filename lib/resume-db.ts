@@ -1,5 +1,11 @@
 import { emptyState, hasAnyContent, normalizeResume, type ResumeState } from "@/lib/resume";
 import {
+  mergeResumeChanges,
+  resumeChanges,
+  ResumeConflictError,
+  type ResumeChange,
+} from "@/lib/resume-storage-changes";
+import {
   parseCheckpointHistory,
   parseResumeLibrary,
   parseStoredImportReview,
@@ -17,6 +23,80 @@ const RESUMES_STORE = "resumes";
 const CHECKPOINTS_STORE = "checkpoints";
 const META_STORE = "meta";
 const WORKSPACE_META_KEY = "workspace";
+export const RESUME_COMMIT_KEY = "resume-editor-commit-v1";
+const PENDING_PREFIX = "resume-editor-pending-v1:";
+const commitSource = crypto.randomUUID();
+let journalSequence = 0;
+const liveJournals = new Set<string>();
+const unprotectedWrites = new Set<string>();
+
+type PendingResumeWrite = {
+  changes: ResumeChange[];
+  activeResumeId: string | null;
+  updatedAt: string;
+  sequence: number;
+};
+
+function notifyResumeCommit() {
+  if (typeof window === "undefined") return;
+  const token = `${commitSource}:${crypto.randomUUID()}`;
+  try {
+    localStorage.setItem(RESUME_COMMIT_KEY, token);
+  } catch {
+    /* BroadcastChannel also works without localStorage. */
+  }
+  if (typeof BroadcastChannel !== "undefined") {
+    const channel = new BroadcastChannel(RESUME_COMMIT_KEY);
+    channel.postMessage(token);
+    channel.close();
+  }
+  window.dispatchEvent(new Event(RESUME_COMMIT_KEY));
+}
+
+export function subscribeResumeCommits(listener: () => void, includeLocal = true) {
+  const storage = (event: StorageEvent) => {
+    if (event.key === RESUME_COMMIT_KEY) listener();
+  };
+  const channel =
+    typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(RESUME_COMMIT_KEY) : null;
+  if (channel)
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      if (
+        !includeLocal &&
+        typeof event.data === "string" &&
+        event.data.startsWith(`${commitSource}:`)
+      )
+        return;
+      listener();
+    };
+  window.addEventListener("storage", storage);
+  if (includeLocal) window.addEventListener(RESUME_COMMIT_KEY, listener);
+  return () => {
+    channel?.close();
+    window.removeEventListener("storage", storage);
+    window.removeEventListener(RESUME_COMMIT_KEY, listener);
+  };
+}
+
+function warnUnprotectedWrite(event: BeforeUnloadEvent) {
+  if (!unprotectedWrites.size) return;
+  event.preventDefault();
+  event.returnValue = "";
+}
+
+export function discardPendingResumeWrites(resumeId: string) {
+  for (const key of liveJournals) {
+    try {
+      const pending = JSON.parse(localStorage.getItem(key) ?? "null") as PendingResumeWrite | null;
+      if (pending?.changes.some(({ before, after }) => (after ?? before)?.id === resumeId)) {
+        localStorage.removeItem(key);
+        liveJournals.delete(key);
+      }
+    } catch {
+      /* Keep unreadable recovery records until an explicit privacy reset. */
+    }
+  }
+}
 
 type StoredResume = ResumeLibraryItem & { storageOrder: number };
 type StoredCheckpoint = {
@@ -274,44 +354,146 @@ export function saveResumeWorkspace(data: ResumeWorkspaceData, updatedAt?: strin
 export function saveResumeLibrary(
   resumeLibrary: ResumeLibraryItem[],
   activeResumeId: string | null,
+  previousLibrary: ResumeLibraryItem[],
   updatedAt = new Date().toISOString(),
 ) {
+  const pending: PendingResumeWrite = {
+    changes: resumeChanges(previousLibrary, resumeLibrary),
+    activeResumeId,
+    updatedAt,
+    sequence: journalSequence++,
+  };
+  const key = `${PENDING_PREFIX}${crypto.randomUUID()}`;
+  if (pending.changes.length && typeof window !== "undefined") {
+    // Synchronous recovery protects a reload/close before IndexedDB commits.
+    try {
+      localStorage.setItem(key, JSON.stringify(pending));
+      liveJournals.add(key);
+    } catch {
+      unprotectedWrites.add(key);
+      window.addEventListener("beforeunload", warnUnprotectedWrite);
+    }
+  }
   return enqueueWrite(async () => {
-    const database = await openResumeDatabase();
-    const transaction = database.transaction([RESUMES_STORE, META_STORE], "readwrite");
-    const resumes = transaction.objectStore(RESUMES_STORE);
-    resumes.clear();
-    resumeLibrary.forEach((item, storageOrder) =>
-      resumes.put({ ...item, storageOrder } satisfies StoredResume),
-    );
-    transaction
-      .objectStore(META_STORE)
-      .put({ key: WORKSPACE_META_KEY, activeResumeId, updatedAt } satisfies WorkspaceMeta);
-    await transactionComplete(transaction);
+    const result = await writeResumeChanges(pending);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* Replay is idempotent. */
+    }
+    liveJournals.delete(key);
+    unprotectedWrites.delete(key);
+    notifyResumeCommit();
+    return result;
   });
 }
 
-export function saveCheckpointHistories(checkpointHistoryByResume: CheckpointHistoryByResume) {
+async function writeResumeChanges(pending: PendingResumeWrite, recoveryKey?: string) {
+  const database = await openResumeDatabase();
+  const transaction = database.transaction(
+    [RESUMES_STORE, CHECKPOINTS_STORE, META_STORE],
+    "readwrite",
+  );
+  const completion = transactionComplete(transaction);
+  const resumes = transaction.objectStore(RESUMES_STORE);
+  const stored = await requestResult(resumes.getAll() as IDBRequest<StoredResume[]>);
+  const current = stored
+    .sort((a, b) => a.storageOrder - b.storageOrder)
+    .map(({ storageOrder: _order, ...item }) => ({ ...item, state: normalizeResume(item.state) }));
+  let next: ResumeLibraryItem[];
+  try {
+    next = mergeResumeChanges(current, pending.changes);
+  } catch (error) {
+    if (!recoveryKey || !(error instanceof ResumeConflictError)) {
+      transaction.abort();
+      await completion.catch(() => undefined);
+      throw error;
+    }
+    // An interrupted tab must not replace a newer draft. Preserve its work as copies.
+    next = [...current];
+    for (const { after } of pending.changes) {
+      if (
+        !after ||
+        current.some((item) => item.id === after.id && !resumeChanges([item], [after]).length)
+      )
+        continue;
+      const id = `resume-recovered-${recoveryKey.slice(PENDING_PREFIX.length)}-${after.id}`;
+      if (!next.some((item) => item.id === id))
+        next.push({ ...after, id, label: `${after.label} — recovered draft` });
+    }
+  }
+  for (const item of current) {
+    if (next.some((candidate) => candidate.id === item.id)) continue;
+    resumes.delete(item.id);
+    const checkpoints = transaction.objectStore(CHECKPOINTS_STORE);
+    const keys = await requestResult(checkpoints.index("resumeId").getAllKeys(item.id));
+    keys.forEach((checkpointKey) => checkpoints.delete(checkpointKey));
+  }
+  next.forEach((item, storageOrder) => {
+    if (
+      JSON.stringify(item) !== JSON.stringify(current.find((candidate) => candidate.id === item.id))
+    ) {
+      resumes.put({ ...item, storageOrder } satisfies StoredResume);
+    }
+  });
+  const activeResumeId = next.some((item) => item.id === pending.activeResumeId)
+    ? pending.activeResumeId
+    : (next[0]?.id ?? null);
+  transaction.objectStore(META_STORE).put({
+    key: WORKSPACE_META_KEY,
+    activeResumeId,
+    updatedAt: pending.updatedAt,
+  } satisfies WorkspaceMeta);
+  await completion;
+  return next;
+}
+
+export function saveCheckpointHistories(
+  checkpointHistoryByResume: CheckpointHistoryByResume,
+  previous: CheckpointHistoryByResume,
+) {
   return enqueueWrite(async () => {
     const database = await openResumeDatabase();
-    const transaction = database.transaction(CHECKPOINTS_STORE, "readwrite");
+    const transaction = database.transaction([RESUMES_STORE, CHECKPOINTS_STORE], "readwrite");
+    const completion = transactionComplete(transaction);
     const checkpoints = transaction.objectStore(CHECKPOINTS_STORE);
-    checkpoints.clear();
-    Object.entries(checkpointHistoryByResume).forEach(([resumeId, history]) => {
-      history.forEach((checkpoint, storageOrder) =>
-        checkpoints.put({
-          storageId: checkpointStorageId(resumeId, checkpoint.id),
-          resumeId,
-          storageOrder,
-          checkpoint,
-        } satisfies StoredCheckpoint),
-      );
-    });
-    await transactionComplete(transaction);
+    for (const resumeId of new Set([
+      ...Object.keys(previous),
+      ...Object.keys(checkpointHistoryByResume),
+    ])) {
+      const before = previous[resumeId] ?? [];
+      const after = checkpointHistoryByResume[resumeId] ?? [];
+      if (JSON.stringify(before) === JSON.stringify(after)) continue;
+      const parent = await requestResult(transaction.objectStore(RESUMES_STORE).get(resumeId));
+      if (!parent) continue;
+      for (const checkpoint of before) {
+        if (!after.some((item) => item.id === checkpoint.id))
+          checkpoints.delete(checkpointStorageId(resumeId, checkpoint.id));
+      }
+      after.forEach((checkpoint, storageOrder) => {
+        if (!before.some((item) => item.id === checkpoint.id))
+          checkpoints.put({
+            storageId: checkpointStorageId(resumeId, checkpoint.id),
+            resumeId,
+            storageOrder,
+            checkpoint,
+          } satisfies StoredCheckpoint);
+      });
+    }
+    await completion;
+    notifyResumeCommit();
   });
 }
 
 export function clearResumeWorkspace() {
+  if (typeof window !== "undefined") {
+    for (let index = localStorage.length - 1; index >= 0; index--) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(PENDING_PREFIX)) localStorage.removeItem(key);
+    }
+    liveJournals.clear();
+    unprotectedWrites.clear();
+  }
   return enqueueWrite(async () => {
     const database = await openResumeDatabase();
     const transaction = database.transaction(
@@ -322,10 +504,57 @@ export function clearResumeWorkspace() {
     transaction.objectStore(CHECKPOINTS_STORE).clear();
     transaction.objectStore(META_STORE).clear();
     await transactionComplete(transaction);
+    notifyResumeCommit();
   });
 }
 
 export async function loadOrMigrateResumeWorkspace(legacy: LegacyResumeStorageValues) {
+  // Replay interrupted writes before reading the authoritative workspace. Never
+  // replay this module's in-flight writes: its queue already owns them.
+  if (typeof window !== "undefined") {
+    const pending: Array<{ key: string; write: PendingResumeWrite }> = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(PENDING_PREFIX) || liveJournals.has(key)) continue;
+      try {
+        const write = JSON.parse(localStorage.getItem(key)!) as PendingResumeWrite;
+        if (
+          !Array.isArray(write.changes) ||
+          typeof write.updatedAt !== "string" ||
+          !Number.isFinite(write.sequence) ||
+          (write.activeResumeId !== null && typeof write.activeResumeId !== "string")
+        )
+          continue;
+        const changes = write.changes.map((change) => {
+          const before = change.before
+            ? parseResumeLibrary(JSON.stringify([change.before]))[0]
+            : undefined;
+          const after = change.after
+            ? parseResumeLibrary(JSON.stringify([change.after]))[0]
+            : undefined;
+          if (
+            (!before && !after) ||
+            (change.before && !before) ||
+            (change.after && !after) ||
+            (before && after && before.id !== after.id)
+          )
+            throw new Error("Invalid recovery record");
+          return { before, after };
+        });
+        pending.push({ key, write: { ...write, changes } });
+      } catch {
+        /* Ignore malformed recovery records. */
+      }
+    }
+    pending.sort(
+      (a, b) =>
+        a.write.updatedAt.localeCompare(b.write.updatedAt) || a.write.sequence - b.write.sequence,
+    );
+    for (const { key, write } of pending) {
+      await enqueueWrite(() => writeResumeChanges(write, key));
+      localStorage.removeItem(key);
+    }
+  }
   const stored = await loadResumeWorkspace();
   const hasMeaningfulData = (candidate: HydratedResumeWorkspace) =>
     candidate.resumeLibrary.length > 1 ||

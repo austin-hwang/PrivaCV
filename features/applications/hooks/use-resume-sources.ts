@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadResumeWorkspace } from "@/lib/resume-db";
+import { loadResumeWorkspace, subscribeResumeCommits } from "@/lib/resume-db";
 import {
   CHECKPOINT_HISTORY_KEY,
   RESUME_LIBRARY_KEY,
@@ -76,11 +76,15 @@ export function useResumeSources() {
 
   useEffect(() => {
     void refresh();
+    const unsubscribe = subscribeResumeCommits(() => void refresh());
     const handleStorage = (event: StorageEvent) => {
       if ([RESUME_LIBRARY_KEY, CHECKPOINT_HISTORY_KEY].includes(event.key ?? "")) void refresh();
     };
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", handleStorage);
+    };
   }, [refresh]);
 
   const defaultSourceKey = useMemo(

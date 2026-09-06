@@ -203,10 +203,9 @@ test("customizes and persists a professional resume theme", async ({ page }) => 
   await page.getByRole("radio", { name: "Compact", exact: true }).click();
   await expect(sheet).toHaveAttribute("data-density", "compact");
 
-  // Reload only after IndexedDB confirms the debounced save. A fixed delay can
+  // Reload only after IndexedDB confirms the save. A fixed delay can
   // expire before storage finishes on a slower CI runner.
   const autosave = page.locator("[data-autosave-status]");
-  await expect(autosave).toHaveAttribute("data-autosave-status", "saving");
   await expect(autosave).toHaveAttribute("data-autosave-status", "saved");
   await page.reload();
   await expect(sheet).toHaveAttribute("data-heading", "plain");
@@ -326,7 +325,7 @@ test("warns clearly and offers a JSON backup when browser autosave fails", async
   await expect((await download).suggestedFilename()).toBe("John_Doe.json");
 });
 
-test("records only an anonymous format event when a resume is exported", async ({ page }) => {
+test("records export format with a pseudonymous visitor ID", async ({ page }) => {
   const exportEvents: unknown[] = [];
   await page.route("**/api/metrics/export", async (route) => {
     exportEvents.push(route.request().postDataJSON());
@@ -342,7 +341,9 @@ test("records only an anonymous format event when a resume is exported", async (
   await openExport(page);
   await page.getByRole("menuitem", { name: /export json/i }).click();
   await expect((await download).suggestedFilename()).toBe("John_Doe.json");
-  await expect.poll(() => exportEvents).toEqual([{ format: "json" }]);
+  await expect
+    .poll(() => exportEvents)
+    .toEqual([{ format: "json", visitorId: expect.stringMatching(/^[0-9a-f-]{36}$/) }]);
 });
 
 test("backs up a checkpoint instead of claiming it persisted when browser storage fails", async ({
