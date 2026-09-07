@@ -98,6 +98,26 @@ export default function JobSearchSankeyPage() {
         cardLayout="evidence"
         prose={[
           {
+            heading: "Create your first job search Sankey",
+            paragraphs: [
+              "Start with the applications you actually submitted. The chart is built from your tracker records, so you do not need to write flow-chart code or maintain a second set of totals.",
+            ],
+            steps: [
+              "Open the application tracker and add each company and role. Keep opportunities you have not submitted in Saved or Preparing.",
+              "Move submitted applications to Applied. Record interviews and later outcomes as they happen so the timeline preserves the journey.",
+              "Open the Sankey view. Check the active search and filters before interpreting the totals; the chart represents the applications currently in view.",
+              "Download the PNG when you are ready to share. Review the image before posting it, and save a JSON backup separately if you want to preserve the underlying records.",
+            ],
+          },
+          {
+            heading: "Worked example: 20 submitted applications",
+            paragraphs: [
+              "Imagine a fictional search with 20 submissions: 10 are awaiting a response, 6 were rejected before an interview, and 4 reached an interview. Of those 4, 2 were rejected and 2 received offers. One offer was accepted and the other declined.",
+              "The initial branches total 20: 10 + 6 + 4. The interview branch splits into 2 rejections and 2 offers, then the offer branch splits into 1 acceptance and 1 decline. The same application appears at successive stages; adding every node together would double-count it.",
+              "In this example, 4 / 20 = 20% of applications reached an interview. The interview-to-offer rate is 2 / 4 = 50%, while the application-to-offer rate is 2 / 20 = 10%. Always name the denominator when comparing searches. These are illustrative numbers, not a hiring benchmark or PrivaCV user statistics.",
+            ],
+          },
+          {
             heading: "How the automatic job-search funnel works",
             paragraphs: [
               "Every application has a current status and a local activity timeline. PrivaCV uses that history to reconstruct the furthest meaningful stages the application reached. An application that interviewed and was later rejected therefore flows from Applications to Interviewing to Not selected, instead of looking like a direct rejection.",

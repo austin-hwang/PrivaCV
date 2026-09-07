@@ -63,7 +63,7 @@ Privacy is a product invariant, not an optional feature.
 
 - Never commit a real resume, job application, email address, phone number, API key, or downloaded model artifact.
 - Use synthetic people and organizations in fixtures and screenshots.
-- Do not add telemetry containing resume text, application data, prompts, generated text, account identifiers, or device fingerprints. Workspace visits, resume exports, and application-creation metrics may share the documented random browser-profile visitor ID; honor GPC/DNT, reset it with Delete all data, and keep it out of local-AI events and portable document data.
+- Do not add telemetry containing resume text, application data, prompts, generated text, account identifiers, or device fingerprints. Resume exports and application-creation metrics may share the documented random browser-profile visitor ID; honor GPC/DNT, reset it with Delete all data, and keep it out of local-AI events and portable document data. Do not collect separate workspace-visit events.
 - Any new network request that can occur in the workspace must be documented in the privacy page and called out in the pull request.
 - Desktop-only network behavior must remain explicit. Loopback requests are local; model downloads and external links are the only expected remote desktop traffic.
 - Public-document parser fixtures must follow `tests/fixtures/public-resumes/README.md` and remain opt-in.

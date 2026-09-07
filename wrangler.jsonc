@@ -43,10 +43,6 @@
   ],
   "analytics_engine_datasets": [
     {
-      "binding": "VISITOR_METRICS",
-      "dataset": "privacv_visitors",
-    },
-    {
       "binding": "EXPORT_METRICS",
       "dataset": "privacv_exports",
     },

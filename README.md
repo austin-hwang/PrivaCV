@@ -184,7 +184,7 @@ Use [.env.example](.env.example) as the starting point.
 
 ### Product metrics
 
-Daily reach is counted separately for the resume workspace (`/`) and job application workspace (`/applications`); public information pages are not tracked. This uses the separate `privacv_visitors` Analytics Engine dataset and `VISITOR_METRICS` Worker binding. The web client sends only a random persistent browser-profile identifier, UTC date, and workspace category (`resume` or `job_applications`) to `/api/metrics/visitors`; it shares the identifier across tabs and sessions without daily rotation; clearing local data resets it. No account, resume content, URL, referrer, IP address, or fingerprint enters this dataset. GPC/DNT and blocked storage suppress collection; desktop builds omit the tracker. This estimates unique browser profiles across a selected period, not individual people or physical devices. The same ID is attached to each resume export and manually created job application event.
+Resume-export and manually created job-application events share a random persistent browser-profile ID from `privacv-visitor-v2` in localStorage. It remains stable across tabs and sessions until local data is cleared. No separate workspace-visit events are collected. GPC/DNT, blocked storage, and desktop builds suppress identified metrics. These counts estimate browser profiles using each feature, not individual people or physical devices. See `docs/visitor-analytics.md` for row layouts and queries.
 
 The binding is included in `wrangler.jsonc` and becomes active on the next Cloudflare deployment. Local Next.js runs return 204 without recording anything. See [visitor analytics setup and queries](docs/visitor-analytics.md) for how to read the counts.
 

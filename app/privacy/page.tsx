@@ -81,24 +81,23 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-semibold text-foreground">Limited product metrics</h2>
             <p className="mt-3">
-              The hosted website records limited metrics for workspace visits, resume exports,
-              local-AI usage milestones, and applications created. These metrics contain no company
-              names, roles, job descriptions, notes, resume content, prompts, or generated text.
+              The hosted website records limited metrics for resume exports, local-AI usage
+              milestones, and applications created. These metrics contain no company names, roles,
+              job descriptions, notes, resume content, prompts, or generated text.
             </p>
             <p className="mt-3">
-              Visits to the resume and job application workspaces, each resume export, and each
-              application-creation event include the same randomly generated browser-profile ID.
-              This pseudonymous ID stays in local browser storage across days and sessions, letting
-              us count returning browsers and unique users of these features. It is not derived from
-              your identity, IP address, or device fingerprint. Different browsers, profiles, and
-              devices have different IDs. Public information pages do not record visits, and
-              local-AI events do not include this ID.
+              Each resume export and each application-creation event include the same randomly
+              generated browser-profile ID. This pseudonymous ID stays in local browser storage
+              across days and sessions, letting us count returning browsers and unique users of
+              these features. It is not derived from your identity, IP address, or device
+              fingerprint. Different browsers, profiles, and devices have different IDs. Public
+              information pages do not record visits, and local-AI events do not include this ID.
             </p>
             <p className="mt-3">
-              We skip visitor, export, and application-creation metrics when Global Privacy Control
-              or Do Not Track is enabled, or local storage is blocked. Desktop builds do not submit
-              these metrics. Delete all data removes the local identifier; future activity gets a
-              new one. Clearing local data does not erase metrics already recorded by Cloudflare.
+              We skip export and application-creation metrics when Global Privacy Control or Do Not
+              Track is enabled, or local storage is blocked. Desktop builds do not submit these
+              metrics. Delete all data removes the local identifier; future activity gets a new one.
+              Clearing local data does not erase metrics already recorded by Cloudflare.
             </p>
           </section>
           <section>

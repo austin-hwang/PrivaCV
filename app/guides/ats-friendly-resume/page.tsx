@@ -41,7 +41,8 @@ export default function AtsFriendlyResumeGuide() {
       <p>A few things follow from that:</p>
       <ul>
         <li>
-          It reads text, not design. Anything it can&apos;t turn into plain text is invisible to it.
+          Parsing depends on extracting text and assigning it to the right fields. Visual polish
+          alone does not tell you whether that extraction worked.
         </li>
         <li>
           Most modern systems parse a clean, standard resume without trouble. The horror stories
@@ -82,8 +83,8 @@ export default function AtsFriendlyResumeGuide() {
           the mapping.
         </li>
         <li>
-          <strong>Keep everything as selectable text.</strong> If you can&apos;t highlight it with
-          your cursor, an ATS can&apos;t read it.
+          <strong>Keep everything as selectable text.</strong> An image-only resume may require
+          optical character recognition. Selectable text avoids depending on that extra step.
         </li>
         <li>
           <strong>Put your name and contact details in the body</strong> of the document, not in a
@@ -135,9 +136,35 @@ export default function AtsFriendlyResumeGuide() {
         <li>Did anything turn into gibberish or disappear?</li>
       </ul>
       <p>
-        If the <Link href="/plain-text-resume">plain text</Link> reads cleanly, an ATS almost
-        certainly can too. The <Link href="/ats-resume-checker">PrivaCV ATS resume checker</Link>{" "}
-        does this in your browser and also flags missing contact details and thin sections.
+        Reading the <Link href="/plain-text-resume">plain text</Link> helps reveal missing content
+        and ordering problems, but it does not reproduce an employer&apos;s parser. The{" "}
+        <Link href="/ats-resume-checker">PrivaCV ATS resume checker</Link> flags issues such as
+        missing contact details and thin sections. Also review any fields the application portal
+        fills from your uploaded file.
+      </p>
+
+      <h2>A worked formatting check</h2>
+      <p>
+        Consider a fictional two-column resume: Experience appears on the left and Skills on the
+        right. The page looks tidy, but copying its text produces &ldquo;Data Analyst, SQL, Example
+        Labs, Python, Mar 2023–Jun 2025.&rdquo; The skills have interrupted the job entry.
+      </p>
+      <p>
+        Rebuild that entry in one column: &ldquo;Data Analyst&rdquo; on the role line,
+        &ldquo;Example Labs&rdquo; with the dates, then its achievement bullets. Put SQL and Python
+        under a separate Skills heading. Export again and check that the experience block stays
+        together in the extracted text. This is an illustrative check, not a claim about every ATS.
+      </p>
+      <ol>
+        <li>Open the exported file and copy its text into a plain-text editor.</li>
+        <li>Compare every job title, company, date range, and bullet with your source resume.</li>
+        <li>Check that skills and contact details have not interrupted an experience entry.</li>
+        <li>Fix the source, export again, and repeat the comparison on the final file.</li>
+      </ol>
+      <p>
+        If you only have an old PDF, the{" "}
+        <Link href="/pdf-to-docx-resume">PDF-to-Word workflow</Link> explains how to review
+        extracted fields before rebuilding it. Keep the original for comparison.
       </p>
 
       <h2>Myths you can ignore</h2>

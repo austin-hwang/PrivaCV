@@ -89,7 +89,15 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async redirects() {
-    return isDesktopApp ? desktopRedirects : [];
+    if (isDesktopApp) return desktopRedirects;
+    // Browser storage belongs to an origin. Keep / and /applications available
+    // on www until users can migrate their local work; consolidate public pages.
+    return desktopRedirects.map(({ source }) => ({
+      source,
+      has: [{ type: "host" as const, value: "www.privacv.app" }],
+      destination: `https://privacv.app${source}`,
+      permanent: true,
+    }));
   },
 };
 

@@ -1,6 +1,4 @@
-export const VISITOR_METRIC_PATH = "/api/metrics/visitors";
 export const VISITOR_STORAGE_KEY = "privacv-visitor-v2";
-export type VisitorWorkspace = "resume" | "job_applications";
 export const VISITOR_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -57,11 +55,4 @@ export async function trackIdentifiedMetric(
     // Blocked storage/network must not affect editing or invent a new user per event.
     return false;
   }
-}
-
-export function trackDailyVisitor(workspace: VisitorWorkspace): Promise<boolean> {
-  return trackIdentifiedMetric(VISITOR_METRIC_PATH, {
-    day: new Date().toISOString().slice(0, 10),
-    workspace,
-  });
 }

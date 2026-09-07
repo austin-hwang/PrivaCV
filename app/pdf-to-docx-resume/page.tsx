@@ -10,7 +10,7 @@ const faqItems: FaqItem[] = [
   {
     question: "Does the conversion keep my original PDF layout exactly?",
     answer:
-      "No, and that's on purpose. PrivaCV pulls your resume's text into a clean, editable structure instead of copying the PDF's visual layout. That's what keeps the result easy to edit and reliable for applicant tracking systems.",
+      "No. PrivaCV extracts text into resume fields and rebuilds the document in a selected template. Review the fields before export: columns, unusual spacing, and font encodings can affect extraction. No converter can guarantee acceptance by every applicant tracking system.",
   },
   {
     question: "Is my PDF uploaded to a server?",
@@ -58,6 +58,23 @@ export default function PdfToDocxResumePage() {
       ]}
       cardLayout="process"
       prose={[
+        {
+          heading: "From a PDF layout to editable fields",
+          paragraphs: [
+            "For example, a fictional PDF entry might read: Data Analyst, Example Labs, Mar 2023–Jun 2025, followed by two achievement bullets. After import, check that the role is the title, the company is the subtitle, the dates are correct, and both bullets belong to that experience entry.",
+            "If a two-column PDF places a skills list beside the job history, extraction may mix their reading order. Move any misplaced skills back into Skills and check that each employer still has the correct achievements. The exported Word file uses your chosen PrivaCV template; it does not reproduce the original columns.",
+          ],
+        },
+        {
+          heading: "Check the conversion before downloading",
+          paragraphs: ["Keep your original PDF until you have reviewed the editable copy."],
+          steps: [
+            "Check that the source PDF contains selectable text. An image-only scan needs text recognition first; do not assume a scanned page will import as editable resume fields.",
+            "Compare your name, email, phone number, links, employers, titles, and dates with the original. Look for missing characters and text assigned to the wrong section.",
+            "Review the plain-text version for reading order, then choose a template and inspect the resume preview for overflow or awkward page breaks.",
+            "Export DOCX and open it in the word processor you will use. Font substitution can change line wrapping, so check page breaks again before submitting.",
+          ],
+        },
         {
           heading: "Why convert a PDF resume to Word",
           paragraphs: [

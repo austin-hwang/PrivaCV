@@ -79,7 +79,7 @@ describe("sitemap", () => {
 
     expect(first).toEqual(second);
     expect(new Set(first.map((entry) => new Date(entry.lastModified!).toISOString()))).toEqual(
-      new Set(["2026-07-19T00:00:00.000Z"]),
+      new Set(["2026-07-19T00:00:00.000Z", "2026-09-06T00:00:00.000Z"]),
     );
     expect(
       first.every((entry) => entry.changeFrequency === undefined && entry.priority === undefined),

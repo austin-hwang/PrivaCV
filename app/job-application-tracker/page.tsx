@@ -100,6 +100,26 @@ export default function JobApplicationTrackerPage() {
         cardLayout="ledger"
         prose={[
           {
+            heading: "Set up your first application",
+            paragraphs: [
+              "Use one record per opportunity so the posting, next action, and resume version stay together. Here is a practical starting workflow.",
+            ],
+            steps: [
+              "Add the company and role, then save the posting URL and job description while they are still available.",
+              "Use Saved for an opportunity you are considering and Preparing while you tailor your materials. Link the resume or checkpoint you intend to submit.",
+              "After you submit through the employer's application process, move the record to Applied. Check the submitted resume snapshot so you know which version the record preserves.",
+              "Record a concrete next action and due date, such as preparing for an interview. Update the timeline when you hear back and record the eventual outcome.",
+              "Download a JSON backup regularly. Browser storage is local to this browser profile and can be lost if you clear site data; a CSV is useful for a spreadsheet but is not the complete backup.",
+            ],
+          },
+          {
+            heading: "Example: keep two applications separate",
+            paragraphs: [
+              "Suppose you apply for a product analyst role at Example Labs and a reporting analyst role at Sample Studio. Create two records, save the respective job descriptions, and link the tailored resume for each before marking it Applied. These are fictional companies used to illustrate the workflow.",
+              "When Example Labs invites you to interview, update that record and add the interview details. Sample Studio can remain Applied while you wait. Editing your working resume afterward does not rewrite the submitted snapshot attached to either application.",
+            ],
+          },
+          {
             heading: "A job tracker without another account",
             paragraphs: [
               "A job search contains sensitive details: where you applied, what a company offered, private notes, recruiter contacts, and the resume tailored for each role. Most online trackers attach that history to a cloud account. PrivaCV keeps the working database in your browser instead.",

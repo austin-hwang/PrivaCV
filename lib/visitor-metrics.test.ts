@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { dailyVisitor, trackDailyVisitor, VISITOR_STORAGE_KEY } from "@/lib/visitor-metrics";
+import { dailyVisitor, trackIdentifiedMetric, VISITOR_STORAGE_KEY } from "@/lib/visitor-metrics";
 import { trackResumeExport } from "@/lib/export-metrics";
 import { trackJobApplicationCreated } from "@/lib/job-application-metrics";
 
-describe("daily visitor identity", () => {
+describe("persistent event visitor identity", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -24,16 +24,16 @@ describe("daily visitor identity", () => {
     localStorage.setItem(VISITOR_STORAGE_KEY, '{"day":"bad","visitorId":"resume content"}');
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
-    expect(await trackDailyVisitor("resume")).toBe(true);
+    expect(await trackIdentifiedMetric("/api/metrics/export", { format: "pdf" })).toBe(true);
     const [, options] = fetchMock.mock.calls[0];
-    expect(Object.keys(JSON.parse(options.body)).sort()).toEqual(["day", "visitorId", "workspace"]);
+    expect(Object.keys(JSON.parse(options.body)).sort()).toEqual(["format", "visitorId"]);
     expect(options.body).not.toContain("resume content");
     expect(options).toMatchObject({ credentials: "omit", referrerPolicy: "no-referrer" });
   });
   it("attaches the same ID to exports and application creation, and resets after deletion", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
-    await trackDailyVisitor("resume");
+    await trackIdentifiedMetric("/api/metrics/export", { format: "pdf" });
     trackResumeExport("pdf");
     trackJobApplicationCreated();
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
@@ -42,7 +42,7 @@ describe("daily visitor identity", () => {
     expect(bodies[1]).toEqual({ format: "pdf", visitorId: bodies[0].visitorId });
     expect(bodies[2]).toEqual({ event: "job_application_created", visitorId: bodies[0].visitorId });
     localStorage.removeItem(VISITOR_STORAGE_KEY);
-    await trackDailyVisitor("resume");
+    await trackIdentifiedMetric("/api/metrics/export", { format: "pdf" });
     expect(JSON.parse(fetchMock.mock.calls[3][1].body).visitorId).not.toBe(bodies[0].visitorId);
   });
   it("skips blocked storage and desktop builds", async () => {
@@ -51,10 +51,10 @@ describe("daily visitor identity", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(await trackDailyVisitor("resume")).toBe(false);
+    expect(await trackIdentifiedMetric("/api/metrics/export", { format: "pdf" })).toBe(false);
     vi.restoreAllMocks();
     document.documentElement.dataset.desktopApp = "true";
-    expect(await trackDailyVisitor("resume")).toBe(false);
+    expect(await trackIdentifiedMetric("/api/metrics/export", { format: "pdf" })).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
   it.each(["doNotTrack", "globalPrivacyControl"])(
@@ -63,7 +63,7 @@ describe("daily visitor identity", () => {
       vi.stubGlobal("navigator", { [signal]: signal === "doNotTrack" ? "1" : true });
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
-      expect(await trackDailyVisitor("resume")).toBe(false);
+      expect(await trackIdentifiedMetric("/api/metrics/export", { format: "pdf" })).toBe(false);
       expect(localStorage.getItem(VISITOR_STORAGE_KEY)).toBeNull();
       expect(fetchMock).not.toHaveBeenCalled();
     },

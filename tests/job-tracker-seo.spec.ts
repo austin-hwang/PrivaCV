@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test";
 
+test("consolidates public www URLs without redirecting local workspaces", async ({ request }) => {
+  for (const path of ["/job-search-sankey", "/guides/ats-friendly-resume", "/plain-text-resume"]) {
+    const response = await request.get(`${path}?source=search`, {
+      headers: { host: "www.privacv.app" },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(`https://privacv.app${path}?source=search`);
+  }
+  for (const path of ["/", "/applications"]) {
+    const response = await request.get(path, {
+      headers: { host: "www.privacv.app" },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(200);
+    expect(response.headers().location).toBeUndefined();
+  }
+});
+
 test("publishes crawlable tracker and Sankey pages while keeping the workspace private", async ({
   page,
   request,

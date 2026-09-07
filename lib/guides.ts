@@ -22,7 +22,7 @@ export const GUIDES: GuideMeta[] = [
     description:
       "Learn which layouts, headings, fonts, keywords, and file types ATS software reads reliably—plus a 7-point checklist to use before you apply.",
     published: "2026-07-15",
-    updated: "2026-07-19",
+    updated: "2026-09-06",
   },
 ];
 

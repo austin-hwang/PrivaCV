@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 export type FaqItem = { question: string; answer: string };
 type Card = { title: string; body: string; image?: { src: string; alt: string } };
-type ProseSection = { heading: string; paragraphs: string[] };
+type ProseSection = { heading: string; paragraphs: string[]; steps?: string[] };
 type RelatedLink = { href: string; label: string };
 export type LandingCardLayout = "evidence" | "ledger" | "process" | "gallery";
 
@@ -202,6 +202,13 @@ export function SeoLanding({
                   {section.paragraphs.map((paragraph, index) => (
                     <p key={index}>{paragraph}</p>
                   ))}
+                  {section.steps ? (
+                    <ol className="flex list-decimal flex-col gap-3 pl-5 marker:font-semibold marker:text-primary">
+                      {section.steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                  ) : null}
                 </div>
               </section>
             ))}
